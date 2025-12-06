@@ -3,8 +3,8 @@
  * Provides GET, POST, PUT, PATCH, DELETE methods
  */
 
-import { HttpClient } from './http-client'
 import { API_CONFIG } from '../config'
+import { HttpClient } from './http-client'
 
 class ApiClient extends HttpClient {
 	constructor() {
@@ -19,8 +19,13 @@ class ApiClient extends HttpClient {
 	async get<T>(endpoint: string, cache?: RequestCache): Promise<T> {
 		return this.request<T>(endpoint, {
 			method: 'GET',
-			cache: cache || 'default',
-			next: { revalidate: 3600 }, // Revalidate every hour by default
+			cache: cache || 'no-store',
+			next: { revalidate: 0 }, // Disable cache by default for real-time updates
+			headers: {
+				'Cache-Control': 'no-cache, no-store, must-revalidate',
+				Pragma: 'no-cache',
+				Expires: '0',
+			},
 		})
 	}
 

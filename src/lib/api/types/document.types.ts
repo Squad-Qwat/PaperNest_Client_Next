@@ -25,7 +25,7 @@ export interface Document {
 export interface CreateDocumentDto {
 	title: string
 	description?: string
-	content?: string
+	savedContent?: any // TipTap JSON content (optional on create)
 }
 
 /**
@@ -40,7 +40,7 @@ export interface UpdateDocumentDto {
  * Update document content DTO
  */
 export interface UpdateDocumentContentDto {
-	content: string
+	savedContent: any // TipTap JSON content (standardized field name)
 	versionNote?: string
 }
 
@@ -84,4 +84,36 @@ export interface VersionsResponse {
  */
 export interface VersionResponse {
 	version: Version
+}
+
+/**
+ * Room info from Liveblocks
+ */
+export interface RoomInfo {
+	id: string
+	activeUsers: number
+	status?: 'active' | 'inactive'
+}
+
+/**
+ * Document with room state response
+ * Used for checking active users in Liveblocks room before initializing editor
+ */
+export interface DocumentWithRoomStateResponse {
+	document: Document
+	currentVersion?: Version
+	room: RoomInfo
+}
+
+/**
+ * Document attachment file entity
+ */
+export interface DocumentFile {
+	fileId: string
+	name: string
+	type: string
+	url: string
+	r2Key: string
+	createdAt: any
+	size?: number
 }

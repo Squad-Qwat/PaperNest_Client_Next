@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
 		// Get the authorization token from the request headers
 		const authHeader = request.headers.get('authorization')
 
-		if (!authHeader || !authHeader.startsWith('Bearer ')) {
+		if (!authHeader?.startsWith('Bearer ')) {
 			console.error('[Liveblocks Auth] No authorization header found')
 			return new NextResponse('Unauthorized', { status: 401 })
 		}
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 		const user = response.data?.user || response.user || response
 
 		// Validate user data
-		if (!user || !user.userId) {
+		if (!user?.userId) {
 			console.error('[Liveblocks Auth] Invalid user data:', response)
 			return new NextResponse('Invalid user data', { status: 400 })
 		}
@@ -50,13 +50,16 @@ export async function POST(request: NextRequest) {
 			name: user.name,
 		})
 
+		const color = generateColorFromString(user.userId || user.username || user.email)
+
 		// Start a Liveblocks session with user metadata
 		const session = liveblocks.prepareSession(user.userId, {
 			userInfo: {
 				name: user.name || user.username || 'Unknown User', // Full name from database
 				email: user.email,
 				avatar: user.photoURL || undefined,
-				color: generateColorFromString(user.userId || user.username || user.email), // Generate consistent color
+				color,
+				colorLight: `${color}33`,
 			},
 		})
 
@@ -86,9 +89,24 @@ export async function POST(request: NextRequest) {
 function generateColorFromString(str: string): string {
 	let hash = 0
 	for (let i = 0; i < str.length; i++) {
-		hash = str.charCodeAt(i) + ((hash << 5) - hash)
+		hash = (str.codePointAt(i) || 0) + ((hash << 5) - hash)
 	}
 
-	const hue = hash % 360
-	return `hsl(${hue}, 70%, 50%)`
+	const palette = [
+		'#FF6B6B',
+		'#4ECDC4',
+		'#45B7D1',
+		'#FFA07A',
+		'#98D8C8',
+		'#F7DC6F',
+		'#BB8FCE',
+		'#85C1E2',
+		'#F8B739',
+		'#52D273',
+		'#FF8ED4',
+		'#5DADE2',
+	]
+
+	const index = Math.abs(hash) % palette.length
+	return palette[index]
 }

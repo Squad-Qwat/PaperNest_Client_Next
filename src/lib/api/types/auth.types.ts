@@ -14,6 +14,20 @@ export interface RegisterDto {
 	name: string
 	username: string
 	role: UserRole
+	workspaceData?: {
+		title: string
+		description?: string
+		icon?: string
+		mode: 'create' | 'join'
+		invitationCode?: string
+	}
+}
+
+/**
+ * Finalize Registration DTO
+ */
+export interface FinalizeRegistrationDto {
+	firebaseToken: string
 }
 
 /**
@@ -35,10 +49,19 @@ export interface LoginEmailDto {
  * Authentication response from backend
  */
 export interface AuthResponse {
-	user: User
-	token: string // JWT access token
-	refreshToken: string
+	user?: User
+	token?: string // JWT access token
+	refreshToken?: string
 	firebaseToken?: string // Custom Firebase token (for Firebase Auth)
+
+	isNewUser?: boolean
+	isVerificationRequired?: boolean
+	firebaseData?: {
+		uid: string
+		email: string
+		name: string
+		picture?: string
+	}
 
 	// Deprecated: kept for backwards compatibility
 	accessToken?: string
@@ -77,4 +100,11 @@ export interface UpdateEmailDto {
  */
 export interface VerifyTokenDto {
 	firebaseToken: string
+}
+
+/**
+ * Check email availability response
+ */
+export interface CheckEmailResponse {
+	available: boolean
 }
