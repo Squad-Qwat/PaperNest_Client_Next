@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useDocumentReviews } from '@/hooks/useDocumentVersions'
 import { documentsService } from '@/lib/api/services/documents.service'
+import { Quote } from 'lucide-react'
+import { ModalListCitations } from './ViewCitations'
 
 const DocumentHeader = ({
 	title,
@@ -33,10 +35,26 @@ const DocumentHeader = ({
 	canUndo,
 	canRedo,
 	debugContentExtraction,
+	toggleCitations,
+	isCitationOpen,
 }) => {
 	const [isSyncing, setIsSyncing] = useState(false)
 	const [showCommitModal, setShowCommitModal] = useState(false)
 	const { canCommit, latestReviewStatus } = useDocumentReviews(documentId)
+	const [citations, setCitations] = useState([])
+
+    const deleteCitation = (id) => {
+        setCitations((prev) => prev.filter(c => c.id !== id))
+    }
+
+	
+	const insertCitationAtCursor = (text) => {
+		if (editor) {
+			editor.chain().focus().insertContent(text).run()
+			setIsCitationModalOpen(false)
+		}
+	} 
+	
 
 	return (
 		<header className='bg-white border-b border-gray-200 sticky top-0 z-40 transition-all duration-300'>
@@ -384,6 +402,16 @@ const DocumentHeader = ({
 						>
 							<History className='h-5 w-5' />
 						</Button>
+
+						<Button
+                    		variant='ghost'
+                    		size='icon'
+                    		onClick={toggleCitations}
+                    		className={isCitationOpen ? 'bg-blue-100 text-blue-600' : ''}
+                    		title="Citations"
+                		>
+                    		<Quote className='h-5 w-5' />
+                		</Button>
 						<div className='ml-2 flex items-center gap-2'>
 							{user?.avatar ? (
 								<img src={user.avatar} alt={user.name || 'User'} className='h-8 w-8 rounded-full' />
@@ -423,6 +451,14 @@ const DocumentHeader = ({
                         throw error // Re-throw so Modal can handle it/show error
 					}
 				}}
+			/>
+			{/* Menggunakan  */}
+			<ModalListCitations
+				isOpen={isCitationOpen}
+				onClose={() => setIsCitationModalOpen(false)}
+				citations={citations}
+				onDelete={deleteCitation}
+				onInsert={insertCitationAtCursor}
 			/>
 
 			{/* Editor Toolbar - sticky di bawah header */}

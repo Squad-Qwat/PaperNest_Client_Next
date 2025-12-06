@@ -156,17 +156,17 @@ export default function ReviewsPage() {
 							<div className='grid gap-4'>
 								{sortedReviews.map((review) => (
 									<ReviewCard
-										key={review.id}
+										key={review.reviewId}
 										{...review}
-										reviewId={review.id}
+										reviewId={review.reviewId}
 										workspaceId={workspaceId}
 										// Mapping properties dynamically if names slightly differ or need spread
 										title={`Review for ${review.documentBodyId}`} // Placeholder title if not in data
 										date={new Date(review.requestedAt).toLocaleDateString()}
 										// Actions
-										onApprove={() => handleApprove(review.id)}
-										onReject={() => handleReject(review.id)}
-										onRequestRevision={() => handleRequestRevision(review.id)}
+										onApprove={() => handleApprove(review.reviewId)}
+										onReject={() => handleReject(review.reviewId)}
+										onRequestRevision={() => handleRequestRevision(review.reviewId)}
 									/>
 								))}
 							</div>

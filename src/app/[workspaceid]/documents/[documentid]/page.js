@@ -15,6 +15,8 @@ import { createEditorExtensions } from '@/lib/editor/extensions'
 import { DocumentService } from '@/lib/firebase/document-service'
 import '@/components/document/EditorStyles.css'
 import ModalVersions from '@/components/document/ModalVersions'
+import { ModalAddCitations } from '@/components/document/ModalCitations'
+import { ModalListCitations } from '@/components/document/ViewCitations'
 import ContextMenu from '@/components/editor/context-menu'
 import { useAuthContext } from '@/context/AuthContext'
 
@@ -42,6 +44,8 @@ export default function DocumentPage() {
 
 	// Check workspace access first
 	const { workspace, loading: workspaceLoading, error: workspaceError } = useWorkspace(workspaceId)
+	const [isCitationModalOpen, setIsCitationModalOpen] = useState(false)
+    const [citations, setCitations] = useState([])
 
 	// Redirect if no workspace access
 	useEffect(() => {
@@ -174,6 +178,12 @@ export default function DocumentPage() {
 		}
 	}, [documentData, user, documentId, editorFunctions, title])
 
+	useEffect(() => {
+        if (documentData?.citations) {
+            setCitations(documentData.citations)
+        }
+    }, [documentData])
+
 	const onEditorReady = useCallback((functions) => {
 		setEditorFunctions(functions)
 	}, [])
@@ -189,6 +199,38 @@ export default function DocumentPage() {
 	const toggleModalVersions = () => {
 		setModalVersionsOpen(!modalVersionsOpen)
 	}
+
+	const toggleCitations = useCallback(() => {
+        setIsCitationModalOpen(prev => !prev)
+    }, [])
+
+	const handleAddCitation = async (newCit) => {
+        const citation = { ...newCit, id: Date.now().toString() }
+        const updatedCitations = [citation, ...citations]
+        
+        setCitations(updatedCitations)
+        
+        // Save to Firebase (adjust 'citations' field name based on your DB schema)
+        await DocumentService.updateDocument(documentId, { 
+            citations: updatedCitations 
+        })
+    }
+
+    const handleDeleteCitation = async (id) => {
+        const updatedCitations = citations.filter(c => c.id !== id)
+        setCitations(updatedCitations)
+        await DocumentService.updateDocument(documentId, { 
+            citations: updatedCitations 
+        })
+    }
+
+    const handleInsertCitation = (text) => {
+        if (editorFunctions?.editor) {
+            editorFunctions.editor.chain().focus().insertContent(`${text} `).run()
+            // Optional: Close modal after insert
+            setIsCitationModalOpen(false) 
+        }
+    }
 
 	if (isLoading) {
 		return (
@@ -242,6 +284,8 @@ export default function DocumentPage() {
 				canUndo={editorFunctions?.canUndo}
 				canRedo={editorFunctions?.canRedo}
 				debugContentExtraction={editorFunctions?.debugContentExtraction}
+				toggleCitations={toggleCitations}
+				isCitationModalOpen={isCitationModalOpen}
 			/>
 			<Room documentId={documentId}>
 				<div className='flex flex-1 overflow-hidden'>
@@ -277,6 +321,21 @@ export default function DocumentPage() {
 					<ModalVersions isOpen={modalVersionsOpen} onClose={() => setModalVersionsOpen(false)} />
 				</div>
 			</Room>
+
+			<ModalAddCitations 
+                isOpen={isCitationModalOpen}
+                onClose={() => setIsCitationModalOpen(false)}
+                citations={citations}
+                onAdd={handleAddCitation}
+            />
+
+			<ModalListCitations 
+                isOpen={isCitationModalOpen}
+                onClose={() => setIsCitationModalOpen(false)}
+                citations={citations}
+                onDelete={handleDeleteCitation}
+				onInsert={handleInsertCitation}
+            />
 		</div>
 	)
 }

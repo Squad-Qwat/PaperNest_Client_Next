@@ -32,6 +32,7 @@ import {
 } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { ModalAddCitations } from './ModalCitations'
 
 const EditorToolbar = ({
 	editor,
@@ -55,6 +56,8 @@ const EditorToolbar = ({
 	const fontFamilyRef = useRef(null)
 	const textStyleRef = useRef(null)
 	const lineSpacingRef = useRef(null)
+	const [isCitationModalOpen, setIsCitationModalOpen] = useState(false)
+    const [citations, setCitations] = useState([])
 
 	// Helper function untuk safe focus yang menghindari cursor jump ke footer
 	const safeFocus = (editor) => {
@@ -988,6 +991,13 @@ const EditorToolbar = ({
 		}
 	}
 
+	const addCitation = (newCit) => {
+		const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        const citationWithId = { ...newCit, id: id}
+        setCitations((prev) => [...prev, citationWithId])
+    }
+	
+
 	return (
 		<div className='bg-white border-t border-gray-200 px-11 py-1 sticky top-0 z-30 transition-all duration-300'>
 			<div className='flex items-center gap-1 overflow-x-auto pb-1 scrollbar-hide min-h-[40px]'>
@@ -1353,6 +1363,17 @@ const EditorToolbar = ({
 				<span className='w-px h-6 bg-gray-300 mx-1'></span>
 				<Button
 					variant='ghost'
+					size='sm'
+					onClick={() => setIsCitationModalOpen(true)}
+					className='text-xs flex items-center gap-1'
+					disabled={!editor}
+				>
+					<Quote className='h-4 w-4' />
+					Citations
+				</Button>
+				<span className='w-px h-6 bg-gray-300 mx-1'></span>
+				<Button
+					variant='ghost'
 					size='icon'
 					onClick={() => {
 						if (undo) {
@@ -1480,6 +1501,12 @@ const EditorToolbar = ({
 					Export DOCX
 				</Button>
 			</div>
+			<ModalAddCitations
+				isOpen={isCitationModalOpen}
+				onClose={() => setIsCitationModalOpen(false)}
+				citations={citations}
+				onAdd={addCitation}
+			/>
 		</div>
 	)
 }
