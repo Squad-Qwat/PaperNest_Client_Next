@@ -2,31 +2,22 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, Trash2, Quote } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Plus } from "lucide-react";
 
-interface Citation {
-  id: string;
-  sourceTitle: string;
-  author: string;
-  year: string;
-  color: string;
-}
-
-interface ModalCitationsProps {
+interface ModalAddCitationsProps {
   isOpen: boolean;
   onClose: () => void;
-  citations: Citation[];
-  onAdd: (cit: Omit<Citation, 'id'>) => void;
+  onAdd: (cit: { sourceTitle: string, author: string, year: string }) => void;
 }
 
-export function ModalAddCitations({ isOpen, onClose, onAdd }: ModalCitationsProps) {
-    const [newCit, setNewCit] = useState({ sourceTitle: '', author: '', year: '', color: '' })
+export function ModalAddCitations({ isOpen, onClose, onAdd }: ModalAddCitationsProps) {
+    const [newCit, setNewCit] = useState({ sourceTitle: '', author: '', year: '' })
 
     const handleAdd = () => {
-        if (!newCit.author || !newCit.year) return
+        if (!newCit.sourceTitle || !newCit.author || !newCit.year) return
         onAdd(newCit)
-        setNewCit({ sourceTitle: '', author: '', year: '', color: '' })
+        setNewCit({ sourceTitle: '', author: '', year: '' })
         onClose()
     }
 
@@ -34,45 +25,41 @@ export function ModalAddCitations({ isOpen, onClose, onAdd }: ModalCitationsProp
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="max-w-md p-6 bg-white rounded-xl border-none shadow-lg">
                 <DialogHeader>
-                    <DialogTitle className="text-lg font-bold">Add New Source</DialogTitle>
+                    <DialogTitle className="text-gray-800 font-bold">Add New Source</DialogTitle>
                 </DialogHeader>
-                <div className="grid gap-4 py-2">
-                    <div className="space-y-3">
+                <div className="space-y-4 mt-2">
+                    <div className="space-y-2">
+                        <Label>Source Title</Label>
                         <Input 
-                            placeholder="Source Title (e.g., The Future of AI)" 
+                            placeholder="e.g.: Twentieth Century Design" 
                             value={newCit.sourceTitle}
                             onChange={e => setNewCit({...newCit, sourceTitle: e.target.value})}
-                            className="border-2 border-teal-100 focus-visible:ring-teal-400"
+                            className="border-gray-200"
                         />
-                        <div className="flex gap-3">
-                            <div className="flex-1 space-y-3">
-                                <div className="flex gap-2">
-                                    <Input 
-                                        placeholder="Author (Last Name)" 
-                                        value={newCit.author}
-                                        onChange={e => setNewCit({...newCit, author: e.target.value})}
-                                    />
-                                    <Input 
-                                        placeholder="Year" 
-                                        className="w-66"
-                                        value={newCit.year}
-                                        onChange={e => setNewCit({...newCit, year: e.target.value})}
-                                    />
-                                </div>
-                                <Input 
-                                    placeholder="Color (e.g., bg-red-500)" 
-                                    value={newCit.color}
-                                    onChange={e => setNewCit({...newCit, color: e.target.value})}
-                                />
-                            </div>
-                        </div>
-                        <Button 
-                                onClick={handleAdd} 
-                                className="h-auto px-4 bg-teal-500 hover:bg-teal-600 text-white flex flex-col justify-center"
-                            >
-                                <Plus className="w-6 h-6" />
-                            </Button>
                     </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Author</Label>
+                            <Input 
+                                placeholder="e.g.: Seddon, Tony" 
+                                value={newCit.author}
+                                onChange={e => setNewCit({...newCit, author: e.target.value})}
+                                className="border-gray-200"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Year</Label>
+                            <Input 
+                                placeholder="2024" 
+                                value={newCit.year}
+                                onChange={e => setNewCit({...newCit, year: e.target.value})}
+                                className="border-gray-200"
+                            />
+                        </div>
+                    </div>
+                    <Button onClick={handleAdd} className="w-full bg-teal-500 hover:bg-teal-600 text-white">
+                        <Plus className="w-4 h-4 mr-2" /> Save Source
+                    </Button>
                 </div>
             </DialogContent>
         </Dialog>

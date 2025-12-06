@@ -44,7 +44,8 @@ export default function DocumentPage() {
 
 	// Check workspace access first
 	const { workspace, loading: workspaceLoading, error: workspaceError } = useWorkspace(workspaceId)
-	const [isCitationModalOpen, setIsCitationModalOpen] = useState(false)
+	const [isAddCitationOpen, setIsAddCitationOpen] = useState(false)
+	const [isViewCitationsOpen, setIsViewCitationsOpen] = useState(false)
     const [citations, setCitations] = useState([])
 
 	// Redirect if no workspace access
@@ -90,6 +91,9 @@ export default function DocumentPage() {
 
 				setDocumentData(doc)
 				setTitle(doc.title)
+				if (doc.citations) {
+					setCitations(doc.citations)
+				}
 			} catch (error) {
 				console.error('❌ Error loading document:', error)
 				alert('Failed to load document. Redirecting to documents page.')
@@ -155,6 +159,7 @@ export default function DocumentPage() {
 			await DocumentService.updateDocument(documentId, {
 				title: title,
 				content: contentToSave,
+				citations: citations
 			})
 
 			// Also save using the editor's built-in save function if available
@@ -168,6 +173,7 @@ export default function DocumentPage() {
 				...prev,
 				title: title,
 				content: contentToSave,
+				citations: citations,
 				updatedAt: new Date(),
 			}))
 		} catch (error) {
@@ -201,36 +207,44 @@ export default function DocumentPage() {
 	}
 
 	const toggleCitations = useCallback(() => {
-        setIsCitationModalOpen(prev => !prev)
+        setIsViewCitationsOpen(prev => !prev)
     }, [])
 
 	const handleAddCitation = async (newCit) => {
-        const citation = { ...newCit, id: Date.now().toString() }
-        const updatedCitations = [citation, ...citations]
-        
-        setCitations(updatedCitations)
-        
-        // Save to Firebase (adjust 'citations' field name based on your DB schema)
-        await DocumentService.updateDocument(documentId, { 
-            citations: updatedCitations 
-        })
-    }
+		const citationEntry = {
+			...newCit,
+			id: `cit_${Date.now()}`,
+			addedBy: user?.displayName || 'User',
+			createdAt: new Date().toISOString()
+		}
 
-    const handleDeleteCitation = async (id) => {
-        const updatedCitations = citations.filter(c => c.id !== id)
-        setCitations(updatedCitations)
-        await DocumentService.updateDocument(documentId, { 
-            citations: updatedCitations 
-        })
-    }
+		const updatedCitations = [citationEntry, ...citations]
+		
+		// Update local state so it appears in ViewCitations immediately
+		setCitations(updatedCitations)
+		
+		// Persist to database
+		try {
+			await DocumentService.updateDocument(documentId, { citations: updatedCitations })
+			setIsAddCitationOpen(false)
+		} catch (error) {
+			console.error('Failed to save citation:', error)
+		}
+	}
 
-    const handleInsertCitation = (text) => {
-        if (editorFunctions?.editor) {
-            editorFunctions.editor.chain().focus().insertContent(`${text} `).run()
-            // Optional: Close modal after insert
-            setIsCitationModalOpen(false) 
-        }
-    }
+	const handleDeleteCitation = async (id) => {
+		const updatedCitations = citations.filter(c => c.id !== id)
+		setCitations(updatedCitations)
+		await DocumentService.updateDocument(documentId, { citations: updatedCitations })
+	}
+
+	const handleInsertCitation = (cit) => {
+		if (editorFunctions?.editor) {
+			const text = `(${cit.author}, ${cit.year})`
+			editorFunctions.editor.chain().focus().insertContent(`${text} `).run()
+			setIsViewCitationsOpen(false) 
+		}
+	}
 
 	if (isLoading) {
 		return (
@@ -284,8 +298,8 @@ export default function DocumentPage() {
 				canUndo={editorFunctions?.canUndo}
 				canRedo={editorFunctions?.canRedo}
 				debugContentExtraction={editorFunctions?.debugContentExtraction}
-				toggleCitations={toggleCitations}
-				isCitationModalOpen={isCitationModalOpen}
+				toggleCitations={() => setIsViewCitationsOpen(true)}
+				openAddCitation={() => setIsAddCitationOpen(true)}
 			/>
 			<Room documentId={documentId}>
 				<div className='flex flex-1 overflow-hidden'>
@@ -322,20 +336,23 @@ export default function DocumentPage() {
 				</div>
 			</Room>
 
+			{/* Modal for adding new citations */}
 			<ModalAddCitations 
-                isOpen={isCitationModalOpen}
-                onClose={() => setIsCitationModalOpen(false)}
-                citations={citations}
-                onAdd={handleAddCitation}
-            />
+				isOpen={isAddCitationOpen}
+				onClose={() => setIsAddCitationOpen(false)}
+				onAdd={handleAddCitation}
+			/>
 
+			{/* Modal for viewing and inserting citations */}
 			<ModalListCitations 
-                isOpen={isCitationModalOpen}
-                onClose={() => setIsCitationModalOpen(false)}
-                citations={citations}
-                onDelete={handleDeleteCitation}
+				isOpen={isViewCitationsOpen}
+				onClose={() => setIsViewCitationsOpen(false)}
+				citations={citations}
+				onDelete={handleDeleteCitation}
 				onInsert={handleInsertCitation}
-            />
+			/>
+
+			<ModalVersions isOpen={modalVersionsOpen} onClose={() => setModalVersionsOpen(false)} />
 		</div>
 	)
 }
