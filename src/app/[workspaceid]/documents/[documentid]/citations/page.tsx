@@ -1,411 +1,230 @@
-"use client";
+'use client'
 
-import { useState, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { useAuth, useDocuments } from "@/lib/store";
-import { Navbar } from "@/components/layout/navbar";
-import { SearchInput } from "@/components/ui/search-input";
-import { Modal, ModalFooter } from "@/components/ui/modal";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import React, { useState, useMemo, useEffect } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { useAuth } from '@/lib/store' 
+import { DocumentService } from '@/lib/firebase/document-service'
+import { Navbar } from '@/components/layout/navbar'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { SearchInput } from '@/components/ui/search-input'
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+	DialogDescription,
+	DialogFooter,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input' 
+import { Loader2, Plus, Quote, FileInput, Copy, Check } from 'lucide-react'
 
-export default function CitationsPage() {
-  const params = useParams();
-  const router = useRouter();
-  const { currentUser } = useAuth();
-  const { getDocument, addCitation, deleteCitation } = useDocuments();
+interface Citation {
+	id: string
+	sourceTitle: string
+	author: string
+	year: string
+	addedBy: string
+	createdAt: string
+}
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+export default function CitationPage() {
+	const params = useParams()
+	const router = useRouter()
+	const { currentUser } = useAuth()
 
-  // Form state for new citation
-  const [newCitation, setNewCitation] = useState({
-    title: "",
-    authors: "",
-    publicationYear: new Date().getFullYear(),
-    publisher: "",
-  });
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+	const [document, setDocument] = useState<any | null>(null)
+	const [citations, setCitations] = useState<Citation[]>([])
+	const [isLoading, setIsLoading] = useState(true)
+	const [searchQuery, setSearchQuery] = useState('')
+	const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+	const [copiedId, setCopiedId] = useState<string | null>(null)
 
-  const documentId = parseInt(params.documentid as string);
-  const document = currentUser ? getDocument(currentUser.id, documentId) : undefined;
+	const [newCitation, setNewCitation] = useState({
+		sourceTitle: '',
+		author: '',
+		year: new Date().getFullYear().toString(),
+	})
 
-  // Get all citations
-  const citations = document?.citations || [];
+	const workspaceId = params.workspaceid as string
+	const documentId = params.documentid as string
 
-  // Filter citations based on search query
-  const filteredCitations = useMemo(() => {
-    if (!searchQuery) return citations;
+	useEffect(() => {
+		const fetchDocumentData = async () => {
+			if (!currentUser || !documentId || !workspaceId) return
+			try {
+				setIsLoading(true)
+				const doc = await DocumentService.getDocumentById(documentId)
+				if (!doc) {
+					router.push(`/${workspaceId}`)
+					return
+				}
+				setDocument(doc)
+				const loadedCitations = doc.savedContent?.citations || []
+				setCitations(loadedCitations)
+			} catch (error) {
+				console.error('Failed to load document:', error)
+			} finally {
+				setIsLoading(false)
+			}
+		}
+		fetchDocumentData()
+	}, [documentId, workspaceId, currentUser, router])
 
-    const query = searchQuery.toLowerCase();
-    return citations.filter(
-      (citation) =>
-        citation.title.toLowerCase().includes(query) ||
-        citation.authors.toLowerCase().includes(query) ||
-        citation.publisher.toLowerCase().includes(query)
-    );
-  }, [citations, searchQuery]);
+	const filteredCitations = useMemo(() => {
+		return citations.filter(
+			(c) =>
+				c.sourceTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				c.author.toLowerCase().includes(searchQuery.toLowerCase())
+		)
+	}, [citations, searchQuery])
 
-  // Format citation in APA style
-  const formatAPACitation = (citation: typeof citations[0]) => {
-    return `${citation.authors} (${citation.publicationYear}). ${citation.title}. ${citation.publisher}.`;
-  };
+	const handleAddCitation = async () => {
+		if (!newCitation.sourceTitle.trim() || !currentUser || !document) return
 
-  // Handle copy citation to clipboard
-  const handleCopyCitation = (citation: typeof citations[0]) => {
-    const formatted = formatAPACitation(citation);
-    navigator.clipboard.writeText(formatted);
-    alert("Citation copied to clipboard!");
-  };
+		const citationEntry: Citation = {
+			id: `cit_${Date.now()}`,
+			sourceTitle: newCitation.sourceTitle,
+			author: newCitation.author,
+			year: newCitation.year,
+			addedBy: currentUser.name || 'User',
+			createdAt: new Date().toISOString(),
+		}
 
-  // Handle create citation
-  const handleCreateCitation = () => {
-    const errors: Record<string, string> = {};
+		const updatedCitations = [citationEntry, ...citations]
 
-    if (!newCitation.title.trim()) {
-      errors.title = "Title is required";
-    }
-    if (!newCitation.authors.trim()) {
-      errors.authors = "Authors are required";
-    }
-    if (!newCitation.publisher.trim()) {
-      errors.publisher = "Publisher is required";
-    }
-    if (newCitation.publicationYear < 1900 || newCitation.publicationYear > new Date().getFullYear() + 1) {
-      errors.publicationYear = "Please enter a valid year";
-    }
+		try {
+			await DocumentService.updateDocument(documentId, {
+				savedContent: {
+					...document.savedContent,
+					citations: updatedCitations
+				}
+			})
+			setCitations(updatedCitations)
+			setNewCitation({ sourceTitle: '', author: '', year: new Date().getFullYear().toString() })
+			setIsAddModalOpen(false)
+		} catch (error) {
+			console.error('Failed to save citation:', error)
+		}
+	}
 
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
-      return;
-    }
+	// NEW: Function to return to the editor and signal an insertion
+	const handleInsertToEditor = (cit: Citation) => {
+		const citationText = `(${cit.author}, ${cit.year})`
+		// We use a query parameter to tell the editor page to insert this text
+		// Your Editor component should check for 'insertCitation' on mount
+		router.push(`/documents/${documentId}?insertCitation=${encodeURIComponent(citationText)}`)
+	}
 
-    if (currentUser && document) {
-      addCitation(currentUser.id, documentId, {
-        title: newCitation.title.trim(),
-        authors: newCitation.authors.trim(),
-        publicationYear: newCitation.publicationYear,
-        publisher: newCitation.publisher.trim(),
-      });
+	const copyToClipboard = (cit: Citation) => {
+		const text = `(${cit.author}, ${cit.year})`
+		navigator.clipboard.writeText(text)
+		setCopiedId(cit.id)
+		setTimeout(() => setCopiedId(null), 2000)
+	}
 
-      // Reset form
-      setNewCitation({
-        title: "",
-        authors: "",
-        publicationYear: new Date().getFullYear(),
-        publisher: "",
-      });
-      setFormErrors({});
-      setShowCreateModal(false);
-    }
-  };
+	if (isLoading) return (
+		<div className="min-h-screen bg-gray-950 flex items-center justify-center">
+			<Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+		</div>
+	)
 
-  // Handle delete citation
-  const handleDeleteCitation = (citationId: string) => {
-    if (currentUser) {
-      deleteCitation(currentUser.id, documentId, citationId);
-      setDeleteConfirm(null);
-    }
-  };
+	return (
+		<div className='min-h-screen bg-gray-950 text-gray-100'>
+			<Navbar mode='document' documentId={documentId} />
 
-  if (!currentUser) {
-    router.push("/login");
-    return null;
-  }
+			<main className='max-w-5xl mx-auto px-4 py-8'>
+				<div className='flex justify-between items-end mb-8'>
+					<div>
+						<button onClick={() => router.back()} className='text-gray-400 hover:text-white mb-4 transition-colors'>
+							← Back to Editor
+						</button>
+						<h1 className='text-3xl font-bold'>Citations - {document.title}</h1>
+					</div>
+					<Button onClick={() => setIsAddModalOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+						<Plus className="w-4 h-4 mr-2" /> Add New Source
+					</Button>
+				</div>
 
-  if (!document) {
-    return (
-      <div className="min-h-screen bg-gray-950">
-        <Navbar mode="document" documentId={params.documentid as string} />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center py-16">
-            <p className="text-gray-500 text-lg">Document not found</p>
-          </div>
-        </main>
-      </div>
-    );
-  }
+				<SearchInput 
+					value={searchQuery} 
+					onChange={setSearchQuery} 
+					placeholder='Search sources...' 
+					className='mb-8'
+				/>
 
-  return (
-    <div className="min-h-screen bg-gray-950">
-      <Navbar mode="document" documentId={params.documentid as string} />
+				<div className='grid gap-4'>
+					{filteredCitations.map((cit) => (
+						<Card key={cit.id} className='bg-gray-900 border-gray-800 hover:border-blue-500/50 transition-colors'>
+							<CardContent className='p-6 flex items-center gap-6'>
+								<div className="hidden md:flex p-3 bg-blue-500/10 rounded-full">
+									<Quote className="w-5 h-5 text-blue-400" />
+								</div>
+								
+								<div className="flex-1">
+									<div className="flex items-center gap-2 mb-1">
+										<h3 className="font-bold text-lg">{cit.sourceTitle}</h3>
+										<Badge variant="secondary" className="bg-gray-800 text-gray-300">{cit.year}</Badge>
+									</div>
+									<p className="text-gray-400">By {cit.author}</p>
+								</div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => router.push(`/${params.workspaceid}`)}
-            className="flex items-center gap-2 text-gray-400 hover:text-gray-200 mb-4 transition-colors"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-            Back to Dashboard
-          </button>
+								<div className="flex gap-2">
+									<Button 
+										variant="outline" 
+										size="sm" 
+										className="border-gray-700 bg-transparent text-gray-300 hover:bg-gray-800"
+										onClick={() => copyToClipboard(cit)}
+									>
+										{copiedId === cit.id ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+										<span className="ml-2 hidden lg:inline">Copy Cite</span>
+									</Button>
+									
+									<Button 
+										size="sm" 
+										className="bg-blue-600 hover:bg-blue-700"
+										onClick={() => handleInsertToEditor(cit)}
+									>
+										<FileInput className="w-4 h-4 mr-2" />
+										Insert into Doc
+									</Button>
+								</div>
+							</CardContent>
+						</Card>
+					))}
+				</div>
+			</main>
 
-          <h1 className="text-3xl font-bold text-gray-100 mb-2">
-            Citations - {document.title}
-          </h1>
-          <p className="text-gray-400">{document.description}</p>
-        </div>
-
-        {/* Search and Create */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="flex-1">
-            <SearchInput
-              value={searchQuery}
-              onChange={setSearchQuery}
-              placeholder="Search citations by title, authors, or publisher..."
-            />
-          </div>
-          <Button onClick={() => setShowCreateModal(true)}>
-            <svg
-              className="w-5 h-5 mr-2"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            Add Citation
-          </Button>
-        </div>
-
-        {/* Citations List */}
-        {filteredCitations.length === 0 ? (
-          <div className="text-center py-16">
-            <svg
-              className="w-16 h-16 mx-auto text-gray-700 mb-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-            <p className="text-gray-500 text-lg mb-2">
-              {searchQuery ? "No citations found" : "No citations yet"}
-            </p>
-            <p className="text-gray-600 text-sm">
-              {searchQuery
-                ? "Try a different search term"
-                : "Add your first citation to get started"}
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {filteredCitations.map((citation) => (
-              <div
-                key={citation.id}
-                className="bg-gray-900 border border-gray-800 rounded-lg p-6 hover:border-gray-700 transition-all"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-100 mb-2">
-                      {citation.title}
-                    </h3>
-                    <p className="text-gray-400 text-sm mb-1">
-                      <span className="font-medium">Authors:</span> {citation.authors}
-                    </p>
-                    <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                      <span>
-                        <span className="font-medium">Year:</span> {citation.publicationYear}
-                      </span>
-                      <span>
-                        <span className="font-medium">Publisher:</span> {citation.publisher}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* APA Citation */}
-                <div className="bg-gray-950 border border-gray-800 rounded-lg p-3 mb-3">
-                  <p className="text-sm text-gray-300 font-mono">
-                    {formatAPACitation(citation)}
-                  </p>
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleCopyCitation(citation)}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-                  >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                      />
-                    </svg>
-                    Copy Citation
-                  </button>
-                  <button
-                    onClick={() => setDeleteConfirm(citation.id)}
-                    className="px-4 py-2 bg-gray-800 hover:bg-red-600 text-gray-300 hover:text-white text-sm font-medium rounded-lg transition-all"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </main>
-
-      {/* Create Citation Modal */}
-      <Modal
-        isOpen={showCreateModal}
-        onClose={() => {
-          setShowCreateModal(false);
-          setNewCitation({
-            title: "",
-            authors: "",
-            publicationYear: new Date().getFullYear(),
-            publisher: "",
-          });
-          setFormErrors({});
-        }}
-        title="Add New Citation"
-        size="lg"
-      >
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="title">Title</Label>
-            <Input
-              id="title"
-              type="text"
-              value={newCitation.title}
-              onChange={(e) => {
-                setNewCitation({ ...newCitation, title: e.target.value });
-                setFormErrors({ ...formErrors, title: "" });
-              }}
-              placeholder="Citation title"
-              className={formErrors.title ? "border-red-500" : ""}
-            />
-            {formErrors.title && (
-              <p className="mt-1 text-sm text-red-400">{formErrors.title}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="authors">Authors</Label>
-            <Input
-              id="authors"
-              type="text"
-              value={newCitation.authors}
-              onChange={(e) => {
-                setNewCitation({ ...newCitation, authors: e.target.value });
-                setFormErrors({ ...formErrors, authors: "" });
-              }}
-              placeholder="e.g., Smith, J., & Johnson, M."
-              className={formErrors.authors ? "border-red-500" : ""}
-            />
-            {formErrors.authors && (
-              <p className="mt-1 text-sm text-red-400">{formErrors.authors}</p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="publicationYear">Publication Year</Label>
-              <Input
-                id="publicationYear"
-                type="number"
-                value={newCitation.publicationYear}
-                onChange={(e) => {
-                  setNewCitation({
-                    ...newCitation,
-                    publicationYear: parseInt(e.target.value) || new Date().getFullYear(),
-                  });
-                  setFormErrors({ ...formErrors, publicationYear: "" });
-                }}
-                placeholder="2024"
-                className={formErrors.publicationYear ? "border-red-500" : ""}
-              />
-              {formErrors.publicationYear && (
-                <p className="mt-1 text-sm text-red-400">{formErrors.publicationYear}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="publisher">Publisher</Label>
-              <Input
-                id="publisher"
-                type="text"
-                value={newCitation.publisher}
-                onChange={(e) => {
-                  setNewCitation({ ...newCitation, publisher: e.target.value });
-                  setFormErrors({ ...formErrors, publisher: "" });
-                }}
-                placeholder="Publisher name"
-                className={formErrors.publisher ? "border-red-500" : ""}
-              />
-              {formErrors.publisher && (
-                <p className="mt-1 text-sm text-red-400">{formErrors.publisher}</p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <ModalFooter>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setShowCreateModal(false);
-              setNewCitation({
-                title: "",
-                authors: "",
-                publicationYear: new Date().getFullYear(),
-                publisher: "",
-              });
-              setFormErrors({});
-            }}
-          >
-            Cancel
-          </Button>
-          <Button onClick={handleCreateCitation}>Add Citation</Button>
-        </ModalFooter>
-      </Modal>
-
-      {/* Delete Confirmation */}
-      <ConfirmDialog
-        isOpen={deleteConfirm !== null}
-        onClose={() => setDeleteConfirm(null)}
-        onConfirm={() => deleteConfirm && handleDeleteCitation(deleteConfirm)}
-        title="Delete Citation"
-        message="Are you sure you want to delete this citation? This action cannot be undone."
-        confirmText="Delete"
-        variant="danger"
-      />
-    </div>
-  );
+			{/* Modal remains largely same but ensures Author/Year are required for insertion */}
+			<Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+				<DialogContent className="bg-gray-900 border-gray-800 text-white">
+					<DialogHeader>
+						<DialogTitle>Add Citation</DialogTitle>
+					</DialogHeader>
+					<div className="space-y-4 py-4">
+						<div className="space-y-2">
+							<Label>Title</Label>
+							<Input className="bg-gray-950 border-gray-800" value={newCitation.sourceTitle} onChange={e => setNewCitation({...newCitation, sourceTitle: e.target.value})}/>
+						</div>
+						<div className="grid grid-cols-2 gap-4">
+							<div className="space-y-2">
+								<Label>Author (Last Name)</Label>
+								<Input className="bg-gray-950 border-gray-800" value={newCitation.author} onChange={e => setNewCitation({...newCitation, author: e.target.value})}/>
+							</div>
+							<div className="space-y-2">
+								<Label>Year</Label>
+								<Input className="bg-gray-950 border-gray-800" value={newCitation.year} onChange={e => setNewCitation({...newCitation, year: e.target.value})}/>
+							</div>
+						</div>
+					</div>
+					<DialogFooter>
+						<Button className="bg-blue-600" onClick={handleAddCitation}>Save Source</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+		</div>
+	)
 }

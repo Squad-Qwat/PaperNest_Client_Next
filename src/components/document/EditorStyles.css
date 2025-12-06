@@ -1,0 +1,440 @@
+/* Prevent cursor jump to footer dengan pagination extension */
+.ProseMirror .page-footer {
+	pointer-events: none !important;
+	user-select: none !important;
+	-webkit-user-select: none !important;
+	-moz-user-select: none !important;
+	-ms-user-select: none !important;
+}
+
+.ProseMirror .page-footer * {
+	pointer-events: none !important;
+	user-select: none !important;
+	-webkit-user-select: none !important;
+	-moz-user-select: none !important;
+	-ms-user-select: none !important;
+}
+
+/* Ensure body content is always focusable */
+.ProseMirror .page-body {
+	position: relative;
+	z-index: 1;
+	cursor: text;
+}
+
+/* Prevent accidental focus on header/footer */
+.ProseMirror .page-header,
+.ProseMirror .page-footer {
+	position: relative;
+	z-index: 0;
+	cursor: default;
+}
+
+/* Force focus behavior untuk pagination */
+.ProseMirror[data-pagination="true"] {
+	scroll-behavior: smooth;
+}
+
+/* Make sure undo/redo doesn't jump to footer */
+.ProseMirror .page-footer::before,
+.ProseMirror .page-footer::after {
+	content: none !important;
+}
+
+/* Hide any cursor/caret in footer area */
+.ProseMirror .page-footer .ProseMirror-cursor {
+	display: none !important;
+}
+
+/* Default font styles for TipTap editor */
+.ProseMirror {
+	font-family: "Times New Roman", Times, serif !important;
+	font-size: 11pt !important;
+	line-height: 1.6;
+}
+
+/* Remove focus styles that add borders */
+.ProseMirror:focus,
+.ProseMirror-focused {
+	outline: none !important;
+	border: none !important;
+	box-shadow: none !important;
+	border-radius: 0 !important;
+}
+
+.ProseMirror-focused .page,
+.ProseMirror-focused .page *,
+.ProseMirror-focused [data-page],
+.ProseMirror-focused div[data-type="page"] {
+	border-radius: 0 !important;
+	border: none !important;
+	box-shadow: none !important;
+	outline: none !important;
+}
+
+/* Ensure paragraphs inherit the font */
+.ProseMirror p {
+	font-family: inherit;
+	font-size: inherit;
+	margin: 0;
+	padding: 0;
+}
+
+/* Override any default browser styles for text elements only */
+.ProseMirror p,
+.ProseMirror span,
+.ProseMirror strong,
+.ProseMirror em,
+.ProseMirror u {
+	font-family: inherit;
+}
+
+/* Specific override for text nodes without explicit styling */
+.ProseMirror p:not([style*="font-family"]) {
+	font-family: "Times New Roman", Times, serif !important;
+}
+
+.ProseMirror p:not([style*="font-size"]) {
+	font-size: 11pt !important;
+}
+
+/* Heading defaults */
+.ProseMirror h1 {
+	font-family: "Times New Roman", Times, serif !important;
+	font-size: 24pt !important;
+	font-weight: bold !important;
+	margin: 0;
+	padding: 0;
+}
+
+.ProseMirror h2 {
+	font-family: "Times New Roman", Times, serif !important;
+	font-size: 18pt !important;
+	font-weight: bold !important;
+	margin: 0;
+	padding: 0;
+}
+
+.ProseMirror h3 {
+	font-family: "Times New Roman", Times, serif !important;
+	font-size: 14pt !important;
+	font-weight: bold !important;
+	margin: 0;
+	padding: 0;
+}
+
+.ProseMirror h4 {
+	font-family: "Times New Roman", Times, serif !important;
+	font-size: 12pt !important;
+	font-weight: bold !important;
+	margin: 0;
+	padding: 0;
+}
+
+/* Table styles - Google Docs/Word style */
+.ProseMirror table {
+	border-collapse: collapse;
+	table-layout: fixed;
+	width: 100%;
+	margin: 0;
+	overflow: hidden;
+	background-color: transparent;
+}
+
+.ProseMirror table td,
+.ProseMirror table th {
+	min-width: 1em;
+	border: 1px solid #000000;
+	padding: 8px;
+	vertical-align: top;
+	box-sizing: border-box;
+	position: relative;
+	background-color: transparent;
+}
+
+.ProseMirror table th {
+	font-weight: bold;
+	text-align: left;
+	background-color: transparent;
+}
+
+.ProseMirror table .selectedCell:after {
+	z-index: 2;
+	position: absolute;
+	content: "";
+	left: 0;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	background: rgba(200, 200, 255, 0.4);
+	pointer-events: none;
+}
+
+.ProseMirror table .column-resize-handle {
+	position: absolute;
+	right: -2px;
+	top: 0;
+	bottom: -2px;
+	width: 4px;
+	background-color: #adf;
+	pointer-events: none;
+}
+
+.ProseMirror table p {
+	margin: 0;
+}
+
+.ProseMirror .tableWrapper {
+	padding: 1rem 0;
+	overflow-x: auto;
+}
+
+.ProseMirror .resize-cursor {
+	cursor: ew-resize;
+	cursor: col-resize;
+}
+
+/* Prevent pagination extension from interfering with styles */
+.ProseMirror .page {
+	font-family: inherit;
+	font-size: inherit;
+	border-radius: 0 !important;
+	border: none !important;
+	box-shadow: none !important;
+	outline: none !important;
+}
+
+.ProseMirror .page-body {
+	font-family: inherit;
+	font-size: inherit;
+	border-radius: 0 !important;
+	border: none !important;
+	box-shadow: none !important;
+	outline: none !important;
+}
+
+/* Remove all border-radius, borders, and shadows from page elements */
+.ProseMirror .page,
+.ProseMirror .page *,
+.ProseMirror [data-page],
+.ProseMirror [data-page] *,
+.ProseMirror .page-header,
+.ProseMirror .page-footer {
+	border-radius: 0 !important;
+	box-shadow: none !important;
+	outline: none !important;
+}
+
+/* Override any vendor-specific page styling */
+.ProseMirror div[data-type="page"],
+.ProseMirror div[class*="page"] {
+	border-radius: 0 !important;
+	border: none !important;
+	box-shadow: none !important;
+	outline: none !important;
+}
+
+/* List styles - from TipTap documentation */
+.ProseMirror ul,
+.ProseMirror ol,
+.ProseMirror .bullet-list,
+.ProseMirror .ordered-list {
+	padding: 0 1rem;
+	margin: 1.25rem 1rem 1.25rem 0.4rem;
+}
+
+.ProseMirror ul li,
+.ProseMirror ol li,
+.ProseMirror .list-item {
+	font-family: inherit;
+	font-size: inherit;
+	list-style-position: outside;
+}
+
+.ProseMirror ul li p,
+.ProseMirror ol li p,
+.ProseMirror .list-item p {
+	margin-top: 0.25em;
+	margin-bottom: 0.25em;
+	font-family: inherit;
+	font-size: inherit;
+}
+
+/* Ordered list specific styling */
+.ProseMirror ol,
+.ProseMirror .ordered-list {
+	list-style-type: decimal;
+}
+
+/* Bullet list specific styling */
+.ProseMirror ul,
+.ProseMirror .bullet-list {
+	list-style-type: disc;
+}
+
+/* Make list markers (numbers, bullets) inherit font weight from content */
+.ProseMirror li::marker {
+	font-weight: inherit;
+	font-family: inherit;
+	font-size: inherit;
+}
+
+/* For browsers that don't support ::marker, use alternative approach */
+.ProseMirror li {
+	font-weight: inherit;
+}
+
+/* Specific styling for bold list items */
+.ProseMirror li strong,
+.ProseMirror li b,
+.ProseMirror li[style*="font-weight: bold"],
+.ProseMirror li[style*="font-weight:bold"] {
+	font-weight: bold;
+}
+
+/* Make the entire list item bold when the content is bold */
+.ProseMirror li:has(strong),
+.ProseMirror li:has(b),
+.ProseMirror li:has([style*="font-weight: bold"]),
+.ProseMirror li:has([style*="font-weight:bold"]) {
+	font-weight: bold;
+}
+
+/* Alternative approach for browsers that don't support :has() */
+.ProseMirror li.bold-content {
+	font-weight: bold;
+}
+
+.ProseMirror li.bold-content::marker {
+	font-weight: bold;
+}
+
+/* When the paragraph inside list item is bold, make the list item bold */
+.ProseMirror li p[style*="font-weight: bold"],
+.ProseMirror li p[style*="font-weight:bold"] {
+	font-weight: bold;
+}
+
+/* Additional styling for different list item states */
+.ProseMirror li[data-text-style*="bold"] {
+	font-weight: bold;
+}
+
+.ProseMirror li[data-text-style*="bold"]::marker {
+	font-weight: bold;
+}
+
+/* Ensure first child doesn't have extra margin */
+.ProseMirror :first-child {
+	margin-top: 0;
+}
+
+/* Nested list indentation */
+.ProseMirror ul ul,
+.ProseMirror ol ol,
+.ProseMirror ul ol,
+.ProseMirror ol ul,
+.ProseMirror .bullet-list .bullet-list,
+.ProseMirror .ordered-list .ordered-list,
+.ProseMirror .bullet-list .ordered-list,
+.ProseMirror .ordered-list .bullet-list {
+	margin: 0 0 0 1rem;
+}
+
+/* Text alignment styles */
+.ProseMirror [data-text-align="left"] {
+	text-align: left;
+}
+
+.ProseMirror [data-text-align="center"] {
+	text-align: center;
+}
+
+.ProseMirror [data-text-align="right"] {
+	text-align: right;
+}
+
+.ProseMirror [data-text-align="justify"] {
+	text-align: justify;
+	text-justify: inter-word;
+}
+
+/* Line spacing styles */
+.ProseMirror p[style*="line-height"],
+.ProseMirror h1[style*="line-height"],
+.ProseMirror h2[style*="line-height"],
+.ProseMirror h3[style*="line-height"],
+.ProseMirror h4[style*="line-height"] {
+	/* Line height is applied via inline styles from the extension */
+	display: block; /* Ensure proper rendering */
+}
+
+/* Header and footer styles for pagination */
+.pagination-header {
+	font-family: "Times New Roman", Times, serif;
+	font-size: 10pt;
+	color: #666;
+	border-bottom: 1px solid #ddd;
+	padding-bottom: 5px;
+	margin-bottom: 15px;
+}
+
+.pagination-footer {
+	font-family: "Times New Roman", Times, serif;
+	font-size: 10pt;
+	color: #666;
+	border-top: 1px solid #ddd;
+	padding-top: 5px;
+	margin-top: 15px;
+	text-align: center;
+}
+
+.pagination-page-number {
+	font-family: "Times New Roman", Times, serif;
+	font-size: 10pt;
+	color: #666;
+}
+
+/* Different styling for first page header/footer */
+.pagination-first-page .pagination-header {
+	display: none; /* Hide header on first page */
+}
+
+.pagination-first-page .pagination-footer {
+	/* Footer still visible on first page but styled differently */
+	border-top: none;
+	text-align: right;
+}
+
+/* ===================================
+   Collaboration Cursor Styles
+   =================================== */
+
+/* Give a remote user a caret */
+.collaboration-cursor__caret {
+	border-left: 1px solid #0d0d0d;
+	border-right: 1px solid #0d0d0d;
+	margin-left: -1px;
+	margin-right: -1px;
+	pointer-events: none;
+	position: relative;
+	word-break: normal;
+}
+
+/* Render the username above the caret */
+.collaboration-cursor__label {
+	font-family: "Arial", sans-serif !important;
+	font-style: normal;
+	font-weight: 600;
+	left: -1px;
+	line-height: normal;
+	position: absolute;
+	user-select: none;
+	white-space: nowrap;
+	font-size: 12px;
+	color: #fff;
+	top: -1.4em;
+	padding: 2px 6px;
+	pointer-events: none;
+	z-index: 1000;
+}
