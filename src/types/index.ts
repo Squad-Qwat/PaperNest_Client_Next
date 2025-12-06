@@ -33,6 +33,14 @@ export interface Review {
   status: ReviewStatus;
 }
 
+// NEW: Version Interface for SVN-style history
+export interface Version {
+  rev: number;
+  author: string;
+  date: string;
+  comment: string;
+}
+
 export interface Document {
   id: number;
   title: string;
@@ -41,6 +49,7 @@ export interface Document {
   lastUpdated: string;
   citations: Citation[];
   reviews: Review[];
+  versions: Version[]; // Added versions array
 }
 
 export interface User {
@@ -71,7 +80,7 @@ export interface DocumentContextType {
   getDocument: (userId: number, docId: number) => Document | undefined;
   createDocument: (
     userId: number,
-    document: Omit<Document, "id" | "citations" | "reviews">
+    document: Omit<Document, "id" | "citations" | "reviews" | "versions"> // Updated Omit
   ) => Document;
   updateDocument: (
     userId: number,
@@ -83,4 +92,6 @@ export interface DocumentContextType {
   deleteCitation: (userId: number, docId: number, citationId: string) => void;
   addReview: (userId: number, docId: number, review: Omit<Review, "id" | "docId" | "docTitle">) => void;
   deleteReview: (userId: number, docId: number, reviewId: string) => void;
+  addVersion: (userId: number, docId: number, version: Version) => void;
+  deleteVersion: (userId: number, docId: number, rev: number) => void;
 }

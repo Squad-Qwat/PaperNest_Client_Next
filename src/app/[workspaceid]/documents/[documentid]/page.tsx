@@ -189,6 +189,39 @@ export default function DocumentPage() {
             </div>
             <p className="text-sm text-gray-500">Total reviews</p>
           </button>
+
+          <button
+            onClick={() =>
+              router.push(`/${params.workspaceid}/documents/${documentId}/versions`)
+            }
+            className="bg-gray-900 border border-gray-800 rounded-xl p-6 hover:border-green-600 hover:bg-gray-800 transition-all group text-left"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xl font-semibold text-gray-100 group-hover:text-green-400 transition-colors">
+                Manage Versions
+              </h3>
+              <svg
+                className="w-6 h-6 text-gray-500 group-hover:text-green-400 transition-colors"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </div>
+            <p className="text-gray-400 mb-4">
+              View and manage versions for this document
+            </p>
+            <div className="text-2xl font-bold text-green-500">
+              {document.reviews.length}
+            </div>
+            <p className="text-sm text-gray-500">Total versions</p>
+          </button>
         </div>
 
         {/* Document Content Placeholder */}
