@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { IBM_Plex_Mono, IBM_Plex_Sans } from 'next/font/google'
 import '@/app/css/globals.css'
+import { AppProvider } from '@/lib/store'
 
 const ibmPlexSans = IBM_Plex_Sans({
 	variable: '--font-ibmPlex-sans',
@@ -27,7 +28,7 @@ export default function RootLayout({
 	return (
 		<html lang='en'>
 			<body className={`${ibmPlexSans.variable} ${ibmPlexMono.variable} antialiased`}>
-				{children}
+				<AppProvider>{children}</AppProvider>
 			</body>
 		</html>
 	)
