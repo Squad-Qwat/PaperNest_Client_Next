@@ -6,7 +6,6 @@ import type {
   Document,
   Citation,
   Review,
-  Version,
   AuthContextType,
   DocumentContextType,
 } from "@/types";
@@ -56,12 +55,6 @@ const initialUsers: User[] = [
             status: "approved",
           },
         ],
-        // Added versions field
-        versions: [
-          { rev: 1042, author: "Abiyyu Cakra", date: "2023-10-24 14:30", comment: "Finalized methodology section" },
-          { rev: 1040, author: "Abiyyu Cakra", date: "2023-10-22 09:15", comment: "Added initial draft of literature review" },
-          { rev: 1035, author: "System", date: "2023-10-20 18:00", comment: "Initial workspace creation" },
-        ],
       },
       {
         id: 2,
@@ -70,8 +63,18 @@ const initialUsers: User[] = [
         status: "shared",
         lastUpdated: "1 hari yang lalu",
         citations: [],
-        reviews: [],
-        versions: [{ rev: 500, author: "System", date: "2023-09-01", comment: "Initial upload" }],
+        reviews: [
+          {
+            id: "2-0",
+            docId: 2,
+            docTitle: "Climate Change Impact Study",
+            title: "Preliminary Review",
+            reviewer: "Prof. Green",
+            comment: "Needs more data to support conclusions.",
+            date: "2024-01-10",
+            status: "pending",
+          },
+        ],
       },
     ],
   },
@@ -95,9 +98,66 @@ const initialUsers: User[] = [
         description: "Introduction to quantum computing for beginners",
         status: "shared",
         lastUpdated: "3 hari yang lalu",
+        citations: [
+          {
+            id: "1-0",
+            docId: 1,
+            docTitle: "Quantum Computing Fundamentals",
+            title: "Quantum Mechanics Principles",
+            authors: "Einstein, A., & Bohr, N.",
+            publicationYear: 2020,
+            publisher: "Physics Review",
+          },
+          {
+            id: "1-1",
+            docId: 1,
+            docTitle: "Quantum Computing Fundamentals",
+            title: "Modern Quantum Algorithms",
+            authors: "Chen, L., & Park, K.",
+            publicationYear: 2023,
+            publisher: "ACM Computing Surveys",
+          },
+        ],
+        reviews: [],
+      },
+      {
+        id: 2,
+        title: "Educational Technology Trends",
+        description: "Survey of emerging technologies in education",
+        status: "personal",
+        lastUpdated: "1 minggu yang lalu",
+        citations: [
+          {
+            id: "2-0",
+            docId: 2,
+            docTitle: "Educational Technology Trends",
+            title: "AI in Education",
+            authors: "Brown, R., et al.",
+            publicationYear: 2023,
+            publisher: "Educational Research Quarterly",
+          },
+        ],
+        reviews: [
+          {
+            id: "2-0",
+            docId: 2,
+            docTitle: "Educational Technology Trends",
+            title: "Peer Review",
+            reviewer: "Dr. Martinez",
+            comment: "Good overview but needs more case studies.",
+            date: "2023-12-20",
+            status: "rejected",
+          },
+        ],
+      },
+      {
+        id: 3,
+        title: "Blockchain in Supply Chain",
+        description: "Research on blockchain applications in logistics",
+        status: "shared",
+        lastUpdated: "2 minggu yang lalu",
         citations: [],
         reviews: [],
-        versions: [{ rev: 201, author: "Sarah Williams", date: "2023-11-01", comment: "Update abstract" }],
       },
     ],
   },
@@ -195,7 +255,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const createDocument = useCallback(
     (
       userId: number,
-      document: Omit<Document, "id" | "citations" | "reviews" | "versions">
+      document: Omit<Document, "id" | "citations" | "reviews">
     ): Document => {
       const user = users.find((u) => u.id === userId);
       if (!user) throw new Error("User not found");
@@ -209,7 +269,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         id: newId,
         citations: [],
         reviews: [],
-        versions: []
       };
 
       setUsers((prev) =>
@@ -360,38 +419,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [users, updateDocument]
   );
 
-  const addVersion = useCallback((userId: number, docId: number, version: Version) => {
-    const user = users.find(u => u.id === userId);
-    const doc = user?.documents.find(d => d.id === docId);
-    if (!doc) return;
+  const authValue: AuthContextType = {
+    currentUser,
+    users,
+    login,
+    logout,
+    register,
+    switchUser,
+    updateUser,
+  };
 
-    updateDocument(userId, docId, {
-      versions: [version, ...(doc.versions || [])]
-    });
-  }, [users, updateDocument]);
-
-  const deleteVersion = useCallback((userId: number, docId: number, rev: number) => {
-    const doc = getDocument(userId, docId);
-    if (!doc) return;
-    updateDocument(userId, docId, {
-      versions: doc.versions.filter((v) => v.rev !== rev),
-    });
-  }, [getDocument, updateDocument]);
-
-  const authValue: AuthContextType = { currentUser, users, login, logout, register, switchUser, updateUser };
-  
   const documentValue: DocumentContextType = {
     getDocuments,
     getDocument,
-    updateDocument,
-    addVersion,
     createDocument,
+    updateDocument,
     deleteDocument,
     addCitation,
     deleteCitation,
     addReview,
     deleteReview,
-    deleteVersion,
   };
 
   return (
@@ -403,14 +450,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within AppProvider");
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AppProvider");
+  }
   return context;
-};
+}
 
-export const useDocuments = () => {
+export function useDocuments() {
   const context = useContext(DocumentContext);
-  if (!context) throw new Error("useDocuments must be used within AppProvider");
+  if (context === undefined) {
+    throw new Error("useDocuments must be used within an AppProvider");
+  }
   return context;
-};
+}
