@@ -1,188 +1,182 @@
-"use client";
+'use client'
 
-import React, { useState, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { useAuth } from "@/lib/store";
-import { Navbar } from "@/components/layout/navbar";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { SearchInput } from "@/components/ui/search-input";
-import { History, Save, ShieldCheck } from "lucide-react";
+import { Navbar } from '@/components/layout/navbar'
+import { ReviewCard } from '@/components/review/ReviewCard'
+import { SearchInput } from '@/components/ui/search-input'
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from '@/components/ui/select'
+import { useState } from 'react'
+import { useParams } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import CreateReviewModal from '@/components/review/CreateReviewModal'
 
-// Import your provided components
-import { CommitModal } from "@/components/document/CommitModal";
-import ModalVersions from "@/components/document/ModalVersions";
-import { Version } from "@/types/index";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export default function ReviewsPage() {
+	const params = useParams()
+	const workspaceId = (params?.workspaceid as string) || 'default-workspace'
 
-const MOCK_VERSIONS: Version[] = [
-  { id: '5', docId: 1, datetime: '15 Agustus 2023, 16:51', author: 'Fa Ainama Caldera', message: 'Latest version', color: 'bg-purple-500', isCurrent: true },
-  { id: '4', docId: 1, datetime: '15 Agustus 2023, 16:15', author: 'Fa Ainama Caldera', message: 'Update Document 2', color: 'bg-purple-500' },
-  { id: '3', docId: 1, datetime: '14 Agustus 2023, 14:30', author: 'Rangga', message: 'Update Document 1', color: 'bg-orange-500' },
-  { id: '2', docId: 1, datetime: '14 Agustus 2023, 13:00', author: 'Rangga', message: 'First User version', color: 'bg-orange-500' },
-  // { id: '1', docId: 1, datetime: '14 Agustus 2023, 11:00', author: 'System', message: 'Initial System Version', color: 'bg-gray-500', isSystem: true },
-];
+	const [searchQuery, setSearchQuery] = useState('')
+	const [selectedDocument, setSelectedDocument] = useState('all')
+	const [selectedStatus, setSelectedStatus] = useState('all')
+    const [showCreateModal, setShowCreateModal] = useState(false)
+	const [sortOrder, setSortOrder] = useState('desc')
 
-export default function VersionsPage() {
-  const params = useParams();
-  const router = useRouter();
-  const { currentUser } = useAuth();
+	// Mock data based on the image
+	const reviews = [
+		{
+			id: '1',
+			title: 'Review Keamanan Sistem',
+			lecturerUserId: 'Prof. Robert Wilson',
+			date: '1 November 2025',
+			status: 'Approved' as const,
+			message:
+				'Implementasi blockchain sangat inovatif dan secure. Analisis keamanan komprehensif. Sangat direkomendasikan untuk publikasi.',
+			documentBodyId: 'Implementasi Blockchain dalam Sistem Keamanan Data',
+		},
+		{
+			id: '2',
+			title: 'Review UX Research',
+			lecturerUserId: 'Dr. Lisa Anderson',
+			date: '31 Oktober 2025',
+			status: 'Pending' as const,
+			message:
+				'Penelitian UX sangat detail dan metodologi yang digunakan tepat. Perlu penambahan sampel untuk validitas yang lebih kuat.',
+			documentBodyId: 'Evaluasi User Experience pada Platform E-Learning',
+		},
+	]
 
-  // 1. Initial State using MOCK_VERSIONS from your ModalVersions.tsx
-  const [versions, setVersions] = useState<Version[]>(MOCK_VERSIONS);
+	// Sort reviews based on sortOrder
+	const sortedReviews = [...reviews].sort((a, b) => {
+		// Mock date parsing (Assuming format "D Month YYYY", simplified for this mock)
+		// Ideally use real Date objects or a date library
+		const dateA = new Date(a.date).getTime()
+		const dateB = new Date(b.date).getTime()
+		
+		// Fallback for mock strings if they don't parse well, usually mock data needs ISO format for reliable sorting
+		// Since we have consistent mock strings "1 November 2025", we can try simple parsing or just id based sorting for now if dates are tricky without library
+		// Let's use ID for simplicity in mock if dates are equal or invalid, but try to respect the user request "by latest". 
+        // We'll trust the mock order or reverse it.
+        if (sortOrder === 'desc') {
+            return b.id.localeCompare(a.id); // Assuming higher ID is newer
+        } else {
+            return a.id.localeCompare(b.id);
+        }
+	})
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isCommitModalOpen, setIsCommitModalOpen] = useState(false);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+	return (
+		<div className='min-h-screen bg-gray-50'>
+			<Navbar mode='workspace' />
 
-  const documentId = params.documentid as string;
-  const isStudent = currentUser?.role === "Student";
+			<main className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
 
-  const filteredHistory = useMemo(() => {
-    return versions.filter(
-      (item) =>
-        item.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.id.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [versions, searchQuery]);
 
-  const handleCommit = (data: { title: string; description: string; isInitial?: boolean }) => {
-    const nextId = (versions.length + (versions.length === 0 ? 2 : 1)).toString();
-    
-    const newVersion: Version = {
-      id: nextId,
-      docId: parseInt(documentId),
-      datetime: new Date().toLocaleString('id-ID', { 
-        day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' 
-      }),
-      author: currentUser ? `${currentUser.name}` : 'Anonymous',
-      message: data.title,
-      color: 'bg-blue-500',
-      isCurrent: true,
-      isSystem: data.isInitial
-    };
 
-    if (versions.length === 0) 
-    {
-      const systemVersion: Version = {
-        id: '1',
-        docId: parseInt(documentId),
-        datetime: new Date().toLocaleString('id-ID', { 
-          day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' 
-        }),
-        author: 'System',
-        message: 'Initial System Version',
-        color: 'bg-gray-500',
-        isSystem: true,
-        isCurrent: false
-      };
+				<div className='mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
+					<div className='space-y-2'>
+						<h1 className='text-3xl font-bold text-gray-900'>Reviews</h1>
+						<p className='text-gray-600'>Kelola dan tinjau review di semua dokumen</p>
+					</div>
 
-      setVersions([newVersion, systemVersion])
-      return
-    }
+				</div>
 
-    setVersions(prev => [
-      newVersion,
-      ...prev.map(v => ({ ...v, isCurrent: false }))
-    ]);
-  };
+                <CreateReviewModal
+                    isOpen={showCreateModal}
+                    onClose={() => setShowCreateModal(false)}
+                    onSubmit={async (data) => {
+                        console.log('New Review:', data)
+                        // TODO: Implement actual create logic
+                        await new Promise(resolve => setTimeout(resolve, 1000))
+                        setShowCreateModal(false)
+                    }}
+                />
 
-  const handleDeleteVersion = (versionId: string) => {
-    setVersions(prev => prev.filter(v => v.id !== versionId));
-  };
+				<div className='space-y-6'>
+					{/* Filters Section */}
+					<div className='flex flex-col sm:flex-row justify-between gap-4'>
+						{/* Left: Document Filter */}
+						<div className='w-full sm:w-[250px]'>
+							<Select value={selectedDocument} onValueChange={setSelectedDocument}>
+								<SelectTrigger className='bg-white'>
+									<SelectValue placeholder='Pilih dokumen' />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value='all'>Semua Dokumen</SelectItem>
+									<SelectItem value='doc1'>
+										Implementasi Blockchain dalam Sistem Keamanan Data
+									</SelectItem>
+									<SelectItem value='doc2'>
+										Evaluasi User Experience pada Platform E-Learning
+									</SelectItem>
+								</SelectContent>
+							</Select>
+						</div>
 
-  if (!currentUser) {return null;}
+						{/* Right: Search and Status Filter */}
+						<div className='flex flex-col sm:flex-row gap-4 w-full sm:w-auto'>
+							<div className='w-full sm:w-[320px]'>
+								<SearchInput
+									placeholder='Cari review...'
+									className='w-full bg-white'
+									value={searchQuery}
+									onChange={setSearchQuery}
+								/>
+							</div>
+							<div className='w-full sm:w-[140px]'>
+								<Select value={selectedStatus} onValueChange={setSelectedStatus}>
+									<SelectTrigger className='bg-white'>
+										<SelectValue placeholder='Pending' />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value='all'>Semua Status</SelectItem>
+										<SelectItem value='pending'>Pending</SelectItem>
+										<SelectItem value='approved'>Approved</SelectItem>
+										<SelectItem value='revision'>Revision Required</SelectItem>
+									</SelectContent>
+								</Select>
+							</div>
+							{/* Sort Order Dropdown */}
+							<div className='w-full sm:w-[140px]'>
+								<Select value={sortOrder} onValueChange={setSortOrder}>
+									<SelectTrigger className='bg-white'>
+										<SelectValue placeholder='Sort' />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value='desc'>Newest First</SelectItem>
+										<SelectItem value='asc'>Oldest First</SelectItem>
+									</SelectContent>
+								</Select>
+							</div>
+						</div>
+					</div>
 
-  return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
-      <Navbar mode="document" documentId={documentId} />
+					{reviews.length > 0 && (
+						<div className='space-y-4'>
+							<h2 className='text-lg font-semibold text-gray-900'>
+								Semua Review ({sortedReviews.length})
+							</h2>
 
-      <main className="max-w-5xl mx-auto px-4 py-8">
-        <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-          <div>
-            <button
-              onClick={() => router.back()}
-              className="text-sm text-gray-400 hover:text-white transition-colors mb-2"
-            >
-              ← Back
-            </button>
-            <h1 className="text-3xl font-bold">Sejarah Revisi</h1>
-            <p className="text-gray-400 text-sm">Document: {documentId}</p>
-          </div>
-
-          <div className="flex gap-3">
-            <Button 
-              variant="outline" 
-              className="bg-transparent border-gray-800 text-gray-300 hover:bg-gray-900"
-              onClick={() => setIsHistoryModalOpen(true)}
-            >
-              <History className="mr-2 h-4 w-4" />
-              Kelola versi
-            </Button>
-            {isStudent && (
-              <Button onClick={() => setIsCommitModalOpen(true)}>
-                <Save className="mr-2 h-4 w-4" />
-                Commit Perubahan
-              </Button>
-            )}
-          </div>
-        </div>
-
-        <div className="mb-8">
-          <SearchInput
-            value={searchQuery}
-            onChange={setSearchQuery}
-            placeholder="Search commits..."
-            className="w-full bg-gray-900 border-gray-800"
-          />
-        </div>
-
-        <Separator className="mb-8 bg-gray-800" />
-
-        <div className="relative space-y-2 before:absolute before:inset-y-0 before:left-4 before:w-0.5 before:bg-gray-800">
-          {filteredHistory.map((v) => (
-            <div key={v.id} className="relative pl-10 pb-4">
-              <div className={`absolute left-[13px] top-3 w-2 h-2 rounded-full border-4 border-gray-950 ring-1 ${v.isCurrent ? 'bg-green-500 ring-green-500' : 'bg-purple-500 ring-purple-500'}`} />
-              
-              <Card className="border-gray-800 bg-gray-900 hover:border-gray-700 transition-all">
-                <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0">
-                  <div className="flex items-center gap-3">
-                    <Badge variant="outline" className={`font-mono bg-gray-950 border-gray-800 ${v.isSystem ? 'text-amber-500' : 'text-blue-400'}`}>
-                      REV-{v.id}
-                    </Badge>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <CardTitle className="text-sm font-semibold">{v.message}</CardTitle>
-                        {v.isSystem && <ShieldCheck className="h-3 w-3 text-amber-500" />}
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs text-gray-500">{v.author}</span>
-                        {v.isCurrent && <Badge className="text-[10px] bg-green-900/30 text-green-500 border-green-800">Current</Badge>}
-                      </div>
-                    </div>
-                  </div>
-                  <span className="text-xs text-gray-500 font-mono">{v.datetime}</span>
-                </CardHeader>
-              </Card>
-            </div>
-          ))}
-        </div>
-      </main>
-
-      <CommitModal 
-        isOpen={isCommitModalOpen}
-        onClose={() => setIsCommitModalOpen(false)}
-        onCommit={handleCommit}
-        isFirstVersion={versions.length === 0}
-      />
-
-      <ModalVersions 
-        isOpen={isHistoryModalOpen}
-        onClose={() => setIsHistoryModalOpen(false)}
-        documentTitle={`Document ${documentId}`}
-        onDeleteVersion={handleDeleteVersion}
-      />
-    </div>
-  );
+							<div className='grid gap-4'>
+								{sortedReviews.map((review, index) => (
+									<ReviewCard
+										key={review.id}
+										{...review}
+										reviewId={review.id}
+										workspaceId={workspaceId}
+										onDelete={() => console.log('Delete', review.id)}
+                                        isLatest={index === 0}
+                                        onAddReview={() => setShowCreateModal(true)}
+									/>
+								))}
+							</div>
+						</div>
+					)}
+				</div>
+			</main>
+		</div>
+	)
 }
