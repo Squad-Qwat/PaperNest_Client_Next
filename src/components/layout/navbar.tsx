@@ -93,7 +93,7 @@ export function Navbar({ mode = "workspace", documentId }: NavbarProps) {
                                         className={cn(
                                             "relative px-1 py-2 text-sm font-normal transition-colors",
                                             isActive(item.href)
-                                                ? "text-gray-900 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-teal-600"
+                                                ? "text-gray-900 after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-0.5 after:bg-teal-600"
                                                 : "text-gray-600 hover:text-gray-900"
                                         )}
                                     >
@@ -192,7 +192,7 @@ export function Navbar({ mode = "workspace", documentId }: NavbarProps) {
 
                     {/* Mobile Menu */}
                     {isMobileMenuOpen && (
-                        <div className="md:hidden py-4 border-t border-gray-800">
+                        <div className="md:hidden py-4 border-t border-gray-900">
                             <div className="flex flex-col gap-2 mb-4">
                                 {menuItems.map((item) => (
                                     <Link
@@ -200,9 +200,9 @@ export function Navbar({ mode = "workspace", documentId }: NavbarProps) {
                                         href={item.href}
                                         onClick={() => setIsMobileMenuOpen(false)}
                                         className={cn(
-                                            "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
+                                            "px-4 py-3 border-l-4 text-sm font-medium transition-colors",
                                             isActive(item.href)
-                                                ? "bg-blue-600 text-white"
+                                                ? "bg-teal-50 border-teal-600 text-teal-700"
                                                 : "text-gray-300 hover:bg-gray-800"
                                         )}
                                     >

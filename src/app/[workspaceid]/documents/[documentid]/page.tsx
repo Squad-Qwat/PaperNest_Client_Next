@@ -45,6 +45,37 @@ export default function DocumentPage() {
     );
   }
 
+  const getCitationText = () => 
+  {
+    const count = document.citations.length;
+
+    if (count <= 0) {return "No citations";}
+    if (count === 1) {return "1 citation";}
+
+    return `${count} citations`;
+  };
+
+  const getReviewText = () => 
+  {
+    const count = document.reviews.length;
+    const isLecturer = currentUser.role === "Lecturer";
+
+    if (count <= 0) {return isLecturer ? "No reviews given yet" : "No reviews received yet";}
+    if (count === 1) {return isLecturer ? "1 review given" : "1 review received";}
+
+    return isLecturer ? `${count} reviews given` : `${count} reviews received`;
+  };
+
+  const getVersionText = () => 
+  {
+    const count = document.versions.length;
+
+    if (count < 0) {throw new Error("This Document shouldn't even exist");}
+    if (count === 1) {return "1 version";}
+
+    return `${count} versions`;
+  };
+
   return (
     <div className="min-h-screen bg-gray-950">
       <Navbar mode="document" documentId={params.documentid as string} />
@@ -99,7 +130,7 @@ export default function DocumentPage() {
                   d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                 />
               </svg>
-              {document.citations.length} citations
+              {getCitationText()} added
             </span>
             <span className="flex items-center gap-1">
               <svg
@@ -115,7 +146,7 @@ export default function DocumentPage() {
                   d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
                 />
               </svg>
-              {document.reviews.length} reviews
+              {getReviewText()} in a document
             </span>
             <span className="flex items-center gap-1">
               <svg
@@ -131,7 +162,7 @@ export default function DocumentPage() {
                   d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" 
                 />
               </svg>
-              {document.versions.length} versions
+              {getVersionText()} published
             </span>
           </div>
         </div>

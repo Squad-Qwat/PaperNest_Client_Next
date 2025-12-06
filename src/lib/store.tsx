@@ -58,19 +58,22 @@ const initialUsers: User[] = [
         ],
         versions: [
           {
-            id: "r1042",
+            id: "r1037",
+            docId: 1,
             author: "Abiyyu Cakra",
             message: "Finalized methodology section",
             date: "2023-10-24 14:30",
           },
           {
-            id: "r1040",
+            id: "r1036",
+            docId: 1,
             author: "Abiyyu Cakra",
             message: "Added initial draft of literature review",
             date: "2023-10-22 09:15",
           },
           {
             id: "r1035",
+            docId: 1,
             author: "System",
             message: "Initial workspace creation",
             date: "2023-10-20 18:00",
@@ -99,12 +102,14 @@ const initialUsers: User[] = [
         versions: [
           {
             id: "r1036",
+            docId: 2,
             author: "Abiyyu Cakra",
             message: "Inserting the citation source",
             date: "2023-11-01 17:00"
           },
           {
             id: "r1035",
+            docId: 2,
             author: "System",
             message: "Initial workspace creation",
             date: "2023-10-20 18:00",
@@ -154,7 +159,22 @@ const initialUsers: User[] = [
           },
         ],
         reviews: [],
-        versions: [],
+        versions: [
+          {
+            id: "r1036",
+            docId: 1,
+            author: "Sarah Williams",
+            message: "Added citations in the document",
+            date: "2022-11-18 17:00"
+          },
+          {
+            id: "r1035",
+            docId: 1,
+            author: "System",
+            message: "Initial Document creation",
+            date: "2022-11-10 14:00"
+          }
+        ],
       },
       {
         id: 2,
@@ -187,7 +207,22 @@ const initialUsers: User[] = [
         ],
         versions: [
           {
+            id: "r1037",
+            docId: 2,
+            author: "Sarah Williams",
+            message: "Adding the study case for the Educational Technology Trends",
+            date: "2023-12-22 17:00"
+          },
+          {
+            id: "r1036",
+            docId: 2,
+            author: "Sarah Williams",
+            message: "Adding the citations to the document",
+            date: "2023-12-12 17:00"
+          },
+          {
             id: "r1035",
+            docId: 2,
             author: "System",
             message: "Initial Document creation",
             date: "2023-12-09 17:00"
@@ -202,7 +237,15 @@ const initialUsers: User[] = [
         lastUpdated: "2 minggu yang lalu",
         citations: [],
         reviews: [],
-        versions: [],
+        versions: [
+          {
+            id: "r1035",
+            docId: 3,
+            author: "System",
+            message: "Initial Document creation",
+            date: "2023-12-12 14:00"
+          }
+        ],
       },
     ],
   },
@@ -300,7 +343,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const createDocument = useCallback(
     (
       userId: number,
-      document: Omit<Document, "id" | "citations" | "reviews">
+      document: Omit<Document, "id" | "citations" | "reviews" | "versions">
     ): Document => {
       const user = users.find((u) => u.id === userId);
       if (!user) throw new Error("User not found");
@@ -309,11 +352,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         user.documents.length > 0
           ? Math.max(...user.documents.map((d) => d.id)) + 1
           : 1;
+        
+      const initialVersion: Version = 
+      {
+        id: "r1035",
+        docId: newId,
+        author: "System",
+        message: "Initial document creation",
+        date: new Date().toLocaleString(),
+      };
+
       const newDocument: Document = {
         ...document,
         id: newId,
         citations: [],
         reviews: [],
+        versions: [initialVersion]
       };
 
       setUsers((prev) =>
@@ -464,6 +518,47 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [users, updateDocument]
   );
 
+  const addVersion = useCallback(
+    (
+      userId: number,
+      docId: number,
+      version: Omit<Version, "id">
+    ) => {
+      const user = users.find((u) => u.id === userId);
+      const document = user?.documents.find((d) => d.id === docId);
+      if (!document) return;
+
+      const newVersion: Version = {
+        ...version,
+        id: `${docId}-${document.versions.length}`,
+      };
+
+      updateDocument(userId, docId, {
+        versions: [...document.versions, newVersion],
+      });
+    },
+    [users, updateDocument]
+  );
+
+  const deleteVersion = useCallback(
+    (userId: number, docId: number, versionId: string) => {
+      const user = users.find((u) => u.id === userId);
+      const document = user?.documents.find((d) => d.id === docId);
+      if (!document) return;
+
+      if (versionId === "r1035") 
+      {
+        console.warn("Cannot delete the initial system version.");
+        return;
+      }
+
+      updateDocument(userId, docId, {
+        citations: document.citations.filter((v) => v.id !== versionId),
+      });
+    },
+    [users, updateDocument]
+  );
+
   const authValue: AuthContextType = {
     currentUser,
     users,
@@ -484,6 +579,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     deleteCitation,
     addReview,
     deleteReview,
+    addVersion,
+    deleteVersion
   };
 
   return (
