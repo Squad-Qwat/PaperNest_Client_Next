@@ -185,7 +185,14 @@ const initialUsers: User[] = [
             status: "rejected",
           },
         ],
-        versions: []
+        versions: [
+          {
+            id: "r1035",
+            author: "System",
+            message: "Initial Document creation",
+            date: "2023-12-09 17:00"
+          }
+        ]
       },
       {
         id: 3,

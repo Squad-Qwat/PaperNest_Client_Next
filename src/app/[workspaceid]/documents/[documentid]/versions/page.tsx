@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth, useDocuments } from "@/lib/store";
 import { Navbar } from "@/components/layout/navbar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { SearchInput } from "@/components/ui/search-input";
@@ -20,14 +20,11 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-// Mock helper to simulate global revision increment
-let globalRevision = 1042; 
-
 export default function VersionsPage() {
   const params = useParams();
   const router = useRouter();
   const { currentUser } = useAuth();
-  const { getDocument } = useDocuments();
+  const { getDocument, updateDocument } = useDocuments();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isCommitModalOpen, setIsCommitModalOpen] = useState(false);
@@ -36,39 +33,46 @@ export default function VersionsPage() {
   const documentId = parseInt(params.documentid as string);
   const isStudent = currentUser?.role === "Student";
 
-  // Get document and simulate a version history array 
-  // (In a real app, this would be a property inside the document object in store.tsx)
+  // 1. Get the document from the central store
   const document = useMemo(() => {
     if (!currentUser || !documentId) return null;
     return getDocument(currentUser.id, documentId);
   }, [currentUser, documentId, getDocument]);
 
-  // Simulated SVN-style commit history
-  const [history, setHistory] = useState([
-    { rev: 1042, author: "Abiyyu Cakra", date: "2023-10-24 14:30", comment: "Finalized methodology section" },
-    { rev: 1040, author: "Abiyyu Cakra", date: "2023-10-22 09:15", comment: "Added initial draft of literature review" },
-    { rev: 1035, author: "System", date: "2023-10-20 18:00", comment: "Initial workspace creation" },
-  ]);
-
-  const filteredHistory = useMemo(() => {
-    return history.filter(item => 
-      item.comment.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.rev.toString().includes(searchQuery)
+  // 2. Determine the next revision number based on existing versions
+  const nextRevision = useMemo(() => {
+    if (!document?.versions?.length) return 1000;
+    const latestRev = Math.max(
+      ...document.versions.map((v) => parseInt(v.id.replace("r", "")))
     );
-  }, [history, searchQuery]);
+    return latestRev + 1;
+  }, [document]);
+
+  // 3. Filter history based on search query
+  const filteredHistory = useMemo(() => {
+    if (!document?.versions) return [];
+    return document.versions.filter(
+      (item) =>
+        item.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.id.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [document, searchQuery]);
 
   const handleCommit = () => {
-    if (!commitComment.trim()) return;
-    
-    const newEntry = {
-      rev: globalRevision + 1,
-      author: `${currentUser?.firstName} ${currentUser?.lastName}`,
-      date: new Date().toLocaleString(),
-      comment: commitComment,
+    if (!commitComment.trim() || !currentUser || !document) return;
+
+    const newVersion = {
+      id: `r${nextRevision}`,
+      author: `${currentUser.firstName} ${currentUser.lastName}`,
+      date: new Date().toLocaleString("sv-SE").slice(0, 16).replace("T", " "), // Format: YYYY-MM-DD HH:MM
+      message: commitComment,
     };
 
-    globalRevision++;
-    setHistory([newEntry, ...history]);
+    // 4. Update the actual store instead of local state
+    updateDocument(currentUser.id, document.id, {
+      versions: [newVersion, ...(document.versions || [])],
+    });
+
     setCommitComment("");
     setIsCommitModalOpen(false);
   };
@@ -85,20 +89,7 @@ export default function VersionsPage() {
             onClick={() => router.push(`/${params.workspaceid}`)}
             className="flex items-center gap-2 text-gray-400 hover:text-gray-200 mb-4 transition-colors"
           >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-            Back to Dashboard
+            ← Back to Dashboard
           </button>
 
           <h1 className="text-3xl font-bold text-gray-100 mb-2">
@@ -109,10 +100,10 @@ export default function VersionsPage() {
 
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div className="flex items-center gap-3 w-full md:w-auto">
-            <SearchInput 
-              value={searchQuery} 
-              onChange={setSearchQuery} 
-              placeholder="Search by revision or comment..."
+            <SearchInput
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Search by revision or message..."
               className="w-full md:w-64"
             />
             {isStudent && (
@@ -127,42 +118,41 @@ export default function VersionsPage() {
 
         <div className="space-y-4">
           {filteredHistory.map((v) => (
-            <Card key={v.rev} className="overflow-hidden border border-gray-800 rounded-lg p-6 hover:border-gray-700 bg-gray-900">
-              <CardHeader className="py-4 bg-blue">
+            <Card key={v.id} className="overflow-hidden border border-gray-800 rounded-lg p-6 hover:border-gray-700 bg-gray-900">
+              <CardHeader className="p-0 mb-4">
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-3">
                     <Badge variant="outline" className="font-mono text-green-700 bg-yellow-100">
-                      r{v.rev}
+                      {v.id}
                     </Badge>
                     <CardTitle className="text-base text-white">{v.author}</CardTitle>
                   </div>
                   <span className="text-xs text-gray-400 font-mono">{v.date}</span>
                 </div>
               </CardHeader>
-              <CardContent className="bg-gray-950 border border-gray-800 rounded-lg p-3 mb-3">
-                <p className="text-sm text-gray-500 leading-relaxed">
+              <CardContent className="bg-gray-950 border border-gray-800 rounded-lg p-3">
+                <p className="text-sm text-gray-400 leading-relaxed">
                   <span className="font-semibold text-green-500 mr-2">Message:</span>
-                  {v.comment}
+                  {v.message}
                 </p>
               </CardContent>
             </Card>
           ))}
 
           {filteredHistory.length === 0 && (
-            <div className="text-center py-20 border-2 border-dashed rounded-xl">
-              <p className="text-gray-500">No revisions found matching your search.</p>
+            <div className="text-center py-20 border-2 border-dashed border-gray-800 rounded-xl">
+              <p className="text-gray-500">No versions found.</p>
             </div>
           )}
         </div>
       </main>
 
-      {/* Commit Modal (Only accessible to Students) */}
       <Dialog open={isCommitModalOpen} onOpenChange={setIsCommitModalOpen}>
-        <DialogContent>
+        <DialogContent className="bg-gray-900 text-white border-gray-800">
           <DialogHeader>
             <DialogTitle>Commit Changes</DialogTitle>
-            <DialogDescription>
-              Provide a clear comment describing the changes you've made to the document.
+            <DialogDescription className="text-gray-400">
+              Describe the changes made to <strong>{document.title}</strong>.
             </DialogDescription>
           </DialogHeader>
           
@@ -170,15 +160,15 @@ export default function VersionsPage() {
             <div className="space-y-2">
               <Label>Commit Message</Label>
               <Textarea 
-                placeholder="e.g., Updated the results section with new data"
+                placeholder="e.g., Updated the results section"
                 value={commitComment}
                 onChange={(e) => setCommitComment(e.target.value)}
-                className="min-h-[100px]"
+                className="bg-gray-950 border-gray-800"
               />
             </div>
-            <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
-              <p className="text-xs text-blue-700">
-                <strong>Pro-tip:</strong> This will create revision <strong>r{globalRevision + 1}</strong>.
+            <div className="p-3 bg-blue-900/20 rounded-lg border border-blue-800">
+              <p className="text-xs text-blue-400">
+                This will create version <strong>r{nextRevision}</strong>.
               </p>
             </div>
           </div>
@@ -188,7 +178,7 @@ export default function VersionsPage() {
               Cancel
             </Button>
             <Button onClick={handleCommit} disabled={!commitComment.trim()}>
-              Commit to History
+              Commit
             </Button>
           </DialogFooter>
         </DialogContent>
