@@ -6,6 +6,7 @@ import type {
   Document,
   Citation,
   Review,
+  Version,
   AuthContextType,
   DocumentContextType,
 } from "@/types";
@@ -55,6 +56,26 @@ const initialUsers: User[] = [
             status: "approved",
           },
         ],
+        versions: [
+          {
+            id: "r1042",
+            author: "Abiyyu Cakra",
+            message: "Finalized methodology section",
+            date: "2023-10-24 14:30",
+          },
+          {
+            id: "r1040",
+            author: "Abiyyu Cakra",
+            message: "Added initial draft of literature review",
+            date: "2023-10-22 09:15",
+          },
+          {
+            id: "r1035",
+            author: "System",
+            message: "Initial workspace creation",
+            date: "2023-10-20 18:00",
+          },
+        ]
       },
       {
         id: 2,
@@ -73,6 +94,20 @@ const initialUsers: User[] = [
             comment: "Needs more data to support conclusions.",
             date: "2024-01-10",
             status: "pending",
+          },
+        ],
+        versions: [
+          {
+            id: "r1036",
+            author: "Abiyyu Cakra",
+            message: "Inserting the citation source",
+            date: "2023-11-01 17:00"
+          },
+          {
+            id: "r1035",
+            author: "System",
+            message: "Initial workspace creation",
+            date: "2023-10-20 18:00",
           },
         ],
       },
@@ -119,6 +154,7 @@ const initialUsers: User[] = [
           },
         ],
         reviews: [],
+        versions: [],
       },
       {
         id: 2,
@@ -149,6 +185,7 @@ const initialUsers: User[] = [
             status: "rejected",
           },
         ],
+        versions: []
       },
       {
         id: 3,
@@ -158,6 +195,7 @@ const initialUsers: User[] = [
         lastUpdated: "2 minggu yang lalu",
         citations: [],
         reviews: [],
+        versions: [],
       },
     ],
   },

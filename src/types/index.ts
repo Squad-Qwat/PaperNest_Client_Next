@@ -33,6 +33,13 @@ export interface Review {
   status: ReviewStatus;
 }
 
+export interface Version {
+  id: string;
+  author: string;
+  message: string;
+  date: string;
+}
+
 export interface Document {
   id: number;
   title: string;
@@ -41,6 +48,7 @@ export interface Document {
   lastUpdated: string;
   citations: Citation[];
   reviews: Review[];
+  versions: Version[];
 }
 
 export interface User {

@@ -76,7 +76,7 @@ export default function VersionsPage() {
   if (!currentUser || !document) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50/50">
+    <div className="min-h-screen bg-gray-950">
       <Navbar mode="document" documentId={documentId.toString()} />
 
       <main className="max-w-5xl mx-auto px-4 py-8">
@@ -127,21 +127,21 @@ export default function VersionsPage() {
 
         <div className="space-y-4">
           {filteredHistory.map((v) => (
-            <Card key={v.rev} className="overflow-hidden border-l-4 border-l-primary">
-              <CardHeader className="py-4 bg-white">
+            <Card key={v.rev} className="overflow-hidden border border-gray-800 rounded-lg p-6 hover:border-gray-700 bg-gray-900">
+              <CardHeader className="py-4 bg-blue">
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-3">
-                    <Badge variant="outline" className="font-mono text-blue-700 bg-blue-50">
+                    <Badge variant="outline" className="font-mono text-green-700 bg-yellow-100">
                       r{v.rev}
                     </Badge>
-                    <CardTitle className="text-base">{v.author}</CardTitle>
+                    <CardTitle className="text-base text-white">{v.author}</CardTitle>
                   </div>
                   <span className="text-xs text-gray-400 font-mono">{v.date}</span>
                 </div>
               </CardHeader>
-              <CardContent className="py-4 bg-gray-50/30">
-                <p className="text-sm text-gray-700 leading-relaxed">
-                  <span className="font-semibold text-gray-500 mr-2">Message:</span>
+              <CardContent className="bg-gray-950 border border-gray-800 rounded-lg p-3 mb-3">
+                <p className="text-sm text-gray-500 leading-relaxed">
+                  <span className="font-semibold text-green-500 mr-2">Message:</span>
                   {v.comment}
                 </p>
               </CardContent>

@@ -117,6 +117,22 @@ export default function DocumentPage() {
               </svg>
               {document.reviews.length} reviews
             </span>
+            <span className="flex items-center gap-1">
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" 
+                />
+              </svg>
+              {document.versions.length} versions
+            </span>
           </div>
         </div>
 
@@ -217,8 +233,8 @@ export default function DocumentPage() {
             <p className="text-gray-400 mb-4">
               View and manage versions for this document
             </p>
-            <div className="text-2xl font-bold text-green-500">
-              {document.reviews.length}
+            <div className="text-2xl font-bold text-orange-500">
+              {document.versions.length}
             </div>
             <p className="text-sm text-gray-500">Total versions</p>
           </button>

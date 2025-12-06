@@ -33,6 +33,10 @@ export function Navbar({ mode = "workspace", documentId }: NavbarProps) {
     const documentMenuItems = documentId
         ? [
             {
+                name: "Overview",
+                href: `/${workspaceId}/documents/${documentId}`
+            },
+            {
                 name: "Citations",
                 href: `/${workspaceId}/documents/${documentId}/citations`,
             },
@@ -40,6 +44,10 @@ export function Navbar({ mode = "workspace", documentId }: NavbarProps) {
                 name: "Reviews",
                 href: `/${workspaceId}/documents/${documentId}/reviews`,
             },
+            {
+                name: "Versions",
+                href: `/${workspaceId}/documents/${documentId}/versions`,
+            }
         ]
         : [];
 
