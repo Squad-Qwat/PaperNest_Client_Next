@@ -8,7 +8,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useDocumentReviews } from '@/hooks/useDocumentVersions'
 import { documentsService } from '@/lib/api/services/documents.service'
 import { Quote } from 'lucide-react'
-import { ModalListCitations } from './ViewCitations'
+// import { ModalListCitations } from './ViewCitations'
+import { CitationsManager } from './CitationsManager'
 
 const DocumentHeader = ({
 	title,
@@ -452,14 +453,25 @@ const DocumentHeader = ({
 					}
 				}}
 			/>
+
 			{/* Menggunakan  */}
-			<ModalListCitations
+			<CitationsManager
 				isOpen={isCitationOpen}
 				onClose={() => setIsCitationModalOpen(false)}
 				citations={citations}
 				onDelete={deleteCitation}
 				onInsert={insertCitationAtCursor}
 			/>
+
+			{/* 
+			<ModalListCitations
+				isOpen={isCitationOpen}
+				onClose={() => setIsCitationModalOpen(false)}
+				citations={citations}
+				onDelete={deleteCitation}
+				onInsert={insertCitationAtCursor}
+			/> 
+			*/}
 
 			{/* Editor Toolbar - sticky di bawah header */}
 			<EditorToolbar

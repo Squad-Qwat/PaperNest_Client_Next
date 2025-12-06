@@ -19,6 +19,7 @@ import { ModalAddCitations } from '@/components/document/ModalCitations'
 import { ModalListCitations } from '@/components/document/ViewCitations'
 import ContextMenu from '@/components/editor/context-menu'
 import { useAuthContext } from '@/context/AuthContext'
+import { CitationsManager } from '../../../../components/document/CitationsManager'
 
 export default function DocumentPage() {
 	const router = useRouter()
@@ -44,8 +45,7 @@ export default function DocumentPage() {
 
 	// Check workspace access first
 	const { workspace, loading: workspaceLoading, error: workspaceError } = useWorkspace(workspaceId)
-	const [isAddCitationOpen, setIsAddCitationOpen] = useState(false)
-	const [isViewCitationsOpen, setIsViewCitationsOpen] = useState(false)
+	const [isCitationModalOpen, setIsCitationModalOpen] = useState(false)
     const [citations, setCitations] = useState([])
 
 	// Redirect if no workspace access
@@ -59,6 +59,60 @@ export default function DocumentPage() {
 			router.push('/')
 		}
 	}, [workspace, workspaceLoading, workspaceError, router])
+
+	useEffect(() => {
+		const copyDocument = async () => {
+			if (!user || loading || workspaceLoading) return
+			if (!workspace) {
+				console.error('Cannot copy document: No workspace access')
+				return
+			}
+			/* 
+				if(!documentData)
+				{
+					console.error('Nothing to be copy!')
+					return
+				} 
+			*/
+	
+			try 
+			{
+				setIsLoading(true)
+				console.log('📖 Loading document:', documentId)
+
+				const doc = await DocumentService.getDocumentById(documentId)
+
+				if (!doc) {
+					console.error('Document not found:', documentId)
+					router.push('/documents')
+					return
+				}
+
+				// Check if document belongs to current workspace
+				if (doc.workspaceId !== workspaceId) {
+					console.error('Document does not belong to this workspace')
+					router.push(`/${workspaceId}`)
+					return
+				}
+
+				await DocumentService.createDocument({
+					workspaceId: doc.workspaceId++,
+					title: doc.title,
+					savedContent: doc.savedContent,
+					citations: doc.citations,
+					createdBy: doc.createdBy
+				})
+			} 
+			catch (error) 
+			{
+				console.error('❌ Error copying document:', error)
+				alert('Failed to copy document. Redirecting to documents page.')
+				router.push('/documents')
+			} 
+			finally {setIsLoading(false)}
+			
+		}
+	}, [workspaceId, user, loading, workspace, workspaceLoading, router])
 
 	// Load document
 	useEffect(() => {
@@ -158,7 +212,7 @@ export default function DocumentPage() {
 
 			await DocumentService.updateDocument(documentId, {
 				title: title,
-				content: contentToSave,
+				savedContent: contentToSave,
 				citations: citations
 			})
 
@@ -173,7 +227,6 @@ export default function DocumentPage() {
 				...prev,
 				title: title,
 				content: contentToSave,
-				citations: citations,
 				updatedAt: new Date(),
 			}))
 		} catch (error) {
@@ -207,44 +260,37 @@ export default function DocumentPage() {
 	}
 
 	const toggleCitations = useCallback(() => {
-        setIsViewCitationsOpen(prev => !prev)
+        setIsCitationModalOpen(prev => !prev)
     }, [])
 
 	const handleAddCitation = async (newCit) => {
-		const citationEntry = {
-			...newCit,
-			id: `cit_${Date.now()}`,
-			addedBy: user?.displayName || 'User',
-			createdAt: new Date().toISOString()
-		}
+        const citation = { ...newCit, id: Date.now().toString() }
+        const updatedCitations = [citation, ...citations]
+        
+        setCitations(updatedCitations)
+        
+        // Save to Firebase (adjust 'citations' field name based on your DB schema)
+        await DocumentService.updateDocument(documentId, { 
+            citations: updatedCitations 
+        })
+    }
 
-		const updatedCitations = [citationEntry, ...citations]
-		
-		// Update local state so it appears in ViewCitations immediately
-		setCitations(updatedCitations)
-		
-		// Persist to database
-		try {
-			await DocumentService.updateDocument(documentId, { citations: updatedCitations })
-			setIsAddCitationOpen(false)
-		} catch (error) {
-			console.error('Failed to save citation:', error)
-		}
-	}
+    const handleDeleteCitation = async (id) => {
+        const updatedCitations = citations.filter(c => c.id !== id)
+        setCitations(updatedCitations)
+        await DocumentService.updateDocument(documentId, { 
+            citations: updatedCitations 
+        })
+    }
 
-	const handleDeleteCitation = async (id) => {
-		const updatedCitations = citations.filter(c => c.id !== id)
-		setCitations(updatedCitations)
-		await DocumentService.updateDocument(documentId, { citations: updatedCitations })
-	}
-
-	const handleInsertCitation = (cit) => {
-		if (editorFunctions?.editor) {
-			const text = `(${cit.author}, ${cit.year})`
-			editorFunctions.editor.chain().focus().insertContent(`${text} `).run()
-			setIsViewCitationsOpen(false) 
-		}
-	}
+    const handleInsertCitation = (cit) => {
+        if (editorFunctions?.editor) {
+			const text = `[${cit.title}, ${cit.author}, ${cit.year}]`
+            editorFunctions.editor.chain().focus().insertContent(`${text} `).run()
+            // Optional: Close modal after insert
+            setIsCitationModalOpen(false) 
+        }
+    }
 
 	if (isLoading) {
 		return (
@@ -298,8 +344,8 @@ export default function DocumentPage() {
 				canUndo={editorFunctions?.canUndo}
 				canRedo={editorFunctions?.canRedo}
 				debugContentExtraction={editorFunctions?.debugContentExtraction}
-				toggleCitations={() => setIsViewCitationsOpen(true)}
-				openAddCitation={() => setIsAddCitationOpen(true)}
+				toggleCitations={toggleCitations}
+				isCitationModalOpen={isCitationModalOpen}
 			/>
 			<Room documentId={documentId}>
 				<div className='flex flex-1 overflow-hidden'>
@@ -333,26 +379,43 @@ export default function DocumentPage() {
 
 					{/* Version History Panel - Side Panel */}
 					<ModalVersions isOpen={modalVersionsOpen} onClose={() => setModalVersionsOpen(false)} />
+
+					{/* 
+						Only comment in case needed... Again
+						<ModalListCitations 
+						isOpen={isCitationModalOpen}
+						onClose={() => setIsCitationModalOpen(false)}
+						citations={citations}
+						onDelete={handleDeleteCitation}
+						onInsert={handleInsertCitation}
+            		/> 
+					*/}
+
+					<CitationsManager 
+						isOpen={isCitationModalOpen}
+						onClose={() => setIsCitationModalOpen(false)}
+						citations={citations}
+						onDelete={handleDeleteCitation}
+						onInsert={handleInsertCitation}
+					/>
 				</div>
 			</Room>
 
-			{/* Modal for adding new citations */}
-			<ModalAddCitations 
-				isOpen={isAddCitationOpen}
-				onClose={() => setIsAddCitationOpen(false)}
+			<CitationsManager 
+				isOpen={isCitationModalOpen}
+				onClose={() => setIsCitationModalOpen(false)}
+				citations={citations}
 				onAdd={handleAddCitation}
 			/>
 
-			{/* Modal for viewing and inserting citations */}
-			<ModalListCitations 
-				isOpen={isViewCitationsOpen}
-				onClose={() => setIsViewCitationsOpen(false)}
-				citations={citations}
-				onDelete={handleDeleteCitation}
-				onInsert={handleInsertCitation}
-			/>
-
-			<ModalVersions isOpen={modalVersionsOpen} onClose={() => setModalVersionsOpen(false)} />
+			{/* 
+				Only comment in case needed... Again
+				<ModalAddCitations 
+                isOpen={isCitationModalOpen}
+                onClose={() => setIsCitationModalOpen(false)}
+                citations={citations}
+                onAdd={handleAddCitation}
+            /> */}
 		</div>
 	)
 }

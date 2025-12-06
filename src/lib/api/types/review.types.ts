@@ -8,7 +8,7 @@
 /**
  * Review Status Type
  */
-export type ReviewStatus = 'pending' | 'approved' | 'revision_required' | 'rejected'
+export type ReviewStatus = 'pending' | 'approved' | 'revision_required' | 'rejected' | 'Pending' | 'Approved' | 'Revision_required' | 'Rejected'
 
 /**
  * Review Interface 

@@ -23,6 +23,7 @@ export interface CreateDocumentData {
 	title: string
 	savedContent?: any // Tiptap JSON content
 	currentVersionId?: string
+	citations?: any 
 	createdBy: string
 }
 
@@ -31,6 +32,7 @@ export interface UpdateDocumentData {
 	description?: string
 	savedContent?: any
 	currentVersionId?: string
+	citations?: any
 }
 
 export interface FirestoreDocumentData {
@@ -105,13 +107,14 @@ export class DocumentService {
 	 * Commit document changes
 	 * Explicitly marks the document as committed by the user
 	 */
-	static async commitDocument(docId: string, data: { title: string; content: any }): Promise<void> {
+	static async commitDocument(docId: string, data: { title: string; content: any; citation: any; }): Promise<void> {
 		try {
 			console.log('🔒 Committing document manually:', docId)
 
 			await this.updateDocument(docId, {
 				title: data.title,
 				savedContent: data.content,
+				citations: data.citation
 			})
 
 			console.log('✅ Document committed successfully')

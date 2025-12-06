@@ -13,6 +13,7 @@ export interface Document {
 	description?: string
 	savedContent: any // TipTap JSON content
 	currentVersionId: string
+	citations?: any // Could be empty
 	createdBy: string
 	createdAt: Date
 	updatedAt: Date

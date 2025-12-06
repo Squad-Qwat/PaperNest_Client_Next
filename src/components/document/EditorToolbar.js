@@ -32,7 +32,8 @@ import {
 } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { ModalAddCitations } from './ModalCitations'
+// import { ModalAddCitations } from './ModalCitations'
+import { CitationsManager } from './CitationsManager'
 
 const EditorToolbar = ({
 	editor,
@@ -1501,12 +1502,20 @@ const EditorToolbar = ({
 					Export DOCX
 				</Button>
 			</div>
-			<ModalAddCitations
+			<CitationsManager
 				isOpen={isCitationModalOpen}
 				onClose={() => setIsCitationModalOpen(false)}
 				citations={citations}
 				onAdd={addCitation}
 			/>
+			{/* 
+			<ModalAddCitations
+				isOpen={isCitationModalOpen}
+				onClose={() => setIsCitationModalOpen(false)}
+				citations={citations}
+				onAdd={addCitation}
+			/> 
+			*/}
 		</div>
 	)
 }
