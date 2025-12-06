@@ -20,7 +20,6 @@ export function Navbar({ mode = "workspace", documentId}: NavbarProps) {
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
     const workspaceId = currentUser?.id.toString();
-    // const documentId = currentUser?.id.toString();
 
     // Main workspace menu items
     const workspaceMenuItems = [
@@ -64,7 +63,7 @@ export function Navbar({ mode = "workspace", documentId}: NavbarProps) {
             return pathname === `/${workspaceId}`;
         }
 
-        // Add this logic too, to ensure the navbar workflow in the document is the same as the workspace
+        // Add this logic, to ensure the navbar workflow in the document is the same as the workspace
         if (href === `/${workspaceId}/documents/${documentId}`) {
             return pathname === `/${workspaceId}/documents/${documentId}`;
         }
