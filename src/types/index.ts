@@ -6,15 +6,13 @@ export type DocumentStatus = "personal" | "shared";
 
 export type ReviewStatus = "approved" | "pending" | "rejected";
 
-export interface Workspace 
-{
+export interface Workspace {
   icon: string;
   name: string;
   description: string;
 }
 
-export interface Citation 
-{
+export interface Citation {
   id: string;
   docId: number;
   docTitle: string;
@@ -24,8 +22,7 @@ export interface Citation
   publisher: string;
 }
 
-export interface Review 
-{
+export interface Review {
   id: string;
   docId: number;
   docTitle: string;
@@ -36,8 +33,7 @@ export interface Review
   status: ReviewStatus;
 }
 
-export interface Document 
-{
+export interface Document {
   id: number;
   title: string;
   description: string;
@@ -47,8 +43,7 @@ export interface Document
   reviews: Review[];
 }
 
-export interface User 
-{
+export interface User {
   id: number;
   email: string;
   password: string;
@@ -61,8 +56,7 @@ export interface User
   lastLogin?: string;
 }
 
-export interface AuthContextType 
-{
+export interface AuthContextType {
   currentUser: User | null;
   users: User[];
   login: (email: string, password: string) => Promise<boolean>;
@@ -72,8 +66,7 @@ export interface AuthContextType
   updateUser: (userId: number, updates: Partial<User>) => void;
 }
 
-export interface DocumentContextType 
-{
+export interface DocumentContextType {
   getDocuments: (userId: number) => Document[];
   getDocument: (userId: number, docId: number) => Document | undefined;
   createDocument: (

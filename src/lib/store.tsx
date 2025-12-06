@@ -11,8 +11,7 @@ import type {
 } from "@/types";
 
 // Mock data migrated from global-object.js
-const initialUsers: User[] = 
-[
+const initialUsers: User[] = [
   {
     id: 1,
     email: "abiyyu@example.com",
@@ -172,8 +171,7 @@ const DocumentContext = createContext<DocumentContextType | undefined>(
   undefined
 );
 
-export function AppProvider({ children }: { children: React.ReactNode }) 
-{
+export function AppProvider({ children }: { children: React.ReactNode }) {
   const [users, setUsers] = useState<User[]>(initialUsers);
   const [currentUser, setCurrentUser] = useState<User | null>(
     initialUsers[1] // Default to user ID 2 (lecturer) as in original code
@@ -199,14 +197,14 @@ export function AppProvider({ children }: { children: React.ReactNode })
     [users]
   );
 
-  const logout = useCallback(() => {setCurrentUser(null);}, []);
+  const logout = useCallback(() => {
+    setCurrentUser(null);
+  }, []);
 
   const register = useCallback(
-    async (userData: Omit<User, "id" | "documents">): Promise<User> => 
-    {
+    async (userData: Omit<User, "id" | "documents">): Promise<User> => {
       const newId = Math.max(...users.map((u) => u.id)) + 1;
-      const newUser: User = 
-      {
+      const newUser: User = {
         ...userData,
         id: newId,
         documents: [],
@@ -221,13 +219,14 @@ export function AppProvider({ children }: { children: React.ReactNode })
   const switchUser = useCallback(
     (userId: number) => {
       const user = users.find((u) => u.id === userId);
-      if (user) {setCurrentUser(user);}
+      if (user) {
+        setCurrentUser(user);
+      }
     },
     [users]
   );
 
-  const updateUser = useCallback((userId: number, updates: Partial<User>) => 
-  {
+  const updateUser = useCallback((userId: number, updates: Partial<User>) => {
     setUsers((prev) =>
       prev.map((u) => (u.id === userId ? { ...u, ...updates } : u))
     );
@@ -238,8 +237,7 @@ export function AppProvider({ children }: { children: React.ReactNode })
 
   // Document methods
   const getDocuments = useCallback(
-    (userId: number): Document[] => 
-    {
+    (userId: number): Document[] => {
       const user = users.find((u) => u.id === userId);
       return user?.documents || [];
     },
@@ -247,8 +245,7 @@ export function AppProvider({ children }: { children: React.ReactNode })
   );
 
   const getDocument = useCallback(
-    (userId: number, docId: number): Document | undefined => 
-    {
+    (userId: number, docId: number): Document | undefined => {
       const user = users.find((u) => u.id === userId);
       return user?.documents.find((d) => d.id === docId);
     },
@@ -259,8 +256,7 @@ export function AppProvider({ children }: { children: React.ReactNode })
     (
       userId: number,
       document: Omit<Document, "id" | "citations" | "reviews">
-    ): Document => 
-    {
+    ): Document => {
       const user = users.find((u) => u.id === userId);
       if (!user) throw new Error("User not found");
 
@@ -283,8 +279,7 @@ export function AppProvider({ children }: { children: React.ReactNode })
         )
       );
 
-      if (currentUser?.id === userId) 
-      {
+      if (currentUser?.id === userId) {
         setCurrentUser((prev) =>
           prev ? { ...prev, documents: [...prev.documents, newDocument] } : prev
         );
@@ -296,8 +291,7 @@ export function AppProvider({ children }: { children: React.ReactNode })
   );
 
   const updateDocument = useCallback(
-    (userId: number, docId: number, updates: Partial<Document>) => 
-    {
+    (userId: number, docId: number, updates: Partial<Document>) => {
       setUsers((prev) =>
         prev.map((u) =>
           u.id === userId
@@ -311,8 +305,7 @@ export function AppProvider({ children }: { children: React.ReactNode })
         )
       );
 
-      if (currentUser?.id === userId) 
-      {
+      if (currentUser?.id === userId) {
         setCurrentUser((prev) =>
           prev
             ? {
@@ -329,8 +322,7 @@ export function AppProvider({ children }: { children: React.ReactNode })
   );
 
   const deleteDocument = useCallback(
-    (userId: number, docId: number) => 
-    {
+    (userId: number, docId: number) => {
       setUsers((prev) =>
         prev.map((u) =>
           u.id === userId
@@ -339,8 +331,7 @@ export function AppProvider({ children }: { children: React.ReactNode })
         )
       );
 
-      if (currentUser?.id === userId) 
-      {
+      if (currentUser?.id === userId) {
         setCurrentUser((prev) =>
           prev
             ? {
@@ -359,33 +350,34 @@ export function AppProvider({ children }: { children: React.ReactNode })
       userId: number,
       docId: number,
       citation: Omit<Citation, "id" | "docId" | "docTitle">
-    ) => 
-    {
+    ) => {
       const user = users.find((u) => u.id === userId);
       const document = user?.documents.find((d) => d.id === docId);
-      if (!document) {return;}
+      if (!document) return;
 
-      const newCitation: Citation = 
-      {
+      const newCitation: Citation = {
         ...citation,
         id: `${docId}-${document.citations.length}`,
         docId,
         docTitle: document.title,
       };
 
-      updateDocument(userId, docId, {citations: [...document.citations, newCitation],});
+      updateDocument(userId, docId, {
+        citations: [...document.citations, newCitation],
+      });
     },
     [users, updateDocument]
   );
 
   const deleteCitation = useCallback(
-    (userId: number, docId: number, citationId: string) => 
-    {
+    (userId: number, docId: number, citationId: string) => {
       const user = users.find((u) => u.id === userId);
       const document = user?.documents.find((d) => d.id === docId);
-      if (!document) {return;}
+      if (!document) return;
 
-      updateDocument(userId, docId, {citations: document.citations.filter((c) => c.id !== citationId),});
+      updateDocument(userId, docId, {
+        citations: document.citations.filter((c) => c.id !== citationId),
+      });
     },
     [users, updateDocument]
   );
@@ -395,11 +387,10 @@ export function AppProvider({ children }: { children: React.ReactNode })
       userId: number,
       docId: number,
       review: Omit<Review, "id" | "docId" | "docTitle">
-    ) => 
-    {
+    ) => {
       const user = users.find((u) => u.id === userId);
       const document = user?.documents.find((d) => d.id === docId);
-      if (!document) {return;}
+      if (!document) return;
 
       const newReview: Review = {
         ...review,
@@ -408,25 +399,27 @@ export function AppProvider({ children }: { children: React.ReactNode })
         docTitle: document.title,
       };
 
-      updateDocument(userId, docId, {reviews: [...document.reviews, newReview],});
+      updateDocument(userId, docId, {
+        reviews: [...document.reviews, newReview],
+      });
     },
     [users, updateDocument]
   );
 
   const deleteReview = useCallback(
-    (userId: number, docId: number, reviewId: string) => 
-    {
+    (userId: number, docId: number, reviewId: string) => {
       const user = users.find((u) => u.id === userId);
       const document = user?.documents.find((d) => d.id === docId);
-      if (!document) {return;}
+      if (!document) return;
 
-      updateDocument(userId, docId, {reviews: document.reviews.filter((r) => r.id !== reviewId),});
+      updateDocument(userId, docId, {
+        reviews: document.reviews.filter((r) => r.id !== reviewId),
+      });
     },
     [users, updateDocument]
   );
 
-  const authValue: AuthContextType = 
-  {
+  const authValue: AuthContextType = {
     currentUser,
     users,
     login,
@@ -436,8 +429,7 @@ export function AppProvider({ children }: { children: React.ReactNode })
     updateUser,
   };
 
-  const documentValue: DocumentContextType = 
-  {
+  const documentValue: DocumentContextType = {
     getDocuments,
     getDocument,
     createDocument,
@@ -458,16 +450,18 @@ export function AppProvider({ children }: { children: React.ReactNode })
   );
 }
 
-export function useAuth() 
-{
+export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {throw new Error("useAuth must be used within an AppProvider");}
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AppProvider");
+  }
   return context;
 }
 
-export function useDocuments() 
-{
+export function useDocuments() {
   const context = useContext(DocumentContext);
-  if (context === undefined) {throw new Error("useDocuments must be used within an AppProvider");}
+  if (context === undefined) {
+    throw new Error("useDocuments must be used within an AppProvider");
+  }
   return context;
 }

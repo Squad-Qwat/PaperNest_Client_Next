@@ -4,10 +4,8 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/store";
 
-
-export default function Page() 
-{
-	const router = useRouter();
+export default function Page() {
+  const router = useRouter();
   const { currentUser } = useAuth();
 
   useEffect(() => {
@@ -27,3 +25,6 @@ export default function Page()
     </div>
   );
 }
+
+
+
