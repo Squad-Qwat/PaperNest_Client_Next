@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth, useDocuments } from "@/lib/store";
-import { Navbar } from "@/components/navbar";
+import { Navbar } from "@/components/layout/navbar";
 import { SearchInput } from "@/components/ui/search-input";
 import { StatusBadge } from "@/components/ui/badge";
 import { Modal, ModalFooter } from "@/components/ui/modal";

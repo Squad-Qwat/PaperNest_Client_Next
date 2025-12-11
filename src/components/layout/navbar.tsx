@@ -51,7 +51,10 @@ export function Navbar({ mode = "workspace", documentId }: NavbarProps) {
     };
 
     const isActive = (href: string) => {
-        return pathname === href;
+        if (href === `/${workspaceId}`) {
+            return pathname === `/${workspaceId}`;
+        }
+        return pathname.startsWith(href);
     };
 
     if (!currentUser) return null;
