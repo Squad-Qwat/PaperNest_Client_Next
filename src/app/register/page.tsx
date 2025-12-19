@@ -3,11 +3,14 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useAuth } from "@/lib/store";
+import { useAuthContext } from "@/context/AuthContext";
+import { workspacesService } from "@/lib/api/services/workspaces.service";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -15,41 +18,42 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { UserRole } from "@/types";
+import type { UserRole } from "@/lib/api/types/user.types";
 
 type StepData = {
   email: string;
   password: string;
   confirmPassword: string;
-  firstName: string;
-  lastName: string;
+  name: string;
   username: string;
   role: UserRole;
+  workspaceMode: 'create' | 'join';
   workspaceIcon: string;
-  workspaceName: string;
+  workspaceTitle: string;
   workspaceDescription: string;
+  invitationCode: string;
 };
 
 const workspaceIcons = ["📚", "🎓", "📖", "✍️", "🔬", "💼", "📊", "🎯", "🌟", "💡"];
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { register, users } = useAuth();
+  const { register, loading, error: authError, clearError } = useAuthContext();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<StepData>({
     email: "",
     password: "",
     confirmPassword: "",
-    firstName: "",
-    lastName: "",
+    name: "",
     username: "",
     role: "Student",
+    workspaceMode: "create",
     workspaceIcon: "📚",
-    workspaceName: "",
+    workspaceTitle: "",
     workspaceDescription: "",
+    invitationCode: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isLoading, setIsLoading] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
 
   const totalSteps = 4;
@@ -69,6 +73,7 @@ export default function RegisterPage() {
   const updateFormData = (field: keyof StepData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => ({ ...prev, [field]: "" }));
+    clearError();
 
     // Update password strength
     if (field === "password") {
@@ -84,8 +89,6 @@ export default function RegisterPage() {
       newErrors.email = "Email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = "Please enter a valid email address";
-    } else if (users.some((u) => u.email === formData.email)) {
-      newErrors.email = "This email is already registered";
     }
 
     setErrors(newErrors);
@@ -112,16 +115,14 @@ export default function RegisterPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Step 3: Credentials validation
+  // Step 3: User details validation
   const validateStep3 = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.firstName) {
-      newErrors.firstName = "First name is required";
-    }
-
-    if (!formData.lastName) {
-      newErrors.lastName = "Last name is required";
+    if (!formData.name) {
+      newErrors.name = "Name is required";
+    } else if (formData.name.length < 2) {
+      newErrors.name = "Name must be at least 2 characters";
     }
 
     if (!formData.username) {
@@ -130,8 +131,6 @@ export default function RegisterPage() {
       newErrors.username = "Username must be at least 3 characters";
     } else if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
       newErrors.username = "Username can only contain letters, numbers, and underscores";
-    } else if (users.some((u) => u.username === formData.username)) {
-      newErrors.username = "This username is already taken";
     }
 
     setErrors(newErrors);
@@ -142,10 +141,18 @@ export default function RegisterPage() {
   const validateStep4 = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.workspaceName) {
-      newErrors.workspaceName = "Workspace name is required";
-    } else if (formData.workspaceName.length < 3) {
-      newErrors.workspaceName = "Workspace name must be at least 3 characters";
+    if (formData.workspaceMode === 'create') {
+      if (!formData.workspaceTitle) {
+        newErrors.workspaceTitle = "Workspace title is required";
+      } else if (formData.workspaceTitle.length < 3) {
+        newErrors.workspaceTitle = "Workspace title must be at least 3 characters";
+      }
+    } else if (formData.workspaceMode === 'join') {
+      if (!formData.invitationCode) {
+        newErrors.invitationCode = "Invitation code is required";
+      } else if (formData.invitationCode.length < 3) {
+        newErrors.invitationCode = "Invalid invitation code";
+      }
     }
 
     setErrors(newErrors);
@@ -186,31 +193,33 @@ export default function RegisterPage() {
     }
   };
 
-  // Handle final submission
   const handleSubmit = async () => {
-    setIsLoading(true);
     try {
-      const newUser = await register({
+      const registerResult = await register({
         email: formData.email,
         password: formData.password,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
+        name: formData.name,
         username: formData.username,
         role: formData.role,
-        workspace: {
-          icon: formData.workspaceIcon,
-          name: formData.workspaceName,
-          description: formData.workspaceDescription,
-        },
       });
 
-      // Redirect to workspace dashboard
-      setTimeout(() => {
-        router.push(`/${newUser.id}`);
-      }, 1000);
+      // Only create workspace if in create mode
+      if (formData.workspaceMode === 'create') {
+        await workspacesService.create({
+          title: formData.workspaceTitle,
+          description: formData.workspaceDescription || undefined,
+          icon: formData.workspaceIcon,
+        });
+      } else {
+        // TODO: Implement join workspace with invitation code
+        // For now, just skip workspace creation
+        console.log('Join workspace with code:', formData.invitationCode);
+      }
+      
+      router.push('/');
     } catch (error) {
-      setErrors({ submit: "Registration failed. Please try again." });
-      setIsLoading(false);
+      console.error("Registration failed:", error);
+      setErrors({ submit: error instanceof Error ? error.message : 'Registration failed' });
     }
   };
 
@@ -231,15 +240,17 @@ export default function RegisterPage() {
     return "Strong";
   };
 
+  const displayError = authError || errors.submit;
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Registration Card */}
         <div className="p-8">
           {/* Error Message */}
-          {errors.submit && (
+          {displayError && (
             <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm text-center">
-              {errors.submit}
+              {displayError}
             </div>
           )}
 
@@ -263,7 +274,7 @@ export default function RegisterPage() {
                   type="button"
                   variant="outline"
                   onClick={() => handleSocialSignup("Google")}
-                  disabled={isLoading}
+                  disabled={loading}
                 >
                   <svg className="w-5 h-5" viewBox="0 0 24 24">
                     <path
@@ -289,7 +300,7 @@ export default function RegisterPage() {
                   type="button"
                   variant="outline"
                   onClick={() => handleSocialSignup("GitHub")}
-                  disabled={isLoading}
+                  disabled={loading}
                 >
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
@@ -386,7 +397,7 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {/* Step 3: Credentials */}
+          {/* Step 3: User Details */}
           {currentStep === 3 && (
             <div className="space-y-6">
               {/* Title */}
@@ -395,40 +406,24 @@ export default function RegisterPage() {
                   Your credentials
                 </h1>
                 <p className="text-sm text-gray-500">
-                  Step {currentStep} of {totalSteps} - Credentials
+                  Step {currentStep} of {totalSteps} - User Details
                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName" className="text-gray-900 font-normal">
-                    First name
+                  <Label htmlFor="name" className="text-gray-900 font-normal">
+                    Full Name
                   </Label>
                   <Input
-                    id="firstName"
+                    id="name"
                     type="text"
-                    value={formData.firstName}
-                    onChange={(e) => updateFormData("firstName", e.target.value)}
-                    placeholder="John"
+                    value={formData.name}
+                    onChange={(e) => updateFormData("name", e.target.value)}
+                    placeholder="John Doe"
                   />
-                  {errors.firstName && (
-                    <p className="text-sm text-red-600">{errors.firstName}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="lastName" className="text-gray-900 font-normal">
-                    Last name
-                  </Label>
-                  <Input
-                    id="lastName"
-                    type="text"
-                    value={formData.lastName}
-                    onChange={(e) => updateFormData("lastName", e.target.value)}
-                    placeholder="Doe"
-                  />
-                  {errors.lastName && (
-                    <p className="text-sm text-red-600">{errors.lastName}</p>
+                  {errors.name && (
+                    <p className="text-sm text-red-600">{errors.name}</p>
                   )}
                 </div>
               </div>
@@ -481,64 +476,131 @@ export default function RegisterPage() {
               {/* Title */}
               <div className="text-center">
                 <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                  Create or join a workspace
+                  {formData.workspaceMode === 'create' ? 'Create Your Workspace' : 'Join a Workspace'}
                 </h1>
                 <p className="text-sm text-gray-500">
-                  Step {currentStep} of {totalSteps} - Workspace
+                  Step {currentStep} of {totalSteps} - Workspace Setup
                 </p>
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-gray-900 font-normal">
-                  Workspace Icon
-                </Label>
-                <div className="grid grid-cols-5 gap-2">
-                  {workspaceIcons.map((icon) => (
-                    <button
-                      key={icon}
-                      type="button"
-                      onClick={() => updateFormData("workspaceIcon", icon)}
-                      className={`p-3 text-2xl border rounded-lg transition-all hover:scale-105 ${
-                        formData.workspaceIcon === icon
-                          ? "bg-teal-500 border-teal-400"
-                          : "bg-white border-gray-200 hover:border-gray-300"
-                      }`}
-                    >
-                      {icon}
-                    </button>
-                  ))}
+              {/* Workspace Mode Radio */}
+              <RadioGroup
+                className="w-full grid grid-cols-2 gap-3"
+                value={formData.workspaceMode}
+                onValueChange={(value) => updateFormData("workspaceMode", value)}
+              >
+                <div className="border-input has-data-[state=checked]:bg-teal-500 has-data-[state=checked]:text-white relative flex flex-col gap-2 border p-4 rounded-lg outline-none has-data-[state=checked]:z-10 transition-all">
+                  <div className="group flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem
+                        id="mode-create"
+                        value="create"
+                        aria-label="create-workspace"
+                        className="text-primary bg-white data-[state=checked]:bg-white data-[state=checked]:border-white data-[state=checked]:[&_svg]:fill-teal-500 after:absolute after:inset-0"
+                      />
+                      <Label className="font-semibold cursor-pointer" htmlFor="mode-create">
+                        Create New
+                      </Label>
+                    </div>
+                    <p className="text-xs opacity-80 pl-6">Start your own workspace</p>
+                  </div>
                 </div>
-              </div>
+                <div className="border-input has-data-[state=checked]:bg-teal-500 has-data-[state=checked]:text-white relative flex flex-col gap-2 border p-4 rounded-lg outline-none has-data-[state=checked]:z-10 transition-all">
+                  <div className="group flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem
+                        id="mode-join"
+                        value="join"
+                        aria-label="join-workspace"
+                        className="text-primary bg-white data-[state=checked]:bg-white data-[state=checked]:border-white data-[state=checked]:[&_svg]:fill-teal-500 after:absolute after:inset-0"
+                      />
+                      <Label className="font-semibold cursor-pointer" htmlFor="mode-join">
+                        Join Existing
+                      </Label>
+                    </div>
+                    <p className="text-xs opacity-80 pl-6">Use an invitation code</p>
+                  </div>
+                </div>
+              </RadioGroup>
 
-              <div className="space-y-2">
-                <Label htmlFor="workspaceName" className="text-gray-900 font-normal">
-                  Workspace Name
-                </Label>
-                <Input
-                  id="workspaceName"
-                  type="text"
-                  value={formData.workspaceName}
-                  onChange={(e) => updateFormData("workspaceName", e.target.value)}
-                  placeholder="My Workspace"
-                />
-                {errors.workspaceName && (
-                  <p className="text-sm text-red-600">{errors.workspaceName}</p>
-                )}
-              </div>
+              {/* Create Workspace Form */}
+              {formData.workspaceMode === 'create' && (
+                <>
+                  <div className="space-y-2">
+                    <Label className="text-gray-900 font-normal">
+                      Workspace Icon
+                    </Label>
+                    <div className="grid grid-cols-5 gap-2">
+                      {workspaceIcons.map((icon) => (
+                        <button
+                          key={icon}
+                          type="button"
+                          onClick={() => updateFormData("workspaceIcon", icon)}
+                          className={`p-3 text-2xl border rounded-lg transition-all hover:scale-105 ${
+                            formData.workspaceIcon === icon
+                              ? "bg-teal-500 border-teal-400"
+                              : "bg-white border-gray-200 hover:border-gray-300"
+                          }`}
+                        >
+                          {icon}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="workspaceDescription" className="text-gray-900 font-normal">
-                  Workspace Description
-                </Label>
-                <Textarea
-                  id="workspaceDescription"
-                  value={formData.workspaceDescription}
-                  onChange={(e) => updateFormData("workspaceDescription", e.target.value)}
-                  placeholder="Short description"
-                  rows={3}
-                  className="resize-none"
-                />
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="workspaceTitle" className="text-gray-900 font-normal">
+                      Workspace Title <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="workspaceTitle"
+                      type="text"
+                      value={formData.workspaceTitle}
+                      onChange={(e) => updateFormData("workspaceTitle", e.target.value)}
+                      placeholder="My Research Workspace"
+                    />
+                    {errors.workspaceTitle && (
+                      <p className="text-sm text-red-600">{errors.workspaceTitle}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="workspaceDescription" className="text-gray-900 font-normal">
+                      Workspace Description (Optional)
+                    </Label>
+                    <Textarea
+                      id="workspaceDescription"
+                      value={formData.workspaceDescription}
+                      onChange={(e) => updateFormData("workspaceDescription", e.target.value)}
+                      placeholder="A workspace for my research papers and projects"
+                      rows={3}
+                      className="resize-none"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Join Workspace Form */}
+              {formData.workspaceMode === 'join' && (
+                <div className="space-y-2">
+                  <Label htmlFor="invitationCode" className="text-gray-900 font-normal">
+                    Invitation Code <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="invitationCode"
+                    type="text"
+                    value={formData.invitationCode}
+                    onChange={(e) => updateFormData("invitationCode", e.target.value)}
+                    placeholder="Enter your invitation code"
+                  />
+                  {errors.invitationCode && (
+                    <p className="text-sm text-red-600">{errors.invitationCode}</p>
+                  )}
+                  <p className="text-xs text-gray-500">
+                    Ask your workspace owner for an invitation code to join their workspace.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
@@ -549,7 +611,7 @@ export default function RegisterPage() {
                 type="button"
                 variant="outline"
                 onClick={handleBack}
-                disabled={isLoading}
+                disabled={loading}
                 className="flex-1"
               >
                 ← Back
@@ -558,10 +620,10 @@ export default function RegisterPage() {
             <Button
               type="button"
               onClick={handleNext}
-              disabled={isLoading}
+              disabled={loading}
               className={`${currentStep === 1 ? "w-full" : "flex-1"}`}
             >
-              {isLoading
+              {loading
                 ? "Creating account..."
                 : currentStep === totalSteps
                 ? "Finish ✓"

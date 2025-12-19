@@ -43,33 +43,15 @@ function Badge({
   )
 }
 
-export { Badge, badgeVariants }
-
-// Custom StatusBadge wrapper for document and review statuses
-import type { DocumentStatus, ReviewStatus } from "@/types"
-
-interface StatusBadgeProps {
-  status: DocumentStatus | ReviewStatus
-  className?: string
-}
-
-export function StatusBadge({ status, className }: StatusBadgeProps) {
-  const statusConfig: Record<
-    DocumentStatus | ReviewStatus,
-    { variant: "default" | "secondary" | "destructive" | "outline"; label: string }
-  > = {
-    personal: { variant: "default", label: "Personal" },
-    shared: { variant: "secondary", label: "Shared" },
-    approved: { variant: "secondary", label: "Approved" },
-    pending: { variant: "outline", label: "Pending" },
-    rejected: { variant: "destructive", label: "Rejected" },
-  }
-
-  const config = statusConfig[status]
-
+function StatusBadge({ status }: { status: string }) {
+  const variant = status === "personal" ? "default" : "secondary"
+  const label = status === "personal" ? "Personal" : "Shared"
+  
   return (
-    <Badge variant={config.variant} className={className}>
-      {config.label}
+    <Badge variant={variant}>
+      {label}
     </Badge>
   )
 }
+
+export { Badge, badgeVariants, StatusBadge }
