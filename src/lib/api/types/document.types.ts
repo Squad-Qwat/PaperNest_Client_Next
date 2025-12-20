@@ -4,17 +4,18 @@
  */
 
 /**
- * Document entity
+ * Document entity - matches Firestore 'documents' collection structure
  */
 export interface Document {
   documentId: string;
   workspaceId: string;
   title: string;
-  description?: string | null;
-  currentVersionId?: string | null;
+  description?: string;
+  savedContent: any; // TipTap JSON content
+  currentVersionId: string;
   createdBy: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 /**

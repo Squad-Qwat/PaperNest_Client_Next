@@ -57,9 +57,6 @@ export default function WorkspacePage() {
     if (!newDoc.title.trim()) {
       errors.title = "Title is required";
     }
-    if (!newDoc.description.trim()) {
-      errors.description = "Description is required";
-    }
 
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
@@ -70,9 +67,9 @@ export default function WorkspacePage() {
 
     setIsCreating(true);
     try {
+      // Backend doesn't accept description field, only title
       await documentsService.create(workspaceId, {
         title: newDoc.title.trim(),
-        description: newDoc.description.trim(),
       });
 
       setNewDoc({ title: "", description: "" });

@@ -41,3 +41,4 @@ if (!getApps().length) {
 }
 
 export { app, auth, db, analytics };
+export { db as firestore }; // Alias for compatibility with editor modules
