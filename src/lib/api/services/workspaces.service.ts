@@ -61,6 +61,17 @@ class WorkspacesService {
     await apiClient.delete<void>(API_ENDPOINTS.workspaces.byId(workspaceId));
   }
 
+  /**
+   * Join workspace by workspace ID
+   */
+  async joinByWorkspaceId(workspaceId: string): Promise<Invitation> {
+    const response = await apiClient.post<{ userWorkspace: Invitation }>(
+      API_ENDPOINTS.workspaces.join(workspaceId),
+      {}
+    );
+    return response.userWorkspace;
+  }
+
   // ============= Member Management =============
 
   /**
@@ -79,10 +90,11 @@ class WorkspacesService {
     workspaceId: string,
     data: InviteMemberDto
   ): Promise<Invitation> {
-    return apiClient.post<Invitation>(
+    const response = await apiClient.post<{ userWorkspace: Invitation }>(
       API_ENDPOINTS.workspaces.members(workspaceId),
       data
     );
+    return response.userWorkspace;
   }
 
   /**
@@ -93,10 +105,11 @@ class WorkspacesService {
     userWorkspaceId: string,
     data: UpdateMemberRoleDto
   ): Promise<Invitation> {
-    return apiClient.put<Invitation>(
+    const response = await apiClient.put<{ userWorkspace: Invitation }>(
       API_ENDPOINTS.workspaces.member(workspaceId, userWorkspaceId),
       data
     );
+    return response.userWorkspace;
   }
 
   /**

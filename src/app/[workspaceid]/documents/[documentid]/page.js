@@ -7,6 +7,7 @@ import StarterKit from '@tiptap/starter-kit'
 import { createEditorExtensions } from '@/lib/editor/extensions'
 import { DocumentService } from '@/lib/firebase/document-service'
 import { Room } from '@/hooks/liveblocks/room'
+import { useWorkspace } from '@/hooks/useWorkspace'
 
 // UI Components
 import DocumentEditor from '@/components/document/DocumentEditor'
@@ -36,11 +37,31 @@ export default function DocumentPage() {
   const [defaultFontSize, setDefaultFontSize] = useState('11pt')
   const [editorFunctions, setEditorFunctions] = useState(null)
   const { user, loading } = useAuthContext()
+  
+  // Check workspace access first
+  const { workspace, loading: workspaceLoading, error: workspaceError } = useWorkspace(workspaceId)
+
+  // Redirect if no workspace access
+  useEffect(() => {
+    if (!workspaceLoading && !workspace) {
+      console.error('No access to workspace or workspace not found')
+      router.push('/')
+    }
+    if (workspaceError) {
+      console.error('Workspace error:', workspaceError)
+      router.push('/')
+    }
+  }, [workspace, workspaceLoading, workspaceError, router])
 
   // Load document
   useEffect(() => {
     const loadDocument = async () => {
-      if (!user || loading) return
+      // Don't load if still checking workspace or no workspace access
+      if (!user || loading || workspaceLoading) return
+      if (!workspace) {
+        console.error('Cannot load document: No workspace access')
+        return
+      }
       
       try {
         setIsLoading(true)
@@ -73,10 +94,10 @@ export default function DocumentPage() {
       }
     }
     
-    if (documentId && user && !loading) {
+    if (documentId && user && !loading && workspace && !workspaceLoading) {
       loadDocument()
     }
-  }, [documentId, user, loading, router])
+  }, [documentId, user, loading, workspace, workspaceLoading, router, workspaceId])
 
   // Global event handlers
   useEffect(() => {

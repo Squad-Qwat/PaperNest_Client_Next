@@ -24,7 +24,7 @@ export default function WorkspacePage() {
   const router = useRouter();
   const { user } = useAuthContext();
   const workspaceId = params.workspaceid as string;
-  const { workspace, loading: workspaceLoading, refetch: refetchWorkspace } = useWorkspace(workspaceId);
+  const { workspace, loading: workspaceLoading, error: workspaceError, refetch: refetchWorkspace } = useWorkspace(workspaceId);
   const { documents, loading: documentsLoading, refetch: refetchDocuments } = useDocuments(workspaceId);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -114,6 +114,19 @@ export default function WorkspacePage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading workspace...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If there's an error (like 403 Forbidden or 404 Not Found), redirect to home
+  if (workspaceError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{workspaceError}</p>
+          <p className="text-gray-600 mb-4">You don't have access to this workspace</p>
+          <Button onClick={() => router.push("/")}>Go to Home</Button>
         </div>
       </div>
     );

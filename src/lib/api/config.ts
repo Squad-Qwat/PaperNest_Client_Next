@@ -41,6 +41,7 @@ export const API_ENDPOINTS = {
   workspaces: {
     base: '/workspaces',
     byId: (workspaceId: string) => `/workspaces/${workspaceId}`,
+    join: (workspaceId: string) => `/workspaces/${workspaceId}/join`,
     members: (workspaceId: string) => `/workspaces/${workspaceId}/members`,
     member: (workspaceId: string, userWorkspaceId: string) =>
       `/workspaces/${workspaceId}/members/${userWorkspaceId}`,

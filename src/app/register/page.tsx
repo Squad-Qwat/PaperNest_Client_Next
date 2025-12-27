@@ -211,9 +211,8 @@ export default function RegisterPage() {
           icon: formData.workspaceIcon,
         });
       } else {
-        // TODO: Implement join workspace with invitation code
-        // For now, just skip workspace creation
-        console.log('Join workspace with code:', formData.invitationCode);
+        // Join workspace with workspace ID
+        await workspacesService.joinByWorkspaceId(formData.invitationCode);
       }
       
       router.push('/');
