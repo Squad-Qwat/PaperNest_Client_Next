@@ -31,10 +31,10 @@ type Storage = {
 type UserMeta = {
   id: string;
   info: {
-    name: string;
+    name: string; // Full name from database
     email?: string;
     avatar?: string;
-    color?: string;
+    color?: string; // Generated color for collaboration cursor
   };
 };
 

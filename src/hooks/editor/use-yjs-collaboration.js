@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useRoom } from '@/lib/liveblocks/config'
+import { useRoom, useSelf } from '@/lib/liveblocks/config'
 import { getYjsProviderForRoom } from '@liveblocks/yjs'
 import { Collaboration } from '@tiptap/extension-collaboration'
 import { CollaborationCursor } from '@tiptap/extension-collaboration-cursor'
@@ -34,6 +34,9 @@ export function useYjsCollaboration({
   
   // Hook Liveblocks room - always call the hook, but only use if enabled
   const room = useRoom()
+  
+  // Get user info from Liveblocks authentication endpoint
+  const liveblocksUserInfo = useSelf((me) => me?.info)
   
   // Get room ID for Firestore operations only if collaboration is enabled
   const roomId = enabled ? room?.id : null
@@ -157,43 +160,14 @@ export function useYjsCollaboration({
             console.log('Undo stack cleared:', event)
           })
           
-          // Set awareness user info jika user tersedia
-          if (user && provider.awareness) {
-            provider.awareness.setLocalState({
-              user: {
-                id: user.id || user.uid,
-                name: user.displayName || user.name || 'Anonymous',
-                avatar: user.photoURL || user.avatar || '',
-                email: user.email || ''
-              }
-            })
-          }
-          
           // Setup collaboration extensions dengan kustomisasi yang lebih baik
-          const userColor = getUserColor(user?.id || user?.uid || 'anonymous');
           const extensions = [
             Collaboration.configure({
               document: yjsDoc,
             }),
             CollaborationCursor.configure({
               provider: provider,
-              user: user ? {
-                id: user.id || user.uid,
-                name: user.displayName || user.name || 'Anonymous',
-                color: userColor, // Consistent color per user
-                // Additional user styling options
-                avatar: user.photoURL || user.avatar,
-                email: user.email,
-              } : undefined,
-              render: user => {
-                // Use custom cursor creation with enhanced styling
-                return createCustomCursor(user, {
-                  fontFamily: "'Inter', 'Segoe UI', 'Roboto', sans-serif",
-                  fontSize: '11px',
-                  fontWeight: '500',
-                  showAvatar: false // Set to true if you want to show user avatars
-                })
-              }
+              // Don't use custom render - let Tiptap handle cursor positioning
             })
           ]
           
@@ -271,6 +245,22 @@ export function useYjsCollaboration({
       setIsReady(false)
     }
   }, [enabled, room, user?.id || user?.uid])
+  
+  // Sync Liveblocks user info to Yjs awareness
+  useEffect(() => {
+    if (!yProvider || !liveblocksUserInfo || !enabled) return
+    
+    console.log('🔄 Syncing Liveblocks user info to awareness:', liveblocksUserInfo)
+    
+    // Update awareness with Liveblocks authenticated user info
+    yProvider.awareness.setLocalStateField('user', {
+      id: user?.userId || user?.id || user?.uid,
+      name: liveblocksUserInfo.name || user?.name || user?.username || 'Anonymous',
+      color: liveblocksUserInfo.color || getUserColor(user?.userId || user?.id || user?.uid || 'anonymous'),
+      avatar: liveblocksUserInfo.avatar || user?.photoURL || user?.avatar,
+      email: liveblocksUserInfo.email || user?.email,
+    })
+  }, [yProvider, liveblocksUserInfo, user, enabled])
   
   // Helper function untuk mendapatkan awareness states
   const getAwarenessStates = useCallback(() => {

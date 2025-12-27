@@ -15,6 +15,7 @@
 	},
 	"dependencies": {
 		"@liveblocks/client": "^3.12.1",
+		"@liveblocks/node": "^3.12.1",
 		"@liveblocks/react": "^3.12.1",
 		"@liveblocks/yjs": "^3.12.1",
 		"@radix-ui/react-alert-dialog": "^1.1.15",
