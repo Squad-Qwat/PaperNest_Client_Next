@@ -25,7 +25,7 @@ export function useWorkspace(workspaceId: string) {
 	return useQuery({
 		queryKey: WORKSPACE_KEYS.detail(workspaceId),
 		queryFn: () => workspacesService.getById(workspaceId),
-		enabled: !!workspaceId,
+		enabled: !!workspaceId && workspaceId !== 'undefined',
 	})
 }
 
