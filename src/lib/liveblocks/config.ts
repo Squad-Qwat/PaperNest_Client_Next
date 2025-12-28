@@ -20,13 +20,11 @@ type Presence = {
 		name: string
 		avatar?: string
 		color?: string
+		colorLight?: string
 	} | null
 }
 
-type Storage = {
-	// Define your Yjs storage structure here if needed
-	// For now, Yjs handles the document structure
-}
+type Storage = Record<string, never>
 
 type UserMeta = {
 	id: string
@@ -35,12 +33,11 @@ type UserMeta = {
 		email?: string
 		avatar?: string
 		color?: string // Generated color for collaboration cursor
+		colorLight?: string // Semi-transparent selection highlight color
 	}
 }
 
-type RoomEvent = {
-	// Define custom room events here
-}
+type RoomEvent = Record<string, never>
 
 // Export the room context hooks
 const {

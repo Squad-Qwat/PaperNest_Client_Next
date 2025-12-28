@@ -11,21 +11,21 @@
 export type ReviewStatus = 'pending' | 'approved' | 'revision_required' | 'rejected'
 
 /**
- * Review Interface 
+ * Review Interface
  * (Matches Backend Schema)
  */
 export interface Review {
-  reviewId: string
-  documentBodyId: string // Connected Version ID
-  documentId: string
-  lecturerUserId: string
-  studentUserId: string
-  message: string
-  status: ReviewStatus
-  requestedAt: string // ISO Date String
-  reviewedAt: string | null // ISO Date String
-  createdAt: string
-  updatedAt: string
+	reviewId: string
+	documentBodyId: string // Connected Version ID
+	documentId: string
+	lecturerUserId: string
+	studentUserId: string
+	message: string
+	status: ReviewStatus
+	requestedAt: string // ISO Date String
+	reviewedAt: string | null // ISO Date String
+	createdAt: string
+	updatedAt: string
 }
 
 /**
@@ -33,8 +33,8 @@ export interface Review {
  * Payload for POST /api/documents/:docId/versions/:verId/reviews
  */
 export interface CreateReviewDto {
-  lecturerId: string
-  message?: string
+	lecturerUserId: string
+	message?: string
 }
 
 /**
@@ -42,7 +42,7 @@ export interface CreateReviewDto {
  * Payload for POST approve/reject/request-revision
  */
 export interface UpdateReviewStatusDto {
-  message?: string // Optional feedback message
+	message?: string // Optional feedback message
 }
 
 /**
@@ -50,13 +50,13 @@ export interface UpdateReviewStatusDto {
  * Standard response for list endpoints
  */
 export interface ReviewsResponse {
-  reviews: Review[]
-  count: number
+	reviews: Review[]
+	count: number
 }
 
 /**
  * Single Review Response
  */
 export interface ReviewResponse {
-  review: Review
+	review: Review
 }

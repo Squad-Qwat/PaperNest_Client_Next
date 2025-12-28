@@ -1,188 +1,278 @@
-"use client";
+'use client'
 
-import React, { useState, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { useAuth } from "@/lib/store";
-import { Navbar } from "@/components/layout/navbar";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { SearchInput } from "@/components/ui/search-input";
-import { History, Save, ShieldCheck } from "lucide-react";
-
-// Import your provided components
-import { CommitModal } from "@/components/document/CommitModal";
-import ModalVersions from "@/components/document/ModalVersions";
-import { Version } from "@/types/index";
-
-const MOCK_VERSIONS: Version[] = [
-  { id: '5', docId: 1, datetime: '15 Agustus 2023, 16:51', author: 'Fa Ainama Caldera', message: 'Latest version', color: 'bg-purple-500', isCurrent: true },
-  { id: '4', docId: 1, datetime: '15 Agustus 2023, 16:15', author: 'Fa Ainama Caldera', message: 'Update Document 2', color: 'bg-purple-500' },
-  { id: '3', docId: 1, datetime: '14 Agustus 2023, 14:30', author: 'Rangga', message: 'Update Document 1', color: 'bg-orange-500' },
-  { id: '2', docId: 1, datetime: '14 Agustus 2023, 13:00', author: 'Rangga', message: 'First User version', color: 'bg-orange-500' },
-  // { id: '1', docId: 1, datetime: '14 Agustus 2023, 11:00', author: 'System', message: 'Initial System Version', color: 'bg-gray-500', isSystem: true },
-];
+import { ArrowRight, ChevronLeft, Clock, FileText, History, MessageSquare } from 'lucide-react'
+import Link from 'next/link'
+import { useParams, useRouter } from 'next/navigation'
+import { useMemo } from 'react'
+import { ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useDocumentReviews, useDocumentVersions } from '@/lib/api/hooks/use-documents'
+import type { Version } from '@/lib/api/types/document.types'
+import type { Review } from '@/lib/api/types/review.types'
+import { format, id } from '@/lib/date'
+import { getAvatarUrl, getInitials } from '@/lib/utils'
 
 export default function VersionsPage() {
-  const params = useParams();
-  const router = useRouter();
-  const { currentUser } = useAuth();
+	const params = useParams()
+	const router = useRouter()
+	const workspaceId = params.workspaceid as string
+	const documentId = params.documentid as string
 
-  // 1. Initial State using MOCK_VERSIONS from your ModalVersions.tsx
-  const [versions, setVersions] = useState<Version[]>(MOCK_VERSIONS);
+	const { data: versionsResponse, isLoading: versionsLoading } = useDocumentVersions(documentId)
+	const { data: reviewsResponse, isLoading: reviewsLoading } = useDocumentReviews(documentId)
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isCommitModalOpen, setIsCommitModalOpen] = useState(false);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+	const versions = Array.isArray(versionsResponse)
+		? versionsResponse
+		: (versionsResponse as { versions: Version[] })?.versions || []
 
-  const documentId = params.documentid as string;
-  const isStudent = currentUser?.role === "Student";
+	const reviews = Array.isArray(reviewsResponse)
+		? reviewsResponse
+		: (reviewsResponse as { reviews: Review[] })?.reviews || []
 
-  const filteredHistory = useMemo(() => {
-    return versions.filter(
-      (item) =>
-        item.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.id.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [versions, searchQuery]);
+	const isLoading = versionsLoading || reviewsLoading
 
-  const handleCommit = (data: { title: string; description: string; isInitial?: boolean }) => {
-    const nextId = (versions.length + (versions.length === 0 ? 2 : 1)).toString();
-    
-    const newVersion: Version = {
-      id: nextId,
-      docId: parseInt(documentId),
-      datetime: new Date().toLocaleString('id-ID', { 
-        day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' 
-      }),
-      author: currentUser ? `${currentUser.name}` : 'Anonymous',
-      message: data.title,
-      color: 'bg-blue-500',
-      isCurrent: true,
-      isSystem: data.isInitial
-    };
+	// Group versions by date
+	const groupedVersions = useMemo(() => {
+		if (!versions.length) return []
 
-    if (versions.length === 0) 
-    {
-      const systemVersion: Version = {
-        id: '1',
-        docId: parseInt(documentId),
-        datetime: new Date().toLocaleString('id-ID', { 
-          day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' 
-        }),
-        author: 'System',
-        message: 'Initial System Version',
-        color: 'bg-gray-500',
-        isSystem: true,
-        isCurrent: false
-      };
+		const groups: { title: string; items: any[] }[] = []
+		const now = new Date()
+		const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+		const yesterday = today - 86400000
 
-      setVersions([newVersion, systemVersion])
-      return
-    }
+		versions.forEach((version: Version) => {
+			const date = new Date(version.createdAt)
+			const time = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
 
-    setVersions(prev => [
-      newVersion,
-      ...prev.map(v => ({ ...v, isCurrent: false }))
-    ]);
-  };
+			let title = format(version.createdAt, 'd MMMM yyyy', { locale: id })
+			if (time === today) title = 'Hari ini'
+			else if (time === yesterday) title = 'Kemarin'
 
-  const handleDeleteVersion = (versionId: string) => {
-    setVersions(prev => prev.filter(v => v.id !== versionId));
-  };
+			const existingGroup = groups.find((g) => g.title === title)
+			if (existingGroup) {
+				existingGroup.items.push(version)
+			} else {
+				groups.push({ title, items: [version] })
+			}
+		})
 
-  if (!currentUser) {return null;}
+		return groups
+	}, [versions])
 
-  return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
-      <Navbar mode="document" documentId={documentId} />
+	const _latestVersion = versions[0]
 
-      <main className="max-w-5xl mx-auto px-4 py-8">
-        <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-          <div>
-            <button
-              onClick={() => router.back()}
-              className="text-sm text-gray-400 hover:text-white transition-colors mb-2"
-            >
-              ← Back
-            </button>
-            <h1 className="text-3xl font-bold">Sejarah Revisi</h1>
-            <p className="text-gray-400 text-sm">Document: {documentId}</p>
-          </div>
+	return (
+		<div className='min-h-screen bg-background flex flex-col font-sans'>
+			<header className='bg-background border-b sticky top-0 z-50 py-4'>
+				<div className='w-full px-4 md:px-6 flex items-center justify-between'>
+					<div className='flex items-center gap-4'>
+						<Button
+							variant='ghost'
+							onClick={() => router.push(`/${workspaceId}/documents/${documentId}`)}
+							className='h-10 w-10 hover:bg-muted rounded-lg transition-all group p-0 min-w-0 shrink-0'
+							title='Kembali ke Editor'
+						>
+							<ChevronLeft className='h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors' />
+						</Button>
+						<div className='flex flex-col'>
+							<div className='flex items-center gap-3'>
+								<h1 className='text-xl font-semibold tracking-tight'>Riwayat Versi</h1>
+								<div className='bg-muted px-2 py-0.5 rounded-md'>
+									<span className='text-xs font-medium text-muted-foreground'>
+										{versions.length}
+									</span>
+								</div>
+							</div>
+							<p className='text-sm text-muted-foreground'>Monitor jejak perubahan dokumen</p>
+						</div>
+					</div>
 
-          <div className="flex gap-3">
-            <Button 
-              variant="outline" 
-              className="bg-transparent border-gray-800 text-gray-300 hover:bg-gray-900"
-              onClick={() => setIsHistoryModalOpen(true)}
-            >
-              <History className="mr-2 h-4 w-4" />
-              Kelola versi
-            </Button>
-            {isStudent && (
-              <Button onClick={() => setIsCommitModalOpen(true)}>
-                <Save className="mr-2 h-4 w-4" />
-                Commit Perubahan
-              </Button>
-            )}
-          </div>
-        </div>
+					<div className='hidden md:flex items-center gap-3'>
+						<div className='flex -space-x-2'>
+							{versions.slice(0, 3).map((v: Version) => {
+								const dName = v.user?.name || v.user?.username || v.userId || 'User'
+								return (
+									<Avatar key={v.documentBodyId} className='h-8 w-8 border-2 border-background'>
+										<AvatarImage src={v.user?.photoURL || getAvatarUrl(dName, v.userId)} />
+									</Avatar>
+								)
+							})}
+							{versions.length > 3 && (
+								<Avatar className='h-8 w-8 border-2 border-background flex items-center justify-center bg-muted'>
+									<AvatarFallback className='text-xs text-muted-foreground'>
+										+{versions.length - 3}
+									</AvatarFallback>
+								</Avatar>
+							)}
+						</div>
+					</div>
+				</div>
+			</header>
 
-        <div className="mb-8">
-          <SearchInput
-            value={searchQuery}
-            onChange={setSearchQuery}
-            placeholder="Search commits..."
-            className="w-full bg-gray-900 border-gray-800"
-          />
-        </div>
+			<main className='flex-1 px-4 md:px-6 py-6 w-full overflow-y-auto mb-16'>
+				{isLoading ? (
+					<div className='space-y-8'>
+						{[1, 2].map((i) => (
+							<div key={`skeleton-item-${i}`} className='space-y-4'>
+								<Skeleton className='h-6 w-32' />
+								<div className='space-y-3'>
+									<Skeleton className='h-24 w-full' />
+									<Skeleton className='h-24 w-full' />
+								</div>
+							</div>
+						))}
+					</div>
+				) : groupedVersions.length > 0 ? (
+					<div className='space-y-10'>
+						{groupedVersions.map((group, groupIdx) => (
+							<section key={group.title} className='space-y-4'>
+								<div className='flex items-center gap-4'>
+									<h2 className='text-sm font-semibold text-muted-foreground'>{group.title}</h2>
+									<div className='h-[1px] flex-1 bg-border' />
+								</div>
 
-        <Separator className="mb-8 bg-gray-800" />
+								<div className='grid gap-3'>
+									{group.items.map((version, idx) => {
+										const versionReview = reviews.find(
+											(r: Review) => r.documentBodyId === version.documentBodyId
+										)
+										const isLatest = groupIdx === 0 && idx === 0
 
-        <div className="relative space-y-2 before:absolute before:inset-y-0 before:left-4 before:w-0.5 before:bg-gray-800">
-          {filteredHistory.map((v) => (
-            <div key={v.id} className="relative pl-10 pb-4">
-              <div className={`absolute left-[13px] top-3 w-2 h-2 rounded-full border-4 border-gray-950 ring-1 ${v.isCurrent ? 'bg-green-500 ring-green-500' : 'bg-purple-500 ring-purple-500'}`} />
-              
-              <Card className="border-gray-800 bg-gray-900 hover:border-gray-700 transition-all">
-                <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0">
-                  <div className="flex items-center gap-3">
-                    <Badge variant="outline" className={`font-mono bg-gray-950 border-gray-800 ${v.isSystem ? 'text-amber-500' : 'text-blue-400'}`}>
-                      REV-{v.id}
-                    </Badge>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <CardTitle className="text-sm font-semibold">{v.message}</CardTitle>
-                        {v.isSystem && <ShieldCheck className="h-3 w-3 text-amber-500" />}
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs text-gray-500">{v.author}</span>
-                        {v.isCurrent && <Badge className="text-[10px] bg-green-900/30 text-green-500 border-green-800">Current</Badge>}
-                      </div>
-                    </div>
-                  </div>
-                  <span className="text-xs text-gray-500 font-mono">{v.datetime}</span>
-                </CardHeader>
-              </Card>
-            </div>
-          ))}
-        </div>
-      </main>
+										return (
+											<div key={version.documentBodyId} className='group'>
+												<Card
+													className={`p-4 transition-colors hover:bg-muted/50 ${isLatest ? 'border-primary' : ''}`}
+												>
+													<div className='flex flex-col md:flex-row md:items-center gap-4'>
+														{/* Version Meta */}
+														<div className='flex items-center gap-4 md:w-48 shrink-0'>
+															<div
+																className={`h-10 w-10 shrink-0 rounded-md flex items-center justify-center ${isLatest ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+															>
+																<FileText className='w-5 h-5' />
+															</div>
+															<div className='flex flex-col'>
+																<span className='text-sm font-medium'>
+																	Versi #{String(version.versionNumber).padStart(3, '0')}
+																</span>
+																<div className='flex items-center gap-1.5 text-xs text-muted-foreground'>
+																	<Clock className='w-3 h-3' />
+																	{format(version.createdAt, 'HH:mm')}
+																	{isLatest && (
+																		<>
+																			<span className='mx-1'>&bull;</span>
+																			<span className='text-primary font-medium'>Aktif</span>
+																		</>
+																	)}
+																</div>
+															</div>
+														</div>
 
-      <CommitModal 
-        isOpen={isCommitModalOpen}
-        onClose={() => setIsCommitModalOpen(false)}
-        onCommit={handleCommit}
-        isFirstVersion={versions.length === 0}
-      />
+														{/* Content */}
+														<div className='flex-1 min-w-0 flex flex-col justify-center space-y-2'>
+															<div className='flex items-center gap-2'>
+																{(() => {
+																	const displayName =
+																		version.user?.name ||
+																		version.user?.username ||
+																		version.userId ||
+																		'User'
+																	return (
+																		<>
+																			<Avatar className='h-5 w-5'>
+																				<AvatarImage
+																					src={
+																						version.user?.photoURL ||
+																						getAvatarUrl(displayName, version.userId)
+																					}
+																				/>
+																				<AvatarFallback className='text-[10px]'>
+																					{getInitials(displayName)}
+																				</AvatarFallback>
+																			</Avatar>
+																			<span className='text-sm text-muted-foreground'>
+																				{displayName}
+																			</span>
+																		</>
+																	)
+																})()}
+															</div>
 
-      <ModalVersions 
-        isOpen={isHistoryModalOpen}
-        onClose={() => setIsHistoryModalOpen(false)}
-        documentTitle={`Document ${documentId}`}
-        onDeleteVersion={handleDeleteVersion}
-      />
-    </div>
-  );
+															{versionReview ? (
+																<div className='flex items-center gap-2'>
+																	<ReviewStatusBadge status={versionReview.status} />
+																	<span className='text-sm text-muted-foreground truncate'>
+																		{versionReview.message}
+																	</span>
+																</div>
+															) : (
+																<div className='text-sm text-muted-foreground italic'>
+																	Belum ada catatan review
+																</div>
+															)}
+														</div>
+
+														{/* Actions */}
+														<div className='shrink-0 flex items-center gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity'>
+															{versionReview && (
+																<Link href={`/${workspaceId}/reviews/${versionReview.reviewId}`}>
+																	<Button
+																		variant='ghost'
+																		size='sm'
+																		className='h-8 px-3 text-muted-foreground'
+																	>
+																		<MessageSquare className='mr-2 h-3.5 w-3.5' />
+																		<span className='hidden md:inline'>Review</span>
+																	</Button>
+																</Link>
+															)}
+															<Link
+																href={`/${workspaceId}/documents/${documentId}/versions/${version.documentBodyId}`}
+															>
+																<Button variant='secondary' size='sm' className='h-8 px-3'>
+																	Buka
+																	<ArrowRight className='ml-2 h-3.5 w-3.5' />
+																</Button>
+															</Link>
+														</div>
+													</div>
+												</Card>
+											</div>
+										)
+									})}
+								</div>
+							</section>
+						))}
+					</div>
+				) : (
+					<div className='text-center py-20 border-2 border-dashed rounded-lg'>
+						<div className='bg-muted w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4'>
+							<History className='w-6 h-6 text-muted-foreground' />
+						</div>
+						<h3 className='text-lg font-semibold'>Riwayat Kosong</h3>
+						<p className='text-sm text-muted-foreground max-w-sm mx-auto mt-2'>
+							Belum ada versi yang tersimpan.
+						</p>
+						<Button
+							onClick={() => router.push(`/${workspaceId}/documents/${documentId}`)}
+							variant='outline'
+							className='mt-6'
+						>
+							Ke Editor
+						</Button>
+					</div>
+				)}
+			</main>
+
+			<footer className='py-6 border-t'>
+				<div className='w-full px-4 md:px-6 flex justify-between items-center text-xs text-muted-foreground'>
+					<span>PaperNest</span>
+					<span>© 2026</span>
+				</div>
+			</footer>
+		</div>
+	)
 }

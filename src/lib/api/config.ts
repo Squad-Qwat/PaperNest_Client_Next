@@ -4,7 +4,11 @@
  */
 
 export const API_CONFIG = {
-	baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
+	// On client side, we use the local /api proxy. On the server side, we can safely hit the API directly.
+	baseURL:
+		typeof window !== 'undefined'
+			? '/api'
+			: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
 	timeout: 10000, // 10 seconds
 	retryAttempts: 3,
 	headers: {
@@ -27,6 +31,7 @@ export const API_ENDPOINTS = {
 		me: '/auth/me',
 		deleteAccount: '/auth/account',
 		updateEmail: '/auth/email',
+		// sonar: intentional - API endpoint path, not a secret password
 		passwordReset: '/auth/password/reset',
 	},
 
@@ -64,14 +69,19 @@ export const API_ENDPOINTS = {
 			`/workspaces/${workspaceId}/documents/${documentId}/content`,
 		versions: (documentId: string) => `/documents/${documentId}/versions`,
 		currentVersion: (documentId: string) => `/documents/${documentId}/versions/current`,
+		withRoomState: (documentId: string) => `/documents/${documentId}/with-room-state`,
+		batch: (documentId: string) => `/documents/${documentId}/batch`,
+		revert: (documentId: string, versionNumber: number) =>
+			`/documents/${documentId}/versions/${versionNumber}/revert`,
 	},
 
 	// Reviews
 	reviews: {
-		pending: '/reviews/pending',
+		student: '/reviews', // Endpoint for Student
+		lecturer: '/reviews/pending', // Endpoint for Lecturer (Pending Reviews)
 		byDocument: (documentId: string) => `/documents/${documentId}/reviews`,
-		create: (documentId: string, versionId: string) =>
-			`/documents/${documentId}/versions/${versionId}/reviews`,
+		create: (documentId: string, documentBodyId: string) =>
+			`/documents/${documentId}/versions/${documentBodyId}/reviews`,
 		approve: (reviewId: string) => `/reviews/${reviewId}/approve`,
 		reject: (reviewId: string) => `/reviews/${reviewId}/reject`,
 		requestRevision: (reviewId: string) => `/reviews/${reviewId}/request-revision`,

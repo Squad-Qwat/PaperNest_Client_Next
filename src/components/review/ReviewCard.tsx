@@ -1,17 +1,12 @@
-import { AlertCircle, Calendar, CheckCircle, FileText, Plus, Trash2, XCircle } from 'lucide-react'
+import { Calendar, FileText, Plus, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardFooter,
-	CardHeader,
-	CardTitle,
-} from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { documentsService } from '@/lib/api/services/documents.service'
+import CreateReviewModal from './CreateReviewModal'
 import { ReviewStatusBadge } from './ReviewStatusBadge'
 
 interface ReviewCardProps {
@@ -26,9 +21,8 @@ interface ReviewCardProps {
 	onDelete?: () => void
 	isLatest?: boolean
 	onAddReview?: () => void
-	onApprove?: () => void
-	onReject?: () => void
-	onRequestRevision?: () => void
+
+	onReviewUpdate?: (status: string, message?: string) => void
 }
 
 export function ReviewCard({
@@ -43,15 +37,56 @@ export function ReviewCard({
 	onDelete,
 	isLatest,
 	onAddReview,
-	onApprove,
-	onReject,
-	onRequestRevision,
+
+	onReviewUpdate,
 }: ReviewCardProps) {
 	const router = useRouter()
+	// const { toast } = useToast()
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+	const [isModalOpen, setIsModalOpen] = useState(false)
 
-	const handleCardClick = () => {
-		router.push(`/${workspaceId}/reviews/${reviewId}`)
+	// Local optimistic status could be used, but better to rely on parent update or simple refresh
+	const [isUpdating, setIsUpdating] = useState(false)
+
+	const handleReviewSubmit = async (data: { content: string; status: string }) => {
+		try {
+			setIsUpdating(true)
+			const payload = { message: data.content }
+			let newStatus = status
+
+			if (data.status === 'approved') {
+				await documentsService.approveReview(reviewId, payload)
+				newStatus = 'approved'
+			} else if (data.status === 'rejected') {
+				await documentsService.rejectReview(reviewId, payload)
+				newStatus = 'rejected'
+			} else if (data.status === 'revision') {
+				await documentsService.requestRevision(reviewId, payload)
+				newStatus = 'revision_required'
+			}
+
+			toast.success('Review Updated', {
+				description: `Review status changed to ${data.status}`,
+			})
+
+			if (onReviewUpdate) {
+				onReviewUpdate(newStatus, data.content)
+			} else {
+				router.refresh()
+			}
+		} catch (error: any) {
+			console.error('Failed to submit review decision:', error)
+			if (error?.errors) {
+				console.error('Validation errors:', error.errors)
+			}
+			toast.error('Validation Error', {
+				description: error.errors
+					? JSON.stringify(error.errors)
+					: error.message || 'Failed to update review status',
+			})
+		} finally {
+			setIsUpdating(false)
+		}
 	}
 
 	return (
@@ -69,98 +104,106 @@ export function ReviewCard({
 				cancelText='Cancel'
 				variant='danger'
 			/>
-			<Card
-				className='transition-all hover:shadow-md cursor-pointer group relative'
-				onClick={handleCardClick}
+
+			<CreateReviewModal
+				isOpen={isModalOpen}
+				onClose={() => setIsModalOpen(false)}
+				onSubmit={handleReviewSubmit}
+			/>
+
+			{/* biome-ignore lint/a11y/useSemanticElements: Card is interactive but contains nested links, so it cannot be a button */}
+			<div
+				className='relative bg-white rounded-xl border border-gray-200 transition-all hover:shadow-md group cursor-pointer'
+				onClick={() => router.push(`/${workspaceId}/reviews/${reviewId}`)}
+				onKeyDown={(e) => {
+					if (e.key === 'Enter' || e.key === ' ') {
+						router.push(`/${workspaceId}/reviews/${reviewId}`)
+					}
+				}}
+				role='button'
+				tabIndex={0}
 			>
-				<CardHeader className='pb-3'>
-					<div className='flex justify-between items-start'>
-						<div className='space-y-1.5'>
-							<CardTitle className='text-base hover:text-emerald-600 transition-colors'>
-								{title}
-							</CardTitle>
-							<CardDescription className='flex items-center gap-2 text-xs'>
-								<span>Reviewer: {lecturerUserId}</span>
-							</CardDescription>
-						</div>
-						{onDelete && (
-							<Button
-								variant='ghost'
-								size='icon'
-								className='h-8 w-8 text-gray-400 hover:text-red-500 hover:bg-red-50'
-								onClick={(e) => {
-									e.stopPropagation()
-									setShowDeleteConfirm(true)
-								}}
-							>
-								<Trash2 className='w-4 h-4' />
-							</Button>
-						)}
+				{/* Delete Button - Absolute Positioned */}
+				{onDelete && (
+					<div className='absolute top-6 right-6 z-10'>
+						<button
+							type='button'
+							className='text-gray-400 hover:text-red-500 transition-colors bg-white rounded-full p-1 opacity-0 group-hover:opacity-100 shadow-sm border border-gray-100'
+							onClick={(e) => {
+								e.stopPropagation()
+								setShowDeleteConfirm(true)
+							}}
+						>
+							<Trash2 className='w-4 h-4' />
+						</button>
 					</div>
-					<div className='flex items-center gap-3 pt-1'>
-						<div className='flex items-center gap-1.5 text-xs text-muted-foreground'>
-							<Calendar className='w-3.5 h-3.5' />
+				)}
+
+				<div className='p-6 pb-2'>
+					{/* Header: Title */}
+					<div className='mb-2 pr-8'>
+						<h3 className='text-lg font-semibold text-gray-900 mb-1'>
+							{title || 'Untitled Document'}
+						</h3>
+						<p className='text-sm text-gray-500'>Reviewer: {lecturerUserId}</p>
+					</div>
+
+					{/* Meta: Date & Status */}
+					<div className='flex items-center gap-3 mb-6'>
+						<div className='flex items-center gap-2 text-sm text-gray-500'>
+							<Calendar className='w-4 h-4' />
 							<span>{date}</span>
 						</div>
-						{/* Assuming status strings match exactly or mapped */}
 						<ReviewStatusBadge status={status as any} />
 					</div>
-				</CardHeader>
-				<CardContent className='pb-3'>
-					<div className='bg-muted/50 rounded-md p-3 text-sm line-clamp-2'>{message}</div>
-				</CardContent>
-				<CardFooter className='flex items-center justify-between'>
-					<div className='flex items-center gap-2 text-sm text-muted-foreground bg-secondary/50 px-3 py-2 rounded-md w-fit'>
-						<FileText className='w-4 h-4' />
-						<span>Untuk: {documentBodyId}</span>
+
+					{/* Content Box */}
+					<div className='bg-gray-50 rounded-lg p-4 text-gray-700 text-sm mb-4 leading-relaxed'>
+						{message || 'No feedback provided.'}
 					</div>
+				</div>
+
+				{/* Footer: Doc Link & Buttons */}
+				{/* biome-ignore lint/a11y/useSemanticElements: Footer is a group of actions but contains nested links/buttons */}
+				<div
+					className='px-6 pb-6 pt-2 flex items-center justify-between'
+					onClick={(e) => e.stopPropagation()}
+					onKeyDown={(e) => {
+						if (e.key === 'Enter' || e.key === ' ') {
+							e.stopPropagation()
+						}
+					}}
+					role='button'
+					tabIndex={-1}
+					aria-label='Card footer actions'
+				>
+					<Link
+						href={`/${workspaceId}/documents/${documentBodyId}`}
+						className='flex items-center gap-2 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded text-xs font-medium transition-colors'
+						onClick={(e) => e.stopPropagation()}
+					>
+						<FileText className='w-3.5 h-3.5' />
+						<span>Untuk: {title}</span>
+					</Link>
 
 					<div className='flex gap-2'>
-						{status === 'Pending' && (
-							<>
-								{onApprove && (
-									<Button
-										size='sm'
-										variant='outline'
-										className='text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200'
-										onClick={(e) => {
-											e.stopPropagation()
-											onApprove()
-										}}
-									>
-										<CheckCircle className='w-4 h-4 mr-1' /> Approve
-									</Button>
-								)}
-								{onRequestRevision && (
-									<Button
-										size='sm'
-										variant='outline'
-										className='text-orange-600 hover:text-orange-700 hover:bg-orange-50 border-orange-200'
-										onClick={(e) => {
-											e.stopPropagation()
-											onRequestRevision()
-										}}
-									>
-										<AlertCircle className='w-4 h-4 mr-1' /> Revision
-									</Button>
-								)}
-								{onReject && (
-									<Button
-										size='sm'
-										variant='outline'
-										className='text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200'
-										onClick={(e) => {
-											e.stopPropagation()
-											onReject()
-										}}
-									>
-										<XCircle className='w-4 h-4 mr-1' /> Reject
-									</Button>
-								)}
-							</>
+						{/* New Review / Review Decision Button */}
+						{isLatest && (
+							<Button
+								size='sm'
+								onClick={(e) => {
+									e.stopPropagation()
+									setIsModalOpen(true)
+								}}
+								disabled={isUpdating}
+							>
+								<Plus className='w-4 h-4 mr-1.5' />
+								Review Action
+							</Button>
 						)}
 
-						{isLatest && onAddReview && (
+						{/* Legacy onAddReview pass-through if needed */}
+						{!isLatest && onAddReview && (
 							<Button
 								size='sm'
 								onClick={(e) => {
@@ -173,8 +216,8 @@ export function ReviewCard({
 							</Button>
 						)}
 					</div>
-				</CardFooter>
-			</Card>
+				</div>
+			</div>
 		</>
 	)
 }

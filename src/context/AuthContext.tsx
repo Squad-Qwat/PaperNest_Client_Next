@@ -5,19 +5,15 @@
 
 'use client'
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
-import { authService } from '@/lib/api/services/auth.service'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { usePathname, useRouter } from 'next/navigation'
+import type React from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { apiClient } from '@/lib/api/clients/api-client'
-import type {
-	RegisterDto,
-	LoginDto,
-	LoginEmailDto,
-	PasswordResetDto,
-	AuthResponse,
-} from '@/lib/api/types/auth.types'
+import { authService } from '@/lib/api/services/auth.service'
 import type { User } from '@/lib/api/types/user.types'
-import { getErrorMessage } from '@/lib/api/utils/error-handler'
+import { auth } from '@/lib/firebase/config'
 
 interface AuthContextType {
 	user: User | null
@@ -25,52 +21,56 @@ interface AuthContextType {
 	error: string | null
 	isAuthenticated: boolean
 
-	// Actions
-	register: (data: RegisterDto) => Promise<AuthResponse>
-	login: (data: LoginDto) => Promise<void>
-	loginEmail: (data: LoginEmailDto) => Promise<void>
+	onboardingData: any | null
+	setOnboardingData: (data: any) => void
 	logout: () => Promise<void>
-	forgotPassword: (data: PasswordResetDto) => Promise<void>
-	refreshUser: () => Promise<void>
-	clearError: () => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 // Public routes that don't require authentication
-const PUBLIC_ROUTES = ['/login', '/register', '/forgot-password']
+const PUBLIC_ROUTES = [
+	'/login',
+	'/register',
+	'/forgot-password',
+	'/auth/onboarding',
+	'/auth/verify-email',
+]
 
 interface AuthProviderProps {
 	children: React.ReactNode
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-	const [user, setUser] = useState<User | null>(null)
-	const [loading, setLoading] = useState(true)
-	const [error, setError] = useState<string | null>(null)
-	const router = useRouter()
-	const pathname = usePathname()
+	const queryClient = useQueryClient()
+	const [onboardingData, setOnboardingData] = useState<any | null>(null)
 
-	// Initialize auth on mount
-	useEffect(() => {
-		const initAuth = async () => {
+	const { data: user = null, isLoading: isQueryLoading } = useQuery({
+		queryKey: ['currentUser'],
+		queryFn: async () => {
 			try {
 				const { accessToken } = authService.initializeAuth()
-
 				if (accessToken) {
+					apiClient.setAuthToken(accessToken)
 					const currentUser = await authService.getCurrentUser()
-					setUser(currentUser)
+					return currentUser || null
 				}
+				return null
 			} catch (err) {
 				console.error('[AuthContext] Failed to initialize auth:', err)
 				authService.logout()
-			} finally {
-				setLoading(false)
+				return null
 			}
-		}
+		},
+		staleTime: 5 * 60 * 1000,
+		retry: false,
+	})
 
-		initAuth()
-	}, [])
+	const router = useRouter()
+	const pathname = usePathname()
+
+	// Compute final loading state
+	const isAppLoading = isQueryLoading
 
 	// Auto-refresh token before expiry (every 50 minutes if token expires in 60 minutes)
 	useEffect(() => {
@@ -85,18 +85,39 @@ export function AuthProvider({ children }: AuthProviderProps) {
 					}
 				} catch (err) {
 					console.error('Failed to refresh token:', err)
-					await logout()
+					await authService.logout()
+					queryClient.setQueryData(['currentUser'], null)
+					router.push('/login')
 				}
 			},
 			50 * 60 * 1000
 		)
 
 		return () => clearInterval(refreshInterval)
-	}, [user])
+	}, [user, queryClient.setQueryData, router.push])
+
+	const logout = async () => {
+		try {
+			// Sign out from Firebase
+			const { signOut } = await import('firebase/auth')
+			await signOut(auth)
+
+			await authService.logout()
+			queryClient.setQueryData(['currentUser'], null)
+			queryClient.clear()
+			toast.success('Anda telah keluar.')
+			router.push('/login')
+		} catch (err) {
+			console.error('[AuthContext] Failed to logout:', err)
+			// Still clear local state as a safety measure
+			queryClient.setQueryData(['currentUser'], null)
+			router.push('/login')
+		}
+	}
 
 	// Redirect logic based on auth state
 	useEffect(() => {
-		if (loading) return
+		if (isAppLoading) return
 
 		const isPublicRoute = PUBLIC_ROUTES.includes(pathname)
 
@@ -104,147 +125,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
 		if (!user && !isPublicRoute) {
 			router.push('/login')
 		}
-	}, [user, loading, pathname, router])
 
-	const register = async (data: RegisterDto) => {
-		try {
-			setLoading(true)
-			setError(null)
-			const response = await authService.register(data)
-
-			const accessToken = response.token || response.accessToken
-			if (accessToken) {
-				apiClient.setAuthToken(accessToken)
-			}
-
-			setUser(response.user)
-			return response
-		} catch (err) {
-			const message = getErrorMessage(err)
-			setError(message)
-			throw err
-		} finally {
-			setLoading(false)
-		}
-	}
-
-	const login = async (data: LoginDto) => {
-		try {
-			setLoading(true)
-			setError(null)
-			const response = await authService.login(data)
-
-			const accessToken = response.token || response.accessToken
-			if (accessToken) {
-				apiClient.setAuthToken(accessToken)
-			}
-
-			setUser(response.user)
+		// If authenticated and trying to access login/register
+		if (user && (pathname === '/login' || pathname === '/register')) {
 			router.push('/')
-		} catch (err) {
-			const message = getErrorMessage(err)
-			setError(message)
-			throw err
-		} finally {
-			setLoading(false)
 		}
-	}
-
-	// Login with email/password
-	const loginEmail = async (data: LoginEmailDto) => {
-		try {
-			setLoading(true)
-			setError(null)
-			const response = await authService.loginEmail(data)
-
-			const accessToken = response.token || response.accessToken
-			console.log('[AuthContext] LoginEmail response received:', {
-				hasUser: !!response.user,
-				hasToken: !!accessToken,
-			})
-
-			// Ensure token is set in apiClient
-			if (accessToken) {
-				apiClient.setAuthToken(accessToken)
-				console.log('[AuthContext] Token explicitly set in apiClient after email login')
-			}
-
-			setUser(response.user)
-			router.push('/') // Redirect to home after login
-		} catch (err) {
-			const message = getErrorMessage(err)
-			setError(message)
-			throw err
-		} finally {
-			setLoading(false)
-		}
-	}
-
-	// Logout
-	const logout = async () => {
-		try {
-			setLoading(true)
-			setError(null)
-			await authService.logout()
-			setUser(null)
-			router.push('/login')
-		} catch (err) {
-			const message = getErrorMessage(err)
-			setError(message)
-			throw err
-		} finally {
-			setLoading(false)
-		}
-	}
-
-	// Forgot password
-	const forgotPassword = async (data: PasswordResetDto) => {
-		try {
-			setLoading(true)
-			setError(null)
-			await authService.forgotPassword(data)
-		} catch (err) {
-			const message = getErrorMessage(err)
-			setError(message)
-			throw err
-		} finally {
-			setLoading(false)
-		}
-	}
-
-	// Refresh user data
-	const refreshUser = async () => {
-		try {
-			setLoading(true)
-			setError(null)
-			const currentUser = await authService.getCurrentUser()
-			setUser(currentUser)
-		} catch (err) {
-			const message = getErrorMessage(err)
-			setError(message)
-			throw err
-		} finally {
-			setLoading(false)
-		}
-	}
-
-	// Clear error
-	const clearError = () => {
-		setError(null)
-	}
+	}, [user, isAppLoading, pathname, router])
 
 	const value: AuthContextType = {
 		user,
-		loading,
-		error,
+		loading: isAppLoading,
+		error: null,
 		isAuthenticated: !!user,
-		register,
-		login,
-		loginEmail,
+		onboardingData,
+		setOnboardingData,
 		logout,
-		forgotPassword,
-		refreshUser,
-		clearError,
 	}
 
 	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
@@ -253,11 +148,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 /**
  * Hook to use auth context
  */
-export function useAuthContext(): AuthContextType {
+export function useAuth(): AuthContextType {
 	const context = useContext(AuthContext)
 
 	if (context === undefined) {
-		throw new Error('useAuthContext must be used within an AuthProvider')
+		throw new Error('useAuth must be used within an AuthProvider')
 	}
 
 	return context

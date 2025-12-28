@@ -1,0 +1,57 @@
+name: Bug report
+description: Report a reproducible bug in PaperNest Client
+labels: [bug]
+body:
+  - type: input
+    id: title
+    attributes:
+      label: Bug summary
+      placeholder: Short summary of the issue
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Browser, OS, Node.js, package manager, and app mode
+      placeholder: |
+        OS:
+        Browser:
+        Node:
+        Package manager:
+        Branch/commit:
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to ...
+        2. Click ...
+        3. See error ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs and screenshots
+      description: Paste error logs and attach screenshots if relevant
+      render: shell

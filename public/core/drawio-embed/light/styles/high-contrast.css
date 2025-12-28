@@ -1,0 +1,83 @@
+:root {
+	--ge-panel-color: #ffffff;
+	--border-color: #000000;
+	--text-color: #000000;
+	--toolbar-color: #ffffff;
+	--primary-color: #ffffff;
+	--dark-text-color: #ffffff;
+	--ge-dark-panel-color: #121212;
+	--dark-toolbar-color: #121212;
+}
+
+.geSidebar *:not(svg *, .mxDisabled, [disabled]),
+.geToolbar *:not(svg *, .mxDisabled, [disabled]) {
+	opacity: 1;
+}
+
+*:not(svg *, .mxDisabled, [disabled], .spinner *, .geBackground, .geDragPreview, .geButton) {
+	border-color: light-dark(#000000, #ffffff);
+}
+
+button,
+.geBtn,
+*::-webkit-scrollbar-thumb {
+	border-color: light-dark(#000000, #ffffff);
+	color: light-dark(#000000, #ffffff);
+}
+
+button,
+.geBtn {
+	border-style: solid;
+	border-width: 1px;
+}
+
+.geSimple .geDiagramContainer {
+	border-top-style: none;
+	border-bottom-style: none;
+}
+
+button:not(:hover),
+.geBtn:not(:hover) {
+	background-color: transparent;
+}
+
+.gePrimaryBtn {
+	border-width: 3px;
+}
+
+.geActivePage,
+.geActiveFormatTitle {
+	text-decoration: underline;
+}
+
+.geActivePage {
+	background-color: light-dark(#ffffff, #000000);
+	color: inherit;
+	filter: invert(1);
+}
+
+.geBigButton > img:not(.geDarkMode *) {
+	filter: invert(1);
+}
+
+.geEditor,
+.geTitle,
+.geFormatTitle {
+	font-size: 15px;
+}
+
+.geTab,
+.geFormatContainer,
+.geSearchSidebar input,
+.geSpinnerStatus {
+	font-size: 14px;
+	line-height: 14px;
+}
+
+.geEditor div.mxTooltip {
+	font-size: 12px;
+}
+
+.geHint {
+	font-size: 11pt;
+}

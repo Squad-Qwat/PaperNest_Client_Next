@@ -1,0 +1,194 @@
+// @ts-nocheck
+'use client'
+
+import {
+	autocompletion,
+	closeBrackets,
+	closeBracketsKeymap,
+	completionKeymap,
+} from '@codemirror/autocomplete'
+import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
+import { bracketMatching, foldGutter, foldKeymap, indentOnInput } from '@codemirror/language'
+import { lintKeymap } from '@codemirror/lint'
+import { highlightSelectionMatches, searchKeymap } from '@codemirror/search'
+import { EditorState, type Extension } from '@codemirror/state'
+import {
+	crosshairCursor,
+	drawSelection,
+	dropCursor,
+	EditorView,
+	highlightActiveLine,
+	highlightActiveLineGutter,
+	keymap,
+	lineNumbers,
+	rectangularSelection,
+	type ViewUpdate,
+} from '@codemirror/view'
+import { latex } from 'codemirror-lang-latex'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { yCollab } from 'y-codemirror.next'
+import { useBatchUpdateDocument } from '@/lib/api/hooks/use-documents'
+import { paperNestThemeExtension } from '@/lib/editor/latex-theme'
+import { useLatexCollaboration } from './use-latex-collaboration'
+
+interface UseLatexEditorOptions {
+	documentId?: string | null
+	user?: any
+	initialContent?: string
+	enabled?: boolean
+	autoSaveInterval?: number
+}
+
+export function useLatexEditor({
+	documentId = null,
+	user = null,
+	initialContent = '',
+	enabled = true,
+	autoSaveInterval = 2000,
+}: UseLatexEditorOptions = {}) {
+	const editorRef = useRef<HTMLDivElement>(null)
+	const viewRef = useRef<EditorView | null>(null)
+	const [isReady, setIsReady] = useState(false)
+	const [isSaving, setIsSaving] = useState(false)
+	const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
+	const { mutateAsync: batchUpdate } = useBatchUpdateDocument()
+
+	const {
+		yDoc,
+		undoManager,
+		isReady: collaborationReady,
+		hasSyncedOnce,
+		awareness,
+	} = useLatexCollaboration({
+		enabled: !!documentId && enabled,
+		user,
+		documentId,
+	})
+
+	const onUpdate = useCallback(
+		(update: ViewUpdate) => {
+			if (update.docChanged && documentId) {
+				if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
+				autoSaveTimerRef.current = setTimeout(async () => {
+					const content = update.state.doc.toString()
+					setIsSaving(true)
+					try {
+						await batchUpdate({
+							documentId,
+							request: {
+								operations: [
+									{
+										operationType: 'save-content',
+										payload: { content },
+									},
+								],
+							},
+						})
+					} catch (err) {
+						console.error('Auto-save failed:', err)
+					} finally {
+						setIsSaving(false)
+					}
+				}, autoSaveInterval)
+			}
+		},
+		[documentId, autoSaveInterval, batchUpdate]
+	)
+
+	useEffect(() => {
+		if (!editorRef.current || (enabled && (!collaborationReady || !hasSyncedOnce))) return
+
+		const yText = yDoc ? yDoc.getText('latex') : null
+
+		// Secure seeding using Y.Map flag to minimize race condition risks
+		if (
+			yDoc &&
+			yText?.length === 0 &&
+			initialContent &&
+			initialContent !== 'Start writing here...'
+		) {
+			const configMap = yDoc.getMap('config')
+			if (!configMap.get('isSeeded')) {
+				configMap.set('isSeeded', true)
+				yText.insert(0, initialContent)
+				console.log('📝 [LaTeX] Loaded initial content from Firestore')
+			} else {
+				console.log('🔄 [LaTeX] Skipping Firestore init - Document seeded by another peer')
+			}
+		} else if (yText?.length === 0 && !initialContent) {
+			console.log('🔄 [LaTeX] Skipping Firestore init - no initial content provided')
+		}
+
+		const extensions: Extension[] = [
+			lineNumbers(),
+			highlightActiveLineGutter(),
+			history(),
+			foldGutter(),
+			drawSelection(),
+			dropCursor(),
+			EditorState.allowMultipleSelections.of(true),
+			indentOnInput(),
+			...paperNestThemeExtension,
+			bracketMatching(),
+			closeBrackets(),
+			autocompletion(),
+			rectangularSelection(),
+			crosshairCursor(),
+			highlightActiveLine(),
+			highlightSelectionMatches(),
+			keymap.of([
+				...closeBracketsKeymap,
+				...defaultKeymap,
+				...searchKeymap,
+				...historyKeymap,
+				...foldKeymap,
+				...completionKeymap,
+				...lintKeymap,
+			]),
+			latex(),
+			EditorView.lineWrapping,
+			EditorView.updateListener.of(onUpdate),
+		]
+
+		if (yText && awareness) {
+			extensions.push(yCollab(yText, awareness, { undoManager: undoManager as any }))
+		}
+
+		const state = EditorState.create({
+			doc: yText ? yText.toJSON() : initialContent,
+			extensions,
+		})
+
+		const newView = new EditorView({
+			state,
+			parent: editorRef.current,
+		})
+
+		viewRef.current = newView
+		setIsReady(true)
+
+		return () => {
+			newView.destroy()
+			viewRef.current = null
+			setIsReady(false)
+			if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
+		}
+	}, [
+		collaborationReady,
+		hasSyncedOnce,
+		enabled,
+		awareness,
+		initialContent,
+		onUpdate,
+		undoManager,
+		yDoc,
+	]) // Removed initialContent from dependencies
+
+	return {
+		editorRef,
+		view: viewRef.current,
+		isReady,
+		isSaving,
+		collaborationReady,
+	}
+}

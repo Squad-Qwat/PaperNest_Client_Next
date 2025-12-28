@@ -6,14 +6,14 @@
 'use client'
 
 import { useState } from 'react'
-import { workspacesService } from '@/lib/api/services/workspaces.service'
-import { apiClient } from '@/lib/api/clients/api-client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Modal, ModalFooter } from '@/components/ui/modal'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Textarea } from '@/components/ui/textarea'
+import { apiClient } from '@/lib/api/clients/api-client'
+import { workspacesService } from '@/lib/api/services/workspaces.service'
 import { getErrorMessage } from '@/lib/api/utils/error-handler'
 
 interface CreateWorkspaceModalProps {
@@ -134,14 +134,14 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
 						value={mode}
 						onValueChange={(value) => setMode(value as 'create' | 'join')}
 					>
-						<div className='border-input has-data-[state=checked]:bg-teal-500 has-data-[state=checked]:text-white relative flex flex-col gap-2 border p-4 rounded-lg outline-none has-data-[state=checked]:z-10 transition-all'>
+						<div className='border-input has-data-[state=checked]:bg-primary has-data-[state=checked]:text-primary-foreground relative flex flex-col gap-2 border p-4 rounded-lg outline-none has-data-[state=checked]:z-10 transition-all'>
 							<div className='group flex flex-col gap-2'>
 								<div className='flex items-center gap-2'>
 									<RadioGroupItem
 										id='mode-create'
 										value='create'
 										aria-label='create-workspace'
-										className='text-primary bg-white data-[state=checked]:bg-white data-[state=checked]:border-white data-[state=checked]:[&_svg]:fill-teal-500 after:absolute after:inset-0'
+										className='text-white bg-white data-[state=checked]:bg-white data-[state=checked]:border-white data-[state=checked]:[&_svg]:fill-primary after:absolute after:inset-0'
 									/>
 									<Label className='font-semibold cursor-pointer' htmlFor='mode-create'>
 										Create New
@@ -150,14 +150,14 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
 								<p className='text-xs opacity-80 pl-6'>Start your own workspace</p>
 							</div>
 						</div>
-						<div className='border-input has-data-[state=checked]:bg-teal-500 has-data-[state=checked]:text-white relative flex flex-col gap-2 border p-4 rounded-lg outline-none has-data-[state=checked]:z-10 transition-all'>
+						<div className='border-input has-data-[state=checked]:bg-primary has-data-[state=checked]:text-primary-foreground relative flex flex-col gap-2 border p-4 rounded-lg outline-none has-data-[state=checked]:z-10 transition-all'>
 							<div className='group flex flex-col gap-2'>
 								<div className='flex items-center gap-2'>
 									<RadioGroupItem
 										id='mode-join'
 										value='join'
 										aria-label='join-workspace'
-										className='text-primary bg-white data-[state=checked]:bg-white data-[state=checked]:border-white data-[state=checked]:[&_svg]:fill-teal-500 after:absolute after:inset-0'
+										className='text-white bg-white data-[state=checked]:bg-white data-[state=checked]:border-white data-[state=checked]:[&_svg]:fill-primary after:absolute after:inset-0'
 									/>
 									<Label className='font-semibold cursor-pointer' htmlFor='mode-join'>
 										Join Existing
@@ -182,7 +182,7 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
 										onClick={() => setIcon(iconOption)}
 										className={`p-3 text-2xl border rounded-lg transition-all hover:scale-105 ${
 											icon === iconOption
-												? 'bg-teal-500 border-teal-400'
+												? 'bg-primary/10 border-primary text-primary'
 												: 'bg-white border-gray-200 hover:border-gray-300'
 										}`}
 										disabled={loading}

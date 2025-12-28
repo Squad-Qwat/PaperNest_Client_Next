@@ -1,26 +1,115 @@
-import { ArrowLeft, MoreVertical } from 'lucide-react'
-import React, { useMemo, useState } from 'react'
-import { ReviewStatus, ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
+import { ChevronLeft, FileText, Loader2, MoreVertical } from 'lucide-react'
+import { useParams } from 'next/navigation'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
+import { ReviewRequestModal } from '@/components/review/ReviewRequestModal'
+import { ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { useAuthContext } from '@/context/AuthContext'
-import { useDocumentReviews, useDocumentVersions } from '@/hooks/useDocumentVersions'
+import { useAuth } from '@/context/AuthContext'
+import { useDocumentFiles } from '@/lib/api/hooks/use-document-files'
+import {
+	useCreateReview,
+	useDocumentReviews,
+	useDocumentVersions,
+	useRevertVersion,
+} from '@/lib/api/hooks/use-documents'
+import type { Version } from '@/lib/api/types/document.types'
+import type { Review } from '@/lib/api/types/review.types'
 import { format, id } from '@/lib/date'
+import { laTeXService } from '@/lib/latex/LaTeXService'
 
 interface ModalVersionsProps {
 	isOpen: boolean
 	onClose: () => void
 	documentId: string
+	onVersionRestored?: () => void
 }
 
-export default function ModalVersions({ isOpen, onClose, documentId }: ModalVersionsProps) {
-	const { user } = useAuthContext()
-	const { versions, loading: versionsLoading } = useDocumentVersions(documentId)
-	const { reviews, loading: reviewsLoading, requestReview } = useDocumentReviews(documentId)
+export default function ModalVersions({
+	isOpen,
+	onClose,
+	documentId: propDocumentId,
+	onVersionRestored,
+}: ModalVersionsProps) {
+	const params = useParams()
+	// Prioritize prop, fallback to param (users note: "dapatkan param documentid saja")
+	// But since we fixed the parent passing it, prop should work.
+	// However, user specifically asked to "try getting param documentid only".
+	// So let's extract it from params if prop is missing OR to be safe.
+	// Actually, let's trust the prop if passed, but if not, use param.
+	const documentId = propDocumentId || (params?.documentid as string)
+
+	const { user } = useAuth()
+
+	const { data: versionsResponse, isLoading: versionsLoading } = useDocumentVersions(documentId)
+	const versions: Version[] = useMemo(() => {
+		if (versionsResponse && Array.isArray((versionsResponse as any).versions)) {
+			return (versionsResponse as any).versions
+		}
+		if (Array.isArray(versionsResponse)) {
+			return versionsResponse as Version[]
+		}
+		return []
+	}, [versionsResponse])
+
+	const { data: reviewsResponse } = useDocumentReviews(documentId)
+	const reviews: Review[] = useMemo(() => {
+		if (reviewsResponse && Array.isArray((reviewsResponse as any).reviews)) {
+			return (reviewsResponse as any).reviews
+		}
+		if (Array.isArray(reviewsResponse)) {
+			return reviewsResponse as Review[]
+		}
+		return []
+	}, [reviewsResponse])
+
+	const { mutateAsync: revertVersionMutate, isPending: isRollingBack } = useRevertVersion()
+	const { mutateAsync: requestReviewMutate } = useCreateReview()
+	const { data: files = [] } = useDocumentFiles(documentId)
 
 	const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null)
+	const [showReviewModal, setShowReviewModal] = useState(false)
+	const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+	const [isCompiling, setIsCompiling] = useState(false)
+	const [compileError, setCompileError] = useState<string | null>(null)
+
+	// Function to compile LaTeX to PDF
+	const handleCompile = useCallback(
+		async (content: string) => {
+			if (!content) return
+
+			setIsCompiling(true)
+			setCompileError(null)
+
+			try {
+				// Using server mode for preview consistency in modal
+				const result = await laTeXService.compileWithAssets('main.tex', content, files)
+
+				if (result.status === 0 && result.pdf) {
+					// Use Uint8Array directly, but cast to any or use it in the array to satisfy TypeScript's BlobPart requirement
+					const blob = new Blob([result.pdf as any], { type: 'application/pdf' })
+					const url = URL.createObjectURL(blob)
+
+					// Revoke old URL to prevent memory leaks
+					if (pdfUrl) URL.revokeObjectURL(pdfUrl)
+					setPdfUrl(url)
+				} else {
+					setCompileError(result.log || 'Compilation failed')
+				}
+			} catch (error: any) {
+				console.error('Compilation error in ModalVersions:', error)
+				setCompileError(error.message || 'Error compiling PDF')
+			} finally {
+				setIsCompiling(false)
+			}
+		},
+		[files, pdfUrl]
+	)
+
+	// const { toast } = useToast()
 
 	// Set initial selected version to latest when data loads
 	React.useEffect(() => {
@@ -35,20 +124,30 @@ export default function ModalVersions({ isOpen, onClose, documentId }: ModalVers
 			// Find review for this version
 			const versionReview = reviews.find((r) => r.documentBodyId === version.documentBodyId)
 
+			// Resolve Author Name
+			// If the ID matches current user, use their name.
+			// "atau ga yang terlogin saja" -> Fallback to current user name if missing
+			let authorName = version.createdBy
+			if (user && (version.createdBy === user.userId || !version.createdBy)) {
+				authorName = user.name || 'User'
+			}
+
 			// Map to UI format
 			return {
 				id: version.documentBodyId,
-				timestamp: format(new Date(version.createdAt), 'd MMMM yyyy, HH:mm', { locale: id }),
-				author: version.createdBy, // In real app, this would be a name, not ID. Assuming ID for now.
+				versionNumber: version.versionNumber,
+				timestamp: format(version.createdAt, 'd MMMM yyyy, HH:mm', { locale: id }),
+				author: authorName,
 				color: index === 0 ? 'bg-purple-500' : 'bg-orange-500',
 				isCurrent: index === 0,
+				content: version.content,
 				review: versionReview
 					? {
 							reviewer: {
-								name: 'Lecturer', // Placeholder until user data is joined
+								name: versionReview.lecturerUserId || 'Lecturer', // Use ID if no name
 								avatarUrl: undefined,
 							},
-							date: format(new Date(versionReview.requestedAt), 'd MMMM yyyy, HH:mm', {
+							date: format(versionReview.requestedAt, 'd MMMM yyyy, HH:mm', {
 								locale: id,
 							}),
 							status: versionReview.status,
@@ -57,9 +156,44 @@ export default function ModalVersions({ isOpen, onClose, documentId }: ModalVers
 					: undefined,
 			}
 		})
-	}, [versions, reviews])
+	}, [versions, reviews, user])
+
+	// Compile when version selection changes
+	useEffect(() => {
+		const version = versionsList.find((v) => v.id === selectedVersionId)
+		if (isOpen && version?.content) {
+			handleCompile(version.content)
+		}
+	}, [selectedVersionId, isOpen, handleCompile, versionsList])
+
+	// Cleanup on unmount or close
+	useEffect(() => {
+		return () => {
+			if (pdfUrl) URL.revokeObjectURL(pdfUrl)
+		}
+	}, [pdfUrl])
 
 	const selectedVersion = versionsList.find((v) => v.id === selectedVersionId)
+
+	const handleRollback = async () => {
+		if (!selectedVersion) return
+
+		try {
+			await revertVersionMutate({ documentId, versionNumber: selectedVersion.versionNumber })
+			if (onVersionRestored) {
+				onVersionRestored()
+			}
+			onClose() // Close modal on success
+			toast.success('Versi dipulihkan', {
+				description: 'Dokumen telah dikembalikan ke versi yang dipilih.',
+			})
+		} catch (error: any) {
+			console.error('Rollback failed:', error)
+			toast.error('Gagal memulihkan versi', {
+				description: error.message || 'Terjadi kesalahan saat memulihkan versi.',
+			})
+		}
+	}
 
 	return (
 		<Modal
@@ -71,19 +205,20 @@ export default function ModalVersions({ isOpen, onClose, documentId }: ModalVers
 			visuallyHiddenTitle={true}
 		>
 			<div className='flex flex-col h-screen w-full bg-white'>
-				<div className='h-14 border-b flex items-center justify-between px-4 shrink-0'>
+				<div className='h-20 border-b flex items-center justify-between px-3'>
 					<div className='flex items-center gap-4'>
 						<Button
+							type='button'
 							variant='ghost'
-							size='icon'
 							onClick={onClose}
-							className='rounded-full hover:bg-gray-100'
+							className='p-2 hover:bg-gray-100 rounded-lg transition-colors group'
+							title='Back'
 						>
-							<ArrowLeft className='h-5 w-5 text-gray-600' />
+							<ChevronLeft className='h-5 w-5 text-gray-500 group-hover:text-primary transition-colors' />
 						</Button>
 						<div className='flex flex-col'>
-							<span className='text-sm font-medium text-gray-900'>Riwayat versi</span>
-							<span className='text-xs text-gray-500'>
+							<span className='text-xl font-medium text-gray-900'>Riwayat versi</span>
+							<span className='text-md text-gray-500'>
 								{selectedVersion
 									? selectedVersion.timestamp
 									: versionsLoading
@@ -96,8 +231,8 @@ export default function ModalVersions({ isOpen, onClose, documentId }: ModalVers
 						<div className='flex items-center gap-2'></div>
 					</div>
 
-				<div className='flex-1 flex overflow-hidden'>
-					<div className='flex-1 bg-gray-100 relative flex flex-col min-w-0'>
+				<div className='flex-1 flex overflow-hidden h-full'>
+					<div className='flex-1 bg-gray-100 relative h-full flex flex-col min-w-0'>
 						<ScrollArea className='h-full w-full'>
 							<div className='flex flex-col items-center p-8 min-h-full gap-6'>
 								{/* Review Card */}
@@ -130,12 +265,44 @@ export default function ModalVersions({ isOpen, onClose, documentId }: ModalVers
 									</div>
 								)}
 
-								{/* Document Page Mockup */}
-								<div className='bg-white shadow-sm w-[816px] min-h-[1056px] p-12 border border-gray-200 shrink-0'>
-									<div className='prose max-w-none text-gray-500 italic text-center mt-20'>
-										{/* Placeholder for content */}
-										Content preview not implemented yet.
-									</div>
+								{/* PDF Viewer Mockup */}
+								<div className='bg-gray-200 shadow-sm w-[816px] aspect-[1/1.414] border border-gray-300 shrink-0 flex items-center justify-center relative overflow-hidden'>
+									{isCompiling ? (
+										<div className='flex flex-col items-center gap-3 text-gray-500'>
+											<Loader2 className='w-10 h-10 animate-spin opacity-50' />
+											<span className='text-sm font-medium'>Menyiapkan Preview PDF...</span>
+										</div>
+									) : pdfUrl ? (
+										<iframe
+											src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+											className='w-full min-h-full border-none'
+											title='PDF Preview'
+										/>
+									) : compileError ? (
+										<div className='flex flex-col items-center gap-3 p-8 text-center'>
+											<FileText className='w-12 h-12 text-red-200' />
+											<div className='space-y-1'>
+												<p className='text-sm font-medium text-red-600'>Gagal Memuat Preview</p>
+												<p className='text-xs text-gray-500 max-w-xs line-clamp-3'>
+													{compileError}
+												</p>
+											</div>
+											<Button
+												variant='outline'
+												size='sm'
+												onClick={() =>
+													selectedVersion?.content && handleCompile(selectedVersion.content)
+												}
+											>
+												Coba Lagi
+											</Button>
+										</div>
+									) : (
+										<div className='flex flex-col items-center gap-2 text-gray-400'>
+											<FileText className='w-10 h-10 opacity-20' />
+											<p className='text-sm italic'>Pilih versi untuk melihat pratinjau</p>
+										</div>
+									)}
 								</div>
 							</div>
 						</ScrollArea>
@@ -153,10 +320,16 @@ export default function ModalVersions({ isOpen, onClose, documentId }: ModalVers
 								</div>
 
 								{versionsList.map((version) => (
-									<div
+									<button
+										type='button'
 										key={version.id}
 										onClick={() => setSelectedVersionId(version.id)}
-										className={`px-4 py-3 cursor-pointer group transition-colors relative ${
+										onKeyDown={(e) => {
+											if (e.key === 'Enter' || e.key === ' ') {
+												setSelectedVersionId(version.id)
+											}
+										}}
+										className={`w-full text-left px-4 py-3 cursor-pointer group transition-colors relative block ${
 											selectedVersionId === version.id ? 'bg-blue-50' : 'hover:bg-gray-50'
 										}`}
 									>
@@ -167,7 +340,9 @@ export default function ModalVersions({ isOpen, onClose, documentId }: ModalVers
 												</div>
 												<div className='flex items-center gap-2'>
 													<div className={`w-2 h-2 rounded-full ${version.color}`} />
-													<span className='text-xs text-gray-600'>User</span>
+													<span className='text-xs text-gray-600'>
+														{version.author || 'Unknown'}
+													</span>
 												</div>
 											</div>
 											<Button
@@ -178,7 +353,7 @@ export default function ModalVersions({ isOpen, onClose, documentId }: ModalVers
 												<MoreVertical className='h-4 w-4' />
 											</Button>
 										</div>
-									</div>
+									</button>
 								))}
 							</div>
 						</ScrollArea>
@@ -187,61 +362,47 @@ export default function ModalVersions({ isOpen, onClose, documentId }: ModalVers
 							{selectedVersion?.isCurrent ? (
 								<div className='text-center text-sm text-gray-500 py-2'>Versi saat ini</div>
 							) : (
-								<Button className='w-full'>Pulihkan versi ini</Button>
+								<Button className='w-full' onClick={handleRollback} disabled={isRollingBack}>
+									{isRollingBack ? 'Memulihkan...' : 'Pulihkan versi ini'}
+								</Button>
 							)}
 
-                            {/* Student Request Review Button */}
-                            {user?.role === 'Student' && selectedVersion && !selectedVersion.review && (
-                                <Button 
-                                    className='w-full' 
-                                    variant='outline'
-                                    onClick={async () => {
-                                        // For now using prompt, ideally a modal
-                                        const message = prompt('Pesan untuk dosen (opsional):', 'Mohon direview Pak/Bu')
-                                        if (message === null) return // Cancelled
-
-                                        // Hardcoded active lecturer for prototype or prompt
-                                        // In real app, user selects from list.
-                                        // For now assume user ID from ENV or known ID, or just asking via prompt for testing
-                                        // "user_lecturer_123" is from docs.
-                                        // Let's rely on a default simple string if no list available. 
-                                        // The user said "endpoint logic" must be correct.
-                                        const lecturerId = 'user_lecturer_123' // Fallback/Placeholder
-                                        
-                                        try {
-                                           await requestReview(selectedVersion.id, lecturerId, message)
-                                           alert('Permintaan review berhasil dikirim')
-                                        } catch (e: any) {
-                                            alert('Gagal meminta review: ' + e.message)
-                                        }
-                                    }}
-                                >
-                                    Minta Review
-                                </Button>
-                            )}
+							{/* Student Request Review Button */}
+							{user?.role === 'Student' && selectedVersion && !selectedVersion.review && (
+								<Button
+									className='w-full'
+									variant='outline'
+									onClick={() => setShowReviewModal(true)}
+								>
+									Minta Review
+								</Button>
+							)}
 						</div>
 					</div>
 				</div>
-			</Modal>
+			</div>
 
-			{/* The specific Warning Modal requested */}
-			<Modal
-			isOpen={isWarningOpen}
-			onClose={() => setIsWarningOpen(false)}
-			title="System Protection"
-			>
-				<div className='p-6 text-center space-y-4'>
-					<AlertCircle className='h-12 w-12 text-red-500 mx-auto' />
-					<h3 className='text-lg font-semibold'>Tidak bisa menghapus Versi Awal</h3>
-					<p className='text-sm text-gray-600'>
-						Versi ini otomatis dibuat oleh sistem, sehingga tidak bisa dihapus manual.
-						Untuk menghapusnya, kamu harus menghapus dokumen yang dibuat.
-					</p>
-					<Button className='w-full' onClick={() => setIsWarningOpen(false)}>
-						Dapat dipahami
-					</Button>
-				</div>
-			</Modal>
-		</>
+			<ReviewRequestModal
+				isOpen={showReviewModal}
+				onClose={() => setShowReviewModal(false)}
+				onSubmit={async (data) => {
+					if (!selectedVersion) return
+					try {
+						await requestReviewMutate({
+							documentId,
+							documentBodyId: selectedVersion.id,
+							data: { lecturerUserId: data.lecturerId, message: data.message },
+						})
+						toast.success('Permintaan Terkirim', {
+							description: 'Permintaan review Anda telah dikirim ke dosen.',
+						})
+						setShowReviewModal(false)
+					} catch (e: any) {
+						console.error('Review request failed', e)
+						throw e
+					}
+				}}
+			/>
+		</Modal>
 	)
 }

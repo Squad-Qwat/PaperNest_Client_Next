@@ -6,13 +6,13 @@
 import { apiClient } from '../clients/api-client'
 import { API_ENDPOINTS } from '../config'
 import type {
-	RegisterDto,
-	LoginDto,
-	LoginEmailDto,
 	AuthResponse,
+	CheckEmailResponse,
+	LoginDto,
+	PasswordResetDto,
 	RefreshTokenDto,
 	RefreshTokenResponse,
-	PasswordResetDto,
+	RegisterDto,
 	UpdateEmailDto,
 	VerifyTokenDto,
 } from '../types/auth.types'
@@ -20,13 +20,37 @@ import type { User } from '../types/user.types'
 
 class AuthService {
 	/**
-	 * Register new user
+	 * Check email availability
+	 */
+	async checkEmail(email: string): Promise<CheckEmailResponse> {
+		return apiClient.post<CheckEmailResponse>('/auth/check-email', { email })
+	}
+
+	/**
+	 * Register new user (Tiered Registration)
 	 */
 	async register(data: RegisterDto): Promise<AuthResponse> {
 		const response = await apiClient.post<AuthResponse>(API_ENDPOINTS.auth.register, data)
 
+		// Access tokens only exist if verification was NOT required (e.g. some config)
+		// but in our tiered flow, we usually wait for finalizeRegistration
 		const accessToken = response.token || response.accessToken
-		if (accessToken) {
+		if (accessToken && response.refreshToken) {
+			apiClient.setAuthToken(accessToken)
+			this.saveTokens(accessToken, response.refreshToken)
+		}
+
+		return response
+	}
+
+	/**
+	 * Finalize registration after email verification
+	 */
+	async finalizeRegistration(data: { firebaseToken: string }): Promise<AuthResponse> {
+		const response = await apiClient.post<AuthResponse>('/auth/register/finalize', data)
+
+		const accessToken = response.token || response.accessToken
+		if (accessToken && response.refreshToken) {
 			apiClient.setAuthToken(accessToken)
 			this.saveTokens(accessToken, response.refreshToken)
 		}
@@ -41,7 +65,7 @@ class AuthService {
 		const response = await apiClient.post<AuthResponse>(API_ENDPOINTS.auth.login, data)
 
 		const accessToken = response.token || response.accessToken
-		if (accessToken) {
+		if (accessToken && response.refreshToken) {
 			apiClient.setAuthToken(accessToken)
 			this.saveTokens(accessToken, response.refreshToken)
 		}
@@ -50,13 +74,13 @@ class AuthService {
 	}
 
 	/**
-	 * Login with email and password
+	 * Login with Social Auth (Google, GitHub, etc.)
 	 */
-	async loginEmail(data: LoginEmailDto): Promise<AuthResponse> {
-		const response = await apiClient.post<AuthResponse>(API_ENDPOINTS.auth.loginEmail, data)
+	async loginSocial(data: { firebaseToken: string; accessToken?: string }): Promise<AuthResponse> {
+		const response = await apiClient.post<AuthResponse>('/auth/social', data)
 
 		const accessToken = response.token || response.accessToken
-		if (accessToken) {
+		if (accessToken && response.refreshToken) {
 			apiClient.setAuthToken(accessToken)
 			this.saveTokens(accessToken, response.refreshToken)
 		}
@@ -179,6 +203,26 @@ class AuthService {
 	getRefreshToken(): string | null {
 		if (typeof window === 'undefined') return null
 		return localStorage.getItem('refreshToken')
+	}
+
+	/**
+	 * Complete social registration (Onboarding)
+	 */
+	async completeSocialRegistration(data: {
+		firebaseToken: string
+		username: string
+		role: string
+		email?: string
+	}): Promise<AuthResponse> {
+		const response = await apiClient.post<AuthResponse>('/auth/social/complete', data)
+
+		const accessToken = response.token || response.accessToken
+		if (accessToken && response.refreshToken) {
+			apiClient.setAuthToken(accessToken)
+			this.saveTokens(accessToken, response.refreshToken)
+		}
+
+		return response
 	}
 }
 

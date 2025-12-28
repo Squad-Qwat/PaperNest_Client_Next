@@ -3,8 +3,7 @@
  * Types for invitation-related API operations
  */
 
-import type { UserWorkspace } from './workspace.types'
-import type { Workspace } from './workspace.types'
+import type { UserWorkspace, Workspace } from './workspace.types'
 
 /**
  * Invitation (UserWorkspace with workspace details)

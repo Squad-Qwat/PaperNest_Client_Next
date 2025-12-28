@@ -1,21 +1,20 @@
 import {
+	addDoc,
+	collection,
+	deleteDoc,
 	doc,
 	getDoc,
-	setDoc,
-	updateDoc,
-	deleteDoc,
-	collection,
-	query,
-	where,
-	orderBy,
-	limit,
 	getDocs,
+	limit,
+	orderBy,
+	type QueryConstraint,
+	query,
 	serverTimestamp,
-	addDoc,
-	QueryConstraint,
+	updateDoc,
+	where,
 } from 'firebase/firestore'
+import type { Document, DocumentFile } from '@/lib/api/types/document.types'
 import { firestore } from '@/lib/firebase/config'
-import { Document } from '@/lib/api/types/document.types'
 
 // Types untuk Document operations
 export interface CreateDocumentData {
@@ -54,6 +53,7 @@ export interface DocumentFilters {
 	sortOrder?: 'asc' | 'desc'
 }
 
+// biome-ignore lint/complexity/noStaticOnlyClass: Firebase services use static classes as a namespace for related methods
 export class DocumentService {
 	private static readonly COLLECTION_NAME = 'documents'
 
@@ -66,7 +66,7 @@ export class DocumentService {
 		try {
 			console.log('📝 Creating new document:', data.title)
 
-			const docRef = collection(firestore, this.COLLECTION_NAME)
+			const docRef = collection(firestore, DocumentService.COLLECTION_NAME)
 
 			const firestoreData: Omit<FirestoreDocumentData, 'documentId'> = {
 				workspaceId: data.workspaceId,
@@ -128,7 +128,7 @@ export class DocumentService {
 		try {
 			console.log('📖 Fetching document:', docId)
 
-			const docRef = doc(firestore, this.COLLECTION_NAME, docId)
+			const docRef = doc(firestore, DocumentService.COLLECTION_NAME, docId)
 			const docSnapshot = await getDoc(docRef)
 
 			if (!docSnapshot.exists()) {
@@ -139,7 +139,7 @@ export class DocumentService {
 			const data = docSnapshot.data() as Omit<FirestoreDocumentData, 'documentId'>
 
 			console.log('✅ Document fetched successfully')
-			return this.mapFirestoreToDocument({ ...data, documentId: docSnapshot.id })
+			return DocumentService.mapFirestoreToDocument({ ...data, documentId: docSnapshot.id })
 		} catch (error) {
 			console.error('❌ Error fetching document:', error)
 			throw new Error('Failed to fetch document')
@@ -153,7 +153,7 @@ export class DocumentService {
 		try {
 			console.log('🔄 Updating document:', docId)
 
-			const docRef = doc(firestore, this.COLLECTION_NAME, docId)
+			const docRef = doc(firestore, DocumentService.COLLECTION_NAME, docId)
 
 			// Check if document exists
 			const docSnapshot = await getDoc(docRef)
@@ -181,7 +181,7 @@ export class DocumentService {
 		try {
 			console.log('🗑️ Deleting document:', docId)
 
-			const docRef = doc(firestore, this.COLLECTION_NAME, docId)
+			const docRef = doc(firestore, DocumentService.COLLECTION_NAME, docId)
 			await deleteDoc(docRef)
 
 			console.log('✅ Document deleted successfully')
@@ -219,12 +219,12 @@ export class DocumentService {
 				constraints.push(limit(filters.limitCount))
 			}
 
-			const q = query(collection(firestore, this.COLLECTION_NAME), ...constraints)
+			const q = query(collection(firestore, DocumentService.COLLECTION_NAME), ...constraints)
 			const querySnapshot = await getDocs(q)
 
 			const documents = querySnapshot.docs.map((docSnapshot) => {
 				const data = docSnapshot.data() as Omit<FirestoreDocumentData, 'documentId'>
-				return this.mapFirestoreToDocument({ ...data, documentId: docSnapshot.id })
+				return DocumentService.mapFirestoreToDocument({ ...data, documentId: docSnapshot.id })
 			})
 
 			// Client-side search filtering if search query is provided
@@ -246,7 +246,7 @@ export class DocumentService {
 	 * Get user's documents (convenience method)
 	 */
 	static async getUserDocuments(userId: string, limitCount: number = 50): Promise<Document[]> {
-		return this.getDocuments({
+		return DocumentService.getDocuments({
 			createdBy: userId,
 			limitCount,
 			sortBy: 'updatedAt',
@@ -261,7 +261,7 @@ export class DocumentService {
 		workspaceId: string,
 		limitCount: number = 50
 	): Promise<Document[]> {
-		return this.getDocuments({
+		return DocumentService.getDocuments({
 			workspaceId: workspaceId,
 			limitCount,
 			sortBy: 'updatedAt',
@@ -293,7 +293,7 @@ export class DocumentService {
 			filters.createdBy = userId
 		}
 
-		return this.getDocuments(filters)
+		return DocumentService.getDocuments(filters)
 	}
 
 	/**
@@ -305,7 +305,7 @@ export class DocumentService {
 		workspaceId: string
 	): Promise<boolean> {
 		try {
-			const document = await this.getDocumentById(docId)
+			const document = await DocumentService.getDocumentById(docId)
 
 			if (!document) {
 				return false
@@ -316,6 +316,65 @@ export class DocumentService {
 		} catch (error) {
 			console.error('❌ Error checking document access:', error)
 			return false
+		}
+	}
+
+	/**
+	 * Get all files attached to a document
+	 */
+	static async getDocumentFiles(docId: string): Promise<DocumentFile[]> {
+		try {
+			const filesRef = collection(firestore, DocumentService.COLLECTION_NAME, docId, 'files')
+			const q = query(filesRef, orderBy('createdAt', 'desc'))
+			const querySnapshot = await getDocs(q)
+
+			return querySnapshot.docs.map((doc) => ({
+				fileId: doc.id,
+				...(doc.data() as any),
+				createdAt: doc.data().createdAt?.toDate() || new Date(doc.data().createdAt),
+			})) as DocumentFile[]
+		} catch (error) {
+			console.error('❌ Error fetching document files:', error)
+			throw new Error('Failed to fetch document files')
+		}
+	}
+
+	/**
+	 * Add a file record to a document
+	 */
+	static async addDocumentFile(
+		docId: string,
+		fileData: Omit<DocumentFile, 'fileId'>
+	): Promise<DocumentFile> {
+		try {
+			const filesRef = collection(firestore, DocumentService.COLLECTION_NAME, docId, 'files')
+			const newFile = {
+				...fileData,
+				createdAt: serverTimestamp(),
+			}
+
+			const docRef = await addDoc(filesRef, newFile)
+			return {
+				fileId: docRef.id,
+				...fileData,
+				createdAt: new Date(),
+			}
+		} catch (error) {
+			console.error('❌ Error adding document file:', error)
+			throw new Error('Failed to add document file')
+		}
+	}
+
+	/**
+	 * Delete a file record from a document
+	 */
+	static async deleteDocumentFile(docId: string, fileId: string): Promise<void> {
+		try {
+			const fileRef = doc(firestore, DocumentService.COLLECTION_NAME, docId, 'files', fileId)
+			await deleteDoc(fileRef)
+		} catch (error) {
+			console.error('❌ Error deleting document file:', error)
+			throw new Error('Failed to delete document file')
 		}
 	}
 

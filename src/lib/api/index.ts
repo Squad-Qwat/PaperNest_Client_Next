@@ -5,78 +5,70 @@
 
 // ============= Clients =============
 export { apiClient } from './clients/api-client'
-export { HttpClient, ApiError } from './clients/http-client'
-
+export { ApiError, HttpClient } from './clients/http-client'
+// ============= Config =============
+export { API_CONFIG, API_ENDPOINTS } from './config'
 // ============= Services =============
 export { authService } from './services/auth.service'
+export { invitationsService } from './services/invitations.service'
 export { usersService } from './services/users.service'
 export { workspacesService } from './services/workspaces.service'
-export { invitationsService } from './services/invitations.service'
-
-// ============= Types - Common =============
-export type {
-	ApiResponse,
-	PaginatedResponse,
-	PaginationMeta,
-	ApiErrorResponse,
-	RequestConfig,
-} from './types/common.types'
 
 // ============= Types - Auth =============
 export type {
-	RegisterDto,
+	AuthResponse,
 	LoginDto,
 	LoginEmailDto,
-	AuthResponse,
+	PasswordResetDto,
 	RefreshTokenDto,
 	RefreshTokenResponse,
-	PasswordResetDto,
+	RegisterDto,
 	UpdateEmailDto,
 	VerifyTokenDto,
 } from './types/auth.types'
-
-// ============= Types - User =============
+// ============= Types - Common =============
 export type {
-	User,
-	UserRole,
-	UpdateUserDto,
-	UserSearchParams,
-	UserSearchResult,
-} from './types/user.types'
-
-// ============= Types - Workspace =============
-export type {
-	Workspace,
-	WorkspaceWithRole,
-	WorkspaceRole,
-	CreateWorkspaceDto,
-	UpdateWorkspaceDto,
-	UserWorkspace,
-	WorkspaceMember,
-	InviteMemberDto,
-	UpdateMemberRoleDto,
-	WorkspaceMembersResponse,
-} from './types/workspace.types'
-
+	ApiErrorResponse,
+	ApiResponse,
+	PaginatedResponse,
+	PaginationMeta,
+	RequestConfig,
+} from './types/common.types'
 // ============= Types - Invitation =============
 export type {
 	Invitation,
-	UpdateInvitationDto,
 	InvitationsResponse,
+	UpdateInvitationDto,
 } from './types/invitation.types'
-
-// ============= Config =============
-export { API_CONFIG, API_ENDPOINTS } from './config'
-
+// ============= Types - User =============
+export type {
+	UpdateUserDto,
+	User,
+	UserRole,
+	UserSearchParams,
+	UserSearchResult,
+} from './types/user.types'
+// ============= Types - Workspace =============
+export type {
+	CreateWorkspaceDto,
+	InviteMemberDto,
+	UpdateMemberRoleDto,
+	UpdateWorkspaceDto,
+	UserWorkspace,
+	Workspace,
+	WorkspaceMember,
+	WorkspaceMembersResponse,
+	WorkspaceRole,
+	WorkspaceWithRole,
+} from './types/workspace.types'
+export type { ErrorResponse } from './utils/error-handler'
 // ============= Utils =============
 export {
-	parseError,
 	getErrorMessage,
-	isErrorStatus,
 	isAuthError,
+	isErrorStatus,
 	isValidationError,
+	parseError,
 } from './utils/error-handler'
-export type { ErrorResponse } from './utils/error-handler'
-
-export { buildQueryString, withQuery } from './utils/query-builder'
 export type { QueryParams } from './utils/query-builder'
+export { buildQueryString, withQuery } from './utils/query-builder'
