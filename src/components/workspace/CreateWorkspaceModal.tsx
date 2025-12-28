@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Modal, ModalFooter } from '@/components/ui/modal'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Textarea } from '@/components/ui/textarea'
 import { apiClient } from '@/lib/api/clients/api-client'
 import { workspacesService } from '@/lib/api/services/workspaces.service'
@@ -114,11 +113,7 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
 	}
 
 	return (
-		<Modal
-			isOpen={isOpen}
-			onClose={handleClose}
-			title={mode === 'create' ? 'Create New Workspace' : 'Join Workspace'}
-		>
+		<Modal isOpen={isOpen} onClose={handleClose} title='Create New Workspace'>
 			<form onSubmit={handleSubmit} className='space-y-4'>
 				{error && (
 					<div className='p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm'>
@@ -126,132 +121,59 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
 					</div>
 				)}
 
-				{/* Mode Selection */}
 				<div className='space-y-2'>
-					<Label className='text-gray-900 font-normal'>Select Action</Label>
-					<RadioGroup
-						className='w-full grid grid-cols-2 gap-3'
-						value={mode}
-						onValueChange={(value) => setMode(value as 'create' | 'join')}
-					>
-						<div className='border-input has-data-[state=checked]:bg-primary has-data-[state=checked]:text-primary-foreground relative flex flex-col gap-2 border p-4 rounded-lg outline-none has-data-[state=checked]:z-10 transition-all'>
-							<div className='group flex flex-col gap-2'>
-								<div className='flex items-center gap-2'>
-									<RadioGroupItem
-										id='mode-create'
-										value='create'
-										aria-label='create-workspace'
-										className='text-white bg-white data-[state=checked]:bg-white data-[state=checked]:border-white data-[state=checked]:[&_svg]:fill-primary after:absolute after:inset-0'
-									/>
-									<Label className='font-semibold cursor-pointer' htmlFor='mode-create'>
-										Create New
-									</Label>
-								</div>
-								<p className='text-xs opacity-80 pl-6'>Start your own workspace</p>
-							</div>
-						</div>
-						<div className='border-input has-data-[state=checked]:bg-primary has-data-[state=checked]:text-primary-foreground relative flex flex-col gap-2 border p-4 rounded-lg outline-none has-data-[state=checked]:z-10 transition-all'>
-							<div className='group flex flex-col gap-2'>
-								<div className='flex items-center gap-2'>
-									<RadioGroupItem
-										id='mode-join'
-										value='join'
-										aria-label='join-workspace'
-										className='text-white bg-white data-[state=checked]:bg-white data-[state=checked]:border-white data-[state=checked]:[&_svg]:fill-primary after:absolute after:inset-0'
-									/>
-									<Label className='font-semibold cursor-pointer' htmlFor='mode-join'>
-										Join Existing
-									</Label>
-								</div>
-								<p className='text-xs opacity-80 pl-6'>Use a workspace ID</p>
-							</div>
-						</div>
-					</RadioGroup>
+					<Label className='text-gray-900 font-normal'>Workspace Icon</Label>
+					<div className='grid grid-cols-5 gap-2'>
+						{workspaceIcons.map((iconOption) => (
+							<button
+								key={iconOption}
+								type='button'
+								onClick={() => setIcon(iconOption)}
+								className={`p-3 text-2xl border rounded-lg transition-all hover:scale-105 ${
+									icon === iconOption
+										? 'bg-primary/10 border-primary text-primary'
+										: 'bg-white border-gray-200 hover:border-gray-300'
+								}`}
+								disabled={loading}
+							>
+								{iconOption}
+							</button>
+						))}
+					</div>
 				</div>
 
-				{/* Create Workspace Form */}
-				{mode === 'create' && (
-					<>
-						<div className='space-y-2'>
-							<Label className='text-gray-900 font-normal'>Workspace Icon</Label>
-							<div className='grid grid-cols-5 gap-2'>
-								{workspaceIcons.map((iconOption) => (
-									<button
-										key={iconOption}
-										type='button'
-										onClick={() => setIcon(iconOption)}
-										className={`p-3 text-2xl border rounded-lg transition-all hover:scale-105 ${
-											icon === iconOption
-												? 'bg-primary/10 border-primary text-primary'
-												: 'bg-white border-gray-200 hover:border-gray-300'
-										}`}
-										disabled={loading}
-									>
-										{iconOption}
-									</button>
-								))}
-							</div>
-						</div>
-						<div className='space-y-2'>
-							<Label htmlFor='workspace-title'>
-								Workspace Title <span className='text-red-500'>*</span>
-							</Label>
-							<Input
-								id='workspace-title'
-								value={title}
-								onChange={(e) => setTitle(e.target.value)}
-								placeholder='My Research Workspace'
-								disabled={loading}
-								required
-							/>
-						</div>
+				<div className='space-y-2'>
+					<Label htmlFor='workspace-title'>
+						Workspace Title <span className='text-red-500'>*</span>
+					</Label>
+					<Input
+						id='workspace-title'
+						value={title}
+						onChange={(e) => setTitle(e.target.value)}
+						placeholder='My Research Workspace'
+						disabled={loading}
+						required
+					/>
+				</div>
 
-						<div className='space-y-2'>
-							<Label htmlFor='workspace-description'>Description (Optional)</Label>
-							<Textarea
-								id='workspace-description'
-								value={description}
-								onChange={(e) => setDescription(e.target.value)}
-								placeholder='A workspace for my research papers...'
-								rows={3}
-								disabled={loading}
-							/>
-						</div>
-					</>
-				)}
-
-				{/* Join Workspace Form */}
-				{mode === 'join' && (
-					<div className='space-y-2'>
-						<Label htmlFor='workspace-id'>
-							Workspace ID <span className='text-red-500'>*</span>
-						</Label>
-						<Input
-							id='workspace-id'
-							value={workspaceId}
-							onChange={(e) => setWorkspaceId(e.target.value)}
-							placeholder='Enter workspace ID'
-							disabled={loading}
-							required
-						/>
-						<p className='text-xs text-gray-500'>
-							Ask your workspace owner for the workspace ID to join.
-						</p>
-					</div>
-				)}
+				<div className='space-y-2'>
+					<Label htmlFor='workspace-description'>Description (Optional)</Label>
+					<Textarea
+						id='workspace-description'
+						value={description}
+						onChange={(e) => setDescription(e.target.value)}
+						placeholder='A workspace for my research papers...'
+						rows={3}
+						disabled={loading}
+					/>
+				</div>
 
 				<ModalFooter>
 					<Button type='button' variant='outline' onClick={handleClose} disabled={loading}>
 						Cancel
 					</Button>
 					<Button type='submit' disabled={loading}>
-						{loading
-							? mode === 'create'
-								? 'Creating...'
-								: 'Joining...'
-							: mode === 'create'
-								? 'Create Workspace'
-								: 'Join Workspace'}
+						{loading ? 'Creating...' : 'Create Workspace'}
 					</Button>
 				</ModalFooter>
 			</form>

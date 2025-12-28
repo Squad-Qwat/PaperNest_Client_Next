@@ -379,6 +379,23 @@ export class DocumentService {
 	}
 
 	/**
+	 * Rename/Move a file record using the backend API
+	 */
+	static async renameDocumentFile(
+		documentId: string,
+		fileId: string,
+		newName: string
+	): Promise<void> {
+		try {
+			const { apiClient } = await import('@/lib/api/clients/api-client')
+			await apiClient.patch(`/upload/rename/${documentId}/${fileId}`, { newName })
+		} catch (error) {
+			console.error('❌ Error renaming document file:', error)
+			throw new Error('Failed to rename document file')
+		}
+	}
+
+	/**
 	 * Map Firestore document to Document type
 	 */
 	private static mapFirestoreToDocument(data: FirestoreDocumentData): Document {

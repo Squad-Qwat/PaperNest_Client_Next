@@ -6,11 +6,11 @@
 import { Liveblocks } from '@liveblocks/node'
 import { type NextRequest, NextResponse } from 'next/server'
 
-const liveblocks = new Liveblocks({
-	secret: process.env.LIVEBLOCKS_SECRET_KEY || '',
-})
-
 export async function POST(request: NextRequest) {
+	const liveblocks = new Liveblocks({
+		secret: process.env.LIVEBLOCKS_SECRET_KEY || '',
+	})
+
 	try {
 		// Get the authorization token from the request headers
 		const authHeader = request.headers.get('authorization')

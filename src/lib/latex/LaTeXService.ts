@@ -68,11 +68,14 @@ export class LaTeXService {
 	async compileWithAssets(
 		mainFileName: string,
 		content: string,
-		assets: DocumentFile[]
+		assets: DocumentFile[],
+		engineMode?: 'client' | 'server' | 'server_pdflatex',
+		documentId?: string
 	): Promise<CompileResult> {
-		if (this.compilerMode === 'server' || this.compilerMode === 'server_pdflatex') {
-			const engineMode = this.compilerMode === 'server_pdflatex' ? 'pdflatex' : 'tectonic'
-			return this.compileOnServer(mainFileName, content, assets, engineMode)
+		const mode = engineMode || this.compilerMode
+		if (mode === 'server' || mode === 'server_pdflatex') {
+			const engine = mode === 'server_pdflatex' ? 'pdflatex' : 'tectonic'
+			return this.compileOnServer(mainFileName, content, assets, engine, documentId)
 		}
 
 		const engine = this.getCurrentEngine()
@@ -183,10 +186,26 @@ export class LaTeXService {
 		mainFileName: string,
 		content: string,
 		assets: DocumentFile[],
-		engine?: 'tectonic' | 'pdflatex'
+		engine?: 'tectonic' | 'pdflatex',
+		documentId?: string
 	): Promise<CompileResult> {
 		try {
 			console.log(`[LaTeXService] Compiling on server: ${mainFileName}`)
+
+			const payload: any = {
+				content,
+				mainFileName,
+				engine,
+			}
+
+			if (documentId) {
+				payload.documentId = documentId
+			} else {
+				payload.assets = assets.map((a) => ({
+					name: a.name,
+					url: `${API_CONFIG.baseURL}/upload/download?url=${encodeURIComponent(a.url)}`,
+				}))
+			}
 
 			const response = await fetch(`${API_CONFIG.baseURL}/latex/compile`, {
 				method: 'POST',
@@ -194,15 +213,7 @@ export class LaTeXService {
 					...apiClient.getHeaders(),
 					'Content-Type': 'application/json',
 				},
-				body: JSON.stringify({
-					content,
-					mainFileName,
-					assets: assets.map((a) => ({
-						name: a.name,
-						url: a.url,
-					})),
-					engine,
-				}),
+				body: JSON.stringify(payload),
 			})
 
 			if (!response.ok) {
@@ -214,7 +225,8 @@ export class LaTeXService {
 				}
 			}
 
-			const data = await response.json()
+			const responseData = await response.json()
+			const data = responseData.data || responseData
 
 			// If PDF exists, convert base64 to Uint8Array
 			let pdfArrayBuffer: Uint8Array | undefined

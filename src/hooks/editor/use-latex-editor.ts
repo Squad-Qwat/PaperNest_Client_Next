@@ -1,6 +1,3 @@
-// @ts-nocheck
-'use client'
-
 import {
 	autocompletion,
 	closeBrackets,
@@ -11,7 +8,7 @@ import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { bracketMatching, foldGutter, foldKeymap, indentOnInput } from '@codemirror/language'
 import { lintKeymap } from '@codemirror/lint'
 import { highlightSelectionMatches, searchKeymap } from '@codemirror/search'
-import { EditorState, type Extension } from '@codemirror/state'
+import { Compartment, EditorState, type Extension } from '@codemirror/state'
 import {
 	crosshairCursor,
 	drawSelection,
@@ -37,7 +34,11 @@ interface UseLatexEditorOptions {
 	initialContent?: string
 	enabled?: boolean
 	autoSaveInterval?: number
+	readOnly?: boolean
 }
+
+const collabCompartment = new Compartment()
+const readOnlyCompartment = new Compartment()
 
 export function useLatexEditor({
 	documentId = null,
@@ -45,12 +46,15 @@ export function useLatexEditor({
 	initialContent = '',
 	enabled = true,
 	autoSaveInterval = 2000,
+	readOnly = false,
 }: UseLatexEditorOptions = {}) {
 	const editorRef = useRef<HTMLDivElement>(null)
 	const viewRef = useRef<EditorView | null>(null)
 	const [isReady, setIsReady] = useState(false)
 	const [isSaving, setIsSaving] = useState(false)
 	const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
+	const initialContentRef = useRef(initialContent)
+
 	const { mutateAsync: batchUpdate } = useBatchUpdateDocument()
 
 	const {
@@ -60,14 +64,14 @@ export function useLatexEditor({
 		hasSyncedOnce,
 		awareness,
 	} = useLatexCollaboration({
-		enabled: !!documentId && enabled,
+		enabled: !!documentId && enabled && !readOnly,
 		user,
 		documentId,
 	})
 
 	const onUpdate = useCallback(
 		(update: ViewUpdate) => {
-			if (update.docChanged && documentId) {
+			if (update.docChanged && documentId && !collaborationReady) {
 				if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
 				autoSaveTimerRef.current = setTimeout(async () => {
 					const content = update.state.doc.toString()
@@ -92,34 +96,13 @@ export function useLatexEditor({
 				}, autoSaveInterval)
 			}
 		},
-		[documentId, autoSaveInterval, batchUpdate]
+		[documentId, autoSaveInterval, batchUpdate, collaborationReady]
 	)
 
 	useEffect(() => {
-		if (!editorRef.current || (enabled && (!collaborationReady || !hasSyncedOnce))) return
+		if (!editorRef.current || viewRef.current) return
 
-		const yText = yDoc ? yDoc.getText('latex') : null
-
-		// Secure seeding using Y.Map flag to minimize race condition risks
-		if (
-			yDoc &&
-			yText?.length === 0 &&
-			initialContent &&
-			initialContent !== 'Start writing here...'
-		) {
-			const configMap = yDoc.getMap('config')
-			if (!configMap.get('isSeeded')) {
-				configMap.set('isSeeded', true)
-				yText.insert(0, initialContent)
-				console.log('📝 [LaTeX] Loaded initial content from Firestore')
-			} else {
-				console.log('🔄 [LaTeX] Skipping Firestore init - Document seeded by another peer')
-			}
-		} else if (yText?.length === 0 && !initialContent) {
-			console.log('🔄 [LaTeX] Skipping Firestore init - no initial content provided')
-		}
-
-		const extensions: Extension[] = [
+		const baseExtensions: Extension[] = [
 			lineNumbers(),
 			highlightActiveLineGutter(),
 			history(),
@@ -148,41 +131,107 @@ export function useLatexEditor({
 			latex(),
 			EditorView.lineWrapping,
 			EditorView.updateListener.of(onUpdate),
+			collabCompartment.of([]),
+			readOnlyCompartment.of(EditorState.readOnly.of(readOnly)),
 		]
 
-		if (yText && awareness) {
-			extensions.push(yCollab(yText, awareness, { undoManager: undoManager as any }))
-		}
+		const shouldWaitForCollab = !!documentId && enabled && !readOnly
 
 		const state = EditorState.create({
-			doc: yText ? yText.toJSON() : initialContent,
-			extensions,
+			doc: !shouldWaitForCollab ? initialContentRef.current || '' : '',
+			extensions: baseExtensions,
 		})
 
-		const newView = new EditorView({
+		const view = new EditorView({
 			state,
 			parent: editorRef.current,
 		})
 
-		viewRef.current = newView
+		viewRef.current = view
 		setIsReady(true)
 
 		return () => {
-			newView.destroy()
+			view.destroy()
 			viewRef.current = null
 			setIsReady(false)
-			if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
 		}
-	}, [
-		collaborationReady,
-		hasSyncedOnce,
-		enabled,
-		awareness,
-		initialContent,
-		onUpdate,
-		undoManager,
-		yDoc,
-	]) // Removed initialContent from dependencies
+	}, [onUpdate, readOnly, documentId, enabled])
+
+	useEffect(() => {
+		const view = viewRef.current
+		if (!view || !collaborationReady || !yDoc || !awareness) {
+			if (view) {
+				view.dispatch({
+					effects: collabCompartment.reconfigure([]),
+				})
+			}
+			return
+		}
+
+		const yText = yDoc.getText('latex')
+
+		// Fix RangeError: Sync CodeMirror doc with yText BEFORE attaching yCollab
+		const currentDocString = view.state.doc.toString()
+		const yTextString = yText.toString()
+		if (currentDocString !== yTextString) {
+			view.dispatch({
+				changes: { from: 0, to: currentDocString.length, insert: yTextString },
+			})
+		}
+
+		const extension = yCollab(yText, awareness, { undoManager: undoManager as any })
+
+		view.dispatch({
+			effects: collabCompartment.reconfigure(extension),
+		})
+	}, [collaborationReady, yDoc, awareness, undoManager])
+
+	useEffect(() => {
+		const view = viewRef.current
+		if (!view) return
+
+		view.dispatch({
+			effects: readOnlyCompartment.reconfigure(EditorState.readOnly.of(readOnly)),
+		})
+	}, [readOnly])
+
+	const shouldWaitForCollab = !!documentId && enabled && !readOnly
+
+	useEffect(() => {
+		const view = viewRef.current
+		if (!view || collaborationReady || shouldWaitForCollab || !initialContent) return
+
+		const currentContent = view.state.doc.toString()
+		if (currentContent !== initialContent) {
+			view.dispatch({
+				changes: { from: 0, to: currentContent.length, insert: initialContent },
+			})
+		}
+	}, [initialContent, collaborationReady, shouldWaitForCollab])
+
+	const seedingAttemptedRef = useRef(false)
+	useEffect(() => {
+		if (!collaborationReady || !hasSyncedOnce || !yDoc || seedingAttemptedRef.current) return
+
+		const yText = yDoc.getText('latex')
+		const configMap = yDoc.getMap('config')
+
+		if (yText.length > 0 || configMap.get('isSeeded')) {
+			seedingAttemptedRef.current = true
+			return
+		}
+
+		const initialText = typeof initialContent === 'string' ? initialContent : ''
+		if (initialText && initialText !== 'Start writing here...') {
+			yDoc.transact(() => {
+				if (!configMap.get('isSeeded') && yText.length === 0) {
+					configMap.set('isSeeded', true)
+					yText.insert(0, initialText)
+				}
+			})
+			seedingAttemptedRef.current = true
+		}
+	}, [collaborationReady, hasSyncedOnce, yDoc, initialContent])
 
 	return {
 		editorRef,

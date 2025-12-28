@@ -27,7 +27,7 @@ const workspaceIcons = ['📚', '🎓', '📖', '✍️', '🔬', '💼', '📊'
 
 export default function OnboardingPage() {
 	const router = useRouter()
-	const { onboardingData, setOnboardingData, error: authError } = useAuth()
+	const { onboardingData, setOnboardingData } = useAuth()
 
 	const { mutateAsync: completeSocial, isPending: isCompletePending } =
 		useCompleteSocialRegistration({
@@ -353,13 +353,8 @@ export default function OnboardingPage() {
 						</motion.div>
 					</AnimatePresence>
 
-					{authError && (
-						<div className='p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-xs'>
-							{authError}
-						</div>
-					)}
 					{errors.submit && (
-						<div className='p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-xs'>
+						<div className='mb-6 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm text-center'>
 							{errors.submit}
 						</div>
 					)}
