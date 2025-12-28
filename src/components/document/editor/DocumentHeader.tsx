@@ -10,6 +10,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useAuth } from '@/context/AuthContext'
 import { useDocumentReviews } from '@/lib/api/hooks/use-documents'
 import { documentsService } from '@/lib/api/services/documents.service'
+import { CitationsManager } from '@/components/document/CitationsManager'
 
 interface DocumentHeaderProps {
 	title: string
@@ -267,6 +268,14 @@ const DocumentHeader = ({
 												<Share2 className='h-4 w-4' />
 												Share
 											</button>
+											<button
+												type='button'
+												className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 cursor-pointer'
+											>
+												<CitationsManager className='h-4 w-4' />
+												Sitasi
+											</button>
+
 										</div>
 									)}
 								</button>

@@ -29,6 +29,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { CitationsManager } from '@/components/document/CitationsManager'
 
 const EditorToolbar = ({
 	editor,
@@ -1499,7 +1500,34 @@ const EditorToolbar = ({
 					<FileDown className='h-4 w-4' />
 					Export DOCX
 				</Button>
+				<Button
+					variant='ghost'
+					size='sm'
+					onClick={() => setIsCitationModalOpen(true)}
+					className='text-xs flex items-center gap-1'
+					title='Manage Citations'
+					disabled={!editor}
+				>
+					<CitationsManager className='h-4 w-4'/>
+					Sitasi
+				</Button>
 			</div>
+			<CitationsManager
+				isOpen={isCitationModalOpen}
+				onClose={() => setIsCitationModalOpen(false)}
+				citations={citations}
+				onAdd={addCitation}
+				onDelete={deleteCitation}
+				onInsert={insertCitation}
+			/>
+			{/* 
+			<ModalAddCitations
+				isOpen={isCitationModalOpen}
+				onClose={() => setIsCitationModalOpen(false)}
+				citations={citations}
+				onAdd={addCitation}
+			/> 
+			*/}
 		</div>
 	)
 }
