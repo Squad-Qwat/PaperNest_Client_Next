@@ -240,7 +240,10 @@ export default function Page() {
 										<SelectItem value='all'>Semua Tipe</SelectItem>
 										<SelectItem value='journal'>Jurnal</SelectItem>
 										<SelectItem value='book'>Buku</SelectItem>
+										<SelectItem value='website'>Situs web</SelectItem>
 										<SelectItem value='conference'>Konferensi</SelectItem>
+										<SelectItem value='report'>Laporan</SelectItem>
+										<SelectItem value='thesis'>Tesis</SelectItem>
 									</SelectContent>
 								</Select>
 							</div>
