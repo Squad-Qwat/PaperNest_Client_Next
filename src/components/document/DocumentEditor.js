@@ -77,6 +77,19 @@ export default function DocumentEditor({
 		}
 	}, [collaborationReady, isConnected, getAwarenessStates, yDoc])
 
+	useEffect(() => {
+		const searchParams = new URLSearchParams(window.location.search);
+		const citationToInsert = searchParams.get('insertCitation');
+	
+		if (citationToInsert && editor) {
+		// Insert text at current cursor position
+		editor.commands.insertContent(citationToInsert);
+		
+		// Clear the URL parameter so it doesn't re-insert on refresh
+		window.history.replaceState({}, '', window.location.pathname);
+		}
+  	}, [editor]);
+
 	// Expose editor functions to parent component
 	useEffect(() => {
 		if (editor && onEditorReady && getCurrentContent && getCurrentHTML && saveCurrentContent) {

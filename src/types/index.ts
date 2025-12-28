@@ -6,6 +6,8 @@ export type DocumentStatus = 'personal' | 'shared'
 
 export type ReviewStatus = 'approved' | 'pending' | 'rejected'
 
+export const SYSTEM_VERSION_ID = 'v0-system-initial'
+
 export interface Workspace {
 	icon: string
 	name: string
@@ -33,6 +35,17 @@ export interface Review {
 	status: ReviewStatus
 }
 
+export interface Version {
+	id: string
+	docId: number
+	author: string
+	message: string
+	datetime: string
+	color: string
+	isCurrent?: boolean
+	isSystem?: boolean
+}
+
 export interface Document {
 	id: number
 	title: string
@@ -41,6 +54,7 @@ export interface Document {
 	lastUpdated: string
 	citations: Citation[]
 	reviews: Review[]
+	versions: Version[]
 }
 
 export interface User {
@@ -91,4 +105,6 @@ export interface DocumentContextType {
 		review: Omit<Review, 'id' | 'docId' | 'docTitle'>
 	) => void
 	deleteReview: (userId: number, docId: number, reviewId: string) => void
+	addVersion: (userId: number, docId: number, version: Omit<Version, "id">) => void
+  	deleteVersion: (userId: number, docId: number, versionId: string) => void
 }

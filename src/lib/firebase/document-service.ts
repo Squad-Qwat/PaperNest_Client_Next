@@ -57,10 +57,12 @@ export interface DocumentFilters {
 export class DocumentService {
 	private static readonly COLLECTION_NAME = 'documents'
 
+	private static initialSystemVersion = "Initial System Version"
+
 	/**
 	 * Create new document
 	 */
-	static async createDocument(data: CreateDocumentData): Promise<Document> {
+	static async createDocument(data: CreateDocumentData): Promise<Document & { isCommitted: boolean }> {
 		try {
 			console.log('📝 Creating new document:', data.title)
 
@@ -69,7 +71,7 @@ export class DocumentService {
 			const firestoreData: Omit<FirestoreDocumentData, 'documentId'> = {
 				workspaceId: data.workspaceId,
 				title: data.title,
-				savedContent: data.savedContent || null,
+				savedContent: data.savedContent || this.initialSystemVersion,
 				currentVersionId: data.currentVersionId || 'v1',
 				createdBy: data.createdBy,
 				createdAt: serverTimestamp(),
@@ -91,10 +93,31 @@ export class DocumentService {
 				createdBy: data.createdBy,
 				createdAt: new Date(),
 				updatedAt: new Date(),
+				isCommitted: false
 			}
 		} catch (error) {
 			console.error('❌ Error creating document:', error)
 			throw new Error('Failed to create document')
+		}
+	}
+
+	/**
+	 * Commit document changes
+	 * Explicitly marks the document as committed by the user
+	 */
+	static async commitDocument(docId: string, data: { title: string; content: any }): Promise<void> {
+		try {
+			console.log('🔒 Committing document manually:', docId)
+
+			await this.updateDocument(docId, {
+				title: data.title,
+				savedContent: data.content,
+			})
+
+			console.log('✅ Document committed successfully')
+		} catch (error) {
+			console.error('❌ Error committing document:', error)
+			throw new Error('Failed to commit document')
 		}
 	}
 

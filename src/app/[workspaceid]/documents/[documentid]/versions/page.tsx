@@ -1,188 +1,188 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useAuth, useDocuments } from "@/lib/store";
+import { useAuth } from "@/lib/store";
 import { Navbar } from "@/components/layout/navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { SearchInput } from "@/components/ui/search-input";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { History, Save, ShieldCheck } from "lucide-react";
+
+// Import your provided components
+import { CommitModal } from "@/components/document/CommitModal";
+import ModalVersions from "@/components/document/ModalVersions";
+import { Version } from "@/types/index";
+
+const MOCK_VERSIONS: Version[] = [
+  { id: '5', docId: 1, datetime: '15 Agustus 2023, 16:51', author: 'Fa Ainama Caldera', message: 'Latest version', color: 'bg-purple-500', isCurrent: true },
+  { id: '4', docId: 1, datetime: '15 Agustus 2023, 16:15', author: 'Fa Ainama Caldera', message: 'Update Document 2', color: 'bg-purple-500' },
+  { id: '3', docId: 1, datetime: '14 Agustus 2023, 14:30', author: 'Rangga', message: 'Update Document 1', color: 'bg-orange-500' },
+  { id: '2', docId: 1, datetime: '14 Agustus 2023, 13:00', author: 'Rangga', message: 'First User version', color: 'bg-orange-500' },
+  // { id: '1', docId: 1, datetime: '14 Agustus 2023, 11:00', author: 'System', message: 'Initial System Version', color: 'bg-gray-500', isSystem: true },
+];
 
 export default function VersionsPage() {
   const params = useParams();
   const router = useRouter();
   const { currentUser } = useAuth();
-  const { getDocument, updateDocument } = useDocuments();
+
+  // 1. Initial State using MOCK_VERSIONS from your ModalVersions.tsx
+  const [versions, setVersions] = useState<Version[]>(MOCK_VERSIONS);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isCommitModalOpen, setIsCommitModalOpen] = useState(false);
-  const [commitComment, setCommitComment] = useState("");
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
-  const documentId = parseInt(params.documentid as string);
+  const documentId = params.documentid as string;
   const isStudent = currentUser?.role === "Student";
 
-  // 1. Get the document from the central store
-  const document = useMemo(() => {
-    if (!currentUser || !documentId) return null;
-    return getDocument(currentUser.id, documentId);
-  }, [currentUser, documentId, getDocument]);
-
-  // 2. Determine the next revision number based on existing versions
-  const nextRevision = useMemo(() => {
-    if (!document?.versions?.length) return 1000;
-    const latestRev = Math.max(
-      ...document.versions.map((v) => parseInt(v.id.replace("r", "")))
-    );
-    return latestRev + 1;
-  }, [document]);
-
-  // 3. Filter history based on search query
   const filteredHistory = useMemo(() => {
-    if (!document?.versions) return [];
-    return document.versions.filter(
+    return versions.filter(
       (item) =>
         item.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.id.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [document, searchQuery]);
+  }, [versions, searchQuery]);
 
-  const handleCommit = () => {
-    if (!commitComment.trim() || !currentUser || !document) return;
-
-    const newVersion = {
-      id: `r${nextRevision}`,
-      author: `${currentUser.firstName} ${currentUser.lastName}`,
-      date: new Date().toLocaleString("sv-SE").slice(0, 16).replace("T", " "), // Format: YYYY-MM-DD HH:MM
-      message: commitComment,
+  const handleCommit = (data: { title: string; description: string; isInitial?: boolean }) => {
+    const nextId = (versions.length + (versions.length === 0 ? 2 : 1)).toString();
+    
+    const newVersion: Version = {
+      id: nextId,
+      docId: parseInt(documentId),
+      datetime: new Date().toLocaleString('id-ID', { 
+        day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' 
+      }),
+      author: currentUser ? `${currentUser.name}` : 'Anonymous',
+      message: data.title,
+      color: 'bg-blue-500',
+      isCurrent: true,
+      isSystem: data.isInitial
     };
 
-    // 4. Update the actual store instead of local state
-    updateDocument(currentUser.id, document.id, {
-      versions: [newVersion, ...(document.versions || [])],
-    });
+    if (versions.length === 0) 
+    {
+      const systemVersion: Version = {
+        id: '1',
+        docId: parseInt(documentId),
+        datetime: new Date().toLocaleString('id-ID', { 
+          day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' 
+        }),
+        author: 'System',
+        message: 'Initial System Version',
+        color: 'bg-gray-500',
+        isSystem: true,
+        isCurrent: false
+      };
 
-    setCommitComment("");
-    setIsCommitModalOpen(false);
+      setVersions([newVersion, systemVersion])
+      return
+    }
+
+    setVersions(prev => [
+      newVersion,
+      ...prev.map(v => ({ ...v, isCurrent: false }))
+    ]);
   };
 
-  if (!currentUser || !document) return null;
+  const handleDeleteVersion = (versionId: string) => {
+    setVersions(prev => prev.filter(v => v.id !== versionId));
+  };
+
+  if (!currentUser) {return null;}
 
   return (
-    <div className="min-h-screen bg-gray-950">
-      <Navbar mode="document" documentId={documentId.toString()} />
+    <div className="min-h-screen bg-gray-950 text-gray-100">
+      <Navbar mode="document" documentId={documentId} />
 
       <main className="max-w-5xl mx-auto px-4 py-8">
-        <div className="mb-8">
-          <button
-            onClick={() => router.push(`/${params.workspaceid}`)}
-            className="flex items-center gap-2 text-gray-400 hover:text-gray-200 mb-4 transition-colors"
-          >
-            ← Back to Dashboard
-          </button>
+        <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+          <div>
+            <button
+              onClick={() => router.back()}
+              className="text-sm text-gray-400 hover:text-white transition-colors mb-2"
+            >
+              ← Back
+            </button>
+            <h1 className="text-3xl font-bold">Sejarah Revisi</h1>
+            <p className="text-gray-400 text-sm">Document: {documentId}</p>
+          </div>
 
-          <h1 className="text-3xl font-bold text-gray-100 mb-2">
-            Versions - {document.title}
-          </h1>
-          <p className="text-gray-400">{document.description}</p>
-        </div>
-
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <SearchInput
-              value={searchQuery}
-              onChange={setSearchQuery}
-              placeholder="Search by revision or message..."
-              className="w-full md:w-64"
-            />
+          <div className="flex gap-3">
+            <Button 
+              variant="outline" 
+              className="bg-transparent border-gray-800 text-gray-300 hover:bg-gray-900"
+              onClick={() => setIsHistoryModalOpen(true)}
+            >
+              <History className="mr-2 h-4 w-4" />
+              Kelola versi
+            </Button>
             {isStudent && (
               <Button onClick={() => setIsCommitModalOpen(true)}>
-                Commit Changes
+                <Save className="mr-2 h-4 w-4" />
+                Commit Perubahan
               </Button>
             )}
           </div>
         </div>
 
-        <Separator className="mb-8" />
+        <div className="mb-8">
+          <SearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search commits..."
+            className="w-full bg-gray-900 border-gray-800"
+          />
+        </div>
 
-        <div className="space-y-4">
+        <Separator className="mb-8 bg-gray-800" />
+
+        <div className="relative space-y-2 before:absolute before:inset-y-0 before:left-4 before:w-0.5 before:bg-gray-800">
           {filteredHistory.map((v) => (
-            <Card key={v.id} className="overflow-hidden border border-gray-800 rounded-lg p-6 hover:border-gray-700 bg-gray-900">
-              <CardHeader className="p-0 mb-4">
-                <div className="flex justify-between items-start">
+            <div key={v.id} className="relative pl-10 pb-4">
+              <div className={`absolute left-[13px] top-3 w-2 h-2 rounded-full border-4 border-gray-950 ring-1 ${v.isCurrent ? 'bg-green-500 ring-green-500' : 'bg-purple-500 ring-purple-500'}`} />
+              
+              <Card className="border-gray-800 bg-gray-900 hover:border-gray-700 transition-all">
+                <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0">
                   <div className="flex items-center gap-3">
-                    <Badge variant="outline" className="font-mono text-green-700 bg-yellow-100">
-                      {v.id}
+                    <Badge variant="outline" className={`font-mono bg-gray-950 border-gray-800 ${v.isSystem ? 'text-amber-500' : 'text-blue-400'}`}>
+                      REV-{v.id}
                     </Badge>
-                    <CardTitle className="text-base text-white">{v.author}</CardTitle>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-sm font-semibold">{v.message}</CardTitle>
+                        {v.isSystem && <ShieldCheck className="h-3 w-3 text-amber-500" />}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-gray-500">{v.author}</span>
+                        {v.isCurrent && <Badge className="text-[10px] bg-green-900/30 text-green-500 border-green-800">Current</Badge>}
+                      </div>
+                    </div>
                   </div>
-                  <span className="text-xs text-gray-400 font-mono">{v.date}</span>
-                </div>
-              </CardHeader>
-              <CardContent className="bg-gray-950 border border-gray-800 rounded-lg p-3">
-                <p className="text-sm text-gray-400 leading-relaxed">
-                  <span className="font-semibold text-green-500 mr-2">Message:</span>
-                  {v.message}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
-
-          {filteredHistory.length === 0 && (
-            <div className="text-center py-20 border-2 border-dashed border-gray-800 rounded-xl">
-              <p className="text-gray-500">No versions found.</p>
+                  <span className="text-xs text-gray-500 font-mono">{v.datetime}</span>
+                </CardHeader>
+              </Card>
             </div>
-          )}
+          ))}
         </div>
       </main>
 
-      <Dialog open={isCommitModalOpen} onOpenChange={setIsCommitModalOpen}>
-        <DialogContent className="bg-gray-900 text-white border-gray-800">
-          <DialogHeader>
-            <DialogTitle>Commit Changes</DialogTitle>
-            <DialogDescription className="text-gray-400">
-              Describe the changes made to <strong>{document.title}</strong>.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="py-4 space-y-4">
-            <div className="space-y-2">
-              <Label>Commit Message</Label>
-              <Textarea 
-                placeholder="e.g., Updated the results section"
-                value={commitComment}
-                onChange={(e) => setCommitComment(e.target.value)}
-                className="bg-gray-950 border-gray-800"
-              />
-            </div>
-            <div className="p-3 bg-blue-900/20 rounded-lg border border-blue-800">
-              <p className="text-xs text-blue-400">
-                This will create version <strong>r{nextRevision}</strong>.
-              </p>
-            </div>
-          </div>
+      <CommitModal 
+        isOpen={isCommitModalOpen}
+        onClose={() => setIsCommitModalOpen(false)}
+        onCommit={handleCommit}
+        isFirstVersion={versions.length === 0}
+      />
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCommitModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCommit} disabled={!commitComment.trim()}>
-              Commit
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ModalVersions 
+        isOpen={isHistoryModalOpen}
+        onClose={() => setIsHistoryModalOpen(false)}
+        documentTitle={`Document ${documentId}`}
+        onDeleteVersion={handleDeleteVersion}
+      />
     </div>
   );
 }

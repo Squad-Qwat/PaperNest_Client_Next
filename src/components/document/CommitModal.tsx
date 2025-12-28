@@ -6,14 +6,16 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { AlertCircle } from 'lucide-react'
 
 interface CommitModalProps {
 	isOpen: boolean
 	onClose: () => void
-	onCommit: (data: { title: string; description: string }) => void
+	onCommit: (data: { title: string; description: string, isInitial?: boolean }) => void
+	isFirstVersion: boolean
 }
 
-export function CommitModal({ isOpen, onClose, onCommit }: CommitModalProps) {
+export function CommitModal({ isOpen, onClose, onCommit, isFirstVersion }: CommitModalProps) {
 	const [title, setTitle] = useState('')
 	const [description, setDescription] = useState('')
 	const [errors, setErrors] = useState<Record<string, string>>({})
@@ -33,8 +35,12 @@ export function CommitModal({ isOpen, onClose, onCommit }: CommitModalProps) {
 
 		setIsSubmitting(true)
 		try {
-			await onCommit({ title, description })
-			setTitle('')
+			await onCommit({ 
+				title: isFirstVersion ? "Initial System Version" : title, 
+				description,
+				isInitial: isFirstVersion
+			})
+			setTitle(isFirstVersion ? 'Initial System Version' : '')
 			setDescription('')
 			setErrors({})
 			onClose()
@@ -54,23 +60,29 @@ export function CommitModal({ isOpen, onClose, onCommit }: CommitModalProps) {
 				setDescription('')
 				setErrors({})
 			}}
-			title='Create New Version'
+			title= {isFirstVersion ? 'Initialize Document' : 'Create New Version'}
 			size='lg'
 		>
 			<div className='space-y-4'>
+					{isFirstVersion && (
+						<div className='flex items-start gap-3 p-3 rounded-lg bg-blue-50 border border-blue-200 text-blue-800 text-sm'>
+							<AlertCircle className='h-5 w-5 shrink-0'/>
+							<p>Creating <strong>Initial Version</strong> by system. This version is permanent, unless deleting the entire document</p>
+						</div>
+					)}
 				<div className='space-y-2'>
 					<Label htmlFor='commit-title'>Version Title</Label>
 					<Input
 						id='commit-title'
 						type='text'
-						value={title}
+						value={isFirstVersion ? 'Initial Version' : title}
 						onChange={(e) => {
 							setTitle(e.target.value)
 							setErrors({ ...errors, title: '' })
 						}}
 						placeholder='e.g., Initial Draft, v1.0, Review Changes'
 						className={errors.title ? 'border-red-500' : ''}
-						disabled={isSubmitting}
+						disabled={isFirstVersion || isSubmitting}
 					/>
 					{errors.title && <p className='mt-1 text-sm text-red-400'>{errors.title}</p>}
 				</div>
@@ -107,7 +119,7 @@ export function CommitModal({ isOpen, onClose, onCommit }: CommitModalProps) {
 					Cancel
 				</Button>
 				<Button onClick={handleSubmit} disabled={isSubmitting}>
-					{isSubmitting ? 'Committing...' : 'Commit Version'}
+					{isFirstVersion ? 'Initialize' : isSubmitting ? 'Committing...' : 'Commit Version'}
 				</Button>
 			</ModalFooter>
 		</Modal>
