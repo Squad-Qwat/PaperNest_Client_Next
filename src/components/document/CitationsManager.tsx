@@ -5,12 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Plus, Trash2, Quote, FileInput, ChevronLeft, Pencil } from "lucide-react";
+import { DropdownMenu } from 'radix-ui';
 
 interface Citation {
   id: string;
   sourceTitle: string;
   author: string;
   year: string;
+  bookTitle?: string;
+  volume?: string;
+  numbers?: string;
+  pages?: string;
+  url: string | undefined;
+  doi: string | undefined; 
 }
 
 type View = 'list' | 'add' | 'edit';
@@ -29,7 +36,8 @@ export function CitationsManager({ isOpen, onClose, initialView = 'list' ,onInse
     const [citations, setCitations] = useState<Citation[]>([]);
     // const [view, setView] = useState<'list' | 'add'>('qlist');
     const [view, setView] = useState<View>(initialView);
-    const [newCit, setNewCit] = useState({ sourceTitle: '', author: '', year: '' });
+    const [newCit, setNewCit] = useState({ sourceTitle: '', author: '', year: '', bookTitle: '', volume: '', numbers: '',
+        pages: '', url: undefined, doi: undefined});
     const [editingCit, setEditingCit] = useState<Citation | null>(null);
 
     const handleAdd = () => {
@@ -39,7 +47,8 @@ export function CitationsManager({ isOpen, onClose, initialView = 'list' ,onInse
             id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         };
         setCitations((prev) => [...prev, entry]);
-        setNewCit({ sourceTitle: '', author: '', year: '' });
+        setNewCit({ sourceTitle: '', author: '', year: '', bookTitle: '', volume: '', numbers: '',
+            pages: '', url: undefined, doi: undefined});
         setView('list'); // Go back to list after adding
     };
 
@@ -63,7 +72,8 @@ export function CitationsManager({ isOpen, onClose, initialView = 'list' ,onInse
 
     const handleClose = () => {
         setView('list');
-        setNewCit({ sourceTitle: '', author: '', year: '' });
+        setNewCit({ sourceTitle: '', author: '', year: '', bookTitle: '', volume: '', numbers: '',
+            pages: '', url: undefined, doi: undefined});
         onClose();
     };
 
@@ -151,6 +161,48 @@ export function CitationsManager({ isOpen, onClose, initialView = 'list' ,onInse
                                     <Label>Year</Label>
                                     <Input placeholder="2024" value={newCit.year} onChange={e => setNewCit({...newCit, year: e.target.value})} />
                                 </div>
+                                <div className="space-y-2">
+                                    <Label>Type</Label>
+                                    <select name='citationType'>
+                                        <optgroup label='Scientific'>
+                                            <option value='article'>Journal Article</option>
+                                            <option value='conference'>Conference Paper</option>
+                                            <option value='thesis'>Professor's Thesis</option>
+                                            <option value='discrete'>Magister's Discrete</option>
+                                            <option value='script'>Fresh Graduate's Script</option>
+                                        </optgroup>
+                                        <optgroup label='General'>
+                                            <option value='book'>Book</option>
+                                            <option value='website'>Website</option>
+                                            <option value='report'>News report</option>
+                                            <option value='blog'>Blog</option>
+                                        </optgroup>
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Book Title</Label>
+                                    <Input placeholder="e.g. Nature, Science, etc." value={newCit.bookTitle} onChange={e => setNewCit({...newCit, year: e.target.value})} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Volume</Label>
+                                    <Input placeholder="36" value={newCit.volume} onChange={e => setNewCit({...newCit, year: e.target.value})} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Numbers</Label>
+                                    <Input placeholder="1" value={newCit.numbers} onChange={e => setNewCit({...newCit, year: e.target.value})} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Pages</Label>
+                                    <Input placeholder="22" value={newCit.pages} onChange={e => setNewCit({...newCit, year: e.target.value})} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>URL</Label>
+                                    <Input placeholder="http://..." value={newCit.url} onChange={e => setNewCit({...newCit, year: e.target.value})} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>DOI</Label>
+                                    <Input placeholder="" value={newCit.doi} onChange={e => setNewCit({...newCit, year: e.target.value})} />
+                                </div>
                             </div>
                             <Button onClick={handleAdd} className="w-full bg-teal-500 hover:bg-teal-600 text-white">
                                 Save Source
@@ -187,6 +239,48 @@ export function CitationsManager({ isOpen, onClose, initialView = 'list' ,onInse
                                 className="border-gray-200"
                                 />
                             </div>
+                            <div className="space-y-2">
+                                    <Label>Type</Label>
+                                    <select name='citationType'>
+                                        <optgroup label='Scientific'>
+                                            <option value='article'>Journal Article</option>
+                                            <option value='conference'>Conference Paper</option>
+                                            <option value='thesis'>Professor's Thesis</option>
+                                            <option value='discrete'>Magister's Discrete</option>
+                                            <option value='script'>Fresh Graduate's Script</option>
+                                        </optgroup>
+                                        <optgroup label='General'>
+                                            <option value='book'>Book</option>
+                                            <option value='website'>Website</option>
+                                            <option value='report'>News report</option>
+                                            <option value='blog'>Blog</option>
+                                        </optgroup>
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Book Title</Label>
+                                    <Input placeholder="e.g. Nature, Science, etc." value={newCit.bookTitle} onChange={e => setNewCit({...newCit, year: e.target.value})} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Volume</Label>
+                                    <Input placeholder="36" value={newCit.volume} onChange={e => setNewCit({...newCit, year: e.target.value})} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Numbers</Label>
+                                    <Input placeholder="1" value={newCit.numbers} onChange={e => setNewCit({...newCit, year: e.target.value})} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Pages</Label>
+                                    <Input placeholder="22" value={newCit.pages} onChange={e => setNewCit({...newCit, year: e.target.value})} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>URL</Label>
+                                    <Input placeholder="http://..." value={newCit.url} onChange={e => setNewCit({...newCit, year: e.target.value})} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>DOI</Label>
+                                    <Input placeholder="" value={newCit.doi} onChange={e => setNewCit({...newCit, year: e.target.value})} />
+                                </div>
                             </div>
                             <Button
                             onClick={handleEditSave}
