@@ -92,6 +92,7 @@ const DocumentHeader = ({
 	const { user } = useAuth()
 	const [showCommitModal, setShowCommitModal] = useState(false)
 	const { data: reviewsResponse } = useDocumentReviews(documentId)
+	const [isCitationModalOpen, setIsCitationModalOpen] = useState(false)
 	const [citations, setCitations] = useState([])
 
 	// Safely determine pending reviews
@@ -103,12 +104,12 @@ const DocumentHeader = ({
 	const canCommit = !pendingReview
 	const commitBlockReason = pendingReview ? 'Waiting for pending review' : null
 
-	const deleteCitation = (id) => {
+	const deleteCitation = (id: string) => {
         setCitations((prev) => prev.filter(c => c.id !== id))
     }
 
 	
-	const insertCitationAtCursor = (text) => {
+	const insertCitationAtCursor = (text: any) => {
 		if (editor) {
 			editor.chain().focus().insertContent(text).run()
 			setIsCitationModalOpen(false)
@@ -595,7 +596,7 @@ const DocumentHeader = ({
 			/>
 
 			<CitationsManager 
-				isOpen={isCitationOpen}
+				isOpen={isCitationModalOpen}
 				onClose={() => setIsCitationModalOpen(false)}
 				citations={citations}
 				onDelete={deleteCitation}
