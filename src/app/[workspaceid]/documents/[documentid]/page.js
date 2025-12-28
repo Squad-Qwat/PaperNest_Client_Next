@@ -28,6 +28,7 @@ export default function DocumentPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [title, setTitle] = useState('')
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false)
+  const [aiAssistantWidth, setAiAssistantWidth] = useState(320)
   const [contextMenu, setContextMenu] = useState({ show: false, x: 0, y: 0 })
   const [editorError, setEditorError] = useState(null)
   const [activeDropdown, setActiveDropdown] = useState(null)
@@ -226,33 +227,44 @@ export default function DocumentPage() {
         user={user}
         workspaceId={workspaceId}
         documentId={documentId}
+        editor={editorFunctions?.editor}
+        insertTable={editorFunctions?.insertTable}
+        undo={editorFunctions?.undo}
+        redo={editorFunctions?.redo}
+        canUndo={editorFunctions?.canUndo}
+        canRedo={editorFunctions?.canRedo}
+        debugContentExtraction={editorFunctions?.debugContentExtraction}
       />
-      <Room documentId={documentId}> 
+      <Room documentId={documentId}>
+        <div className="flex flex-1 overflow-hidden">
+          {/* Document Editor - akan shrink saat AI Assistant open */}
+          <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+            <DocumentEditor
+              document={documentData}
+              title={title}
+              setTitle={setTitle}
+              paperSize={paperSize}
+              defaultFontFamily={defaultFontFamily}
+              defaultFontSize={defaultFontSize}
+              setEditorError={setEditorError}
+              contextMenu={contextMenu}
+              setContextMenu={setContextMenu}
+              handleSave={handleSave}
+              isSaving={isSaving}
+              user={user}
+              aiAssistantOpen={aiAssistantOpen}
+              onEditorReady={onEditorReady}
+            />
+          </div>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* AI Assistant Panel */}
-        <AIAssistant 
-          aiAssistantOpen={aiAssistantOpen}
-          toggleAiAssistant={toggleAiAssistant}
-        />
-      </div>
-      
-                  <DocumentEditor
-                    document={documentData}
-                    title={title}
-                    setTitle={setTitle}
-                    paperSize={paperSize}
-                    defaultFontFamily={defaultFontFamily}
-                    defaultFontSize={defaultFontSize}
-                    setEditorError={setEditorError}
-                    contextMenu={contextMenu}
-                    setContextMenu={setContextMenu}
-                    handleSave={handleSave}
-                    isSaving={isSaving}
-                    user={user}
-                    aiAssistantOpen={aiAssistantOpen}
-                    onEditorReady={onEditorReady}
-                  />
+          {/* AI Assistant Panel - flex item, bukan fixed overlay */}
+          <AIAssistant
+            editor={editorFunctions}
+            aiAssistantOpen={aiAssistantOpen}
+            toggleAiAssistant={toggleAiAssistant}
+            onWidthChange={setAiAssistantWidth}
+          />
+        </div>
       </Room>
     </div>
   )

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import EditorToolbar from '@/components/document/EditorToolbar'
 import {
   ChevronLeft,
   Share2,
@@ -26,12 +27,20 @@ const DocumentHeader = ({
   setPaperSizeSubmenuOpen,
   user,
   workspaceId,
-  documentId
+  documentId,
+  // Editor props
+  editor,
+  insertTable,
+  undo,
+  redo,
+  canUndo,
+  canRedo,
+  debugContentExtraction
 }) => {
   const [isSyncing, setIsSyncing] = useState(false)
 
   return (
-    <header className={`bg-white border-b border-gray-200 sticky top-0 z-40 transition-all duration-300 ${aiAssistantOpen ? 'mr-80' : 'mr-0'}`}>
+    <header className="bg-white border-b border-gray-200 sticky top-0 z-40 transition-all duration-300">
       <div className="container mx-auto px-4 py-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -275,6 +284,18 @@ const DocumentHeader = ({
           </div>
         </div>
       </div>
+      
+      {/* Editor Toolbar - sticky di bawah header */}
+      <EditorToolbar
+        editor={editor}
+        insertTable={insertTable}
+        aiAssistantOpen={aiAssistantOpen}
+        undo={undo}
+        redo={redo}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        debugContentExtraction={debugContentExtraction}
+      />
     </header>
   )
 }

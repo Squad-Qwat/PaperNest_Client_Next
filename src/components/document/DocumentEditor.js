@@ -7,7 +7,6 @@ import { useDocumentEditor } from "@/hooks/editor/use-document-editor";
 
 // UI Components
 import DocumentHeader from "@/components/document/DocumentHeader";
-import EditorToolbar from "@/components/document/EditorToolbar";
 import AIAssistant from "@/components/document/AIAssistant";
 import "@/components/document/EditorStyles.css";
 import ContextMenu from "@/components/editor/context-menu";
@@ -85,43 +84,30 @@ export default function DocumentEditor({
         getCurrentContent,
         getCurrentHTML,
         saveCurrentContent,
-        editor
+        editor,
+        insertTable,
+        undo,
+        redo,
+        canUndo,
+        canRedo,
+        debugContentExtraction
       })
     }
-  }, [editor, onEditorReady, getCurrentContent, getCurrentHTML, saveCurrentContent])
+  }, [editor, onEditorReady, getCurrentContent, getCurrentHTML, saveCurrentContent, insertTable, undo, redo, canUndo, canRedo, debugContentExtraction])
 
   const closeContextMenu = () => {
     setContextMenu({ show: false, x: 0, y: 0 });
   };
 
   return (
-    <>
-      <EditorToolbar
-        editor={editor}
-        insertTable={insertTable}
-        aiAssistantOpen={aiAssistantOpen}
-        // Pass undo/redo functions untuk collaboration-aware operations
-        undo={undo}
-        redo={redo}
-        canUndo={canUndo}
-        canRedo={canRedo}
-        // Debug function (only in development)
-        debugContentExtraction={debugContentExtraction}
-      />
-      {/* Document Content */}
-      <div
-        className={`flex-1 overflow-auto bg-gray-50 transition-all duration-300 ${
-          aiAssistantOpen ? "pr-80" : "pr-0"
-        } w-full`}
-      >
-        <div className="pt-6">
-          <div className="max-w-[850px] mx-auto my-12 bg-transparent shadow-sm rounded-lg min-h-[1100px]">
-            <div className="">
-              <EditorContent
-                editor={editor}
-                className="prose max-w-none focus:outline-none min-h-[800px]"
-              />
-            </div>
+    <div className="flex-1 overflow-auto bg-gray-50 transition-all duration-300 w-full">
+      <div className="pt-6">
+        <div className="max-w-[850px] mx-auto my-12 bg-transparent shadow-sm rounded-lg min-h-[1100px]">
+          <div className="">
+            <EditorContent
+              editor={editor}
+              className="prose max-w-none focus:outline-none min-h-[800px]"
+            />
           </div>
         </div>
       </div>
@@ -132,6 +118,6 @@ export default function DocumentEditor({
           onClose={closeContextMenu}
         />
       )}
-    </>
+    </div>
   );
 }
