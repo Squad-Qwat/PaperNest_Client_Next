@@ -464,7 +464,7 @@ const DocumentHeader = ({
 												className='h-8 w-8 border-2 border-white shadow-sm'
 												title={collaborator.name}
 											>
-												<AvatarImage src={collaborator.avatar} alt={collaborator.name} />
+												<AvatarImage src={collaborator.avatar || ''} alt={collaborator.name || 'User'} />
 												<AvatarFallback
 													className='text-xs font-semibold text-white'
 													style={{ backgroundColor: collaborator.color }}
@@ -538,9 +538,9 @@ const DocumentHeader = ({
 						</Link>
 						<div className='ml-2'>
 							<Avatar className='h-8 w-8'>
-								<AvatarImage src={user?.photoURL || ''} alt={user?.name || 'User'} />
+								<AvatarImage src={user && user.length > 0 ? user[0].photoURL ?? '' : ''} alt={user && user.length > 0 ? user[0].name : 'User'} />
 								<AvatarFallback className='bg-blue-600 text-white text-xs'>
-									{user?.name?.charAt(0) || 'U'}
+									{user && user.length > 0 ? user[0].name.charAt(0) : 'U'}
 								</AvatarFallback>
 							</Avatar>
 						</div>
