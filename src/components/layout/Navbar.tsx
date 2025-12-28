@@ -146,14 +146,14 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 										aria-label='User menu'
 									>
 										<div className='w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-sm font-medium'>
-											{user.name.charAt(0).toUpperCase()}
+											{user.length > 0 ?user[0].name.charAt(0).toUpperCase() : ''}
 										</div>
 									</button>
 								</DropdownMenuTrigger>
 								<DropdownMenuContent align='end' className='w-56'>
 									<div className='px-2 py-1.5'>
-										<p className='text-sm font-medium text-gray-900'>{user.name}</p>
-										<p className='text-xs text-gray-500 capitalize'>{user.role}</p>
+										<p className='text-sm font-medium text-gray-900'>{user.length > 0 ?user[0].name : ''}</p>
+										<p className='text-xs text-gray-500 capitalize'>{user.length > 0 ?user[0].role : ''}</p>
 									</div>
 									<DropdownMenuSeparator />
 									<DropdownMenuItem
@@ -241,11 +241,11 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 									}}
 									className='w-10 h-10 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold'
 								>
-									{user.name.charAt(0).toUpperCase()}
+									{user.map((member) => member.name.charAt(0).toUpperCase())}
 								</button>
 								<div>
-									<p className='text-sm font-medium text-gray-200'>{user.name}</p>
-									<p className='text-xs text-gray-500'>{user.role}</p>
+									<p className='text-sm font-medium text-gray-200'>{user.map((member) => member.name)}</p>
+									<p className='text-xs text-gray-500'>{user.map((member) => member.role)}</p>
 								</div>
 							</div>
 

@@ -128,8 +128,8 @@ export default function ModalVersions({
 			// If the ID matches current user, use their name.
 			// "atau ga yang terlogin saja" -> Fallback to current user name if missing
 			let authorName = version.createdBy
-			if (user && (version.createdBy === user.userId || !version.createdBy)) {
-				authorName = user.name || 'User'
+			if (user && (version.createdBy === (user.length > 0 ? user[0].userId : '') || !version.createdBy)) {
+				authorName = user.length > 0 ? user[0].name : 'User'
 			}
 
 			// Map to UI format
@@ -368,7 +368,7 @@ export default function ModalVersions({
 							)}
 
 							{/* Student Request Review Button */}
-							{user?.role === 'Student' && selectedVersion && !selectedVersion.review && (
+							{(user && user.length > 0 ? user[0].name : 'Student') === 'Student' && selectedVersion && !selectedVersion.review && (
 								<Button
 									className='w-full'
 									variant='outline'
