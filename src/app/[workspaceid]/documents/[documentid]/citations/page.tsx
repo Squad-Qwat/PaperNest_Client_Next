@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/store' 
 import { DocumentService } from '@/lib/firebase/document-service'
-import { Navbar } from '@/components/layout/navbar'
+import { Navbar } from '@/components/layout/Navbar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -34,7 +34,7 @@ interface Citation {
 export default function CitationPage() {
 	const params = useParams()
 	const router = useRouter()
-	const { currentUser } = useAuth()
+	const { user: currentUser } = useAuth()
 
 	const [document, setDocument] = useState<any | null>(null)
 	const [citations, setCitations] = useState<Citation[]>([])

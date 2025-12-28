@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth, useDocuments } from "@/lib/store";
-import { Navbar } from "@/components/layout/navbar";
+import { Navbar } from "@/components/layout/Navbar";
 import { StatusBadge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import type { ReviewStatus } from "@/types";
 export default function ReviewDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { currentUser } = useAuth();
+  const { user: currentUser } = useAuth();
   const { getDocument, deleteReview } = useDocuments();
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);

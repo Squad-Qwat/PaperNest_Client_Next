@@ -3,14 +3,14 @@
 import { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth, useDocuments } from "@/lib/store";
-import { Navbar } from "@/components/layout/navbar";
+import { Navbar } from "@/components/layout/Navbar";
 import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 export default function DocumentPage() {
   const params = useParams();
   const router = useRouter();
-  const { currentUser } = useAuth();
+  const { user: currentUser } = useAuth();
   const { getDocument } = useDocuments();
 
   const documentId = parseInt(params.documentid as string);

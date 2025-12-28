@@ -29,6 +29,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { CitationsManager } from '@/components/document/CitationsManager'
 
 const EditorToolbar = ({
 	editor,
@@ -46,6 +47,7 @@ const EditorToolbar = ({
 	const [hoveredStyle, setHoveredStyle] = useState(null)
 	const [mounted, setMounted] = useState(false)
 	const [_updateTrigger, setUpdateTrigger] = useState(0)
+	const [isCitationModalOpen, setIsCitationModalOpen] = useState(false)
 	const fontFamilyRef = useRef(null)
 	const textStyleRef = useRef(null)
 	const lineSpacingRef = useRef(null)
@@ -982,6 +984,12 @@ const EditorToolbar = ({
 		}
 	}
 
+	const insertCitation = (cit: Parameters<NonNullable<React.ComponentProps<typeof CitationsManager>['onInsert']>>[0]) => {
+		if (!editor) return
+		editor.chain().focus().insertContent(`(${cit.author}, ${cit.year})`).run()
+		setIsCitationModalOpen(false)
+	}
+
 	return (
 		<div className='bg-white border-t border-gray-200 px-11 py-1 sticky top-0 z-[1002] transition-all duration-300'>
 			<div className='flex items-center gap-1 overflow-x-auto pb-1 scrollbar-hide min-h-[40px]'>
@@ -1499,7 +1507,25 @@ const EditorToolbar = ({
 					<FileDown className='h-4 w-4' />
 					Export DOCX
 				</Button>
+
+				<Button
+					variant='ghost'
+					size='sm'
+					onClick={() => setIsCitationModalOpen(true)}
+					className='text-xs flex items-center gap-1'
+					title='Add citation'
+					disabled={!editor}
+				>
+					<Quote className='h-4 w-4' />
+					Sitasi
+				</Button>
 			</div>
+			<CitationsManager
+				isOpen={isCitationModalOpen}
+				onClose={() => setIsCitationModalOpen(false)}
+				initialView='add'
+				onInsert={insertCitation}
+			/>
 		</div>
 	)
 }

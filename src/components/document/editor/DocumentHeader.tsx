@@ -1,4 +1,4 @@
-import { ChevronLeft, GitCommit, History, MessageSquare, Share2 } from 'lucide-react'
+import { ChevronLeft, GitCommit, History, MessageSquare, Share2, Quote } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -10,6 +10,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useAuth } from '@/context/AuthContext'
 import { useDocumentReviews } from '@/lib/api/hooks/use-documents'
 import { documentsService } from '@/lib/api/services/documents.service'
+import { CitationsManager } from '@/components/document/CitationsManager'
 
 interface DocumentHeaderProps {
 	title: string
@@ -39,6 +40,7 @@ interface DocumentHeaderProps {
 	viewMode: 'source' | 'visual'
 	toggleViewMode: () => void
 	visualEditor: any
+	editor?: any
 	visibleCollaborators: any[]
 	hiddenCollaboratorsCount: number
 	compilerMode: 'client' | 'server' | 'server_pdflatex'
@@ -80,6 +82,7 @@ const DocumentHeader = ({
 	viewMode,
 	toggleViewMode,
 	visualEditor,
+	editor,
 	visibleCollaborators,
 	hiddenCollaboratorsCount,
 	compilerMode,
@@ -90,6 +93,7 @@ const DocumentHeader = ({
 	const router = useRouter()
 	const { user } = useAuth()
 	const [showCommitModal, setShowCommitModal] = useState(false)
+	const [isCitationModalOpen, setIsCitationModalOpen] = useState(false);
 	const { data: reviewsResponse } = useDocumentReviews(documentId)
 
 	// Safely determine pending reviews
@@ -100,6 +104,12 @@ const DocumentHeader = ({
 
 	const canCommit = !pendingReview
 	const commitBlockReason = pendingReview ? 'Waiting for pending review' : null
+
+	const insertCitationAtCursor = (cit: any) => {
+		if (!editor) return
+		editor.chain().focus().insertContent(`(${cit.author}, ${cit.year})`).run()
+		setIsCitationModalOpen(false)
+	} 
 
 	return (
 		<header className='bg-white border-b border-gray-200 sticky top-0 z-[1001] transition-all duration-300'>
@@ -525,6 +535,15 @@ const DocumentHeader = ({
 						<Button
 							variant='ghost'
 							size='icon'
+							onClick={() => setIsCitationModalOpen(true)}
+							title='Citations'
+						>
+							<Quote className='h-5 w-5' />
+						</Button>
+
+						<Button
+							variant='ghost'
+							size='icon'
 							onClick={toggleAiAssistant}
 							className={aiAssistantOpen ? 'bg-primary/20 text-primary' : ''}
 						>
@@ -570,6 +589,14 @@ const DocumentHeader = ({
 						throw error // Re-throw so Modal can handle it/show error
 					}
 				}}
+			/>
+
+			{/* Citation manager */}
+			<CitationsManager 
+				isOpen={isCitationModalOpen}
+				onClose={() => setIsCitationModalOpen(false)}
+				initialView='list'
+				onInsert={insertCitationAtCursor}
 			/>
 
 			{/* Editor Toolbar - sticky di bawah header */}

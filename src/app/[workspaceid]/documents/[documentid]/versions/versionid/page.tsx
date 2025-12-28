@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/store";
-import { Navbar } from "@/components/layout/navbar";
+import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +23,7 @@ const MOCK_VERSIONS: Version[] = [
 export default function VersionDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { currentUser } = useAuth();
+  const { user: currentUser } = useAuth();
   
   const [showRevertConfirm, setShowRevertConfirm] = useState(false);
 

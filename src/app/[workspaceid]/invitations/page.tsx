@@ -2,8 +2,9 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/store";
-import { Navbar } from "@/components/layout/navbar";
+// import { useAuth, type User as APIUser } from "@/lib/store";
+import { useAuth } from "@/context/AuthContext";
+import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -21,8 +22,15 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { User } from "@/types";
 
 export default function InvitationPage() {
+
+  /* 
+    type APIUser = NonNullable<ReturnType<typeof useAuth>['user']> <- Unnecessary.
+    "user: users" is more than enough to ensure that users is of "User | null" 
+  */
+
   const router = useRouter();
-  const { currentUser, users } = useAuth();
+  // const { currentUser, users } = useAuth();
+  const { user: users } = useAuth();
   
   // State for Invite Dialog
   const [isInviteOpen, setIsInviteOpen] = useState(false);
@@ -33,21 +41,78 @@ export default function InvitationPage() {
   // State for Confirmation Dialog
   const [userToInvite, setUserToInvite] = useState<User | null>(null);
 
-  // Mock data for current team members (for display purposes)
-  const currentMembers = users.filter(u => u.id === currentUser?.id); 
+  // Workspace users list (just hope that i don't need to create "setCurrentUser" after "currentUser", as it's unused function)
+  const [currentUser] = useState<User[]>([]);
+
+  // Helper: Check if API userId needs hex translation (non-hex ASCII/Unicode except A-F)
+  const hasTranslatableChars = (userId: string | undefined): boolean => {
+    if (!userId) return false;
+    
+    for (let i = 0; i < userId.length; i++) 
+    {
+      const charCode = userId.charCodeAt(i);
+      const char = userId[i].toUpperCase();
+      
+      // Skip valid hex digits 0-9 (48-57), A-F, a-f
+      if ((charCode >= 48 && charCode <= 57) || (char >= 'A' && char <= 'F') || (char >= 'a' && char <= 'f')) {continue;}
+      
+      // ASCII printable or Unicode → needs translation
+      if ((charCode >= 33 && charCode <= 126) || charCode > 127) {return true;}
+    }
+    return false;
+  };
+
+  // Convert ASCII/Unicode to hex representation
+  // Translate userId string → numeric id for LocalUser matching
+  const translateUserIdToNum = (userId: string): number => {
+    let numericId = 0;
+    
+    /* 
+      Alternative: Pure hex interpretation if valid hex string
+      numericId = (numericId << 4) | parseInt(userId[i], 16);
+    */
+    for (let i = 0; i < userId.length; i++) 
+    {
+      const charCode = userId.charCodeAt(i);
+      numericId = (numericId * 31) + charCode;  // Hash-like conversion
+    }
+    
+    return Math.abs(numericId) % 1000000;  // Normalize to plausible ID range
+  };
+
+  
+  // Mock data for current team members (for display purposes). 
+  const currentMembers = (() => {
+    if (!users?.userId || currentUser.length === 0) return [];
+    
+    // Branch ONLY if userId has translatable chars
+    if (hasTranslatableChars(users.userId)) 
+    {
+      const numericId = translateUserIdToNum(users.userId);
+      console.log(`Translated "${users.userId}" → numeric ID: ${numericId}`);
+      
+      return currentUser.filter((u) => u.id === numericId);
+    }
+    
+    // Normal: Try parseInt for pure hex/numeric userId
+    const numericId = Number(users.userId);
+    if (!isNaN(numericId)) {return currentUser.filter((u) => u.id === numericId);}
+    
+    return [];  // No match
+  })();
 
   // 1. Handle Search Logic
   const handleSearch = () => {
     if (!searchQuery.trim()) return;
     
     // Search in the global users store
-    const foundUser = users.find(
+    const foundUser = currentUser.find(
       (u) => 
         u.email.toLowerCase() === searchQuery.toLowerCase() || 
         u.username.toLowerCase() === searchQuery.toLowerCase()
     );
 
-    setSearchResult(foundUser || null);
+    setSearchResult(foundUser ?? null);
     setHasSearched(true);
   };
 
