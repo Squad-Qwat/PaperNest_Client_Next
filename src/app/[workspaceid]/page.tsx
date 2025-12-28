@@ -2,40 +2,43 @@
 
 import { useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useAuth, useDocuments } from "@/lib/store";
+import { useAuthContext } from "@/context/AuthContext";
+import { useWorkspace } from "@/hooks/useWorkspace";
+import { useDocuments } from "@/hooks/useDocuments";
+import { documentsService } from "@/lib/api/services/documents.service";
 import { Navbar } from "@/components/layout/navbar";
 import { SearchInput } from "@/components/ui/search-input";
 import { StatusBadge } from "@/components/ui/badge";
 import { Modal, ModalFooter } from "@/components/ui/modal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { WorkspaceSettingsModal } from "@/components/workspace/WorkspaceSettingsModal";
+import { RadioGroup } from "@/components/ui/radio-group";
+import { OptionCard } from "@/components/ui/option-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { DocumentStatus } from "@/types";
 
 export default function WorkspacePage() {
   const params = useParams();
   const router = useRouter();
-  const { currentUser } = useAuth();
-  const { getDocuments, createDocument, deleteDocument } = useDocuments();
+  const { user } = useAuthContext();
+  const workspaceId = params.workspaceid as string;
+  const { workspace, loading: workspaceLoading, error: workspaceError, refetch: refetchWorkspace } = useWorkspace(workspaceId);
+  const { documents, loading: documentsLoading, refetch: refetchDocuments } = useDocuments(workspaceId);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
-
-  
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [newDoc, setNewDoc] = useState({
     title: "",
     description: "",
-    status: "personal" as DocumentStatus,
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [isCreating, setIsCreating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  
-  const documents = currentUser ? getDocuments(currentUser.id) : [];
-
-  
   const filteredDocuments = useMemo(() => {
     if (!searchQuery) return documents;
     
@@ -43,19 +46,16 @@ export default function WorkspacePage() {
     return documents.filter(
       (doc) =>
         doc.title.toLowerCase().includes(query) ||
-        doc.description.toLowerCase().includes(query)
+        (doc.description && doc.description.toLowerCase().includes(query))
     );
   }, [documents, searchQuery]);
 
   
-  const handleCreateDocument = () => {
+  const handleCreateDocument = async () => {
     const errors: Record<string, string> = {};
 
     if (!newDoc.title.trim()) {
       errors.title = "Title is required";
-    }
-    if (!newDoc.description.trim()) {
-      errors.description = "Description is required";
     }
 
     if (Object.keys(errors).length > 0) {
@@ -63,37 +63,84 @@ export default function WorkspacePage() {
       return;
     }
 
-    if (currentUser) {
-      createDocument(currentUser.id, {
+    if (!workspaceId) return;
+
+    setIsCreating(true);
+    try {
+      // Backend doesn't accept description field, only title
+      await documentsService.create(workspaceId, {
         title: newDoc.title.trim(),
-        description: newDoc.description.trim(),
-        status: newDoc.status,
-        lastUpdated: "baru saja",
       });
 
-      
-      setNewDoc({ title: "", description: "", status: "personal" });
+      setNewDoc({ title: "", description: "" });
       setFormErrors({});
       setShowCreateModal(false);
+      await refetchDocuments();
+    } catch (err) {
+      console.error("Error creating document:", err);
+      setFormErrors({ submit: err instanceof Error ? err.message : "Failed to create document" });
+    } finally {
+      setIsCreating(false);
     }
   };
 
-  
-  const handleDeleteDocument = (docId: number) => {
-    if (currentUser) {
-      deleteDocument(currentUser.id, docId);
+  const handleDeleteDocument = async (docId: string) => {
+    if (!workspaceId) return;
+
+    setIsDeleting(true);
+    try {
+      await documentsService.delete(workspaceId, docId);
       setDeleteConfirm(null);
+      await refetchDocuments();
+    } catch (err) {
+      console.error("Error deleting document:", err);
+      alert(err instanceof Error ? err.message : "Failed to delete document");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
-  
-  const handleOpenDocument = (docId: number) => {
-    router.push(`/${params.workspaceid}/documents/${docId}`);
+  const handleOpenDocument = (docId: string) => {
+    router.push(`/${workspaceId}/documents/${docId}`);
   };
 
-  if (!currentUser) {
-    router.push("/login");
+  if (!user) {
     return null;
+  }
+
+  if (workspaceLoading || documentsLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading workspace...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If there's an error (like 403 Forbidden or 404 Not Found), redirect to home
+  if (workspaceError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{workspaceError}</p>
+          <p className="text-gray-600 mb-4">You don't have access to this workspace</p>
+          <Button onClick={() => router.push("/")}>Go to Home</Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!workspace) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">Workspace not found</p>
+          <Button onClick={() => router.push("/")}>Go to Home</Button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -103,13 +150,23 @@ export default function WorkspacePage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <span className="text-4xl">{currentUser.workspace.icon}</span>
-            <h1 className="text-3xl font-bold text-gray-900">
-              {currentUser.workspace.name}
-            </h1>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-3">
+              <span className="text-4xl">{workspace.icon || '📚'}</span>
+              <h1 className="text-3xl font-bold text-gray-900">
+                {workspace.title}
+              </h1>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setShowSettingsModal(true)}
+            >
+              ⚙️ Settings
+            </Button>
           </div>
-          <p className="text-gray-600">{currentUser.workspace.description}</p>
+          {workspace.description && (
+            <p className="text-gray-600">{workspace.description}</p>
+          )}
         </div>
 
         {/* Section Title */}
@@ -175,30 +232,29 @@ export default function WorkspacePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredDocuments.map((doc) => (
               <div
-                key={doc.id}
+                key={doc.documentId}
                 className="bg-white border rounded-lg p-6 hover:border-teal-600 hover:shadow-lg transition-all group cursor-pointer"
-                onClick={() => handleOpenDocument(doc.id)}
+                onClick={() => handleOpenDocument(doc.documentId)}
               >
                 <div className="flex items-start justify-between mb-3">
                   <h3 className="text-lg font-semibold text-gray-900 group-hover:text-teal-600 transition-colors line-clamp-2 flex-1">
                     {doc.title}
                   </h3>
-                  <StatusBadge status={doc.status} />
                 </div>
 
                 <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                  {doc.description}
+                  {doc.description || "No description"}
                 </p>
 
                 <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
-                  <span>{doc.lastUpdated}</span>
+                  <span>{new Date(doc.updatedAt).toLocaleDateString('id-ID')}</span>
                 </div>
 
                 <div className="flex gap-2">
                   <Button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleOpenDocument(doc.id);
+                      handleOpenDocument(doc.documentId);
                     }}
                     className="flex-1"
                   >
@@ -207,10 +263,11 @@ export default function WorkspacePage() {
                   <Button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setDeleteConfirm(doc.id);
+                      setDeleteConfirm(doc.documentId);
                     }}
                     className=" bg-gray-100 hover:bg-red-600 text-gray-600 hover:text-white"
                     aria-label="Delete document"
+                    disabled={isDeleting}
                   >
                     <svg
                       className="w-4 h-4"
@@ -238,7 +295,7 @@ export default function WorkspacePage() {
         isOpen={showCreateModal}
         onClose={() => {
           setShowCreateModal(false);
-          setNewDoc({ title: "", description: "", status: "personal" });
+          setNewDoc({ title: "", description: "" });
           setFormErrors({});
         }}
         title="Create New Document"
@@ -257,6 +314,7 @@ export default function WorkspacePage() {
               }}
               placeholder="Document title"
               className={formErrors.title ? "border-red-500" : ""}
+              disabled={isCreating}
             />
             {formErrors.title && (
               <p className="mt-1 text-sm text-red-400">{formErrors.title}</p>
@@ -275,41 +333,16 @@ export default function WorkspacePage() {
               placeholder="Brief description of your document"
               rows={3}
               className={`resize-none ${formErrors.description ? "border-red-500" : ""}`}
+              disabled={isCreating}
             />
             {formErrors.description && (
               <p className="mt-1 text-sm text-red-400">{formErrors.description}</p>
             )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-3">
-              Status
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setNewDoc({ ...newDoc, status: "personal" })}
-                className={`px-4 py-2.5 border rounded-lg font-medium transition-all ${
-                  newDoc.status === "personal"
-                    ? "bg-blue-600 border-blue-500 text-white"
-                    : "bg-gray-950 border-gray-800 text-gray-300 hover:border-gray-700"
-                }`}
-              >
-                Personal
-              </button>
-              <button
-                type="button"
-                onClick={() => setNewDoc({ ...newDoc, status: "shared" })}
-                className={`px-4 py-2.5 border rounded-lg font-medium transition-all ${
-                  newDoc.status === "shared"
-                    ? "bg-blue-600 border-blue-500 text-white"
-                    : "bg-gray-950 border-gray-800 text-gray-300 hover:border-gray-700"
-                }`}
-              >
-                Shared
-              </button>
-            </div>
-          </div>
+          {formErrors.submit && (
+            <p className="text-sm text-red-400">{formErrors.submit}</p>
+          )}
         </div>
 
         <ModalFooter>
@@ -317,13 +350,16 @@ export default function WorkspacePage() {
             variant="outline"
             onClick={() => {
               setShowCreateModal(false);
-              setNewDoc({ title: "", description: "", status: "personal" });
+              setNewDoc({ title: "", description: "" });
               setFormErrors({});
             }}
+            disabled={isCreating}
           >
             Cancel
           </Button>
-          <Button onClick={handleCreateDocument}>Create Document</Button>
+          <Button onClick={handleCreateDocument} disabled={isCreating}>
+            {isCreating ? "Creating..." : "Create Document"}
+          </Button>
         </ModalFooter>
       </Modal>
 
@@ -337,6 +373,19 @@ export default function WorkspacePage() {
         confirmText="Delete"
         variant="danger"
       />
+
+      {/* Workspace Settings Modal */}
+      {workspace && (
+        <WorkspaceSettingsModal
+          isOpen={showSettingsModal}
+          onClose={() => setShowSettingsModal(false)}
+          workspace={workspace}
+          onSuccess={async () => {
+            // Refetch workspace data after update
+            await refetchWorkspace();
+          }}
+        />
+      )}
     </div>
   );
 }

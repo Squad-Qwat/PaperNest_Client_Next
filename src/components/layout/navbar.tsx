@@ -2,24 +2,27 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useAuth } from "@/lib/store";
+import { usePathname, useRouter, useParams } from "next/navigation";
+import { useAuthContext } from "@/context/AuthContext";
+import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
+import { Camera, Slash } from "lucide-react";
 
 interface NavbarProps {
     mode?: "workspace" | "document";
     documentId?: string;
 }
 
-export function Navbar({ mode = "workspace", documentId}: NavbarProps) {
+export function Navbar({ mode = "workspace", documentId }: NavbarProps) {
     const pathname = usePathname();
     const router = useRouter();
-    const { currentUser, logout } = useAuth();
+    const params = useParams();
+    const { user, logout } = useAuthContext();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-    const workspaceId = currentUser?.id.toString();
+    const workspaceId = params.workspaceid as string;
 
     // Main workspace menu items
     const workspaceMenuItems = [
@@ -33,10 +36,6 @@ export function Navbar({ mode = "workspace", documentId}: NavbarProps) {
     const documentMenuItems = documentId
         ? [
             {
-                name: "Overview",
-                href: `/${workspaceId}/documents/${documentId}`
-            },
-            {
                 name: "Citations",
                 href: `/${workspaceId}/documents/${documentId}/citations`,
             },
@@ -44,17 +43,13 @@ export function Navbar({ mode = "workspace", documentId}: NavbarProps) {
                 name: "Reviews",
                 href: `/${workspaceId}/documents/${documentId}/reviews`,
             },
-            {
-                name: "Versions",
-                href: `/${workspaceId}/documents/${documentId}/versions`,
-            }
         ]
         : [];
 
     const menuItems = mode === "document" ? documentMenuItems : workspaceMenuItems;
 
-    const handleLogout = () => {
-        logout();
+    const handleLogout = async () => {
+        await logout();
         router.push("/login");
     };
 
@@ -62,31 +57,32 @@ export function Navbar({ mode = "workspace", documentId}: NavbarProps) {
         if (href === `/${workspaceId}`) {
             return pathname === `/${workspaceId}`;
         }
-
-        // Add this logic, to ensure the navbar workflow in the document is the same as the workspace
-        if (href === `/${workspaceId}/documents/${documentId}`) {
-            return pathname === `/${workspaceId}/documents/${documentId}`;
-        }
         return pathname.startsWith(href);
     };
 
-    if (!currentUser) return null;
+    if (!user) return null;
 
     return (
         <>
             <nav className="sticky top-0 z-40 bg-white border-b shadow-sm">
                 <div className="mx-auto pt-3 px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between h-16">
-                        {/* Logo/Brand */}
-                        <div>
-                            <div className="flex items-center gap-3">
-                                <Link
-                                    href={`/${workspaceId}`}
-                                    className="flex items-center gap-2 text-lg font-semibold text-gray-900 hover:text-gray-700 transition-colors"
-                                >
-                                    <span>PaperNest</span>
-                                </Link>
-                                <span className="px-2 py-0.5 bg-teal-600 text-white text-xs font-medium rounded">Hobby</span>
+                    <div className="flex items-center justify-between">
+                        {/* Logo/Brand & Workspace Switcher */}
+                        <div className="">
+
+                            <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-3">
+                                    <Link
+                                        href="/"
+                                        className="flex items-center gap-2 text-lg font-semibold text-gray-900 hover:text-gray-700 transition-colors"
+                                    >
+                                        <span>PaperNest</span>
+                                    </Link>
+                                    <span className="px-2 py-0.5 bg-teal-600 text-white text-xs font-medium rounded">Hobby</span>
+                                </div>
+                                <Slash className="text-gray-400" />
+                                <WorkspaceSwitcher currentWorkspaceId={workspaceId} />
+
                             </div>
 
                             {/* Desktop Menu */}
@@ -98,7 +94,7 @@ export function Navbar({ mode = "workspace", documentId}: NavbarProps) {
                                         className={cn(
                                             "relative px-1 py-2 text-sm font-normal transition-colors",
                                             isActive(item.href)
-                                                ? "text-gray-900 after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-0.5 after:bg-teal-600"
+                                                ? "text-gray-900 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-teal-600"
                                                 : "text-gray-600 hover:text-gray-900"
                                         )}
                                     >
@@ -146,13 +142,12 @@ export function Navbar({ mode = "workspace", documentId}: NavbarProps) {
                             >
                                 <div className="text-right">
                                     <p className="text-sm font-medium text-gray-900">
-                                        {currentUser.firstName} {currentUser.lastName}
+                                        {user.name}
                                     </p>
-                                    <p className="text-xs text-gray-500 capitalize">{currentUser.role}</p>
+                                    <p className="text-xs text-gray-500 capitalize">{user.role}</p>
                                 </div>
                                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center text-gray-700 font-medium border border-gray-300">
-                                    {currentUser.firstName[0]}
-                                    {currentUser.lastName[0]}
+                                    {user.name.charAt(0).toUpperCase()}
                                 </div>
                             </button>
                         </div>
@@ -197,7 +192,7 @@ export function Navbar({ mode = "workspace", documentId}: NavbarProps) {
 
                     {/* Mobile Menu */}
                     {isMobileMenuOpen && (
-                        <div className="md:hidden py-4 border-t border-gray-900">
+                        <div className="md:hidden py-4 border-t border-gray-800">
                             <div className="flex flex-col gap-2 mb-4">
                                 {menuItems.map((item) => (
                                     <Link
@@ -205,9 +200,9 @@ export function Navbar({ mode = "workspace", documentId}: NavbarProps) {
                                         href={item.href}
                                         onClick={() => setIsMobileMenuOpen(false)}
                                         className={cn(
-                                            "px-4 py-3 border-l-4 text-sm font-medium transition-colors",
+                                            "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
                                             isActive(item.href)
-                                                ? "bg-teal-50 border-teal-600 text-teal-700"
+                                                ? "bg-blue-600 text-white"
                                                 : "text-gray-300 hover:bg-gray-800"
                                         )}
                                     >
@@ -224,14 +219,13 @@ export function Navbar({ mode = "workspace", documentId}: NavbarProps) {
                                     }}
                                     className="w-10 h-10 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold"
                                 >
-                                    {currentUser.firstName[0]}
-                                    {currentUser.lastName[0]}
+                                    {user.name.charAt(0).toUpperCase()}
                                 </button>
                                 <div>
                                     <p className="text-sm font-medium text-gray-200">
-                                        {currentUser.firstName} {currentUser.lastName}
+                                        {user.name}
                                     </p>
-                                    <p className="text-xs text-gray-500">{currentUser.role}</p>
+                                    <p className="text-xs text-gray-500">{user.role}</p>
                                 </div>
                             </div>
 

@@ -33,14 +33,6 @@ export interface Review {
   status: ReviewStatus;
 }
 
-export interface Version {
-  id: string;
-  docId: number;
-  author: string;
-  message: string;
-  date: string;
-}
-
 export interface Document {
   id: number;
   title: string;
@@ -49,7 +41,6 @@ export interface Document {
   lastUpdated: string;
   citations: Citation[];
   reviews: Review[];
-  versions: Version[];
 }
 
 export interface User {
@@ -80,7 +71,7 @@ export interface DocumentContextType {
   getDocument: (userId: number, docId: number) => Document | undefined;
   createDocument: (
     userId: number,
-    document: Omit<Document, "id" | "citations" | "reviews" | "versions">
+    document: Omit<Document, "id" | "citations" | "reviews">
   ) => Document;
   updateDocument: (
     userId: number,
@@ -92,6 +83,4 @@ export interface DocumentContextType {
   deleteCitation: (userId: number, docId: number, citationId: string) => void;
   addReview: (userId: number, docId: number, review: Omit<Review, "id" | "docId" | "docTitle">) => void;
   deleteReview: (userId: number, docId: number, reviewId: string) => void;
-  addVersion: (userId: number, docId: number, version: Omit<Version, "id">) => void;
-  deleteVersion: (userId: number, docId: number, versionId: string) => void;
 }
