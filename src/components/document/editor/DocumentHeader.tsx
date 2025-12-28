@@ -53,6 +53,7 @@ interface DocumentHeaderProps {
 	user?: any
 	workspace?: any
 	debugContentExtraction?: any
+	onInsertCitation?: (text: string) => void
 }
 
 const DocumentHeader = ({
@@ -93,6 +94,7 @@ const DocumentHeader = ({
 	aiAssistantOpen,
 	toggleAiAssistant,
 	workspace,
+	onInsertCitation,
 }: DocumentHeaderProps) => {
 	const router = useRouter()
 	const { user } = useAuth()
@@ -133,7 +135,7 @@ const DocumentHeader = ({
 		if (!editor) return
 		const authorText = cit.authors.filter(Boolean).join('; ')
 		setIsCitationModalOpen(false)
-		setTimeout(() => {editor.chain().focus().insertContent(`(${authorText}, ${cit.year})`).run()}, 50)
+		onInsertCitation?.(`(${authorText}, ${cit.year})`)
 	}
 
 	// Find a lecturer to assign the review to

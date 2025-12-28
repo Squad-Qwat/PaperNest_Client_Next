@@ -294,7 +294,8 @@ function DocumentPageContent() {
 					editor={editorFunctions?.editor}
 					compilerMode={editorFunctions?.compilerMode}
 					onCompilerModeChange={editorFunctions?.setCompilerMode}
-					debugContentExtraction={editorFunctions?.debugContentExtraction}
+					debugContentExtraction={editorFunctions?.debugContentExtraction}  // Kenapa panggil ini ketika 'const DocumentHeader' nggak pernah minta ini sama sekali?
+					onInsertCitation={handleInsertTextAtCursor}
 				/>
 
 				<Room documentId={documentId} fallback={<DocumentEditorSkeleton />}>
