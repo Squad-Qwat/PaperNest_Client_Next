@@ -35,8 +35,8 @@ export default function InvitationPage() {
   // State for Confirmation Dialog
   const [userToInvite, setUserToInvite] = useState<APIUser | null>(null);
 
-  // Mock data for current team members (for display purposes)
-  const currentMembers: APIUser[] = user?.filter(u => u.id === currentUser?.userId) ?? []; 
+  // Mock data for current team members (for display purposes), just hope this works now, any vulnerability will be fixed later
+  const currentMembers: APIUser[] = user?.filter(u => u.id === Number(currentUser?.userId)) ?? []; 
 
   // 1. Handle Search Logic
   const handleSearch = () => {

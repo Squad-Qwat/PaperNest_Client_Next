@@ -18,6 +18,8 @@ import { DesktopOnlyGuard } from '@/components/layout/DesktopOnlyGuard'
 import { useAuth } from '@/context/AuthContext'
 import { useIsMobile } from '@/hooks/use-mobile'
 import type { BatchOperation, OperationType } from '@/lib/api/types/batchOperation.types'
+import { User } from '@liveblocks/node'
+
 
 export default function DocumentPage() {
 	const router = useRouter()
@@ -147,7 +149,7 @@ export default function DocumentPage() {
 					operationType: 'create-checkpoint' as OperationType,
 					payload: {
 						message: 'Auto-save checkpoint',
-						userId: user.userId,
+						userId: user.length > 0 ? user[0].userId : '',
 					},
 				},
 			]
@@ -254,7 +256,7 @@ export default function DocumentPage() {
 					setPaperSize={setPaperSize}
 					paperSizeSubmenuOpen={paperSizeSubmenuOpen}
 					setPaperSizeSubmenuOpen={setPaperSizeSubmenuOpen}
-					user={user}
+					user={Array.isArray(user) ? user[0] : user}
 					workspaceId={workspaceId}
 					workspace={workspace || undefined}
 					documentId={documentId}
@@ -297,7 +299,7 @@ export default function DocumentPage() {
 						<DocumentEditor
 							document={documentData}
 							title={title}
-							user={user}
+							user={Array.isArray(user) ? user[0] : user}
 							onEditorReady={onEditorReady}
 							isPdfHidden={isPdfHidden}
 						/>
