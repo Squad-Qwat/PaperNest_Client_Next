@@ -63,7 +63,7 @@ export default function LoginPage() {
 					)}
 
 					{/* Social Login Buttons */}
-					<div className='grid grid-cols-2 gap-3 mb-6'>
+					{/* <div className='grid grid-cols-2 gap-3 mb-6'>
 						<Button
 							type='button'
 							variant='outline'
@@ -101,7 +101,7 @@ export default function LoginPage() {
 							</svg>
 							Login using Github
 						</Button>
-					</div>
+					</div> */}
 
 					{/* Divider */}
 					<div className='relative mb-6'>

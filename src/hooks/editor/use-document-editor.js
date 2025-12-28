@@ -174,6 +174,7 @@ export function useDocumentEditor({
 
 	const editor = useEditor(
 		{
+			immediatelyRender: false, // Fix SSR hydration mismatch in Next.js
 			extensions: editorExtensions,
 			content: defaultContent,
 			autofocus: false, // Disable autofocus untuk mencegah cursor jump

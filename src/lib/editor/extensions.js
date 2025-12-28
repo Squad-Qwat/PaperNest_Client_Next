@@ -8,28 +8,19 @@ import Strike from '@tiptap/extension-strike'
 import Underline from '@tiptap/extension-underline'
 import Code from '@tiptap/extension-code'
 import CodeBlock from '@tiptap/extension-code-block'
-import Blockquote from '@tiptap/extension-blockquote'
-import BulletList from '@tiptap/extension-bullet-list'
-import OrderedList from '@tiptap/extension-ordered-list'
-import ListItem from '@tiptap/extension-list-item'
 import HardBreak from '@tiptap/extension-hard-break'
-import History from '@tiptap/extension-history'
-import Placeholder from '@tiptap/extension-placeholder'
-import Table from '@tiptap/extension-table'
-import TableRow from '@tiptap/extension-table-row'
-import TableCell from '@tiptap/extension-table-cell'
-import TableHeader from '@tiptap/extension-table-header'
-import Gapcursor from '@tiptap/extension-gapcursor'
-import TextStyle from '@tiptap/extension-text-style'
+import Blockquote from '@tiptap/extension-blockquote'
+import { BulletList, OrderedList, ListItem } from '@tiptap/extension-list'
+import { TextStyle, FontSize } from '@tiptap/extension-text-style'
+import { Color } from '@tiptap/extension-color'
 import FontFamily from '@tiptap/extension-font-family'
-import FontSize from 'tiptap-extension-font-size'
 import TextAlign from '@tiptap/extension-text-align'
 import { Extension } from '@tiptap/core'
-import PaginationExtension, {
-	PageNode,
-	HeaderFooterNode,
-	BodyNode,
-} from 'tiptap-extension-pagination'
+import { Pages } from '@tiptap-pro/extension-pages'
+import { ExportDocx } from '@tiptap-pro/extension-export-docx'
+import { ImportDocx } from '@tiptap-pro/extension-import-docx'
+import { Placeholder, Gapcursor, TrailingNode } from '@tiptap/extensions'
+import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table'
 
 const FontStylePersistence = Extension.create({
 	name: 'fontStylePersistence',
@@ -56,19 +47,25 @@ const FontStylePersistence = Extension.create({
 					}
 				}
 
-				// Create new paragraph with default behavior first
-				const result = editor.chain().insertContent('\n').run()
+				// Use default splitBlock behavior which properly handles paragraph creation
+				const result = editor.commands.splitBlock()
 
 				// Then preserve the stored marks for the new paragraph
-				setTimeout(() => {
-					const tr = editor.state.tr
-					const textStyleMark = editor.schema.marks.textStyle.create({
-						fontFamily: currentFontFamily,
-						fontSize: currentFontSize,
-					})
-					tr.addStoredMark(textStyleMark)
-					editor.view.dispatch(tr)
-				}, 10)
+				if (result) {
+					setTimeout(() => {
+						try {
+							const tr = editor.state.tr
+							const textStyleMark = editor.schema.marks.textStyle.create({
+								fontFamily: currentFontFamily,
+								fontSize: currentFontSize,
+							})
+							tr.addStoredMark(textStyleMark)
+							editor.view.dispatch(tr)
+						} catch (error) {
+							console.warn('Error setting stored marks:', error)
+						}
+					}, 10)
+				}
 
 				return result
 			},
@@ -167,7 +164,7 @@ const HeadingBackspaceHandler = Extension.create({
 	},
 })
 
-// Custom extension untuk mengatasi cursor jump ke footer dengan pagination
+// Custom extension untuk auto focus di editor
 const SmartFocus = Extension.create({
 	name: 'smartFocus',
 
@@ -181,65 +178,18 @@ const SmartFocus = Extension.create({
 	onCreate() {
 		if (!this.options.autoFocus) return
 
-		// Set smart focus setelah pagination extension selesai render
+		// Set focus setelah editor selesai render
 		setTimeout(() => {
 			try {
 				const { editor } = this
 				if (!editor || !editor.view) return
 
-				this.smartFocusToBody()
+				// Simple focus to start of document
+				editor.commands.focus('start')
 			} catch (error) {
 				console.warn('Smart focus failed:', error)
-				// Final fallback
-				this.editor.commands.focus('start')
 			}
 		}, this.options.delay)
-	},
-
-	smartFocusToBody() {
-		const { editor } = this
-
-		// Cari first paragraph dalam body (bukan header/footer)
-		const { doc } = editor.state
-		let targetPos = null
-
-		doc.descendants((node, pos) => {
-			// Skip header dan footer nodes
-			if (
-				node.type.name === 'headerFooter' ||
-				node.type.name === 'page-header' ||
-				node.type.name === 'page-footer'
-			)
-				return false
-
-			// Cari paragraph pertama dalam body
-			if ((node.type.name === 'paragraph' || node.type.name === 'body') && !targetPos) {
-				targetPos = node.type.name === 'body' ? pos + 1 : pos + 1
-				return false // Stop searching
-			}
-
-			return true
-		})
-
-		// Set cursor position dengan aman
-		if (targetPos !== null && targetPos < doc.content.size) {
-			try {
-				const resolvedPos = doc.resolve(targetPos)
-				const tr = editor.state.tr.setSelection(
-					editor.state.selection.constructor.near(resolvedPos)
-				)
-				editor.view.dispatch(tr)
-				console.log('Smart focus applied at position:', targetPos)
-			} catch (error) {
-				console.warn('Error applying smart focus position:', error)
-				// Fallback to start
-				editor.commands.focus('start')
-			}
-		} else {
-			// Fallback: focus start of document body
-			editor.commands.focus('start')
-			console.log('Fallback focus applied')
-		}
 	},
 
 	addCommands() {
@@ -248,11 +198,10 @@ const SmartFocus = Extension.create({
 				() =>
 				({ editor, commands }) => {
 					try {
-						this.smartFocusToBody()
-						return true
+						return commands.focus('start')
 					} catch (error) {
 						console.warn('Smart focus command failed:', error)
-						return commands.focus('start')
+						return false
 					}
 				},
 		}
@@ -394,9 +343,8 @@ const createEditorExtensions = (paperSize, undoRedoOptions = {}) => [
 	HeadingBackspaceHandler,
 	SmartFocus.configure({
 		autoFocus: true,
-		delay: 150, // Delay lebih lama untuk memastikan pagination selesai
+		delay: 150,
 	}),
-	SmartFocus,
 
 	// Collaboration-aware undo/redo
 	CollaborationUndoRedo.configure({
@@ -410,31 +358,32 @@ const createEditorExtensions = (paperSize, undoRedoOptions = {}) => [
 		userOrigin: undoRedoOptions.userOrigin || 'anonymous-user',
 	}),
 
-	// Pagination extensions
-	PaginationExtension.configure({
-		defaultPaperSize: paperSize,
-		defaultPaperColour: '#ffffff',
-		defaultPaperOrientation: 'portrait',
-		defaultPageBorders: { top: 0, right: 0, bottom: 0, left: 0 },
-		pageAmendmentOptions: {
-			enableHeader: true,
-			enableFooter: true,
-			headerOptions: {
-				showPageNumber: true,
-				pageNumberPosition: 'right',
-				differentFirstPage: true,
-			},
-			footerOptions: {
-				showPageNumber: true,
-				pageNumberPosition: 'center',
-				differentFirstPage: true,
-			},
-		},
-	}),
+	// TipTap Pro Pages extension
+	Pages.configure({
+		pageFormat: paperSize || 'A4',
+		headerHeight: 60,
+		footerHeight: 50,
+	pageGap: 40,
+	header: '',
+	footer: (page, total) => `Page ${page} of ${total}`,
+	pageBreakBackground: '#f5f5f5',
+}),
 
-	PageNode,
-	HeaderFooterNode,
-	BodyNode,
+// Export DOCX extension (no auth required)
+ExportDocx.configure({
+	exportType: 'blob',
+	onCompleteExport: (result) => {
+		// This callback will be overridden by the exportDocx command call
+		// We provide a default no-op function to satisfy the extension requirement
+		console.log('DOCX export completed', result)
+	},
+}),
+
+// Import DOCX extension (requires Tiptap Cloud subscription)
+ImportDocx.configure({
+	appId: process.env.NEXT_PUBLIC_TIPTAP_APP_ID,
+	token: process.env.NEXT_PUBLIC_TIPTAP_JWT_TOKEN,
+}),
 
 	// Text formatting
 	TextStyle.configure({
@@ -449,6 +398,9 @@ const createEditorExtensions = (paperSize, undoRedoOptions = {}) => [
 	FontSize.configure({
 		types: ['textStyle'],
 		defaultValue: '11pt',
+	}),
+	Color.configure({
+		types: ['textStyle'],
 	}),
 	Heading.configure({
 		levels: [1, 2, 3, 4],
@@ -497,7 +449,11 @@ const createEditorExtensions = (paperSize, undoRedoOptions = {}) => [
 
 	// Other utilities
 	HardBreak,
-	Gapcursor, // Move Gapcursor after table extensions
+	Gapcursor,
+	TrailingNode.configure({
+		node: 'paragraph',
+		notAfter: ['paragraph'],
+	}),
 	Placeholder.configure({
 		placeholder: 'Start typing or use the AI assistant to generate content...',
 		emptyEditorClass: 'is-editor-empty',

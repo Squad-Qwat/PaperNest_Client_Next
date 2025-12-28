@@ -1,127 +1,86 @@
 'use client'
 
 import { useState } from 'react'
-import { Modal, ModalFooter } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { AlertCircle } from 'lucide-react'
+import { Modal, ModalFooter } from '@/components/ui/modal'
 
 interface CommitModalProps {
 	isOpen: boolean
 	onClose: () => void
-	onCommit: (data: { title: string; description: string, isInitial?: boolean }) => void
-	isFirstVersion: boolean
+	onCommit: (data: { message: string }) => void
 }
 
-export function CommitModal({ isOpen, onClose, onCommit, isFirstVersion }: CommitModalProps) {
-	const [title, setTitle] = useState('')
-	const [description, setDescription] = useState('')
-	const [errors, setErrors] = useState<Record<string, string>>({})
-	const [isSubmitting, setIsSubmitting] = useState(false)
+export function CommitModal({ isOpen, onClose, onCommit }: CommitModalProps) {
+	const [message, setMessage] = useState('')
+	const [loading, setLoading] = useState(false)
+	const [error, setError] = useState<string | null>(null)
 
-	const handleSubmit = async () => {
-		const newErrors: Record<string, string> = {}
+	const handleSubmit = async (e: React.FormEvent) => {
+		e.preventDefault()
 
-		if (!title.trim()) {
-			newErrors.title = 'Title is required'
-		}
-
-		if (Object.keys(newErrors).length > 0) {
-			setErrors(newErrors)
+		if (!message.trim()) {
+			setError('Message is required')
 			return
 		}
 
-		setIsSubmitting(true)
+		setLoading(true)
+		setError(null)
+
 		try {
-			await onCommit({ 
-				title: isFirstVersion ? "Initial System Version" : title, 
-				description,
-				isInitial: isFirstVersion
-			})
-			setTitle(isFirstVersion ? 'Initial System Version' : '')
-			setDescription('')
-			setErrors({})
+			await onCommit({ message })
+			setMessage('')
 			onClose()
-		} catch (error) {
-			console.error('Commit failed:', error)
+		} catch (err) {
+			console.error('Commit failed:', err)
+			setError('Failed to create version')
 		} finally {
-			setIsSubmitting(false)
+			setLoading(false)
+		}
+	}
+
+	const handleClose = () => {
+		if (!loading) {
+			setMessage('')
+			setError(null)
+			onClose()
 		}
 	}
 
 	return (
-		<Modal
-			isOpen={isOpen}
-			onClose={() => {
-				onClose()
-				setTitle('')
-				setDescription('')
-				setErrors({})
-			}}
-			title= {isFirstVersion ? 'Initialize Document' : 'Create New Version'}
-			size='lg'
-		>
-			<div className='space-y-4'>
-					{isFirstVersion && (
-						<div className='flex items-start gap-3 p-3 rounded-lg bg-blue-50 border border-blue-200 text-blue-800 text-sm'>
-							<AlertCircle className='h-5 w-5 shrink-0'/>
-							<p>Creating <strong>Initial Version</strong> by system. This version is permanent, unless deleting the entire document</p>
-						</div>
-					)}
+		<Modal isOpen={isOpen} onClose={handleClose} title='Create New Version' size='lg'>
+			<form onSubmit={handleSubmit} className='space-y-4'>
+				{error && (
+					<div className='p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm'>
+						{error}
+					</div>
+				)}
+
 				<div className='space-y-2'>
-					<Label htmlFor='commit-title'>Version Title</Label>
+					<Label htmlFor='commit-message'>Message</Label>
 					<Input
-						id='commit-title'
+						id='commit-message'
 						type='text'
-						value={isFirstVersion ? 'Initial Version' : title}
+						value={message}
 						onChange={(e) => {
-							setTitle(e.target.value)
-							setErrors({ ...errors, title: '' })
+							setMessage(e.target.value)
+							if (error) setError(null)
 						}}
 						placeholder='e.g., Initial Draft, v1.0, Review Changes'
-						className={errors.title ? 'border-red-500' : ''}
-						disabled={isFirstVersion || isSubmitting}
+						disabled={loading}
 					/>
-					{errors.title && <p className='mt-1 text-sm text-red-400'>{errors.title}</p>}
 				</div>
 
-				<div className='space-y-2'>
-					<Label htmlFor='commit-description'>Description</Label>
-					<Textarea
-						id='commit-description'
-						value={description}
-						onChange={(e) => {
-							setDescription(e.target.value)
-							setErrors({ ...errors, description: '' })
-						}}
-						placeholder='Brief description of changes in this version'
-						rows={3}
-						className={`resize-none ${errors.description ? 'border-red-500' : ''}`}
-						disabled={isSubmitting}
-					/>
-					{errors.description && <p className='mt-1 text-sm text-red-400'>{errors.description}</p>}
-				</div>
-			</div>
-
-			<ModalFooter>
-				<Button
-					variant='outline'
-					onClick={() => {
-						onClose()
-						setTitle('')
-						setDescription('')
-						setErrors({})
-					}}
-					disabled={isSubmitting}
-				>
-					Cancel
-				</Button>
-				<Button onClick={handleSubmit} disabled={isSubmitting}>
-					{isFirstVersion ? 'Initialize' : isSubmitting ? 'Committing...' : 'Commit Version'}
-				</Button>
-			</ModalFooter>
+				<ModalFooter>
+					<Button type='button' variant='outline' onClick={handleClose} disabled={loading}>
+						Cancel
+					</Button>
+					<Button type='submit' disabled={loading}>
+						{loading ? 'Committing...' : 'Commit Version'}
+					</Button>
+				</ModalFooter>
+			</form>
 		</Modal>
 	)
 }

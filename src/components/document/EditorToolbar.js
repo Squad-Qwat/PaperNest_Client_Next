@@ -25,6 +25,10 @@ import {
 	AlignRight,
 	AlignJustify,
 	FileText,
+	Download,
+	FileDown,
+	FileUp,
+	Upload,
 } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
@@ -1405,6 +1409,75 @@ const EditorToolbar = ({
 						<line x1='15' y1='3' x2='15' y2='21'></line>
 					</svg>
 					Table
+				</Button>
+
+				<span className='w-px h-6 bg-gray-300 mx-1'></span>
+				<Button
+					variant='ghost'
+					size='sm'
+					onClick={() => {
+						if (!editor) return
+						try {
+							const input = document.createElement('input')
+							input.type = 'file'
+							input.accept = '.docx'
+							input.onchange = async (e) => {
+								const file = e.target.files?.[0]
+								if (!file) return
+								try {
+									await editor.chain().focus().importDocx({ file }).run()
+								} catch (error) {
+									console.error('Import DOCX failed:', error)
+									alert('Failed to import document. Please check your Tiptap Cloud credentials.')
+								}
+							}
+							input.click()
+						} catch (error) {
+							console.error('Import DOCX failed:', error)
+							alert('Failed to import document. Please try again.')
+						}
+					}}
+					className='text-xs flex items-center gap-1'
+					title='Import from DOCX'
+					disabled={!editor}
+				>
+					<Upload className='h-4 w-4' />
+					Import DOCX
+				</Button>
+				<Button
+					variant='ghost'
+					size='sm'
+					onClick={async () => {
+						if (!editor) return
+						try {
+							// Call exportDocx with onCompleteExport callback to handle the blob
+							await editor
+								.chain()
+								.exportDocx({
+									onCompleteExport: (blob) => {
+										// Create download link
+										const url = URL.createObjectURL(blob)
+										const link = document.createElement('a')
+										link.href = url
+										link.download = `document-${new Date().toISOString().split('T')[0]}.docx`
+										document.body.appendChild(link)
+										link.click()
+										document.body.removeChild(link)
+										URL.revokeObjectURL(url)
+									},
+								})
+								.run()
+						} catch (error) {
+							console.error('Export DOCX failed:', error)
+							alert('Failed to export document. Please try again.')
+						}
+					}}
+					className='text-xs flex items-center gap-1'
+					title='Export to DOCX'
+					disabled={!editor}
+				>
+					<FileDown className='h-4 w-4' />
+					Export DOCX
 				</Button>
 			</div>
 		</div>

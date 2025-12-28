@@ -87,7 +87,7 @@ export function createCustomCursor(
 	label.style.backgroundColor = user.color
 	label.style.color = '#ffffff'
 	label.style.fontSize = options.fontSize || '11px'
-	label.style.fontFamily = options.fontFamily || "'Inter', 'Segoe UI', 'Roboto', sans-serif"
+	label.style.fontFamily = options.fontFamily || "'Arial', sans-serif"
 	label.style.fontWeight = options.fontWeight || '500'
 	label.style.whiteSpace = 'nowrap'
 	label.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.2)'
