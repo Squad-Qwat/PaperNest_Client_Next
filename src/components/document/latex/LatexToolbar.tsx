@@ -24,6 +24,7 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -274,11 +275,26 @@ export default function LatexToolbar({
 											Compiler Engine
 										</div>
 										<DropdownMenuItem
+											onClick={() => onCompilerModeChange?.('server')}
+											className={`flex items-center justify-between cursor-pointer py-2 ${compilerMode === 'server' ? 'bg-blue-50 text-blue-700' : ''}`}
+										>
+											<span className='flex flex-col gap-0.5'>
+												<span>Tectonic (Server)</span>
+												<span className='text-[10px] text-gray-500 font-normal'>
+													Modern LaTeX engine with auto-package management
+												</span>
+											</span>
+											{compilerMode === 'server' && (
+												<div className='w-1.5 h-1.5 rounded-full bg-blue-600'></div>
+											)}
+										</DropdownMenuItem>
+										<DropdownMenuSeparator />
+										<DropdownMenuItem
 											onClick={() => onCompilerModeChange?.('server_pdflatex')}
 											className={`flex items-center justify-between cursor-pointer py-2 ${compilerMode === 'server_pdflatex' ? 'bg-blue-50 text-blue-700' : ''}`}
 										>
 											<span className='flex flex-col gap-0.5'>
-												<span>pdflatex (Server Engine)</span>
+												<span>pdflatex (Server)</span>
 												<span className='text-[10px] text-gray-500 font-normal'>
 													Standard pdflatex on backend
 												</span>

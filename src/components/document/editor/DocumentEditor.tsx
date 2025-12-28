@@ -10,6 +10,8 @@ interface DocumentEditorProps {
 	user: User | null
 	onEditorReady: (functions: any) => void
 	isPdfHidden?: boolean
+	initialContent?: string
+	readOnly?: boolean
 }
 
 // Komponen Editor yang ada di dalam Room
@@ -19,16 +21,19 @@ export default function DocumentEditor({
 	user,
 	onEditorReady,
 	isPdfHidden,
+	initialContent,
+	readOnly,
 }: DocumentEditorProps) {
 	return (
 		<div className='w-full h-full flex-1 overflow-hidden bg-white'>
 			<LatexEditor
 				documentId={document?.documentId}
 				user={user}
-				initialContent={document?.savedContent}
+				initialContent={initialContent}
 				title={title}
 				onEditorReady={onEditorReady}
 				isPdfHidden={isPdfHidden}
+				readOnly={readOnly}
 			/>
 		</div>
 	)
