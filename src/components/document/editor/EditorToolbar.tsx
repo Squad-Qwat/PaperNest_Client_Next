@@ -50,6 +50,8 @@ const EditorToolbar = ({
 	const fontFamilyRef = useRef(null)
 	const textStyleRef = useRef(null)
 	const lineSpacingRef = useRef(null)
+	const [isCitationModalOpen, setIsCitationModalOpen] = useState(false)
+    const [citations, setCitations] = useState([])
 
 	// Function to update list item classes based on bold content
 	const updateListItemBoldClasses = useCallback(() => {
@@ -983,6 +985,12 @@ const EditorToolbar = ({
 		}
 	}
 
+	const addCitation = (newCit) => {
+		const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        const citationWithId = { ...newCit, id: id}
+        setCitations((prev) => [...prev, citationWithId])
+    }
+
 	return (
 		<div className='bg-white border-t border-gray-200 px-11 py-1 sticky top-0 z-[1002] transition-all duration-300'>
 			<div className='flex items-center gap-1 overflow-x-auto pb-1 scrollbar-hide min-h-[40px]'>
@@ -1517,8 +1525,6 @@ const EditorToolbar = ({
 				onClose={() => setIsCitationModalOpen(false)}
 				citations={citations}
 				onAdd={addCitation}
-				onDelete={deleteCitation}
-				onInsert={insertCitation}
 			/>
 			{/* 
 			<ModalAddCitations

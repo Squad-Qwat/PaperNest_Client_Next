@@ -1,4 +1,4 @@
-import { ChevronLeft, GitCommit, History, MessageSquare, Share2 } from 'lucide-react'
+import { ChevronLeft, GitCommit, History, MessageSquare, Share2, X } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -92,6 +92,7 @@ const DocumentHeader = ({
 	const { user } = useAuth()
 	const [showCommitModal, setShowCommitModal] = useState(false)
 	const { data: reviewsResponse } = useDocumentReviews(documentId)
+	const [citations, setCitations] = useState([])
 
 	// Safely determine pending reviews
 	const reviews = Array.isArray(reviewsResponse)
@@ -101,6 +102,18 @@ const DocumentHeader = ({
 
 	const canCommit = !pendingReview
 	const commitBlockReason = pendingReview ? 'Waiting for pending review' : null
+
+	const deleteCitation = (id) => {
+        setCitations((prev) => prev.filter(c => c.id !== id))
+    }
+
+	
+	const insertCitationAtCursor = (text) => {
+		if (editor) {
+			editor.chain().focus().insertContent(text).run()
+			setIsCitationModalOpen(false)
+		}
+	} 
 
 	return (
 		<header className='bg-white border-b border-gray-200 sticky top-0 z-[1001] transition-all duration-300'>
@@ -579,6 +592,14 @@ const DocumentHeader = ({
 						throw error // Re-throw so Modal can handle it/show error
 					}
 				}}
+			/>
+
+			<CitationsManager 
+				isOpen={isCitationOpen}
+				onClose={() => setIsCitationModalOpen(false)}
+				citations={citations}
+				onDelete={deleteCitation}
+				onInsert={insertCitationAtCursor}
 			/>
 
 			{/* Editor Toolbar - sticky di bawah header */}
