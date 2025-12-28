@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, Trash2, Quote, FileInput, ChevronLeft } from "lucide-react";
+import { Plus, Trash2, Quote, FileInput, ChevronLeft, Pencil } from "lucide-react";
 
 interface Citation {
   id: string;
@@ -13,25 +13,53 @@ interface Citation {
   year: string;
 }
 
+type View = 'list' | 'add' | 'edit';
+
 interface CitationsManagerProps {
   isOpen: boolean;
   onClose: () => void;
-  citations: Citation[];
-  onAdd?: (cit: { sourceTitle: string, author: string, year: string }) => void | undefined;
-  onDelete?: (id: string) => void;
+  // citations: Citation[];
+  initialView?: 'list' | 'add'; 
+  // onAdd?: (cit: { sourceTitle: string, author: string, year: string }) => void | undefined;
+  // onDelete?: (id: string) => void;
   onInsert?: (cit: Citation) => void | undefined;
 }
 
-export function CitationsManager({ isOpen, onClose, citations, onAdd, onDelete, onInsert }: CitationsManagerProps) {
-    const [view, setView] = useState<'list' | 'add'>('list');
+export function CitationsManager({ isOpen, onClose, initialView = 'list' ,onInsert }: CitationsManagerProps) {
+    const [citations, setCitations] = useState<Citation[]>([]);
+    // const [view, setView] = useState<'list' | 'add'>('list');
+    const [view, setView] = useState<View>(initialView);
     const [newCit, setNewCit] = useState({ sourceTitle: '', author: '', year: '' });
+    const [editingCit, setEditingCit] = useState<Citation | null>(null);
 
     const handleAdd = () => {
         if (!newCit.sourceTitle || !newCit.author || !newCit.year) return;
-        onAdd?.(newCit);
+        const entry: Citation = {
+            ...newCit,
+            id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        };
+        setCitations((prev) => [...prev, entry]);
         setNewCit({ sourceTitle: '', author: '', year: '' });
         setView('list'); // Go back to list after adding
     };
+
+    const handleDelete = (id: string) => {
+        setCitations((prev) => prev.filter((c) => c.id !== id));
+      };
+     
+      const handleEditOpen = (cit: Citation) => {
+        setEditingCit({ ...cit });
+        setView('edit');
+      };
+     
+      const handleEditSave = () => {
+        if (!editingCit || !editingCit.sourceTitle || !editingCit.author || !editingCit.year) return;
+        setCitations((prev) =>
+          prev.map((c) => (c.id === editingCit.id ? editingCit : c))
+        );
+        setEditingCit(null);
+        setView('list');
+      };
 
     const handleClose = () => {
         setView('list');
@@ -39,29 +67,42 @@ export function CitationsManager({ isOpen, onClose, citations, onAdd, onDelete, 
         onClose();
     };
 
+    const titles: Record<View, string> = {
+        list: 'Saved Sources',
+        add:  'Add New Source',
+        edit: 'Edit Source',
+      };
+     
+      const showBack = view !== 'list';
+
     return (
         <Dialog open={isOpen} onOpenChange={handleClose}>
             <DialogContent className="max-w-md p-6 bg-white rounded-xl border-none shadow-lg">
                 <DialogHeader className="flex flex-row items-center justify-between border-b pb-4">
                     {/* <div className="flex items-center gap-2"> </div> */}
+                    {showBack && (
+                        <Button size="sm" onClick={() => { setView('list'); setEditingCit(null); }} className="p-1 h-auto"
+>
+                            <ChevronLeft className="w-4 h-4" />
+                        </Button>
+                    )}
                     <DialogTitle className={view === 'list'? 
                         'text-gray-500 text-xs font-bold uppercase tracking-widest' : 
                         'text-gray-800 font-bold'}>
-                        {view === 'list' ? 'Saved Sources' : 'Add New Source'}
+                        {
+                        /*view === 'list' ? 'Saved Sources' : view === 'edit' ? 'Edit sources' : 'Add new sources'*/
+                        titles[view]
+                        }
                     </DialogTitle>
-                    {view === 'list' ? (
+                    {view === 'list' && (
                         <Button size="sm" onClick={() => setView('add')} className="bg-teal-500 hover:bg-teal-600">
                             <Plus className="w-4 h-4 mr-1" /> New
-                        </Button>
-                    ) : (
-                        <Button size="sm" variant="ghost" onClick={() => setView('list')}>
-                            <ChevronLeft className="w-4 h-4 mr-1" /> Back
                         </Button>
                     )}
                 </DialogHeader>
 
                 <div className="mt-4">
-                    {view === 'list' ? (
+                    {view === 'list' && (
                         <ScrollArea className="h-[400px] pr-4">
                             <div className="space-y-3">
                                 {citations.length === 0 ? (
@@ -82,7 +123,10 @@ export function CitationsManager({ isOpen, onClose, citations, onAdd, onDelete, 
                                                 <Button size="sm" variant="ghost" className="text-gray-400 hover:text-teal-600" onClick={() => onInsert?.(cit)}>
                                                     <FileInput className="w-4 h-4" />
                                                 </Button>
-                                                <Button size="icon" variant="ghost" className="text-gray-400 hover:text-red-500" onClick={() => onDelete?.(cit.id)}>
+                                                <Button size="sm" variant="ghost" className="text-gray-400 hover:text-blue-500" title="Edit citation" onClick={() => handleEditOpen(cit)}>
+                                                    <Pencil className="w-4 h-4" />
+                                                </Button>
+                                                <Button size="icon" variant="ghost" className="text-gray-400 hover:text-red-500" onClick={() => handleDelete(cit.id)}>
                                                     <Trash2 className="w-4 h-4" />
                                                 </Button>
                                             </div>
@@ -91,7 +135,8 @@ export function CitationsManager({ isOpen, onClose, citations, onAdd, onDelete, 
                                 )}
                             </div>
                         </ScrollArea>
-                    ) : (
+                    )}
+                    {view === 'add' && (
                         <div className="space-y-4">
                             <div className="space-y-2">
                                 <Label>Source Title</Label>
@@ -109,6 +154,45 @@ export function CitationsManager({ isOpen, onClose, citations, onAdd, onDelete, 
                             </div>
                             <Button onClick={handleAdd} className="w-full bg-teal-500 hover:bg-teal-600 text-white">
                                 Save Source
+                            </Button>
+                        </div>
+                    )}
+                    {view === 'edit' && editingCit && (
+                            <div className="space-y-4">
+                            <div className="space-y-2">
+                            <Label>Source Title</Label>
+                            <Input
+                                placeholder="e.g.: Twentieth Century Design"
+                                value={editingCit.sourceTitle}
+                                onChange={(e) => setEditingCit({ ...editingCit, sourceTitle: e.target.value })}
+                                className="border-gray-200"
+                            />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Author</Label>
+                                <Input
+                                placeholder="e.g.: Seddon, Tony"
+                                value={editingCit.author}
+                                onChange={(e) => setEditingCit({ ...editingCit, author: e.target.value })}
+                                className="border-gray-200"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Year</Label>
+                                <Input
+                                placeholder="2024"
+                                value={editingCit.year}
+                                onChange={(e) => setEditingCit({ ...editingCit, year: e.target.value })}
+                                className="border-gray-200"
+                                />
+                            </div>
+                            </div>
+                            <Button
+                            onClick={handleEditSave}
+                            className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+                            >
+                            Update Source
                             </Button>
                         </div>
                     )}

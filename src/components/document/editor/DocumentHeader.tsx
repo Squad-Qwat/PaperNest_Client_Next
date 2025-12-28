@@ -1,4 +1,4 @@
-import { ChevronLeft, GitCommit, History, MessageSquare, Share2, X } from 'lucide-react'
+import { ChevronLeft, GitCommit, History, MessageSquare, Quote, Share2 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -48,6 +48,7 @@ interface DocumentHeaderProps {
 	toggleAiAssistant?: () => void
 	user?: any
 	workspace?: any
+	editor?: any
 	debugContentExtraction?: any
 }
 
@@ -69,6 +70,7 @@ const DocumentHeader = ({
 	documentId,
 
 	// Editor props
+	editor,
 	onInsertSnippet,
 	getCurrentContent,
 	insertTable,
@@ -104,16 +106,17 @@ const DocumentHeader = ({
 	const canCommit = !pendingReview
 	const commitBlockReason = pendingReview ? 'Waiting for pending review' : null
 
-	const deleteCitation = (id: string) => {
-        setCitations((prev) => prev.filter(c => c.id !== id))
-    }
+	/* 
+		const deleteCitation = (id: string) => {
+        	setCitations((prev) => prev.filter(c => c.id !== id))
+    	} 
+	*/
 
 	
-	const insertCitationAtCursor = (text: any) => {
-		if (editor) {
-			editor.chain().focus().insertContent(text).run()
-			setIsCitationModalOpen(false)
-		}
+	const insertCitationAtCursor = (cit: any) => {
+		if (!editor) return
+		editor.chain().focus().insertContent(`(${cit.author}, ${cit.year})`).run()
+		setIsCitationModalOpen(false)
 	} 
 
 	return (
@@ -282,14 +285,6 @@ const DocumentHeader = ({
 												<Share2 className='h-4 w-4' />
 												Share
 											</button>
-											<button
-												type='button'
-												className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 cursor-pointer'
-											>
-												<CitationsManager className='h-4 w-4' />
-												Sitasi
-											</button>
-
 										</div>
 									)}
 								</button>
@@ -554,6 +549,16 @@ const DocumentHeader = ({
 							<MessageSquare className='h-5 w-5' />
 						</Button>
 
+						<Button
+							variant='ghost'
+							size='icon'
+							onClick={() => setIsCitationModalOpen(true)}
+							className={isCitationModalOpen ? 'bg-blue-100 text-blue-600' : ''}
+							title='Citations'
+						>
+							<Quote className='h-5 w-5' />
+						</Button>
+
 						<Link href={`/${workspaceId}/documents/${documentId}/versions`}>
 							<Button variant='ghost' size='icon' title='History & Reviews'>
 								<History className='h-5 w-5' />
@@ -598,8 +603,9 @@ const DocumentHeader = ({
 			<CitationsManager 
 				isOpen={isCitationModalOpen}
 				onClose={() => setIsCitationModalOpen(false)}
-				citations={citations}
-				onDelete={deleteCitation}
+				// citations={citations}
+				initialView= 'list'
+				// onDelete={deleteCitation}
 				onInsert={insertCitationAtCursor}
 			/>
 

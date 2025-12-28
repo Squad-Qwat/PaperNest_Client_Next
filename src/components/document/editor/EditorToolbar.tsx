@@ -985,11 +985,23 @@ const EditorToolbar = ({
 		}
 	}
 
+	const editCitation = (cit) => {
+		if (!editor) return
+		editor.chain().focus().insertContent(`(${cit.author}, ${cit.year})`).run()
+		setIsCitationModalOpen(false)
+	}
+
+	/*
 	const addCitation = (newCit) => {
 		const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
         const citationWithId = { ...newCit, id: id}
         setCitations((prev) => [...prev, citationWithId])
     }
+
+	const deleteCitation = (id) => {
+		setCitations((prev) => prev.filter((c) => c.id !== id))
+	}
+	*/
 
 	return (
 		<div className='bg-white border-t border-gray-200 px-11 py-1 sticky top-0 z-[1002] transition-all duration-300'>
@@ -1520,12 +1532,17 @@ const EditorToolbar = ({
 					Sitasi
 				</Button>
 			</div>
+
 			<CitationsManager
 				isOpen={isCitationModalOpen}
 				onClose={() => setIsCitationModalOpen(false)}
-				citations={citations}
-				onAdd={addCitation}
+				// citations={citations}
+				initialView= 'add'
+				//onAdd={addCitation}
+				//onDelete={deleteCitation}
+				onInsert={editCitation}
 			/>
+			
 			{/* 
 			<ModalAddCitations
 				isOpen={isCitationModalOpen}

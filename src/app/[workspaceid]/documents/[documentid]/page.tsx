@@ -260,6 +260,7 @@ export default function DocumentPage() {
 					workspaceId={workspaceId}
 					workspace={workspace || undefined}
 					documentId={documentId}
+					editor={editorFunctions?.visualEditor}
 					onInsertSnippet={editorFunctions?.insertSnippet}
 					getCurrentContent={editorFunctions?.getCurrentContent}
 					insertTable={editorFunctions?.insertTable}
