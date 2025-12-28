@@ -12,7 +12,7 @@ import { useAuth } from '@/context/AuthContext'
 import { useDocumentReviews } from '@/lib/api/hooks/use-documents'
 import { useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
 import { documentsService } from '@/lib/api/services/documents.service'
-import { CitationsManager, Citation } from '@/components/document/CitationsManager'
+import { CitationsManager, type Citation } from '@/components/document/CitationsManager'
 import { getInitials } from '@/lib/utils'
 
 interface DocumentHeaderProps {
@@ -43,7 +43,7 @@ interface DocumentHeaderProps {
 	viewMode: 'source' | 'visual'
 	toggleViewMode: () => void
 	visualEditor: any
-	editor?: any
+	// editor?: any
 	visibleCollaborators: any[]
 	hiddenCollaboratorsCount: number
 	compilerMode: 'client' | 'server' | 'server_pdflatex'
@@ -86,7 +86,7 @@ const DocumentHeader = ({
 	viewMode,
 	toggleViewMode,
 	visualEditor,
-	editor,
+	// editor,
 	visibleCollaborators,
 	hiddenCollaboratorsCount,
 	compilerMode,
@@ -132,7 +132,6 @@ const DocumentHeader = ({
 	*/
 
 	const insertCitationAtCursor = (cit: Citation) => {
-		if (!editor) return
 		const authorText = cit.authors.filter(Boolean).join('; ')
 		setIsCitationModalOpen(false)
 		onInsertCitation?.(`(${authorText}, ${cit.year})`)

@@ -291,7 +291,7 @@ function DocumentPageContent() {
 					viewMode={editorFunctions?.viewMode}
 					toggleViewMode={editorFunctions?.toggleViewMode}
 					visualEditor={editorFunctions?.visualEditor}
-					editor={editorFunctions?.editor}
+					// editor={editorFunctions?.editor}
 					compilerMode={editorFunctions?.compilerMode}
 					onCompilerModeChange={editorFunctions?.setCompilerMode}
 					debugContentExtraction={editorFunctions?.debugContentExtraction}  // Kenapa panggil ini ketika 'const DocumentHeader' nggak pernah minta ini sama sekali?

@@ -8,28 +8,33 @@ import { Navbar } from '@/components/layout/Navbar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
+// import { Separator } from '@/components/ui/separator'
 import { SearchInput } from '@/components/ui/search-input'
-import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-	DialogDescription,
-	DialogFooter,
-} from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input' 
+/* 
+	import {
+		Dialog,
+		DialogContent,
+		DialogHeader,
+		DialogTitle,
+		DialogDescription,
+		DialogFooter,
+	} from '@/components/ui/dialog'
+	import { Label } from '@/components/ui/label'
+	import { Input } from '@/components/ui/input'  
+*/
 import { Loader2, Plus, Quote, FileInput, Copy, Check } from 'lucide-react'
+import { CitationsManager, type Citation } from '@/components/document/CitationsManager'
 
-interface Citation {
-	id: string
-	sourceTitle: string
-	author: string
-	year: string
-	addedBy: string
-	createdAt: string
-}
+/* 
+	interface Citation {
+		id: string
+		sourceTitle: string
+		author: string
+		year: string
+		addedBy: string
+		createdAt: string
+	} 
+*/
 
 export default function CitationPage() {
 	const params = useParams()
@@ -43,11 +48,13 @@ export default function CitationPage() {
 	const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 	const [copiedId, setCopiedId] = useState<string | null>(null)
 
-	const [newCitation, setNewCitation] = useState({
-		sourceTitle: '',
-		author: '',
-		year: new Date().getFullYear().toString(),
-	})
+	/* 
+		const [newCitation, setNewCitation] = useState({
+			sourceTitle: '',
+			author: '',
+			year: new Date().getFullYear().toString(),
+		}) 
+	*/
 
 	const workspaceId = params.workspaceid as string
 	const documentId = params.documentid as string
@@ -78,49 +85,70 @@ export default function CitationPage() {
 		return citations.filter(
 			(c) =>
 				c.sourceTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				c.author.toLowerCase().includes(searchQuery.toLowerCase())
+				// c.author.toLowerCase().includes(searchQuery.toLowerCase())
+				c.authors.filter(Boolean).join(' ').toLowerCase().includes(searchQuery.toLowerCase())
 		)
 	}, [citations, searchQuery])
 
-	const handleAddCitation = async () => {
-		if (!newCitation.sourceTitle.trim() || !currentUser || !document) return
+	/* 
+		const handleAddCitation = async () => {
+			if (!newCitation.sourceTitle.trim() || !currentUser || !document) return
 
-		const citationEntry: Citation = {
-			id: `cit_${Date.now()}`,
-			sourceTitle: newCitation.sourceTitle,
-			author: newCitation.author,
-			year: newCitation.year,
-			addedBy: currentUser.name || 'User',
-			createdAt: new Date().toISOString(),
-		}
+			const citationEntry: Citation = {
+				id: `cit_${Date.now()}`,
+				sourceTitle: newCitation.sourceTitle,
+				author: newCitation.author,
+				year: newCitation.year,
+				addedBy: currentUser.name || 'User',
+				createdAt: new Date().toISOString(),
+			}
 
-		const updatedCitations = [citationEntry, ...citations]
+			const updatedCitations = [citationEntry, ...citations]
 
+			try {
+				await DocumentService.updateDocument(documentId, {
+					savedContent: {
+						...document.savedContent,
+						citations: updatedCitations
+					}
+				})
+				setCitations(updatedCitations)
+				setNewCitation({ sourceTitle: '', author: '', year: new Date().getFullYear().toString() })
+				setIsAddModalOpen(false)
+			} catch (error) {
+				console.error('Failed to save citation:', error)
+			}
+		} 
+	*/
+
+	// Persists the full updated list back to Firestore, same pattern as the old handleAddCitation.
+	const handleCitationsChange = async (updated: Citation[]) => {
+		setCitations(updated)
+		if (!document) return
 		try {
 			await DocumentService.updateDocument(documentId, {
 				savedContent: {
 					...document.savedContent,
-					citations: updatedCitations
-				}
+					citations: updated,
+				},
 			})
-			setCitations(updatedCitations)
-			setNewCitation({ sourceTitle: '', author: '', year: new Date().getFullYear().toString() })
-			setIsAddModalOpen(false)
 		} catch (error) {
-			console.error('Failed to save citation:', error)
+			console.error('Failed to save citations:', error)
 		}
 	}
 
 	// NEW: Function to return to the editor and signal an insertion
 	const handleInsertToEditor = (cit: Citation) => {
-		const citationText = `(${cit.author}, ${cit.year})`
+		const authorText = cit.authors.filter(Boolean).join('; ')
+		const citationText = `(${authorText}, ${cit.year})`
 		// We use a query parameter to tell the editor page to insert this text
 		// Your Editor component should check for 'insertCitation' on mount
-		router.push(`/documents/${documentId}?insertCitation=${encodeURIComponent(citationText)}`)
+		router.push(`/${workspaceId}/documents/${documentId}?insertCitation=${encodeURIComponent(citationText)}`)
 	}
 
 	const copyToClipboard = (cit: Citation) => {
-		const text = `(${cit.author}, ${cit.year})`
+		const authorText = cit.authors.filter(Boolean).join('; ')
+		const text = `(${authorText}, ${cit.year})`
 		navigator.clipboard.writeText(text)
 		setCopiedId(cit.id)
 		setTimeout(() => setCopiedId(null), 2000)
@@ -169,7 +197,8 @@ export default function CitationPage() {
 										<h3 className="font-bold text-lg">{cit.sourceTitle}</h3>
 										<Badge variant="secondary" className="bg-gray-800 text-gray-300">{cit.year}</Badge>
 									</div>
-									<p className="text-gray-400">By {cit.author}</p>
+									{/* cit.author */}
+									<p className="text-gray-400">By {cit.authors.filter(Boolean).join('; ')}</p>
 								</div>
 
 								<div className="flex gap-2">
@@ -198,7 +227,7 @@ export default function CitationPage() {
 				</div>
 			</main>
 
-			{/* Modal remains largely same but ensures Author/Year are required for insertion */}
+			{/* Modal remains largely same but ensures Author/Year are required for insertion
 			<Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
 				<DialogContent className="bg-gray-900 border-gray-800 text-white">
 					<DialogHeader>
@@ -224,7 +253,17 @@ export default function CitationPage() {
 						<Button className="bg-blue-600" onClick={handleAddCitation}>Save Source</Button>
 					</DialogFooter>
 				</DialogContent>
-			</Dialog>
+			</Dialog> 
+			*/}
+
+			<CitationsManager
+				isOpen={isAddModalOpen}
+				onClose={() => setIsAddModalOpen(false)}
+				citations={citations}
+				onCitationsChange={handleCitationsChange}
+				initialView='add'
+				onInsert={handleInsertToEditor}
+			/>
 		</div>
 	)
 }
