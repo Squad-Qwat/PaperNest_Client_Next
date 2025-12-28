@@ -6,17 +6,19 @@
 import { apiClient } from '../clients/api-client'
 import { API_ENDPOINTS } from '../config'
 import type {
-	Document,
 	CreateDocumentDto,
-	UpdateDocumentDto,
-	UpdateDocumentContentDto,
+	Document,
 	DocumentSearchParams,
 	DocumentsResponse,
+	UpdateDocumentContentDto,
+	UpdateDocumentDto,
+	VersionResponse,
+	VersionsResponse,
 } from '../types/document.types'
 import type {
+	CreateReviewDto,
 	Review,
 	ReviewsResponse,
-	CreateReviewDto,
 	UpdateReviewStatusDto,
 } from '../types/review.types'
 
@@ -127,6 +129,56 @@ class DocumentsService {
 	 */
 	async delete(workspaceId: string, documentId: string): Promise<void> {
 		await apiClient.delete<void>(API_ENDPOINTS.documents.byId(workspaceId, documentId))
+	}
+
+	/**
+	 * Get all versions of a document
+	 */
+	async getVersions(documentId: string): Promise<VersionsResponse> {
+		return apiClient.get<VersionsResponse>(API_ENDPOINTS.documents.versions(documentId))
+	}
+
+	/**
+	 * Create a new version (Commit)
+	 */
+	async createVersion(documentId: string, data: { message: string, content?: string }): Promise<VersionResponse> {
+		return apiClient.post<VersionResponse>(API_ENDPOINTS.documents.versions(documentId), data)
+	}
+
+	/**
+	 * Get current version of a document
+	 */
+	async getCurrentVersion(documentId: string): Promise<VersionResponse> {
+		return apiClient.get<VersionResponse>(API_ENDPOINTS.documents.currentVersion(documentId))
+	}
+
+	/**
+	 * Get pending reviews for lecturer
+	 */
+	async getPendingReviews(): Promise<ReviewsResponse> {
+		try {
+			return await apiClient.get<ReviewsResponse>(API_ENDPOINTS.reviews.pending)
+		} catch (error: any) {
+			console.warn('Failed to fetch pending reviews, endpoint might be missing:', error)
+			
+            // Fallback: Try generic /reviews endpoint if specific one fails
+            if (error?.status === 404) {
+                try {
+                    console.log('Attempting fallback to /reviews...')
+                    // Assuming /reviews might return the same structure
+                    const fallbackResponse = await apiClient.get<ReviewsResponse>('/reviews')
+                    // Filter for pending if possible, or just return all for now to show SOMETHING
+                    return {
+                        ...fallbackResponse,
+                        reviews: fallbackResponse.reviews.filter(r => r.status === 'Pending' || r.status === 'pending')
+                    }
+                } catch (fallbackError) {
+                    console.warn('Fallback /reviews also failed:', fallbackError)
+                    return { reviews: [], count: 0 }
+                }
+            }
+			throw error
+		}
 	}
 }
 

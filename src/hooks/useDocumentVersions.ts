@@ -1,25 +1,83 @@
 /**
- * useDocumentReviews Hook (Updated)
- * Handle document reviews for BOTH Student (Request) and Lecturer (Approve/Reject)
+ * useDocumentVersions & useDocumentReviews Hooks
+ * Handle document versions and reviews logic
  */
 
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuthContext } from '@/context/AuthContext'
 import { documentsService } from '@/lib/api/services/documents.service'
-import type { Review } from '@/lib/api/types/review.types'
+import type { Version } from '@/lib/api/types/document.types'
+import type { Review, ReviewStatus } from '@/lib/api/types/review.types'
+
+// --- Document Versions Hook ---
+
+interface UseDocumentVersionsReturn {
+	versions: Version[]
+	loading: boolean
+	error: string | null
+	refetch: () => Promise<void>
+	currentVersion: Version | null
+}
+
+export function useDocumentVersions(documentId: string): UseDocumentVersionsReturn {
+	const [versions, setVersions] = useState<Version[]>([])
+	const [currentVersion, setCurrentVersion] = useState<Version | null>(null)
+	const [loading, setLoading] = useState(true)
+	const [error, setError] = useState<string | null>(null)
+
+	const fetchVersions = useCallback(async () => {
+		if (!documentId) return
+
+		try {
+			setLoading(true)
+			const response = await documentsService.getVersions(documentId)
+			setVersions(response.versions)
+
+			const currentRes = await documentsService.getCurrentVersion(documentId)
+			setCurrentVersion(currentRes.version)
+		} catch (err: any) {
+			console.error('[useDocumentVersions] Error fetching versions:', err)
+			if (err?.status === 404) {
+				// Initialize with empty if not found/no versions yet
+				setVersions([])
+				setCurrentVersion(null)
+			} else {
+				setError(err instanceof Error ? err.message : 'Failed to fetch versions')
+			}
+		} finally {
+			setLoading(false)
+		}
+	}, [documentId])
+
+	useEffect(() => {
+		fetchVersions()
+	}, [fetchVersions])
+
+	return {
+		versions,
+		loading,
+		error,
+		refetch: fetchVersions,
+		currentVersion,
+	}
+}
+
+// --- Document Reviews Hook ---
 
 interface UseDocumentReviewsReturn {
 	reviews: Review[]
 	loading: boolean
 	error: string | null
 	refetch: () => Promise<void>
+	canCommit: boolean
+	latestReviewStatus: ReviewStatus | null
 
-	// Aksi Mahasiswa
+	// Student Actions
 	requestReview: (documentBodyId: string, lecturerId: string, message?: string) => Promise<void>
 
-	// Aksi Dosen (Lecturer)
+	// Lecturer Actions
 	approveReview: (reviewId: string) => Promise<void>
 	rejectReview: (reviewId: string, feedback: string) => Promise<void>
 	requestRevision: (reviewId: string, feedback: string) => Promise<void>
@@ -38,9 +96,13 @@ export function useDocumentReviews(documentId: string): UseDocumentReviewsReturn
 			setLoading(true)
 			const response = await documentsService.getReviews(documentId)
 			setReviews(response.reviews)
-		} catch (err) {
+		} catch (err: any) {
 			console.error('[useDocumentReviews] Error fetching reviews:', err)
-			setError(err instanceof Error ? err.message : 'Failed to fetch reviews')
+			if (err?.status === 404) {
+				setReviews([]) // No reviews yet
+			} else {
+				setError(err instanceof Error ? err.message : 'Failed to fetch reviews')
+			}
 		} finally {
 			setLoading(false)
 		}
@@ -50,13 +112,34 @@ export function useDocumentReviews(documentId: string): UseDocumentReviewsReturn
 		fetchReviews()
 	}, [fetchReviews])
 
-	// --- STUDENT ACTIONS ---
+	// Computed Properties
+	const latestReview = useMemo(() => {
+		if (reviews.length === 0) return null
+		// Sort by requestedAt desc
+		return [...reviews].sort(
+			(a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
+		)[0]
+	}, [reviews])
+
+	const latestReviewStatus = latestReview ? latestReview.status : null
+
+	const canCommit = useMemo(() => {
+		if (!user) return false
+		if (user.role !== 'Student') return true // Lecturer/Admin can always commit if needed (or restricted by other means)
+
+		// Student restriction: NO pending reviews allowed
+		if (latestReviewStatus === 'pending') return false
+
+		return true
+	}, [user, latestReviewStatus])
+
+	// --- Actions ---
 
 	const requestReview = async (documentBodyId: string, lecturerId: string, message?: string) => {
 		try {
 			setLoading(true)
 			await documentsService.createReview(documentId, documentBodyId, { lecturerId, message })
-			await fetchReviews() // Refresh list
+			await fetchReviews()
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : 'Failed to request review'
 			setError(msg)
@@ -66,12 +149,9 @@ export function useDocumentReviews(documentId: string): UseDocumentReviewsReturn
 		}
 	}
 
-	// --- LECTURER ACTIONS ---
-
 	const approveReview = async (reviewId: string) => {
 		try {
 			setLoading(true)
-			// Endpoint: POST /api/reviews/:id/approve
 			await documentsService.approveReview(reviewId)
 			await fetchReviews()
 		} catch (err) {
@@ -86,7 +166,6 @@ export function useDocumentReviews(documentId: string): UseDocumentReviewsReturn
 	const rejectReview = async (reviewId: string, feedback: string) => {
 		try {
 			setLoading(true)
-			// Endpoint: POST /api/reviews/:id/reject
 			await documentsService.rejectReview(reviewId, { message: feedback })
 			await fetchReviews()
 		} catch (err) {
@@ -101,7 +180,6 @@ export function useDocumentReviews(documentId: string): UseDocumentReviewsReturn
 	const requestRevision = async (reviewId: string, feedback: string) => {
 		try {
 			setLoading(true)
-			// Endpoint: POST /api/reviews/:id/request-revision
 			await documentsService.requestRevision(reviewId, { message: feedback })
 			await fetchReviews()
 		} catch (err) {
@@ -118,6 +196,8 @@ export function useDocumentReviews(documentId: string): UseDocumentReviewsReturn
 		loading,
 		error,
 		refetch: fetchReviews,
+		canCommit,
+		latestReviewStatus,
 		requestReview,
 		approveReview,
 		rejectReview,

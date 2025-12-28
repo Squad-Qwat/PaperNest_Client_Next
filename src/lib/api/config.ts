@@ -62,10 +62,13 @@ export const API_ENDPOINTS = {
 			`/workspaces/${workspaceId}/documents/${documentId}`,
 		content: (workspaceId: string, documentId: string) =>
 			`/workspaces/${workspaceId}/documents/${documentId}/content`,
+		versions: (documentId: string) => `/documents/${documentId}/versions`,
+		currentVersion: (documentId: string) => `/documents/${documentId}/versions/current`,
 	},
 
 	// Reviews
 	reviews: {
+		pending: '/reviews/pending',
 		byDocument: (documentId: string) => `/documents/${documentId}/reviews`,
 		create: (documentId: string, versionId: string) =>
 			`/documents/${documentId}/versions/${versionId}/reviews`,
