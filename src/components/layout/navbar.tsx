@@ -35,6 +35,10 @@ export function Navbar({ mode = "workspace", documentId }: NavbarProps) {
     // Document-specific menu items
     const documentMenuItems = documentId
         ? [
+            { 
+                name: "Overview", 
+                href: `/${workspaceId}/documents/${documentId}` 
+            },
             {
                 name: "Citations",
                 href: `/${workspaceId}/documents/${documentId}/citations`,
@@ -42,6 +46,10 @@ export function Navbar({ mode = "workspace", documentId }: NavbarProps) {
             {
                 name: "Reviews",
                 href: `/${workspaceId}/documents/${documentId}/reviews`,
+            },
+            {
+                name: "Versions",
+                href: `/${workspaceId}/documents/${documentId}/versions`,
             },
         ]
         : [];
@@ -56,6 +64,10 @@ export function Navbar({ mode = "workspace", documentId }: NavbarProps) {
     const isActive = (href: string) => {
         if (href === `/${workspaceId}`) {
             return pathname === `/${workspaceId}`;
+        }
+        // Without this if-then, there'll be an issue with the navbar in the document sections
+        if (href === `/${workspaceId}/documents/${documentId}`) {
+            return pathname === `/${workspaceId}/documents/${documentId}`;
         }
         return pathname.startsWith(href);
     };
