@@ -164,7 +164,8 @@ export function useLoginEmail() {
 	})
 }
 
-async function performSocialSignIn(providerName: SocialProviderName, turnstileToken?: string) {
+// turnstileToken?: string
+async function performSocialSignIn(providerName: SocialProviderName) {
 	const config = getAuthProvider(providerName)
 	const provider = config.create()
 
@@ -226,11 +227,11 @@ export function useSignInWithSocial({
 	const socialSignin = useMutation({
 		mutationFn: ({
 			providerName,
-			turnstileToken,
+			// turnstileToken,
 		}: {
 			providerName: SocialProviderName
-			turnstileToken?: string
-		}) => performSocialSignIn(providerName, turnstileToken),
+			// turnstileToken?: string
+		}) => performSocialSignIn(providerName), // turnstileToken
 		meta: { errorMessage: false },
 		onError: (error: any) => {
 			if (error.message === 'ACCOUNT_EXISTS_CONFLICT' && error.payload) {
