@@ -29,7 +29,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { CitationsManager } from '@/components/document/CitationsManager'
+import { CitationsManager, Citation } from '@/components/document/CitationsManager'
 
 const EditorToolbar = ({
 	editor,
@@ -51,6 +51,7 @@ const EditorToolbar = ({
 	const fontFamilyRef = useRef(null)
 	const textStyleRef = useRef(null)
 	const lineSpacingRef = useRef(null)
+	const [citations, setCitations] = useState<Citation[]>([])
 
 	// Function to update list item classes based on bold content
 	const updateListItemBoldClasses = useCallback(() => {
@@ -984,10 +985,31 @@ const EditorToolbar = ({
 		}
 	}
 
+	/* 
 	const insertCitation = (cit: Parameters<NonNullable<React.ComponentProps<typeof CitationsManager>['onInsert']>>[0]) => {
 		if (!editor) return
 		editor.chain().focus().insertContent(`(${cit.author}, ${cit.year})`).run()
 		setIsCitationModalOpen(false)
+	} 
+
+	const insertCitation = (cit: Parameters<NonNullable<React.ComponentProps<typeof CitationsManager>['onInsert']>>[0]) => {
+		if (!editor) return
+
+		setIsCitationModalOpen(false)
+
+		const authorText = Array.isArray(cit.authors) ? cit.authors.filter(Boolean).join('; ') : (cit as any).author ?? ''
+
+		setTimeout(() => {editor.chain().focus().insertContent(`(${authorText}, ${cit.year})`).run()}, 50)
+	}
+	*/
+
+	const insertCitation = (cit: Citation) => {
+		if (!editor) return
+		const authorText = cit.authors.filter(Boolean).join('; ')
+		
+		// Close modal first so Dialog unmount doesn't steal focus, then insert
+		setIsCitationModalOpen(false)
+		setTimeout(() => {editor.chain().focus().insertContent(`(${authorText}, ${cit.year})`).run()}, 50)
 	}
 
 	return (
@@ -1523,9 +1545,17 @@ const EditorToolbar = ({
 			<CitationsManager
 				isOpen={isCitationModalOpen}
 				onClose={() => setIsCitationModalOpen(false)}
-				initialView='add'
+				citations={citations}
+				onCitationsChange={setCitations}
+				initialView='list'
 				onInsert={insertCitation}
 			/>
+			{/* <CitationsManager
+				isOpen={isCitationModalOpen}
+				onClose={() => setIsCitationModalOpen(false)}
+				initialView='add'
+				onInsert={insertCitation}
+			/> */}
 		</div>
 	)
 }

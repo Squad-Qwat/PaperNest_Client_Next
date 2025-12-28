@@ -12,7 +12,7 @@ import { useAuth } from '@/context/AuthContext'
 import { useDocumentReviews } from '@/lib/api/hooks/use-documents'
 import { useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
 import { documentsService } from '@/lib/api/services/documents.service'
-import { CitationsManager } from '@/components/document/CitationsManager'
+import { CitationsManager, Citation } from '@/components/document/CitationsManager'
 import { getInitials } from '@/lib/utils'
 
 interface DocumentHeaderProps {
@@ -97,9 +97,9 @@ const DocumentHeader = ({
 	const router = useRouter()
 	const { user } = useAuth()
 	const [showCommitModal, setShowCommitModal] = useState(false)
-	const [isCitationModalOpen, setIsCitationModalOpen] = useState(false);
+	const [isCitationModalOpen, setIsCitationModalOpen] = useState(false)
 	const { data: reviewsResponse } = useDocumentReviews(documentId)
-
+	const [citations, setCitations] = useState<Citation[]>([])
 	const { data: membersResponse } = useWorkspaceMembers(workspaceId)
 
 	// Safely determine pending reviews
@@ -111,11 +111,30 @@ const DocumentHeader = ({
 	const canCommit = !pendingReview
 	const commitBlockReason = pendingReview ? 'Waiting for pending review' : null
 
+	/* 
 	const insertCitationAtCursor = (cit: any) => {
 		if (!editor) return
 		editor.chain().focus().insertContent(`(${cit.author}, ${cit.year})`).run()
 		setIsCitationModalOpen(false)
-	} 
+	}  
+
+	const insertCitationAtCursor = (cit: any) => {
+		if (!editor) return
+
+		setIsCitationModalOpen(false)
+
+		const authorText = Array.isArray(cit.authors) ? cit.authors.filter(Boolean).join('; ') : cit.author ?? ''
+
+		setTimeout(() => {editor.chain().focus().insertContent(`(${authorText}, ${cit.year})`).run()}, 50)
+	}
+	*/
+
+	const insertCitationAtCursor = (cit: Citation) => {
+		if (!editor) return
+		const authorText = cit.authors.filter(Boolean).join('; ')
+		setIsCitationModalOpen(false)
+		setTimeout(() => {editor.chain().focus().insertContent(`(${authorText}, ${cit.year})`).run()}, 50)
+	}
 
 	// Find a lecturer to assign the review to
 	const members = membersResponse?.members || []
@@ -623,9 +642,18 @@ const DocumentHeader = ({
 			<CitationsManager 
 				isOpen={isCitationModalOpen}
 				onClose={() => setIsCitationModalOpen(false)}
+				citations={citations}
+				onCitationsChange={setCitations}
 				initialView='list'
 				onInsert={insertCitationAtCursor}
 			/>
+			
+			{/* <CitationsManager 
+				isOpen={isCitationModalOpen}
+				onClose={() => setIsCitationModalOpen(false)}
+				initialView='list'
+				onInsert={insertCitationAtCursor}
+			/> */}
 
 			{/* Editor Toolbar - sticky di bawah header */}
 			<LatexToolbar
