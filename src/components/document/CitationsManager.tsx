@@ -492,6 +492,7 @@ function useCitationsManagerLogic(
   onCitationsChange: (c: ManagerCitation[]) => void,
   isOpen: boolean,
   initialView: View,
+  onSave?: (action: 'add' | 'edit' | 'delete', cit: ManagerCitation) => void,
 ) {
   const [view, setView] = useState<View>(initialView);
   const [newCit, setNewCit] = useState<FormData>(emptyCit());
@@ -513,11 +514,16 @@ function useCitationsManagerLogic(
       index: citations.length + 1,
     };
     onCitationsChange(reindex([...citations, entry]));
+    onSave?.('add', entry); // ← notify caller to fire API mutation
     setNewCit(emptyCit());
     setView('list');
   };
  
-  const handleDelete = (id: string) => onCitationsChange(reindex(citations.filter(c => c.id !== id)));
+  const handleDelete = (id: string) => {
+    const cit = citations.find(c => c.id === id);
+    onCitationsChange(reindex(citations.filter(c => c.id !== id)))
+    if (cit) onSave?.('delete', cit); // ← notify caller to fire API mutation
+  };
  
   // const handleEditOpen = (cit: Citation) => { setEditingCit({ ...cit }); setView('edit'); };
   const handleEditOpen = (cit: ManagerCitation) => { setEditingCit({ ...cit }); setView('edit'); };
@@ -525,6 +531,7 @@ function useCitationsManagerLogic(
   const handleEditSave = () => {
     if (!editingCit || !editingCit.sourceTitle.trim() || !editingCit.authors[0].trim() || !editingCit.year.trim()) return;
     onCitationsChange(reindex(citations.map(c => (c.id === editingCit.id ? editingCit : c))));
+    onSave?.('edit', editingCit); // ← notify caller to fire API mutation
     setEditingCit(null);
     setView('list');
   };
@@ -553,6 +560,7 @@ interface CitationsManagerProps
   // onInsert?: (cit: Citation) => void;
   onInsert?: (cit: ManagerCitation) => void;
   inline?: boolean;
+  onSave?: (action: 'add' | 'edit' | 'delete', cit: ManagerCitation) => void;
 }
 
 // Main Component
@@ -564,8 +572,9 @@ export function CitationsManager({
   initialView = 'list',
   onInsert,
   inline = false,
+  onSave
 }: CitationsManagerProps) {
-  const logic = useCitationsManagerLogic(citations, onCitationsChange, isOpen, initialView);
+  const logic = useCitationsManagerLogic(citations, onCitationsChange, isOpen, initialView, onSave);
  
   const content = (
     <CitationsManagerContent

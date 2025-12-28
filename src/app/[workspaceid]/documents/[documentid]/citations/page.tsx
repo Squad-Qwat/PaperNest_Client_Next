@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/store' 
 import { DocumentService } from '@/lib/firebase/document-service'
@@ -25,7 +25,7 @@ import { SearchInput } from '@/components/ui/search-input'
 import { Loader2, Plus, Quote, FileInput, Copy, Check } from 'lucide-react'
 import { CitationsManager } from '@/components/document/CitationsManager'
 import { toManagerCitation, type ManagerCitation, toDbCitation } from '@/lib/utils/citationBridge';
-import { useCitations, useCreateCitation } from '@/lib/api/hooks/use-citations'; // custom hook
+import { useCitations, useCreateCitation, useUpdateCitation, useDeleteCitation } from '@/lib/api/hooks/use-citations'; // custom hook
 import { toast } from 'sonner'
 
 /* 
@@ -63,6 +63,16 @@ export default function CitationPage() {
 	const documentId = params.documentid as string
 
 	const { data: responseData} = useCitations(documentId);
+	const { mutateAsync: createCitation } = useCreateCitation()
+	const { mutateAsync: updateCitation } = useUpdateCitation()
+	const { mutateAsync: deleteCitation } = useDeleteCitation()
+
+	// ── Derive ManagerCitation list from API response ─────────────────────────
+	// This list is display-only; mutations go through the API hooks above.
+	// const citations: ManagerCitation[] = useMemo(() => {
+	// 	const raw = (responseData as any)?.data?.citations ?? (responseData as any)?.citations ?? []
+	// 	return raw.map((dbCit: any, idx: number) => toManagerCitation(dbCit, idx + 1))
+	// }, [responseData])
 
 	useEffect(() => {
 		const fetchDocumentData = async () => {
@@ -126,6 +136,39 @@ export default function CitationPage() {
 		} 
 	*/
 
+	// ── onSave: fired by CitationsManager on add / edit / delete ─────────────
+	// Translates ManagerCitation → DbCitation and calls the shared API.
+	// TanStack Query cache invalidation means the workspace citations page
+	// will automatically re-fetch and show the same data.
+	const handleSave = useCallback(
+		async (action: 'add' | 'edit' | 'delete', cit: ManagerCitation) => {
+		try {
+			if (action === 'add') {
+			const payload = toDbCitation(cit, workspaceId, documentId)
+			await createCitation({ ...payload, workspaceId, documentId })
+			toast.success('Referensi berhasil ditambahkan')
+			} else if (action === 'edit') {
+			const payload = toDbCitation(cit, workspaceId, documentId)
+			await updateCitation({ citationId: cit.id, documentId, data: payload as any })
+			toast.success('Referensi berhasil diperbarui')
+			} else if (action === 'delete') {
+			await deleteCitation({ citationId: cit.id, documentId })
+			toast.success('Referensi berhasil dihapus')
+			}
+		} catch (err) {
+			console.error(`Citation ${action} failed:`, err)
+			toast.error('Gagal menyimpan perubahan referensi')
+		}
+		},
+		[workspaceId, documentId, createCitation, updateCitation, deleteCitation]
+	)
+
+	// ── onCitationsChange: local optimistic update for instant UI feedback ────
+	// The real source of truth is the API; this just prevents flicker while
+	// the mutation + query invalidation completes.
+	// const [localCitations, setLocalCitations] = useState<ManagerCitation[]>([])
+	// useEffect(() => { setLocalCitations(citations) }, [citations])
+	
 	const createCitationMutation = useCreateCitation();
 
 	const handleSaveNewSource = async (newManagerCitation: ManagerCitation) => {
@@ -294,6 +337,7 @@ export default function CitationPage() {
 				onCitationsChange={handleCitationsChange}
 				initialView='add'
 				onInsert={handleInsertToEditor}
+				onSave={handleSave}
 			/>
 		</div>
 	)

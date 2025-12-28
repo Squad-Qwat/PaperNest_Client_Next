@@ -74,6 +74,13 @@ export default function Page() {
 		setIsSheetOpen(true)
 	}
 
+	const handleEdit = () => {
+		// Open edit sheet pre-populated with the viewing citation
+		setEditingCitation(viewingCitation as any)
+		setIsDetailsSheetOpen(false)
+		setIsSheetOpen(true)
+	}
+
 	const handleSave = (data: Partial<CitationType>) => {
 		if (viewingCitation?.citationId) {
 			updateCitation({
@@ -190,6 +197,7 @@ export default function Page() {
 						onOpenChange={setIsDetailsSheetOpen}
 						citation={viewingCitation}
 						documents={documents}
+						onEdit={handleEdit}
 					/>
 
 					<div className='flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8'>

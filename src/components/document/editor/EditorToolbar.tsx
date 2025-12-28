@@ -1004,7 +1004,8 @@ const EditorToolbar = ({
 	}
 	*/
 
-	const insertCitation = (cit: Citation) => {
+	// Citation
+	const insertCitation = (cit: ManagerCitation) => {
 		if (!editor) return
 		const authorText = cit.authors.filter(Boolean).join('; ')
 		

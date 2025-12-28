@@ -14,13 +14,15 @@ interface CitationDetailsSheetProps {
 	onOpenChange: (open: boolean) => void
 	citation: any
 	documents?: any[]
+	onEdit?: () => void // Called when the user wants to edit this citation — opens CitationSheet pre-filled
 }
 
 export function CitationDetailsSheet({
 	open,
 	onOpenChange,
 	citation,
-	documents
+	documents,
+	onEdit
 }: Readonly<CitationDetailsSheetProps>) {
 	if (!citation) return null
 
@@ -42,7 +44,9 @@ export function CitationDetailsSheet({
 						<TabsContent value='details' className='p-6 m-0 space-y-6'>
 							<div>
 								<h3 className='text-lg font-bold text-gray-900'>{citation.title}</h3>
-								<p className='text-gray-500 mt-1'>{citation.author}</p>
+								<p className='text-gray-500 mt-1'>{Array.isArray(citation.authors)
+								? citation.authors.filter(Boolean).join('; ')
+								: citation.author}</p>
 
 								{documentName && (
                                     <div className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium mt-3 border border-blue-100'>
@@ -50,6 +54,17 @@ export function CitationDetailsSheet({
                                         Disitasi pada dokumen: {documentName}
                                     </div>
                                 )}
+
+								{onEdit && (
+									<Button
+										variant='outline'
+										size='sm'
+										className='mt-3'
+										onClick={onEdit}
+									>
+										Edit Citation
+									</Button>
+								)}
 							</div>
 
 							<div className='space-y-4'>
