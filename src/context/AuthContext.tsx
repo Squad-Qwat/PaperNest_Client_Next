@@ -15,8 +15,9 @@ import { authService } from '@/lib/api/services/auth.service'
 import type { User } from '@/lib/api/types/user.types'
 import { auth } from '@/lib/firebase/config'
 
-interface AuthContextType {
-	user: User | null
+export interface AuthContextType {
+  	currentUser: User | null
+	user: User[] | null
 	loading: boolean
 	error: string | null
 	isAuthenticated: boolean
@@ -133,13 +134,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
 	}, [user, isAppLoading, pathname, router])
 
 	const value: AuthContextType = {
-		user,
+		user: null,
 		loading: isAppLoading,
 		error: null,
 		isAuthenticated: !!user,
 		onboardingData,
 		setOnboardingData,
 		logout,
+		currentUser: null,
 	}
 
 	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

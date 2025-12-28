@@ -18,36 +18,38 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import type { User } from "@/types";
+import type { User as APIUser} from "@/types";
+import { AuthContextType } from '@/context/AuthContext'; // Ensure correct import path
 
 export default function InvitationPage() {
   const router = useRouter();
-  const { currentUser, users } = useAuth();
+  const { currentUser }: AuthContextType = useAuth();
+  const user: APIUser[] = []; // Initialize user as an empty array
   
   // State for Invite Dialog
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResult, setSearchResult] = useState<User | null>(null);
+  const [searchResult, setSearchResult] = useState<APIUser | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
 
   // State for Confirmation Dialog
-  const [userToInvite, setUserToInvite] = useState<User | null>(null);
+  const [userToInvite, setUserToInvite] = useState<APIUser | null>(null);
 
   // Mock data for current team members (for display purposes)
-  const currentMembers = users.filter(u => u.id === currentUser?.id); 
+  const currentMembers: APIUser[] = user?.filter(u => u.id === currentUser?.userId) ?? []; 
 
   // 1. Handle Search Logic
   const handleSearch = () => {
     if (!searchQuery.trim()) return;
     
     // Search in the global users store
-    const foundUser = users.find(
+    const foundUser = user?.find(
       (u) => 
         u.email.toLowerCase() === searchQuery.toLowerCase() || 
         u.username.toLowerCase() === searchQuery.toLowerCase()
-    );
+    ) || null; // Ensure foundUser is null if not found
 
-    setSearchResult(foundUser || null);
+    setSearchResult(foundUser);
     setHasSearched(true);
   };
 
@@ -116,8 +118,8 @@ export default function InvitationPage() {
               <Card key={member.id} className="flex flex-row items-center justify-between p-4 bg-white">
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold">
-                    {member.firstName[0]}
-                    {member.lastName[0]}
+                    {member.firstName?.[0]}
+                    {member.lastName?.[0]}
                   </div>
                   <div>
                     <h3 className="font-medium text-gray-900">

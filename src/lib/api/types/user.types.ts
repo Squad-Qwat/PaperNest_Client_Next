@@ -12,7 +12,7 @@ export type UserRole = 'Student' | 'Lecturer'
  * User entity
  */
 export interface User {
-	userId: string
+	userId: number
 	name: string
 	email: string
 	username: string

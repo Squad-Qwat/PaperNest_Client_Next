@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useAuth } from "@/lib/store";
+// import { useAuth } from "@/lib/store";
 import { Navbar } from "@/components/layout/navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ArrowLeft, Clock, User, ShieldCheck, History, Info } from "lucide-react";
 import { Version } from "@/types/index";
+import { useAuth, AuthContextType } from '@/context/AuthContext'; // Ensure correct import path
 
 // 1. Synchronized Mock Data (Matches the main page.tsx)
 const MOCK_VERSIONS: Version[] = [
@@ -23,7 +24,8 @@ const MOCK_VERSIONS: Version[] = [
 export default function VersionDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { currentUser } = useAuth();
+  
+  const { currentUser }: AuthContextType = useAuth();
   
   const [showRevertConfirm, setShowRevertConfirm] = useState(false);
 
