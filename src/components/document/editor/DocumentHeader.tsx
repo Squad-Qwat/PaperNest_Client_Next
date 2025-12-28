@@ -12,7 +12,9 @@ import { useAuth } from '@/context/AuthContext'
 import { useDocumentReviews } from '@/lib/api/hooks/use-documents'
 import { useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
 import { documentsService } from '@/lib/api/services/documents.service'
-import { CitationsManager, type Citation } from '@/components/document/CitationsManager'
+import { CitationsManager } from '@/components/document/CitationsManager'
+import { ManagerCitation } from '@/lib/utils/citationBridge';
+
 import { getInitials } from '@/lib/utils'
 
 interface DocumentHeaderProps {
@@ -101,7 +103,7 @@ const DocumentHeader = ({
 	const [showCommitModal, setShowCommitModal] = useState(false)
 	const [isCitationModalOpen, setIsCitationModalOpen] = useState(false)
 	const { data: reviewsResponse } = useDocumentReviews(documentId)
-	const [citations, setCitations] = useState<Citation[]>([])
+	const [citations, setCitations] = useState<ManagerCitation[]>([]) // Citation
 	const { data: membersResponse } = useWorkspaceMembers(workspaceId)
 
 	// Safely determine pending reviews
@@ -131,7 +133,8 @@ const DocumentHeader = ({
 	}
 	*/
 
-	const insertCitationAtCursor = (cit: Citation) => {
+	// Citation
+	const insertCitationAtCursor = (cit: ManagerCitation) => {
 		const authorText = cit.authors.filter(Boolean).join('; ')
 		setIsCitationModalOpen(false)
 		onInsertCitation?.(`(${authorText}, ${cit.year})`)

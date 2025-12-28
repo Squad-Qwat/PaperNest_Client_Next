@@ -41,6 +41,7 @@ export type CitationDisplay = Citation & {
 
 interface CitationTableProps {
 	data: CitationDisplay[]
+	documents: any[]
 	isLoading: boolean
 	onRowClick: (citation: CitationDisplay) => void
 	onDelete: (citationId: string) => void
@@ -219,6 +220,19 @@ const getCitationColumns = (onDelete: (id: string) => void): ColumnDef<CitationD
 		minSize: 150,
 	},
 	{
+		accessorKey: 'documentId',
+		header: 'Dokumen',
+		cell: ({ row, table }) => {
+            const docId = row.getValue('documentId') as string
+            if (!docId) return <span className='text-gray-400 text-xs italic'>Workspace Level</span>
+            // Access documents from table meta
+            const documents = (table.options.meta as any)?.documents || []
+            const docName = documents.find((d: any) => d.documentId === docId)?.title || 'Unknown Document'
+            return <span className='truncate block max-w-[150px] text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-md' title={docName}>{docName}</span>
+        },
+		minSize: 120,
+	},
+	{
 		accessorKey: 'author',
 		header: 'Penulis',
 		minSize: 100,
@@ -360,7 +374,8 @@ const TableBodyContent = ({
  * Main CitationTable component
  */
 export const CitationTable = React.memo(({ 
-	data, 
+	data,
+	documents,
 	isLoading, 
 	onRowClick,
 	onDelete 
@@ -377,6 +392,9 @@ export const CitationTable = React.memo(({
 			sorting,
 			columnOrder,
 		},
+		meta: {
+            documents
+        },
 		onSortingChange: setSorting,
 		onColumnOrderChange: setColumnOrder,
 		getCoreRowModel: getCoreRowModel(),

@@ -13,14 +13,18 @@ interface CitationDetailsSheetProps {
 	open: boolean
 	onOpenChange: (open: boolean) => void
 	citation: any
+	documents?: any[]
 }
 
 export function CitationDetailsSheet({
 	open,
 	onOpenChange,
 	citation,
+	documents
 }: Readonly<CitationDetailsSheetProps>) {
 	if (!citation) return null
+
+	const documentName = documents?.find(d => d.documentId === citation.documentId)?.title
 
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>
@@ -39,6 +43,13 @@ export function CitationDetailsSheet({
 							<div>
 								<h3 className='text-lg font-bold text-gray-900'>{citation.title}</h3>
 								<p className='text-gray-500 mt-1'>{citation.author}</p>
+
+								{documentName && (
+                                    <div className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium mt-3 border border-blue-100'>
+                                        <FileText className='w-3 h-3' />
+                                        Disitasi pada dokumen: {documentName}
+                                    </div>
+                                )}
 							</div>
 
 							<div className='space-y-4'>

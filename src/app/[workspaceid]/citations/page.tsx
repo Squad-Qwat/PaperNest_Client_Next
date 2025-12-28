@@ -63,6 +63,8 @@ export default function Page() {
 	const { data: documentsData } = useWorkspaceDocuments(workspaceId)
 	// const documentId = documentsData?.documents?.[0]?.documentId
 
+	const documents = documentsData?.documents || []
+
 	const { mutate: createCitation } = useCreateCitation()
 	const { mutate: updateCitation } = useUpdateCitation()
 	const { mutate: deleteCitation } = useDeleteCitation()
@@ -187,6 +189,7 @@ export default function Page() {
 						open={isDetailsSheetOpen}
 						onOpenChange={setIsDetailsSheetOpen}
 						citation={viewingCitation}
+						documents={documents}
 					/>
 
 					<div className='flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8'>
@@ -255,6 +258,7 @@ export default function Page() {
 
 					<CitationTable
 						data={citations}
+						documents={documents}
 						isLoading={isCitationsLoading}
 						onRowClick={handleRowClick}
 						onDelete={handleDelete}

@@ -23,7 +23,10 @@ import { SearchInput } from '@/components/ui/search-input'
 	import { Input } from '@/components/ui/input'  
 */
 import { Loader2, Plus, Quote, FileInput, Copy, Check } from 'lucide-react'
-import { CitationsManager, type Citation } from '@/components/document/CitationsManager'
+import { CitationsManager } from '@/components/document/CitationsManager'
+import { toManagerCitation, type ManagerCitation, toDbCitation } from '@/lib/utils/citationBridge';
+import { useCitations, useCreateCitation } from '@/lib/api/hooks/use-citations'; // custom hook
+import { toast } from 'sonner'
 
 /* 
 	interface Citation {
@@ -42,7 +45,7 @@ export default function CitationPage() {
 	const { user: currentUser } = useAuth()
 
 	const [document, setDocument] = useState<any | null>(null)
-	const [citations, setCitations] = useState<Citation[]>([])
+	const [citations, setCitations] = useState<ManagerCitation[]>([]) // Citation
 	const [isLoading, setIsLoading] = useState(true)
 	const [searchQuery, setSearchQuery] = useState('')
 	const [isAddModalOpen, setIsAddModalOpen] = useState(false)
@@ -58,6 +61,8 @@ export default function CitationPage() {
 
 	const workspaceId = params.workspaceid as string
 	const documentId = params.documentid as string
+
+	const { data: responseData} = useCitations(documentId);
 
 	useEffect(() => {
 		const fetchDocumentData = async () => {
@@ -121,8 +126,26 @@ export default function CitationPage() {
 		} 
 	*/
 
-	// Persists the full updated list back to Firestore, same pattern as the old handleAddCitation.
-	const handleCitationsChange = async (updated: Citation[]) => {
+	const createCitationMutation = useCreateCitation();
+
+	const handleSaveNewSource = async (newManagerCitation: ManagerCitation) => {
+	// Convert into database layout right before firing the request
+	const dbPayload = toDbCitation(newManagerCitation, workspaceId, documentId);
+	
+	try {
+		await createCitationMutation.mutateAsync({
+		documentId,
+		...dbPayload,
+		workspaceId
+		});
+		toast.success("Source saved successfully!");
+	} catch (error) {
+		toast.error("Failed to sync source.");
+	}
+	};
+
+	// Persists the full updated list back to Firestore, same pattern as the old handleAddCitation. Citation
+	const handleCitationsChange = async (updated: ManagerCitation[]) => {
 		setCitations(updated)
 		if (!document) return
 		try {
@@ -137,8 +160,8 @@ export default function CitationPage() {
 		}
 	}
 
-	// NEW: Function to return to the editor and signal an insertion
-	const handleInsertToEditor = (cit: Citation) => {
+	// NEW: Function to return to the editor and signal an insertion (Citation)
+	const handleInsertToEditor = (cit: ManagerCitation) => {
 		const authorText = cit.authors.filter(Boolean).join('; ')
 		const citationText = `(${authorText}, ${cit.year})`
 		// We use a query parameter to tell the editor page to insert this text
@@ -146,13 +169,21 @@ export default function CitationPage() {
 		router.push(`/${workspaceId}/documents/${documentId}?insertCitation=${encodeURIComponent(citationText)}`)
 	}
 
-	const copyToClipboard = (cit: Citation) => {
+	// Citation
+	const copyToClipboard = (cit: ManagerCitation) => {
 		const authorText = cit.authors.filter(Boolean).join('; ')
 		const text = `(${authorText}, ${cit.year})`
 		navigator.clipboard.writeText(text)
 		setCopiedId(cit.id)
 		setTimeout(() => setCopiedId(null), 2000)
 	}
+
+	const managerCitations: ManagerCitation[] = useMemo(() => {
+		if (!responseData?.data?.citations) return [];
+		return responseData.data.citations.map((dbCit, idx) => 
+		  toManagerCitation(dbCit, idx + 1)
+		);
+	  }, [responseData]);
 
 	if (isLoading) return (
 		<div className="min-h-screen bg-gray-950 flex items-center justify-center">
