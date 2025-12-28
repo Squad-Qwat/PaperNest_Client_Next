@@ -1,57 +1,81 @@
-"use client"
+'use client'
 
-import React from 'react'
+import React, { useState, useCallback } from 'react'
+import { AIChatPanel } from './AIChatPanel'
 
 /**
- * AI Assistant Component (Placeholder)
- * This is a placeholder component for the AI Assistant feature
- * Will be implemented in the future
+ * AI Assistant Component with Resizable Panel
+ * Features a resizable sidebar for AI chat functionality
  */
 interface AIAssistantProps {
-  editor?: any
-  isOpen?: boolean
-  onClose?: () => void
+	editor?: any
+	aiAssistantOpen?: boolean
+	toggleAiAssistant?: () => void
+	onWidthChange?: (width: number) => void
 }
 
-const AIAssistant: React.FC<AIAssistantProps> = ({ editor, isOpen = false, onClose }) => {
-  if (!isOpen) return null
+const AIAssistant: React.FC<AIAssistantProps> = ({
+	editor,
+	aiAssistantOpen = false,
+	toggleAiAssistant,
+	onWidthChange,
+}) => {
+	const [width, setWidth] = useState(320) // Default width 320px
+	const [isResizing, setIsResizing] = useState(false)
 
-  return (
-    <div className="fixed right-0 top-0 h-full w-80 bg-white border-l border-gray-200 shadow-lg z-50">
-      <div className="p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">AI Assistant</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-            aria-label="Close AI Assistant"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-          </button>
-        </div>
-        <div className="text-gray-600 text-sm">
-          <p>AI Assistant feature coming soon...</p>
-          <p className="mt-2">This will help you with:</p>
-          <ul className="list-disc list-inside mt-2 space-y-1">
-            <li>Content generation</li>
-            <li>Grammar and style improvements</li>
-            <li>Text summarization</li>
-            <li>Research assistance</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  )
+	const handleMouseDown = useCallback(
+		(e: React.MouseEvent) => {
+			e.preventDefault()
+			setIsResizing(true)
+
+			const startX = e.clientX
+			const startWidth = width
+
+			const handleMouseMove = (moveEvent: MouseEvent) => {
+				const deltaX = startX - moveEvent.clientX
+				const newWidth = Math.min(Math.max(startWidth + deltaX, 280), 600) // min 280px, max 600px
+				setWidth(newWidth)
+				if (onWidthChange) {
+					onWidthChange(newWidth)
+				}
+			}
+
+			const handleMouseUp = () => {
+				setIsResizing(false)
+				document.removeEventListener('mousemove', handleMouseMove)
+				document.removeEventListener('mouseup', handleMouseUp)
+			}
+
+			document.addEventListener('mousemove', handleMouseMove)
+			document.addEventListener('mouseup', handleMouseUp)
+		},
+		[width, onWidthChange]
+	)
+
+	if (!aiAssistantOpen) return null
+
+	return (
+		<div
+			className='h-full bg-white border-l border-gray-200 shadow-lg flex shrink-0 relative'
+			style={{ width: `${width}px` }}
+		>
+			{/* Resize Handle */}
+			<div
+				className={`absolute left-0 top-0 h-full w-1 cursor-ew-resize hover:bg-blue-500 transition-colors ${
+					isResizing ? 'bg-blue-500' : 'bg-transparent hover:bg-blue-300'
+				}`}
+				onMouseDown={handleMouseDown}
+			>
+				<div className='absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-8 rounded-full bg-gray-300 opacity-0 hover:opacity-100 transition-opacity' />
+			</div>
+
+			{/* Content */}
+			<div className='flex-1 flex flex-col overflow-hidden'>
+				{/* AI Chat Panel Content */}
+				<AIChatPanel editor={editor} onClose={toggleAiAssistant} />
+			</div>
+		</div>
+	)
 }
 
 export default AIAssistant
