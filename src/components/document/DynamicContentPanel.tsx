@@ -89,9 +89,10 @@ const DynamicContentPanel: React.FC<DynamicContentPanelProps> = ({
 					/>
 				)
 			case 'panel3':
-				return <PanelContent3 />
+				return <PanelContent3 onInsertText={onInsertText} />
+
 			case 'panel4':
-				return <PanelContent4 />
+				return <PanelContent4 documentId={documentId} />
 			default:
 				return null
 		}

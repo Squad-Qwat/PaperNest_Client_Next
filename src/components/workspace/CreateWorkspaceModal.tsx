@@ -5,6 +5,7 @@
 
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,8 +13,10 @@ import { Label } from '@/components/ui/label'
 import { Modal, ModalFooter } from '@/components/ui/modal'
 import { Textarea } from '@/components/ui/textarea'
 import { apiClient } from '@/lib/api/clients/api-client'
+import { useCreateWorkspace } from '@/lib/api/hooks/use-workspaces'
 import { workspacesService } from '@/lib/api/services/workspaces.service'
 import { getErrorMessage } from '@/lib/api/utils/error-handler'
+import { useAuthStore } from '@/lib/store/auth-store'
 
 interface CreateWorkspaceModalProps {
 	isOpen: boolean
@@ -24,6 +27,8 @@ interface CreateWorkspaceModalProps {
 const workspaceIcons = ['📚', '🎓', '📖', '✍️', '🔬', '💼', '📊', '🎯', '🌟', '💡']
 
 export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorkspaceModalProps) {
+	const router = useRouter()
+	const createWorkspaceMutation = useCreateWorkspace()
 	const [mode, setMode] = useState<'create' | 'join'>('create')
 	const [title, setTitle] = useState('')
 	const [description, setDescription] = useState('')
@@ -49,10 +54,10 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
 		setError(null)
 
 		try {
-			// Debug: Check token in localStorage
-			const token = localStorage.getItem('accessToken')
+			// Debug: Check token in Zustand store
+			const token = useAuthStore.getState().accessToken
 			console.log(
-				'[CreateWorkspace] Token from localStorage:',
+				'[CreateWorkspace] Token from Zustand store:',
 				token ? `${token.substring(0, 20)}...` : 'NOT FOUND'
 			)
 
@@ -66,14 +71,17 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
 
 			console.log('[CreateWorkspace] API client headers:', apiClient.getHeaders())
 
+			let newWorkspaceId = ''
+
 			if (mode === 'create') {
 				console.log('[CreateWorkspace] Creating workspace with title:', title)
-				await workspacesService.create({
+				const newWorkspace = await createWorkspaceMutation.mutateAsync({
 					title: title.trim(),
 					description: description.trim() || undefined,
 					icon: icon,
 				})
-				console.log('[CreateWorkspace] Workspace created successfully')
+				console.log('[CreateWorkspace] Workspace created successfully:', newWorkspace)
+				newWorkspaceId = newWorkspace.workspaceId
 			} else {
 				console.log('[CreateWorkspace] Joining workspace with ID:', workspaceId)
 				await workspacesService.joinByWorkspaceId(workspaceId.trim())
@@ -93,6 +101,11 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
 			}
 
 			onClose()
+
+			// Redirect if new workspace was created
+			if (newWorkspaceId) {
+				router.push(`/${newWorkspaceId}`)
+			}
 		} catch (err) {
 			setError(getErrorMessage(err))
 		} finally {

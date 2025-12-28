@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2, Clock, XCircle } from 'lucide-react'
+import { AlertCircle, CheckCircle2, XCircle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
@@ -56,7 +56,7 @@ export const getStatusConfig = (rawStatus: string) => {
 		label: 'Pending',
 		className: 'bg-yellow-500/15 text-yellow-600 hover:bg-yellow-500/25 border-yellow-500/20',
 		dotColor: 'bg-teal-500',
-		icon: Clock,
+		icon: null,
 	}
 }
 
@@ -73,7 +73,7 @@ export function ReviewStatusBadge({
 			variant='outline'
 			className={cn('gap-1.5 pl-1.5 pr-2.5 py-0.5 font-medium', config.className, className)}
 		>
-			{showIcon && <Icon className='w-3.5 h-3.5' />}
+			{showIcon && Icon && <Icon className='w-3.5 h-3.5' />}
 			{config.label}
 		</Badge>
 	)

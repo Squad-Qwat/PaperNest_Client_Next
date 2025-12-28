@@ -12,6 +12,7 @@ import { useWorkspaces } from '@/lib/api/hooks/use-workspaces'
 export default function Page() {
 	const router = useRouter()
 	// const params = useParams()
+	// const params = useParams()
 	const { user, loading: authLoading } = useAuth()
 	const { data: workspacesResponse, isLoading: workspacesLoading, refetch } = useWorkspaces()
 	const workspaces = workspacesResponse?.workspaces || []

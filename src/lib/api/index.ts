@@ -10,6 +10,7 @@ export { ApiError, HttpClient } from './clients/http-client'
 export { API_CONFIG, API_ENDPOINTS } from './config'
 // ============= Services =============
 export { authService } from './services/auth.service'
+export { citationsService } from './services/citations.service'
 export { invitationsService } from './services/invitations.service'
 export { usersService } from './services/users.service'
 export { workspacesService } from './services/workspaces.service'
@@ -26,6 +27,17 @@ export type {
 	UpdateEmailDto,
 	VerifyTokenDto,
 } from './types/auth.types'
+// ============= Types - Citation =============
+export type {
+	Citation,
+	CitationResponse,
+	CitationsResponse,
+	CreateCitationDto,
+	SemanticScholarPaper,
+	SemanticScholarPaperResponse,
+	SemanticScholarSearchResponse,
+	UpdateCitationDto,
+} from './types/citation.types'
 // ============= Types - Common =============
 export type {
 	ApiErrorResponse,
@@ -61,7 +73,9 @@ export type {
 	WorkspaceRole,
 	WorkspaceWithRole,
 } from './types/workspace.types'
+
 export type { ErrorResponse } from './utils/error-handler'
+
 // ============= Utils =============
 export {
 	getErrorMessage,

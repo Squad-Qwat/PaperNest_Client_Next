@@ -10,7 +10,12 @@ import { useLatexEditor } from '@/hooks/editor/use-latex-editor'
 import { useDocumentFiles } from '@/lib/api/hooks/use-document-files'
 import { laTeXService } from '@/lib/latex/LaTeXService'
 import { computeCodeMirrorChanges } from '@/lib/utils/diff'
-import { applyRangesToText, getMergeSignature, normalizeText } from '@/lib/utils/latex-merge-utils'
+import {
+	applyRangesToText,
+	fuzzyDiff3WayMerge,
+	getMergeSignature,
+	normalizeText,
+} from '@/lib/utils/latex-merge-utils'
 import { MergePreview } from '../mergeview/MergePreview'
 import { LatexVisualEditor } from './LatexVisualEditor'
 
@@ -107,54 +112,78 @@ export function LatexEditor({
 			const replaceBlock = Array.isArray(merge.replaceBlock) ? merge.replaceBlock : []
 			const hasAtomicBlocks = searchBlock.length > 0 && searchBlock.length === replaceBlock.length
 
-			if (!hasAtomicBlocks) {
-				if (normalizedOriginal === normalizedCurrent) {
-					return { modified: merge.modified, isRebased: true, reason: undefined }
+			// 1. Try exact/fuzzy regex matching first if we have atomic blocks
+			if (hasAtomicBlocks) {
+				const ranges: Array<{ from: number; to: number; insert: string }> = []
+				let searchFrom = 0
+				let batchValid = true
+
+				for (let i = 0; i < searchBlock.length; i++) {
+					const search = searchBlock[i]
+					const replace = replaceBlock[i]
+					if (typeof search !== 'string' || typeof replace !== 'string' || search.length === 0) {
+						batchValid = false
+						break
+					}
+
+					let index = currentDoc.indexOf(search, searchFrom)
+					let matchedLength = search.length
+
+					if (index === -1) {
+						const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+						const fuzzyPattern = escaped.replace(/\s+/g, '[\\s\\r\\n]+')
+						const regex = new RegExp(fuzzyPattern, 'g')
+						regex.lastIndex = searchFrom
+						const match = regex.exec(currentDoc)
+
+						if (match) {
+							index = match.index
+							matchedLength = match[0].length
+						}
+					}
+
+					if (index === -1) {
+						batchValid = false
+						break
+					}
+
+					ranges.push({ from: index, to: index + matchedLength, insert: replace })
+					searchFrom = index + matchedLength
 				}
-				return { modified: merge.modified, isRebased: false, reason: 'missing_anchors' }
-			}
 
-			const ranges: Array<{ from: number; to: number; insert: string }> = []
-			let searchFrom = 0
-
-			for (let i = 0; i < searchBlock.length; i++) {
-				const search = searchBlock[i]
-				const replace = replaceBlock[i]
-				if (typeof search !== 'string' || typeof replace !== 'string' || search.length === 0) {
-					return { modified: merge.modified, isRebased: false, reason: 'invalid_anchor' }
-				}
-
-				let index = currentDoc.indexOf(search, searchFrom)
-				let matchedLength = search.length
-
-				if (index === -1) {
-					const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-					const fuzzyPattern = escaped.replace(/\s+/g, '[\\s\\r\\n]+')
-					const regex = new RegExp(fuzzyPattern, 'g')
-					regex.lastIndex = searchFrom
-					const match = regex.exec(currentDoc)
-
-					if (match) {
-						index = match.index
-						matchedLength = match[0].length
+				if (batchValid) {
+					return {
+						modified: applyRangesToText(currentDoc, ranges),
+						isRebased: true,
+						reason: undefined,
 					}
 				}
-
-				if (index === -1) {
-					if (normalizedOriginal === normalizedCurrent) {
-						return { modified: merge.modified, isRebased: true, reason: undefined }
-					}
-					return { modified: merge.modified, isRebased: false, reason: 'anchor_not_found' }
-				}
-
-				ranges.push({ from: index, to: index + matchedLength, insert: replace })
-				searchFrom = index + matchedLength
 			}
 
+			// 2. Fallback to advanced Google Diff-Match-Patch (3-way merge)
+			const mergeResult = fuzzyDiff3WayMerge(merge.original, merge.modified, currentDoc)
+			if (mergeResult.success) {
+				return {
+					modified: mergeResult.result,
+					isRebased: true,
+					reason: undefined,
+				}
+			}
+
+			// 3. Fallback to full document match comparison
+			if (normalizedOriginal === normalizedCurrent) {
+				return {
+					modified: merge.modified,
+					isRebased: true,
+					reason: undefined,
+				}
+			}
+
+			// If all else fails, return best-effort merge with warning
 			return {
-				modified: applyRangesToText(currentDoc, ranges),
-				isRebased: true,
-				reason: undefined,
+				modified: mergeResult.result || merge.modified,
+				isRebased: false,
+				reason: mergeResult.reason || 'conflict_detected',
 			}
 		},
 		[view]
@@ -177,7 +206,10 @@ export function LatexEditor({
 			const allowFallback = options?.allowFallback !== false
 			const isApplyDiffMerge = Array.isArray(merge.searchBlock) && Array.isArray(merge.replaceBlock)
 			let applied = false
+			let mergedText = ''
+			let rebaseSuccess = false
 
+			// 1. Try exact atomic match first if blocks are present
 			if (isApplyDiffMerge) {
 				const searchBlock = merge.searchBlock ?? []
 				const replaceBlock = merge.replaceBlock ?? []
@@ -214,6 +246,27 @@ export function LatexEditor({
 				}
 			}
 
+			// 2. Try Google Diff-Match-Patch (3-way merge) if exact match fails or wasn't applicable
+			if (!applied) {
+				const mergeResult = fuzzyDiff3WayMerge(merge.original, merge.modified, currentDoc)
+				if (mergeResult.success) {
+					mergedText = mergeResult.result
+					rebaseSuccess = true
+				}
+			}
+
+			// 3. Dispatch surgical changes computed from the fuzzy merge result
+			if (!applied && rebaseSuccess && mergedText) {
+				const changes = computeCodeMirrorChanges(currentDoc, mergedText)
+				if (changes.length > 0) {
+					view.dispatch({ changes, scrollIntoView: false })
+					applied = true
+				} else {
+					applied = true // Document is already in the merged state
+				}
+			}
+
+			// 4. Ultimate fallback replacement
 			if (!applied && allowFallback && typeof fallbackContent === 'string') {
 				const changes = computeCodeMirrorChanges(currentDoc, fallbackContent)
 				if (changes.length > 0) {

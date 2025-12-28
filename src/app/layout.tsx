@@ -6,6 +6,7 @@ import { QueryProvider } from '@/components/providers/query-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from '@/context/AuthContext'
+import { NotificationProvider } from '@/context/NotificationContext'
 import { AppProvider } from '@/lib/store'
 
 const ibmPlexSans = IBM_Plex_Sans({
@@ -38,10 +39,12 @@ export default function RootLayout({
 			>
 				<QueryProvider>
 					<AuthProvider>
-						<TooltipProvider>
-							<AppProvider>{children}</AppProvider>
-						</TooltipProvider>
-						<Toaster position='bottom-right' richColors closeButton />
+						<NotificationProvider>
+							<TooltipProvider>
+								<AppProvider>{children}</AppProvider>
+							</TooltipProvider>
+							<Toaster position='bottom-right' richColors closeButton />
+						</NotificationProvider>
 					</AuthProvider>
 				</QueryProvider>
 
