@@ -28,7 +28,7 @@ export function Navbar({ mode = "workspace", documentId }: NavbarProps) {
     const workspaceMenuItems = [
         { name: "Overview", href: `/${workspaceId}` },
         { name: "Chatbot", href: `/${workspaceId}/chatbot` },
-        { name: "Review", href: `/${workspaceId}/review-requests` },
+        { name: "Review", href: `/${workspaceId}/reviews` },
         { name: "Settings", href: `/${workspaceId}/settings` },
     ];
 

@@ -409,8 +409,7 @@ export default function RegisterPage() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
+              <div className="space-y-2">
                   <Label htmlFor="name" className="text-gray-900 font-normal">
                     Full Name
                   </Label>
@@ -425,7 +424,6 @@ export default function RegisterPage() {
                     <p className="text-sm text-red-600">{errors.name}</p>
                   )}
                 </div>
-              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="username" className="text-gray-900 font-normal">

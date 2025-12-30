@@ -7,6 +7,48 @@ import { DocumentService } from '@/lib/firebase/document-service'
 import YjsStateManager from '@/lib/editor/yjs-state-manager'
 import { useYjsCollaboration } from './use-yjs-collaboration'
 
+// Helper function untuk safe focus (moved outside to be stable)
+const safeFocus = (editor) => {
+  if (!editor) return false
+  
+  try {
+    // Gunakan smartFocus jika tersedia
+    if (editor.commands.smartFocus) {
+      return editor.commands.smartFocus()
+    }
+    
+    // Fallback: cari posisi yang aman dalam body
+    const { doc } = editor.state
+    let safePos = null
+    
+    doc.descendants((node, pos) => {
+      // Skip header/footer, fokus pada body content
+      if (node.type.name === 'body' || 
+          (node.type.name === 'paragraph' && !safePos)) {
+        safePos = pos + 1
+        return false
+      }
+      return true
+    })
+    
+    if (safePos) {
+      const tr = editor.state.tr.setSelection(
+        editor.state.selection.constructor.near(
+          editor.state.doc.resolve(safePos)
+        )
+      )
+      editor.view.dispatch(tr)
+      return true
+    }
+    
+    // Final fallback
+    return editor.commands.focus('start')
+  } catch (error) {
+    console.warn('Safe focus failed:', error)
+    return false
+  }
+}
+
 /**
  * Custom hook untuk mengelola Tiptap editor dengan konfigurasi modular
  * @param {Object} options - Konfigurasi editor
@@ -70,7 +112,7 @@ export function useDocumentEditor({
   })
   
   // Function untuk set default font styles
-  const setDefaultEditorStyles = (editor) => {
+  const setDefaultEditorStyles = useCallback((editor) => {
     if (!editor || !editor.state || !editor.view || !editor.schema) return
     
     try {
@@ -87,106 +129,9 @@ export function useDocumentEditor({
     } catch (error) {
       console.warn('Error setting default font styles:', error)
     }
-  }
+  }, [defaultFontFamily, defaultFontSize])
 
-  // Helper function untuk safe focus
-  const safeFocus = (editor) => {
-    if (!editor) return false
-    
-    try {
-      // Gunakan smartFocus jika tersedia
-      if (editor.commands.smartFocus) {
-        return editor.commands.smartFocus()
-      }
-      
-      // Fallback: cari posisi yang aman dalam body
-      const { doc } = editor.state
-      let safePos = null
-      
-      doc.descendants((node, pos) => {
-        // Skip header/footer, fokus pada body content
-        if (node.type.name === 'body' || 
-            (node.type.name === 'paragraph' && !safePos)) {
-          safePos = pos + 1
-          return false
-        }
-        return true
-      })
-      
-      if (safePos) {
-        const tr = editor.state.tr.setSelection(
-          editor.state.selection.constructor.near(
-            editor.state.doc.resolve(safePos)
-          )
-        )
-        editor.view.dispatch(tr)
-        return true
-      }
-      
-      // Final fallback
-      return editor.commands.focus('start')
-    } catch (error) {
-      console.warn('Safe focus failed:', error)
-      return false
-    }
-  }
 
-  // Undo/Redo operations yang mengintegrasikan Yjs dan TipTap dengan safe focus
-  const undo = () => {
-    let result = false
-    
-    if (enableLiveblocks && undoManager) {
-      // Gunakan Yjs UndoManager untuk collaboration
-      result = yjsUndo()
-    } else if (editor) {
-      // Gunakan TipTap history untuk non-collaboration
-      result = editor.commands.undo()
-    }
-    
-    // Apply safe focus setelah undo operation
-    if (result && editor) {
-      setTimeout(() => safeFocus(editor), 50)
-    }
-    
-    return result
-  }
-
-  const redo = () => {
-    let result = false
-    
-    if (enableLiveblocks && undoManager) {
-      // Gunakan Yjs UndoManager untuk collaboration
-      result = yjsRedo()
-    } else if (editor) {
-      // Gunakan TipTap history untuk non-collaboration
-      result = editor.commands.redo()
-    }
-    
-    // Apply safe focus setelah redo operation
-    if (result && editor) {
-      setTimeout(() => safeFocus(editor), 50)
-    }
-    
-    return result
-  }
-
-  const canUndo = () => {
-    if (enableLiveblocks && undoManager) {
-      return yjsCanUndo()
-    } else if (editor) {
-      return editor.can().undo()
-    }
-    return false
-  }
-
-  const canRedo = () => {
-    if (enableLiveblocks && undoManager) {
-      return yjsCanRedo()
-    } else if (editor) {
-      return editor.can().redo()
-    }
-    return false
-  }
 
   // Create editor extensions dengan atau tanpa Yjs collaboration
   const editorExtensions = useMemo(() => {
@@ -320,12 +265,69 @@ export function useDocumentEditor({
     }
   }, [paperSize, defaultFontFamily, defaultFontSize, collaborationReady, collaborationExtensions]) // Update dependencies
 
+  // Undo/Redo operations yang mengintegrasikan Yjs dan TipTap dengan safe focus
+  const undo = useCallback(() => {
+    let result = false
+    
+    if (enableLiveblocks && undoManager) {
+      // Gunakan Yjs UndoManager untuk collaboration
+      result = yjsUndo()
+    } else if (editor) {
+      // Gunakan TipTap history untuk non-collaboration
+      result = editor.commands.undo()
+    }
+    
+    // Apply safe focus setelah undo operation
+    if (result && editor) {
+      setTimeout(() => safeFocus(editor), 50)
+    }
+    
+    return result
+  }, [enableLiveblocks, undoManager, yjsUndo, editor])
+
+  const redo = useCallback(() => {
+    let result = false
+    
+    if (enableLiveblocks && undoManager) {
+      // Gunakan Yjs UndoManager untuk collaboration
+      result = yjsRedo()
+    } else if (editor) {
+      // Gunakan TipTap history untuk non-collaboration
+      result = editor.commands.redo()
+    }
+    
+    // Apply safe focus setelah redo operation
+    if (result && editor) {
+      setTimeout(() => safeFocus(editor), 50)
+    }
+    
+    return result
+  }, [enableLiveblocks, undoManager, yjsRedo, editor])
+
+  const canUndo = useCallback(() => {
+    if (enableLiveblocks && undoManager) {
+      return yjsCanUndo()
+    } else if (editor) {
+      return editor.can().undo()
+    }
+    return false
+  }, [enableLiveblocks, undoManager, yjsCanUndo, editor])
+
+  const canRedo = useCallback(() => {
+    if (enableLiveblocks && undoManager) {
+      return yjsCanRedo()
+    } else if (editor) {
+      return editor.can().redo()
+    }
+    return false
+  }, [enableLiveblocks, undoManager, yjsCanRedo, editor])
+
   // Re-apply default font styles after editor recreation
   useEffect(() => {
     if (editor) {
       setDefaultEditorStyles(editor)
     }
-  }, [editor])
+  }, [editor, setDefaultEditorStyles])
 
   // Load document content (hanya jika document tersedia dan tidak menggunakan collaboration)
   useEffect(() => {
@@ -476,10 +478,10 @@ export function useDocumentEditor({
 
     const autoSaveTimer = setTimeout(autoSave, 2000)
     return () => clearTimeout(autoSaveTimer)
-  }, [enableAutoSave, editor?.getJSON(), title, document, user, yDoc, enableLiveblocks])
+  }, [enableAutoSave, title, document, user, yDoc, enableLiveblocks, editor])
 
   // Helper functions
-  const insertTable = (rows = 3, cols = 3, withHeaderRow = true) => {
+  const insertTable = useCallback((rows = 3, cols = 3, withHeaderRow = true) => {
     if (!editor) return false
     
     try {
@@ -493,9 +495,9 @@ export function useDocumentEditor({
       console.error('Error inserting table:', error)
       return false
     }
-  }
+  }, [editor])
 
-  const setContent = (content) => {
+  const setContent = useCallback((content) => {
     if (!editor) return false
     
     try {
@@ -505,9 +507,9 @@ export function useDocumentEditor({
       console.error('Error setting content:', error)
       return false
     }
-  }
+  }, [editor])
 
-  const getContent = (format = 'json') => {
+  const getContent = useCallback((format = 'json') => {
     if (!editor) return null
     
     try {
@@ -516,17 +518,17 @@ export function useDocumentEditor({
       console.error('Error getting content:', error)
       return null
     }
-  }
+  }, [editor])
 
-  const isEmpty = () => {
+  const isEmpty = useCallback(() => {
     return editor ? editor.isEmpty : true
-  }
+  }, [editor])
 
-  const focus = () => {
+  const focus = useCallback(() => {
     if (editor) {
       safeFocus(editor)
     }
-  }
+  }, [editor])
 
   // Function untuk mendapatkan current content sebagai TipTap JSON
   const getCurrentContent = useCallback(() => {
@@ -564,7 +566,7 @@ export function useDocumentEditor({
   }, [editor, getCurrentContent])
 
   // Debug functions (only in development)
-  const debugContentExtraction = () => {
+  const debugContentExtraction = useCallback(() => {
     if (process.env.NODE_ENV !== 'development') return
     
     console.log('🐛 Debug: Testing content extraction...')
@@ -581,7 +583,7 @@ export function useDocumentEditor({
       const hookContent = getCurrentContent()
       console.log('🎣 Hook getCurrentContent():', hookContent)
     }
-  }
+  }, [editor, yDoc, getCurrentContent])
 
   return {
     editor,

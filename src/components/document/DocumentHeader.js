@@ -11,11 +11,13 @@ import {
   X,
   RefreshCw
 } from 'lucide-react'
+import { History } from 'lucide-react'
 
 const DocumentHeader = ({ 
   title, 
   setTitle, 
   aiAssistantOpen, 
+  toggleModalVersions,
   toggleAiAssistant,
   handleSave,
   isSaving,
@@ -52,7 +54,7 @@ const DocumentHeader = ({
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="font-medium text-lg text-gray-900 focus:outline-none border-b border-transparent focus:border-blue-500"
+                className="font-medium text-lg text-gray-900 focus:outline-none border-b border-transparent focus:border-blue-500 w-full"
                 placeholder="Untitled Document"
               />
               <div className="flex items-center gap-4 text-sm text-gray-600">
@@ -262,9 +264,17 @@ const DocumentHeader = ({
               variant="ghost" 
               size="icon"
               onClick={toggleAiAssistant}
-              className={aiAssistantOpen ? "bg-blue-100 text-blue-700" : ""}
+              className={aiAssistantOpen ? "bg-primary/20 text-primary" : ""}
             >
               <MessageSquare className="h-5 w-5" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleModalVersions}
+            >
+              <History className='h-5 w-5'/>
             </Button>
             <div className="ml-2 flex items-center gap-2">
               {user?.avatar ? (

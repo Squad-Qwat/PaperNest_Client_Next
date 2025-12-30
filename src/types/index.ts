@@ -56,6 +56,10 @@ export interface User {
   lastLogin?: string;
 }
 
+export interface Review { 
+  id: string;
+}
+
 export interface AuthContextType {
   currentUser: User | null;
   users: User[];

@@ -16,6 +16,7 @@ import EditorToolbar from '@/components/document/EditorToolbar'
 import AIAssistant from '@/components/document/AIAssistant'
 import '@/components/document/EditorStyles.css'
 import ContextMenu from '@/components/editor/context-menu'
+import ModalVersions from '@/components/document/ModalVersions'
 import { useAuthContext } from '@/context/AuthContext'
 
 export default function DocumentPage() {
@@ -34,6 +35,7 @@ export default function DocumentPage() {
   const [activeDropdown, setActiveDropdown] = useState(null)
   const [paperSize, setPaperSize] = useState('A4')
   const [paperSizeSubmenuOpen, setPaperSizeSubmenuOpen] = useState(false)
+  const [modalVersionsOpen, setModalVersionsOpen] = useState(false)
   const [defaultFontFamily, setDefaultFontFamily] = useState('"Times New Roman", Times, serif')
   const [defaultFontSize, setDefaultFontSize] = useState('11pt')
   const [editorFunctions, setEditorFunctions] = useState(null)
@@ -183,6 +185,10 @@ export default function DocumentPage() {
     setActiveDropdown(activeDropdown === dropdownName ? null : dropdownName)
   }
 
+  const toggleModalVersions = () => {
+    setModalVersionsOpen(!modalVersionsOpen)
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -224,6 +230,7 @@ export default function DocumentPage() {
         setPaperSize={setPaperSize}
         paperSizeSubmenuOpen={paperSizeSubmenuOpen}
         setPaperSizeSubmenuOpen={setPaperSizeSubmenuOpen}
+        toggleModalVersions={toggleModalVersions}
         user={user}
         workspaceId={workspaceId}
         documentId={documentId}
@@ -266,6 +273,11 @@ export default function DocumentPage() {
           />
         </div>
       </Room>
+      
+      <ModalVersions 
+        isOpen={modalVersionsOpen} 
+        onClose={() => setModalVersionsOpen(false)} 
+      />
     </div>
   )
 }
