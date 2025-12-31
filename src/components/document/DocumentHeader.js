@@ -4,8 +4,9 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import EditorToolbar from '@/components/document/EditorToolbar'
-import { ChevronLeft, Share2, MessageSquare, X, RefreshCw } from 'lucide-react'
+import { ChevronLeft, Share2, MessageSquare, X, RefreshCw, GitCommit } from 'lucide-react'
 import { History } from 'lucide-react'
+import { CommitModal } from '@/components/document/CommitModal'
 
 const DocumentHeader = ({
 	title,
@@ -34,6 +35,7 @@ const DocumentHeader = ({
 	debugContentExtraction,
 }) => {
 	const [isSyncing, setIsSyncing] = useState(false)
+	const [showCommitModal, setShowCommitModal] = useState(false)
 
 	return (
 		<header className='bg-white border-b border-gray-200 sticky top-0 z-40 transition-all duration-300'>
@@ -333,6 +335,15 @@ const DocumentHeader = ({
 							Share
 						</Button>
 						<Button
+							variant='outline'
+							size='sm'
+							className='gap-1' // Added Commit Button
+							onClick={() => setShowCommitModal(true)}
+						>
+							<GitCommit className='h-4 w-4' />
+							Commit
+						</Button>
+						<Button
 							variant='ghost'
 							size='icon'
 							onClick={toggleAiAssistant}
@@ -360,6 +371,18 @@ const DocumentHeader = ({
 					</div>
 				</div>
 			</div>
+
+			{/* Commit Modal */}
+			<CommitModal
+				isOpen={showCommitModal}
+				onClose={() => setShowCommitModal(false)}
+				onCommit={async (data) => {
+					console.log('Committing version:', data)
+					// TODO: Implement actual commit logic here
+					await new Promise((resolve) => setTimeout(resolve, 1000)) // Mock delay
+					setShowCommitModal(false)
+				}}
+			/>
 
 			{/* Editor Toolbar - sticky di bawah header */}
 			<EditorToolbar

@@ -34,8 +34,6 @@ export function ReviewCard({
 	workspaceId,
 	onDelete,
 }: ReviewCardProps) {
-
-
 	return (
 		<Link href={`/${workspaceId}/reviews/${reviewId}`} className='block'>
 			<Card className='transition-all hover:shadow-md cursor-pointer'>
