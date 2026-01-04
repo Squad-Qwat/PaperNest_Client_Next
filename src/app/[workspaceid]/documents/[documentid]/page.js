@@ -1,22 +1,21 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { useRouter, useParams } from 'next/navigation'
-import { useEditor, EditorContent } from '@tiptap/react'
+import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import { createEditorExtensions } from '@/lib/editor/extensions'
-import { DocumentService } from '@/lib/firebase/document-service'
-import { Room } from '@/hooks/liveblocks/room'
-import { useWorkspace } from '@/hooks/useWorkspace'
-
+import { useParams, useRouter } from 'next/navigation'
+import { useCallback, useEffect, useState } from 'react'
+import AIAssistant from '@/components/document/AIAssistant'
 // UI Components
 import DocumentEditor from '@/components/document/DocumentEditor'
 import DocumentHeader from '@/components/document/DocumentHeader'
 import EditorToolbar from '@/components/document/EditorToolbar'
-import AIAssistant from '@/components/document/AIAssistant'
+import { Room } from '@/hooks/liveblocks/room'
+import { useWorkspace } from '@/hooks/useWorkspace'
+import { createEditorExtensions } from '@/lib/editor/extensions'
+import { DocumentService } from '@/lib/firebase/document-service'
 import '@/components/document/EditorStyles.css'
-import ContextMenu from '@/components/editor/context-menu'
 import ModalVersions from '@/components/document/ModalVersions'
+import ContextMenu from '@/components/editor/context-menu'
 import { useAuthContext } from '@/context/AuthContext'
 
 export default function DocumentPage() {
@@ -273,10 +272,11 @@ export default function DocumentPage() {
 						toggleAiAssistant={toggleAiAssistant}
 						onWidthChange={setAiAssistantWidth}
 					/>
+
+					{/* Version History Panel - Side Panel */}
+					<ModalVersions isOpen={modalVersionsOpen} onClose={() => setModalVersionsOpen(false)} />
 				</div>
 			</Room>
-
-			<ModalVersions isOpen={modalVersionsOpen} onClose={() => setModalVersionsOpen(false)} />
 		</div>
 	)
 }

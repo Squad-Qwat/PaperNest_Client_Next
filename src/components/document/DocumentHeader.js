@@ -1,12 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { ChevronLeft, GitCommit, History, MessageSquare, RefreshCw, Share2, X } from 'lucide-react'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import EditorToolbar from '@/components/document/EditorToolbar'
-import { ChevronLeft, Share2, MessageSquare, X, RefreshCw, GitCommit } from 'lucide-react'
-import { History } from 'lucide-react'
+import { useState } from 'react'
 import { CommitModal } from '@/components/document/CommitModal'
+import EditorToolbar from '@/components/document/EditorToolbar'
+import { Button } from '@/components/ui/button'
 
 const DocumentHeader = ({
 	title,
@@ -352,21 +351,24 @@ const DocumentHeader = ({
 							<MessageSquare className='h-5 w-5' />
 						</Button>
 
-						<Button variant='ghost' size='icon' onClick={toggleModalVersions}>
+						<Button
+							variant='ghost'
+							size='icon'
+							onClick={toggleModalVersions}
+							title='History & Reviews'
+						>
 							<History className='h-5 w-5' />
 						</Button>
 						<div className='ml-2 flex items-center gap-2'>
-							{user?.avatar
-								? <img
-										src={user.avatar}
-										alt={user.name || 'User'}
-										className='h-8 w-8 rounded-full'
-									/>
-								: <div className='h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center'>
-										<span className='text-white text-sm font-medium'>
-											{user?.name?.charAt(0) || 'U'}
-										</span>
-									</div>}
+							{user?.avatar ? (
+								<img src={user.avatar} alt={user.name || 'User'} className='h-8 w-8 rounded-full' />
+							) : (
+								<div className='h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center'>
+									<span className='text-white text-sm font-medium'>
+										{user?.name?.charAt(0) || 'U'}
+									</span>
+								</div>
+							)}
 						</div>
 					</div>
 				</div>

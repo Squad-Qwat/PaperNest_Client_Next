@@ -63,4 +63,14 @@ export const API_ENDPOINTS = {
 		content: (workspaceId: string, documentId: string) =>
 			`/workspaces/${workspaceId}/documents/${documentId}/content`,
 	},
+
+	// Reviews
+	reviews: {
+		byDocument: (documentId: string) => `/documents/${documentId}/reviews`,
+		create: (documentId: string, versionId: string) =>
+			`/documents/${documentId}/versions/${versionId}/reviews`,
+		approve: (reviewId: string) => `/reviews/${reviewId}/approve`,
+		reject: (reviewId: string) => `/reviews/${reviewId}/reject`,
+		requestRevision: (reviewId: string) => `/reviews/${reviewId}/request-revision`,
+	},
 } as const
