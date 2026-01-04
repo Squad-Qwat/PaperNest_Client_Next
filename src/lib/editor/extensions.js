@@ -12,6 +12,7 @@ import HardBreak from '@tiptap/extension-hard-break'
 import Blockquote from '@tiptap/extension-blockquote'
 import { BulletList, OrderedList, ListItem } from '@tiptap/extension-list'
 import { TextStyle, FontSize } from '@tiptap/extension-text-style'
+import { Color } from '@tiptap/extension-color'
 import FontFamily from '@tiptap/extension-font-family'
 import TextAlign from '@tiptap/extension-text-align'
 import { Extension } from '@tiptap/core'
@@ -397,6 +398,9 @@ ImportDocx.configure({
 	FontSize.configure({
 		types: ['textStyle'],
 		defaultValue: '11pt',
+	}),
+	Color.configure({
+		types: ['textStyle'],
 	}),
 	Heading.configure({
 		levels: [1, 2, 3, 4],

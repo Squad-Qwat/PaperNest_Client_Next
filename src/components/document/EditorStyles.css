@@ -131,29 +131,31 @@
 	padding: 0;
 }
 
-/* Table styles - default TipTap styling */
+/* Table styles - Google Docs/Word style */
 .ProseMirror table {
 	border-collapse: collapse;
 	table-layout: fixed;
 	width: 100%;
 	margin: 0;
 	overflow: hidden;
+	background-color: transparent;
 }
 
 .ProseMirror table td,
 .ProseMirror table th {
 	min-width: 1em;
-	border: 1px solid #ced4da;
+	border: 1px solid #000000;
 	padding: 8px;
 	vertical-align: top;
 	box-sizing: border-box;
 	position: relative;
+	background-color: transparent;
 }
 
 .ProseMirror table th {
 	font-weight: bold;
 	text-align: left;
-	background-color: #f8f9fa;
+	background-color: transparent;
 }
 
 .ProseMirror table .selectedCell:after {

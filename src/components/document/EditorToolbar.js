@@ -1479,24 +1479,6 @@ const EditorToolbar = ({
 					<FileDown className='h-4 w-4' />
 					Export DOCX
 				</Button>
-				<Button
-					variant='ghost'
-					size='sm'
-					onClick={() => {
-						if (!editor) return
-						try {
-							window.print()
-						} catch (error) {
-							console.error('Print failed:', error)
-						}
-					}}
-					className='text-xs flex items-center gap-1'
-					title='Print or Save as PDF'
-					disabled={!editor}
-				>
-					<Download className='h-4 w-4' />
-					Print/PDF
-				</Button>
 			</div>
 		</div>
 	)

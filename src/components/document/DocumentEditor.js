@@ -9,7 +9,7 @@ import { useDocumentEditor } from '@/hooks/editor/use-document-editor'
 import DocumentHeader from '@/components/document/DocumentHeader'
 import AIAssistant from '@/components/document/AIAssistant'
 import '@/components/document/EditorStyles.css'
-import ContextMenu from '@/components/editor/context-menu'
+import EditorContextMenu from '@/components/document/EditorContextMenu'
 
 // Komponen Editor yang ada di dalam Room
 export default function DocumentEditor({
@@ -107,29 +107,20 @@ export default function DocumentEditor({
 		debugContentExtraction,
 	])
 
-	const closeContextMenu = () => {
-		setContextMenu({ show: false, x: 0, y: 0 })
-	}
-
 	return (
 		<div className='flex-1 overflow-auto transition-all duration-300 w-full' style={{ backgroundColor: '#F5F5F5' }}>
 			<div className='pt-6'>
 				<div className='max-w-[850px] mx-auto my-12 bg-transparent shadow-sm min-h-[1100px]'>
-					<div className=''>
-						<EditorContent
-							editor={editor}
-							className='prose max-w-none focus:outline-none min-h-[800px]'
-						/>
-					</div>
+					<EditorContextMenu editor={editor}>
+						<div className=''>
+							<EditorContent
+								editor={editor}
+								className='prose max-w-none focus:outline-none min-h-[800px]'
+							/>
+						</div>
+					</EditorContextMenu>
 				</div>
 			</div>
-			{contextMenu.show && (
-				<ContextMenu
-					editor={editor}
-					position={{ x: contextMenu.x, y: contextMenu.y }}
-					onClose={closeContextMenu}
-				/>
-			)}
 		</div>
 	)
 }
