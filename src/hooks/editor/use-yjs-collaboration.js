@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRoom, useSelf } from '@/lib/liveblocks/config'
 import { getYjsProviderForRoom } from '@liveblocks/yjs'
 import { Collaboration } from '@tiptap/extension-collaboration'
-import { CollaborationCursor } from '@tiptap/extension-collaboration-cursor'
+import CollaborationCaret from '@tiptap/extension-collaboration-caret'
 import * as Y from 'yjs'
 import { DocumentService } from '@/lib/firebase/document-service'
 import YjsStateManager from '@/lib/editor/yjs-state-manager'
@@ -162,28 +162,59 @@ export function useYjsCollaboration({ enabled = false, user = null, onSync = () 
 						console.log('Undo stack cleared:', event)
 					})
 
-					// Setup collaboration extensions dengan kustomisasi yang lebih baik
-					const extensions = [
-						Collaboration.configure({
-							document: yjsDoc,
-						}),
-						CollaborationCursor.configure({
-							provider: provider,
-							// Don't use custom render - let Tiptap handle cursor positioning
-						}),
-					]
+			// Setup collaboration extensions dengan kustomisasi yang lebih baik
+			const extensions = [
+				Collaboration.configure({
+					document: yjsDoc,
+				}),
+				CollaborationCaret.configure({
+					provider: provider,
+					render: (user) => {
+						const cursor = document.createElement('span')
+						cursor.classList.add('collaboration-cursor__caret')
+						cursor.style.borderLeft = `2px solid ${user.color}`
+						cursor.style.borderRight = `2px solid ${user.color}`
+						cursor.style.marginLeft = '-1px'
+						cursor.style.marginRight = '-1px'
+						cursor.style.pointerEvents = 'none'
+						cursor.style.position = 'relative'
+						cursor.style.wordBreak = 'normal'
 
-					if (mounted) {
-						setYProvider(provider)
-						setYDoc(yjsDoc)
-						setCollaborationExtensions(extensions)
-						setUndoManager(undoManagerInstance)
-						setIsReady(true)
+						const label = document.createElement('div')
+						label.classList.add('collaboration-cursor__label')
+						label.style.backgroundColor = user.color
+						label.style.color = '#ffffff'
+						label.style.fontSize = '12px'
+						label.style.fontStyle = 'normal'
+						label.style.fontWeight = '600'
+						label.style.left = '-1px'
+						label.style.lineHeight = 'normal'
+						label.style.position = 'absolute'
+						label.style.userSelect = 'none'
+						label.style.whiteSpace = 'nowrap'
+					label.style.fontFamily = 'Arial, sans-serif'
+					label.style.top = '-1.4em'
+					label.style.padding = '2px 6px'
+						label.style.pointerEvents = 'none'
+						label.style.zIndex = '1000'
+						label.textContent = user.name
 
-						console.log('Yjs provider setup complete with UndoManager')
-					}
+						cursor.appendChild(label)
 
-					// Event listeners
+						return cursor
+					},
+				}),
+			]
+
+			if (mounted) {
+				setYProvider(provider)
+				setYDoc(yjsDoc)
+				setCollaborationExtensions(extensions)
+				setUndoManager(undoManagerInstance)
+				setIsReady(true)
+
+				console.log('Yjs provider setup complete with UndoManager')
+			}					// Event listeners
 					const handleSync = (isSynced) => {
 						console.log('Yjs sync status:', isSynced)
 						setIsConnected(isSynced)

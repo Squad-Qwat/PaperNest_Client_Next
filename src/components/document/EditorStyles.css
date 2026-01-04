@@ -53,6 +53,25 @@
 	line-height: 1.6;
 }
 
+/* Remove focus styles that add borders */
+.ProseMirror:focus,
+.ProseMirror-focused {
+	outline: none !important;
+	border: none !important;
+	box-shadow: none !important;
+	border-radius: 0 !important;
+}
+
+.ProseMirror-focused .page,
+.ProseMirror-focused .page *,
+.ProseMirror-focused [data-page],
+.ProseMirror-focused div[data-type="page"] {
+	border-radius: 0 !important;
+	border: none !important;
+	box-shadow: none !important;
+	outline: none !important;
+}
+
 /* Ensure paragraphs inherit the font */
 .ProseMirror p {
 	font-family: inherit;
@@ -179,11 +198,40 @@
 .ProseMirror .page {
 	font-family: inherit;
 	font-size: inherit;
+	border-radius: 0 !important;
+	border: none !important;
+	box-shadow: none !important;
+	outline: none !important;
 }
 
 .ProseMirror .page-body {
 	font-family: inherit;
 	font-size: inherit;
+	border-radius: 0 !important;
+	border: none !important;
+	box-shadow: none !important;
+	outline: none !important;
+}
+
+/* Remove all border-radius, borders, and shadows from page elements */
+.ProseMirror .page,
+.ProseMirror .page *,
+.ProseMirror [data-page],
+.ProseMirror [data-page] *,
+.ProseMirror .page-header,
+.ProseMirror .page-footer {
+	border-radius: 0 !important;
+	box-shadow: none !important;
+	outline: none !important;
+}
+
+/* Override any vendor-specific page styling */
+.ProseMirror div[data-type="page"],
+.ProseMirror div[class*="page"] {
+	border-radius: 0 !important;
+	border: none !important;
+	box-shadow: none !important;
+	outline: none !important;
 }
 
 /* List styles - from TipTap documentation */
@@ -375,7 +423,7 @@
 
 /* Render the username above the caret */
 .collaboration-cursor__label {
-	font-family: "Inter", "Segoe UI", "Arial", sans-serif;
+	font-family: "Arial", sans-serif !important;
 	font-style: normal;
 	font-weight: 600;
 	left: -1px;
@@ -386,8 +434,6 @@
 	font-size: 12px;
 	color: #fff;
 	top: -1.4em;
-	border-radius: 6px;
-	border-bottom-left-radius: 0;
 	padding: 2px 6px;
 	pointer-events: none;
 	z-index: 1000;

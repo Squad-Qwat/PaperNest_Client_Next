@@ -112,9 +112,9 @@ export default function DocumentEditor({
 	}
 
 	return (
-		<div className='flex-1 overflow-auto bg-gray-50 transition-all duration-300 w-full'>
+		<div className='flex-1 overflow-auto transition-all duration-300 w-full' style={{ backgroundColor: '#F5F5F5' }}>
 			<div className='pt-6'>
-				<div className='max-w-[850px] mx-auto my-12 bg-transparent shadow-sm rounded-lg min-h-[1100px]'>
+				<div className='max-w-[850px] mx-auto my-12 bg-transparent shadow-sm min-h-[1100px]'>
 					<div className=''>
 						<EditorContent
 							editor={editor}
