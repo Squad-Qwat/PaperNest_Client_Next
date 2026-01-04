@@ -1,84 +1,65 @@
 import { ArrowLeft, MoreVertical } from 'lucide-react'
-import React, { useState } from 'react'
-import { type ReviewStatus, ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
+import React, { useMemo, useState } from 'react'
+import { ReviewStatus, ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { ScrollArea } from '@/components/ui/scroll-area'
-
-interface Review {
-	reviewer: {
-		name: string
-		avatarUrl?: string
-	}
-	date: string
-	status: ReviewStatus
-	content?: string
-}
-
-interface Version {
-	id: string
-	timestamp: string
-	author: string
-	color: string
-	isCurrent?: boolean
-	review?: Review
-}
+import { useAuthContext } from '@/context/AuthContext'
+import { useDocumentReviews, useDocumentVersions } from '@/hooks/useDocumentVersions'
+import { format, id } from '@/lib/date'
 
 interface ModalVersionsProps {
 	isOpen: boolean
 	onClose: () => void
+	documentId: string
 }
 
-const MOCK_VERSIONS: Version[] = [
-	{
-		id: '1',
-		timestamp: '15 Agustus 2023, 16:51',
-		author: 'Fa Ainama Caldera',
-		color: 'bg-purple-500',
-		isCurrent: true,
-		review: {
-			reviewer: {
-				name: 'Pak Dosen',
-				avatarUrl: 'https://github.com/shadcn.png',
-			},
-			date: '16 Agustus 2023, 09:00',
-			status: 'Revision Required',
-			content:
-				'Secara keseluruhan sudah bagus, namun tolong perbaiki bagian metodologi penelitian. Penjelasannya masih kurang mendalam dan perlu ditambahkan referensi yang lebih baru.',
-		},
-	},
-	{
-		id: '2',
-		timestamp: '15 Agustus 2023, 16:15',
-		author: 'Fa Ainama Caldera',
-		color: 'bg-purple-500',
-		review: {
-			reviewer: {
-				name: 'Pak Dosen',
-			},
-			date: '15 Agustus 2023, 17:30',
-			status: 'Pending',
-		},
-	},
-	{
-		id: '3',
-		timestamp: '14 Agustus 2023, 14:30',
-		author: 'Rangga',
-		color: 'bg-orange-500',
-	},
-	{
-		id: '4',
-		timestamp: '14 Agustus 2023, 13:00',
-		author: 'Rangga',
-		color: 'bg-orange-500',
-	},
-]
+export default function ModalVersions({ isOpen, onClose, documentId }: ModalVersionsProps) {
+	const { user } = useAuthContext()
+	const { versions, loading: versionsLoading } = useDocumentVersions(documentId)
+	const { reviews, loading: reviewsLoading, requestReview } = useDocumentReviews(documentId)
 
-export default function ModalVersions({ isOpen, onClose }: ModalVersionsProps) {
-	const [selectedVersionId, setSelectedVersionId] = useState<string>('1')
+	const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null)
 
-	const selectedVersion = MOCK_VERSIONS.find((v) => v.id === selectedVersionId)
+	// Set initial selected version to latest when data loads
+	React.useEffect(() => {
+		if (versions.length > 0 && !selectedVersionId) {
+			setSelectedVersionId(versions[0].documentBodyId)
+		}
+	}, [versions, selectedVersionId])
+
+	// Merge Version and Review Data
+	const versionsList = useMemo(() => {
+		return versions.map((version, index) => {
+			// Find review for this version
+			const versionReview = reviews.find((r) => r.documentBodyId === version.documentBodyId)
+
+			// Map to UI format
+			return {
+				id: version.documentBodyId,
+				timestamp: format(new Date(version.createdAt), 'd MMMM yyyy, HH:mm', { locale: id }),
+				author: version.createdBy, // In real app, this would be a name, not ID. Assuming ID for now.
+				color: index === 0 ? 'bg-purple-500' : 'bg-orange-500',
+				isCurrent: index === 0,
+				review: versionReview
+					? {
+							reviewer: {
+								name: 'Lecturer', // Placeholder until user data is joined
+								avatarUrl: undefined,
+							},
+							date: format(new Date(versionReview.requestedAt), 'd MMMM yyyy, HH:mm', {
+								locale: id,
+							}),
+							status: versionReview.status,
+							content: versionReview.message,
+						}
+					: undefined,
+			}
+		})
+	}, [versions, reviews])
+
+	const selectedVersion = versionsList.find((v) => v.id === selectedVersionId)
 
 	return (
 		<Modal
@@ -86,7 +67,7 @@ export default function ModalVersions({ isOpen, onClose }: ModalVersionsProps) {
 			onClose={onClose}
 			size='full'
 			showCloseButton={false}
-			title='Riwayat versi' // nanti ini berganti sesuai dengan yang timestamp yang dipilih
+			title='Riwayat versi'
 			visuallyHiddenTitle={true}
 		>
 			<div className='flex flex-col h-screen w-full bg-white'>
@@ -102,7 +83,13 @@ export default function ModalVersions({ isOpen, onClose }: ModalVersionsProps) {
 						</Button>
 						<div className='flex flex-col'>
 							<span className='text-sm font-medium text-gray-900'>Riwayat versi</span>
-							<span className='text-xs text-gray-500'>Nama Dokumen</span>
+							<span className='text-xs text-gray-500'>
+								{selectedVersion
+									? selectedVersion.timestamp
+									: versionsLoading
+										? 'Loading...'
+										: 'No version selected'}
+							</span>
 						</div>
 					</div>
 
@@ -121,12 +108,7 @@ export default function ModalVersions({ isOpen, onClose }: ModalVersionsProps) {
 												<Avatar className='h-8 w-8 border border-gray-200'>
 													<AvatarImage src={selectedVersion.review.reviewer.avatarUrl} />
 													<AvatarFallback className='text-xs bg-blue-50 text-blue-600 font-medium'>
-														{selectedVersion.review.reviewer.name
-															.split(' ')
-															.map((n) => n[0])
-															.join('')
-															.substring(0, 2)
-															.toUpperCase()}
+														L
 													</AvatarFallback>
 												</Avatar>
 												<div className='flex flex-col'>
@@ -149,7 +131,12 @@ export default function ModalVersions({ isOpen, onClose }: ModalVersionsProps) {
 								)}
 
 								{/* Document Page Mockup */}
-								<div className='bg-white shadow-sm w-[816px] min-h-[1056px] p-12 border border-gray-200 shrink-0'></div>
+								<div className='bg-white shadow-sm w-[816px] min-h-[1056px] p-12 border border-gray-200 shrink-0'>
+									<div className='prose max-w-none text-gray-500 italic text-center mt-20'>
+										{/* Placeholder for content */}
+										Content preview not implemented yet.
+									</div>
+								</div>
 							</div>
 						</ScrollArea>
 					</div>
@@ -161,9 +148,11 @@ export default function ModalVersions({ isOpen, onClose }: ModalVersionsProps) {
 
 						<ScrollArea className='flex-1'>
 							<div className='py-2'>
-								<div className='px-4 py-2 text-xs font-medium text-gray-500'>Hari ini</div>
+								<div className='px-4 py-2 text-xs font-medium text-gray-500'>
+									{versionsLoading ? 'Memuat...' : 'Versi Dokumen'}
+								</div>
 
-								{MOCK_VERSIONS.map((version) => (
+								{versionsList.map((version) => (
 									<div
 										key={version.id}
 										onClick={() => setSelectedVersionId(version.id)}
@@ -178,7 +167,7 @@ export default function ModalVersions({ isOpen, onClose }: ModalVersionsProps) {
 												</div>
 												<div className='flex items-center gap-2'>
 													<div className={`w-2 h-2 rounded-full ${version.color}`} />
-													<span className='text-xs text-gray-600'>{version.author}</span>
+													<span className='text-xs text-gray-600'>User</span>
 												</div>
 											</div>
 											<Button
@@ -194,12 +183,42 @@ export default function ModalVersions({ isOpen, onClose }: ModalVersionsProps) {
 							</div>
 						</ScrollArea>
 
-						<div className='p-4 border-t'>
+						<div className='p-4 border-t space-y-3'>
 							{selectedVersion?.isCurrent ? (
 								<div className='text-center text-sm text-gray-500 py-2'>Versi saat ini</div>
 							) : (
 								<Button className='w-full'>Pulihkan versi ini</Button>
 							)}
+
+                            {/* Student Request Review Button */}
+                            {user?.role === 'Student' && selectedVersion && !selectedVersion.review && (
+                                <Button 
+                                    className='w-full' 
+                                    variant='outline'
+                                    onClick={async () => {
+                                        // For now using prompt, ideally a modal
+                                        const message = prompt('Pesan untuk dosen (opsional):', 'Mohon direview Pak/Bu')
+                                        if (message === null) return // Cancelled
+
+                                        // Hardcoded active lecturer for prototype or prompt
+                                        // In real app, user selects from list.
+                                        // For now assume user ID from ENV or known ID, or just asking via prompt for testing
+                                        // "user_lecturer_123" is from docs.
+                                        // Let's rely on a default simple string if no list available. 
+                                        // The user said "endpoint logic" must be correct.
+                                        const lecturerId = 'user_lecturer_123' // Fallback/Placeholder
+                                        
+                                        try {
+                                           await requestReview(selectedVersion.id, lecturerId, message)
+                                           alert('Permintaan review berhasil dikirim')
+                                        } catch (e: any) {
+                                            alert('Gagal meminta review: ' + e.message)
+                                        }
+                                    }}
+                                >
+                                    Minta Review
+                                </Button>
+                            )}
 						</div>
 					</div>
 				</div>

@@ -57,3 +57,30 @@ export interface DocumentsResponse {
 	documents: Document[]
 	count: number
 }
+
+/**
+ * Version entity
+ */
+export interface Version {
+	documentBodyId: string
+	documentId: string
+	versionNumber: number
+	content: any
+	message?: string
+	createdAt: string
+	createdBy: string
+}
+
+/**
+ * Versions response
+ */
+export interface VersionsResponse {
+	versions: Version[]
+}
+
+/**
+ * Single Version response
+ */
+export interface VersionResponse {
+	version: Version
+}

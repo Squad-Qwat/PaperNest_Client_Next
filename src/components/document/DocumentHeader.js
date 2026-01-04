@@ -1,11 +1,12 @@
-'use client'
-
 import { ChevronLeft, GitCommit, History, MessageSquare, RefreshCw, Share2, X } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
 import { CommitModal } from '@/components/document/CommitModal'
 import EditorToolbar from '@/components/document/EditorToolbar'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { useDocumentReviews } from '@/hooks/useDocumentVersions'
+import { documentsService } from '@/lib/api/services/documents.service'
 
 const DocumentHeader = ({
 	title,
@@ -35,6 +36,7 @@ const DocumentHeader = ({
 }) => {
 	const [isSyncing, setIsSyncing] = useState(false)
 	const [showCommitModal, setShowCommitModal] = useState(false)
+	const { canCommit, latestReviewStatus } = useDocumentReviews(documentId)
 
 	return (
 		<header className='bg-white border-b border-gray-200 sticky top-0 z-40 transition-all duration-300'>
@@ -60,6 +62,12 @@ const DocumentHeader = ({
 									File
 									{activeDropdown === 'file' && (
 										<div className='dropdown-menu absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-2 w-48 z-50'>
+											{/* ... existing file menu items ... */}
+											{/* Copied existing logic but removed clutter for brevity in replacement if possible, but replace_file_content needs strict match. 
+                                                Since match is hard with large blocks, I will target specific imports and the button area separately or use multi_replace.
+                                                Wait, I should use multi_replace if I can't match the whole file easily.
+                                                Actually, I will just rewrite the imports and the button part.
+                                             */}
 											<div className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 cursor-pointer'>
 												<svg
 													className='h-4 w-4'
@@ -333,15 +341,32 @@ const DocumentHeader = ({
 							<Share2 className='h-4 w-4' />
 							Share
 						</Button>
-						<Button
-							variant='outline'
-							size='sm'
-							className='gap-1' // Added Commit Button
-							onClick={() => setShowCommitModal(true)}
-						>
-							<GitCommit className='h-4 w-4' />
-							Commit
-						</Button>
+						<TooltipProvider>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<span className='inline-block'>
+										{' '}
+										{/* Wrapper for disabled button to show tooltip */}
+										<Button
+											variant='outline'
+											size='sm'
+											className='ga p-1'
+											onClick={() => setShowCommitModal(true)}
+											disabled={!canCommit}
+										>
+											<GitCommit className='h-4 w-4' />
+											Commit
+										</Button>
+									</span>
+								</TooltipTrigger>
+								{!canCommit && (
+									<TooltipContent>
+										<p>Waiting for pending review ({latestReviewStatus})</p>
+									</TooltipContent>
+								)}
+							</Tooltip>
+						</TooltipProvider>
+
 						<Button
 							variant='ghost'
 							size='icon'
@@ -374,15 +399,29 @@ const DocumentHeader = ({
 				</div>
 			</div>
 
+
 			{/* Commit Modal */}
 			<CommitModal
 				isOpen={showCommitModal}
 				onClose={() => setShowCommitModal(false)}
 				onCommit={async (data) => {
-					console.log('Committing version:', data)
-					// TODO: Implement actual commit logic here
-					await new Promise((resolve) => setTimeout(resolve, 1000)) // Mock delay
-					setShowCommitModal(false)
+					try {
+                        // We also need content usually, but the API doc says content string. 
+                        // If editor content is available, pass it. 
+                        // `editor` prop is available. `editor.getHTML()` or `JSON`.
+                        const content = editor ? editor.getHTML() : '' 
+						await documentsService.createVersion(documentId, { 
+                            message: data.message,
+                            content: content
+                        })
+                        // Refresh versions or notify success
+						setShowCommitModal(false)
+                        // TODO: trigger version refresh if needed
+                        // Maybe toast.success('Version created')
+					} catch (error) {
+						console.error('Failed to commit version:', error)
+                        throw error // Re-throw so Modal can handle it/show error
+					}
 				}}
 			/>
 
