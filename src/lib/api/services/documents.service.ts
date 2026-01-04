@@ -13,8 +13,52 @@ import type {
 	DocumentSearchParams,
 	DocumentsResponse,
 } from '../types/document.types'
+import type {
+	Review,
+	ReviewsResponse,
+	CreateReviewDto,
+	UpdateReviewStatusDto,
+} from '../types/review.types'
 
 class DocumentsService {
+	/**
+	 * Get reviews for a document
+	 */
+	async getReviews(documentId: string): Promise<ReviewsResponse> {
+		return apiClient.get<ReviewsResponse>(API_ENDPOINTS.reviews.byDocument(documentId))
+	}
+
+	/**
+	 * Create a review request
+	 */
+	async createReview(
+		documentId: string,
+		versionId: string,
+		data: CreateReviewDto
+	): Promise<Review> {
+		return apiClient.post<Review>(API_ENDPOINTS.reviews.create(documentId, versionId), data)
+	}
+
+	/**
+	 * Approve a review
+	 */
+	async approveReview(reviewId: string): Promise<void> {
+		return apiClient.post<void>(API_ENDPOINTS.reviews.approve(reviewId))
+	}
+
+	/**
+	 * Reject a review
+	 */
+	async rejectReview(reviewId: string, data: UpdateReviewStatusDto): Promise<void> {
+		return apiClient.post<void>(API_ENDPOINTS.reviews.reject(reviewId), data)
+	}
+
+	/**
+	 * Request revision
+	 */
+	async requestRevision(reviewId: string, data: UpdateReviewStatusDto): Promise<void> {
+		return apiClient.post<void>(API_ENDPOINTS.reviews.requestRevision(reviewId), data)
+	}
 	/**
 	 * Get user's documents across all workspaces
 	 */

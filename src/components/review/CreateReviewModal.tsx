@@ -1,10 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Modal, ModalFooter } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+import { Modal, ModalFooter } from '@/components/ui/modal'
 import {
 	Select,
 	SelectContent,
@@ -12,6 +11,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 
 interface CreateReviewModalProps {
 	isOpen: boolean

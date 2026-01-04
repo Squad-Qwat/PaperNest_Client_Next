@@ -5,9 +5,9 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
-import { documentsService } from '@/lib/api/services/documents.service'
+import { useEffect, useState } from 'react'
 import { useAuthContext } from '@/context/AuthContext'
+import { documentsService } from '@/lib/api/services/documents.service'
 import type { Document } from '@/lib/api/types/document.types'
 
 interface UseDocumentsReturn {
