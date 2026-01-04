@@ -131,7 +131,7 @@
 	padding: 0;
 }
 
-/* Table styles - preserve TipTap table styling */
+/* Table styles - default TipTap styling */
 .ProseMirror table {
 	border-collapse: collapse;
 	table-layout: fixed;
@@ -143,19 +143,17 @@
 .ProseMirror table td,
 .ProseMirror table th {
 	min-width: 1em;
-	border: 2px solid #ced4da;
-	padding: 3px 5px;
+	border: 1px solid #ced4da;
+	padding: 8px;
 	vertical-align: top;
 	box-sizing: border-box;
 	position: relative;
-	font-family: inherit;
-	font-size: inherit;
 }
 
 .ProseMirror table th {
 	font-weight: bold;
 	text-align: left;
-	background-color: #f1f3f4;
+	background-color: #f8f9fa;
 }
 
 .ProseMirror table .selectedCell:after {

@@ -16,6 +16,8 @@ import FontFamily from '@tiptap/extension-font-family'
 import TextAlign from '@tiptap/extension-text-align'
 import { Extension } from '@tiptap/core'
 import { Pages } from '@tiptap-pro/extension-pages'
+import { ExportDocx } from '@tiptap-pro/extension-export-docx'
+import { ImportDocx } from '@tiptap-pro/extension-import-docx'
 import { Placeholder, Gapcursor, TrailingNode } from '@tiptap/extensions'
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table'
 
@@ -360,11 +362,27 @@ const createEditorExtensions = (paperSize, undoRedoOptions = {}) => [
 		pageFormat: paperSize || 'A4',
 		headerHeight: 60,
 		footerHeight: 50,
-		pageGap: 40,
-		header: '',
-		footer: (page, total) => `Page ${page} of ${total}`,
-		pageBreakBackground: '#f5f5f5',
-	}),
+	pageGap: 40,
+	header: '',
+	footer: (page, total) => `Page ${page} of ${total}`,
+	pageBreakBackground: '#f5f5f5',
+}),
+
+// Export DOCX extension (no auth required)
+ExportDocx.configure({
+	exportType: 'blob',
+	onCompleteExport: (result) => {
+		// This callback will be overridden by the exportDocx command call
+		// We provide a default no-op function to satisfy the extension requirement
+		console.log('DOCX export completed', result)
+	},
+}),
+
+// Import DOCX extension (requires Tiptap Cloud subscription)
+ImportDocx.configure({
+	appId: process.env.NEXT_PUBLIC_TIPTAP_APP_ID,
+	token: process.env.NEXT_PUBLIC_TIPTAP_JWT_TOKEN,
+}),
 
 	// Text formatting
 	TextStyle.configure({
