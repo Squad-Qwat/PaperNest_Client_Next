@@ -267,7 +267,7 @@ export default function RegisterPage() {
 							</div>
 
 							{/* Social Sign Up */}
-							<div className='grid grid-cols-2 gap-3'>
+							{/* <div className='grid grid-cols-2 gap-3'>
 								<Button
 									type='button'
 									variant='outline'
@@ -305,7 +305,7 @@ export default function RegisterPage() {
 									</svg>
 									Login using GitHub
 								</Button>
-							</div>
+							</div> */}
 
 							{/* Divider */}
 							<div className='relative'>
