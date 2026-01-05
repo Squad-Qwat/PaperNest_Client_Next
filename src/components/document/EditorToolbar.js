@@ -989,7 +989,7 @@ const EditorToolbar = ({
 	}
 
 	return (
-		<div className='bg-white border-t border-gray-200 px-11 py-1 sticky top-0 z-30 transition-all duration-300'>
+		<div className='bg-white border-t border-gray-200 px-11 py-1 sticky top-0 z-[1002] transition-all duration-300'>
 			<div className='flex items-center gap-1 overflow-x-auto pb-1 scrollbar-hide min-h-[40px]'>
 				{/* Text Style Dropdown */}
 				<div className='relative' ref={textStyleRef}>

@@ -41,7 +41,7 @@ const DocumentHeader = ({
 	const { canCommit, commitBlockReason } = useDocumentReviews(documentId)
 
 	return (
-		<header className='bg-white border-b border-gray-200 sticky top-0 z-40 transition-all duration-300'>
+		<header className='bg-white border-b border-gray-200 sticky top-0 z-[1001] transition-all duration-300'>
 			<div className='container mx-auto px-4 py-2'>
 				<div className='flex items-center justify-between'>
 					<div className='flex items-center gap-4'>

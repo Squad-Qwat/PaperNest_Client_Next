@@ -35,7 +35,7 @@ export function Modal({
 		md: 'sm:max-w-md',
 		lg: 'sm:max-w-lg',
 		xl: 'sm:max-w-xl',
-		full: '!max-w-none !w-screen !h-screen !m-0 !rounded-none !border-0 !top-0 !left-0 !translate-x-0 !translate-y-0 !p-0 !bg-white z-[60] block',
+		full: '!max-w-none !w-screen !h-screen !m-0 !rounded-none !border-0 !top-0 !left-0 !translate-x-0 !translate-y-0 !p-0 !bg-white z-[1015] block',
 	}
 
 	return (
