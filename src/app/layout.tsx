@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
 import { IBM_Plex_Mono, IBM_Plex_Sans } from 'next/font/google'
 import '@/app/css/globals.css'
-import { AppProvider } from '@/lib/store'
+import { Toaster } from '@/components/ui/toaster'
 import { AuthProvider } from '@/context/AuthContext'
+import { AppProvider } from '@/lib/store'
 
 const ibmPlexSans = IBM_Plex_Sans({
 	variable: '--font-ibmPlex-sans',
@@ -34,6 +35,7 @@ export default function RootLayout({
 			>
 				<AuthProvider>
 					<AppProvider>{children}</AppProvider>
+					<Toaster />
 				</AuthProvider>
 			</body>
 		</html>

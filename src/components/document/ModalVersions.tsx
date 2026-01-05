@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { useToast } from '@/components/ui/use-toast'
 import { useAuthContext } from '@/context/AuthContext'
 import { useDocumentReviews, useDocumentVersions } from '@/hooks/useDocumentVersions'
 import { format, id } from '@/lib/date'
@@ -40,6 +41,8 @@ export default function ModalVersions({
 	const [isRollingBack, setIsRollingBack] = useState(false)
 	const [showReviewModal, setShowReviewModal] = useState(false)
 
+	const { toast } = useToast()
+
 	// Set initial selected version to latest when data loads
 	React.useEffect(() => {
 		if (versions.length > 0 && !selectedVersionId) {
@@ -57,7 +60,7 @@ export default function ModalVersions({
 			// If the ID matches current user, use their name.
 			// "atau ga yang terlogin saja" -> Fallback to current user name if missing
 			let authorName = version.createdBy
-			if (user && (version.createdBy === user.id || !version.createdBy)) {
+			if (user && (version.createdBy === user.userId || !version.createdBy)) {
 				authorName = user.name || 'User'
 			}
 
@@ -99,10 +102,18 @@ export default function ModalVersions({
 				onVersionRestored()
 			}
 			onClose() // Close modal on success
-			alert('Versi berhasil dipulihkan') // Simple feedback
+			toast({
+				title: 'Versi dipulihkan',
+				description: 'Dokumen telah dikembalikan ke versi yang dipilih.',
+				variant: 'default',
+			})
 		} catch (error: any) {
 			console.error('Rollback failed:', error)
-			alert('Gagal memulihkan versi: ' + error.message)
+			toast({
+				title: 'Gagal memulihkan versi',
+				description: error.message || 'Terjadi kesalahan saat memulihkan versi.',
+				variant: 'destructive',
+			})
 		} finally {
 			setIsRollingBack(false)
 		}
@@ -276,7 +287,10 @@ export default function ModalVersions({
 					if (!selectedVersion) return
 					try {
 						await requestReview(selectedVersion.id, data.lecturerId, data.message)
-						alert('Permintaan review berhasil dikirim')
+						toast({
+							title: 'Permintaan Terkirim',
+							description: 'Permintaan review Anda telah dikirim ke dosen.',
+						})
 						setShowReviewModal(false)
 					} catch (e: any) {
 						console.error('Review request failed', e)

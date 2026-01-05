@@ -205,6 +205,13 @@ export default function ReviewsPage() {
 											}
 										: undefined
 								}
+								onReviewUpdate={(newStatus, newMessage) => {
+									setReviews(prev => prev.map(r => 
+										r.reviewId === review.reviewId 
+											? { ...r, status: newStatus as any, message: newMessage || r.message }
+											: r
+									))
+								}}
 							/>
 						))}
 					</div>
