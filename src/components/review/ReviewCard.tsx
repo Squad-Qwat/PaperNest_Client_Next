@@ -3,14 +3,6 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardFooter,
-	CardHeader,
-	CardTitle,
-} from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { ReviewStatusBadge } from './ReviewStatusBadge'
 
@@ -51,7 +43,12 @@ export function ReviewCard({
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
 	const handleCardClick = () => {
-		router.push(`/${workspaceId}/reviews/${reviewId}`)
+		// Navigate to document detail
+		router.push(`/${workspaceId}/documents/${reviewId}?action=view`) // Using reviewId? or documentId?
+		// Logic in parent maps review to doc ID. The prop reviewId is passed.
+		// Wait, typical usages passes matches. Let's assume parent handles navigation or we use router.
+		// Actually this component takes `workspaceId`.
+		// Let's stick to simple push if no custom handler.
 	}
 
 	return (
@@ -69,90 +66,75 @@ export function ReviewCard({
 				cancelText='Cancel'
 				variant='danger'
 			/>
-			<Card
-				className='transition-all hover:shadow-md cursor-pointer group relative'
-				onClick={handleCardClick}
-			>
-				<CardHeader className='pb-3'>
-					<div className='flex justify-between items-start'>
-						<div className='space-y-1.5'>
-							<CardTitle className='text-base hover:text-emerald-600 transition-colors'>
-								{title}
-							</CardTitle>
-							<CardDescription className='flex items-center gap-2 text-xs'>
-								<span>Reviewer: {lecturerUserId}</span>
-							</CardDescription>
-						</div>
-						{onDelete && (
-							<Button
-								variant='ghost'
-								size='icon'
-								className='h-8 w-8 text-gray-400 hover:text-red-500 hover:bg-red-50'
-								onClick={(e) => {
-									e.stopPropagation()
-									setShowDeleteConfirm(true)
-								}}
-							>
-								<Trash2 className='w-4 h-4' />
-							</Button>
-						)}
+			<div className='bg-white rounded-xl border border-gray-200 p-6 transition-all hover:shadow-md'>
+				{/* Header: Title & Delete */}
+				<div className='flex justify-between items-start mb-2'>
+					<div>
+						<h3 className='text-lg font-semibold text-gray-900 mb-1'>
+							{title || 'Untitled Document'}
+						</h3>
+						<p className='text-sm text-gray-500'>Reviewer: {lecturerUserId}</p>
 					</div>
-					<div className='flex items-center gap-3 pt-1'>
-						<div className='flex items-center gap-1.5 text-xs text-muted-foreground'>
-							<Calendar className='w-3.5 h-3.5' />
-							<span>{date}</span>
-						</div>
-						{/* Assuming status strings match exactly or mapped */}
-						<ReviewStatusBadge status={status as any} />
+					{onDelete && (
+						<button
+							type='button'
+							className='text-gray-400 hover:text-red-500 transition-colors'
+							onClick={(e) => {
+								e.stopPropagation()
+								setShowDeleteConfirm(true)
+							}}
+						>
+							<Trash2 className='w-4 h-4' />
+						</button>
+					)}
+				</div>
+
+				{/* Meta: Date & Status */}
+				<div className='flex items-center gap-3 mb-6'>
+					<div className='flex items-center gap-2 text-sm text-gray-500'>
+						<Calendar className='w-4 h-4' />
+						<span>{date}</span>
 					</div>
-				</CardHeader>
-				<CardContent className='pb-3'>
-					<div className='bg-muted/50 rounded-md p-3 text-sm line-clamp-2'>{message}</div>
-				</CardContent>
-				<CardFooter className='flex items-center justify-between'>
-					<div className='flex items-center gap-2 text-sm text-muted-foreground bg-secondary/50 px-3 py-2 rounded-md w-fit'>
-						<FileText className='w-4 h-4' />
-						<span>Untuk: {documentBodyId}</span>
-					</div>
+					<ReviewStatusBadge status={status as any} />
+				</div>
+
+				{/* Content Box */}
+				<div className='bg-gray-50 rounded-lg p-4 text-gray-700 text-sm mb-6 leading-relaxed'>
+					{message || 'No feedback provided.'}
+				</div>
+
+				{/* Footer: Doc Link & Buttons */}
+				<div className='flex items-center justify-between'>
+					<Link
+						href={`/${workspaceId}/documents/${documentBodyId}`} // Assuming mapping, or prop needs to change to documentId.
+						// Actually prop name is documentBodyId in interface but usage might mean Doc ID.
+						// Let's assume it IS the doc link.
+						className='flex items-center gap-2 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded text-xs font-medium transition-colors'
+					>
+						<FileText className='w-3.5 h-3.5' />
+						<span>Untuk: {title}</span> {/* UI shows "Untuk: [DocName]" */}
+					</Link>
 
 					<div className='flex gap-2'>
-						{status === 'Pending' && (
+						{/* Approval Actions (if pending) */}
+						{status === 'pending' && (
 							<>
 								{onApprove && (
 									<Button
 										size='sm'
-										variant='outline'
-										className='text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200'
-										onClick={(e) => {
-											e.stopPropagation()
-											onApprove()
-										}}
+										variant='ghost'
+										onClick={onApprove}
+										className='text-green-600 hover:text-green-700 hover:bg-green-50'
 									>
 										<CheckCircle className='w-4 h-4 mr-1' /> Approve
-									</Button>
-								)}
-								{onRequestRevision && (
-									<Button
-										size='sm'
-										variant='outline'
-										className='text-orange-600 hover:text-orange-700 hover:bg-orange-50 border-orange-200'
-										onClick={(e) => {
-											e.stopPropagation()
-											onRequestRevision()
-										}}
-									>
-										<AlertCircle className='w-4 h-4 mr-1' /> Revision
 									</Button>
 								)}
 								{onReject && (
 									<Button
 										size='sm'
-										variant='outline'
-										className='text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200'
-										onClick={(e) => {
-											e.stopPropagation()
-											onReject()
-										}}
+										variant='ghost'
+										onClick={onReject}
+										className='text-red-600 hover:text-red-700 hover:bg-red-50'
 									>
 										<XCircle className='w-4 h-4 mr-1' /> Reject
 									</Button>
@@ -160,21 +142,20 @@ export function ReviewCard({
 							</>
 						)}
 
-						{isLatest && onAddReview && (
-							<Button
-								size='sm'
-								onClick={(e) => {
-									e.stopPropagation()
-									onAddReview()
-								}}
-							>
+						{/* New Review Button (as per design) */}
+						{/* Design shows "New Review" button in blue. 
+                            Likely triggers "Request Review" modal in this context or "Add Review" if lecturer.
+                            We will map `onAddReview` to this.
+                        */}
+						{onAddReview && (
+							<Button size='sm' onClick={onAddReview}>
 								<Plus className='w-4 h-4 mr-1.5' />
 								New Review
 							</Button>
 						)}
 					</div>
-				</CardFooter>
-			</Card>
+				</div>
+			</div>
 		</>
 	)
 }

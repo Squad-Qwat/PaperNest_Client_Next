@@ -70,10 +70,11 @@ export const API_ENDPOINTS = {
 
 	// Reviews
 	reviews: {
-		pending: '/reviews/pending',
+		student: '/reviews', // Endpoint for Student
+		lecturer: '/reviews/pending', // Endpoint for Lecturer (Pending Reviews)
 		byDocument: (documentId: string) => `/documents/${documentId}/reviews`,
-		create: (documentId: string, versionId: string) =>
-			`/documents/${documentId}/versions/${versionId}/reviews`,
+		create: (documentId: string, documentBodyId: string) =>
+			`/documents/${documentId}/versions/${documentBodyId}/reviews`,
 		approve: (reviewId: string) => `/reviews/${reviewId}/approve`,
 		reject: (reviewId: string) => `/reviews/${reviewId}/reject`,
 		requestRevision: (reviewId: string) => `/reviews/${reviewId}/request-revision`,

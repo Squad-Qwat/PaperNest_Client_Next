@@ -35,10 +35,10 @@ class DocumentsService {
 	 */
 	async createReview(
 		documentId: string,
-		versionId: string,
+		documentBodyId: string,
 		data: CreateReviewDto
 	): Promise<Review> {
-		return apiClient.post<Review>(API_ENDPOINTS.reviews.create(documentId, versionId), data)
+		return apiClient.post<Review>(API_ENDPOINTS.reviews.create(documentId, documentBodyId), data)
 	}
 
 	/**
@@ -141,7 +141,10 @@ class DocumentsService {
 	/**
 	 * Create a new version (Commit)
 	 */
-	async createVersion(documentId: string, data: { message: string, content?: string }): Promise<VersionResponse> {
+	async createVersion(
+		documentId: string,
+		data: { message: string; content?: string }
+	): Promise<VersionResponse> {
 		return apiClient.post<VersionResponse>(API_ENDPOINTS.documents.versions(documentId), data)
 	}
 
@@ -163,51 +166,36 @@ class DocumentsService {
 	 * Get pending reviews for lecturer
 	 */
 	async getPendingReviews(): Promise<ReviewsResponse> {
-		try {
-			return await apiClient.get<ReviewsResponse>(API_ENDPOINTS.reviews.pending)
-		} catch (error: any) {
-			console.warn('Failed to fetch pending reviews, endpoint might be missing:', error)
-			
-            // Fallback: Try generic /reviews endpoint if specific one fails
-            if (error?.status === 404) {
-                try {
-                    console.log('Attempting fallback to /reviews...')
-                    // Assuming /reviews might return the same structure
-                    const fallbackResponse = await apiClient.get<ReviewsResponse>('/reviews')
-                    // Filter for pending if possible, or just return all for now to show SOMETHING
-                    return {
-                        ...fallbackResponse,
-                        reviews: fallbackResponse.reviews.filter(r => r.status === 'Pending' || r.status === 'pending')
-                    }
-                } catch (fallbackError) {
-                    console.warn('Fallback /reviews also failed:', fallbackError)
-                    return { reviews: [], count: 0 }
-                }
-            }
-			throw error
-		}
+		return apiClient.get<ReviewsResponse>(API_ENDPOINTS.reviews.lecturer)
 	}
 
-    /**
-     * Get single review by ID
-     */
-    async getReview(reviewId: string): Promise<{ review: Review }> {
-        // Since we don't have a strict single review endpoint in docs, 
-        // we try a standard convention or fallback to filtering pending
-        // Try /reviews/:id first
-        try {
-             const data = await apiClient.get<any>(`/reviews/${reviewId}`)
-             return { review: data.review || data }
-        } catch (e) {
-            console.warn('Direct review fetch failed, trying fallback list lookup', e)
-            // Fallback: fetch all reviews (or pending) and find
-            // This is inefficient but necessary if no endpoint exists
-            const all = await this.getPendingReviews() // or generic /reviews
-            const found = all.reviews.find(r => r.id === reviewId)
-            if (found) return { review: found }
-            throw new Error('Review not found')
-        }
-    }
+	/**
+	 * Get reviews for student
+	 */
+	async getStudentReviews(): Promise<ReviewsResponse> {
+		return apiClient.get<ReviewsResponse>(API_ENDPOINTS.reviews.student)
+	}
+
+	/**
+	 * Get single review by ID
+	 */
+	async getReview(reviewId: string): Promise<{ review: Review }> {
+		// Since we don't have a strict single review endpoint in docs,
+		// we try a standard convention or fallback to filtering pending
+		// Try /reviews/:id first
+		try {
+			const data = await apiClient.get<any>(`/reviews/${reviewId}`)
+			return { review: data.review || data }
+		} catch (e) {
+			console.warn('Direct review fetch failed, trying fallback list lookup', e)
+			// Fallback: fetch all reviews (or pending) and find
+			// This is inefficient but necessary if no endpoint exists
+			const all = await this.getPendingReviews() // or generic /reviews
+			const found = all.reviews.find((r) => r.reviewId === reviewId)
+			if (found) return { review: found }
+			throw new Error('Review not found')
+		}
+	}
 }
 
 // Export singleton instance

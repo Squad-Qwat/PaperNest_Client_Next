@@ -80,12 +80,12 @@ export default function DocumentPage() {
 
 			setDocumentData(doc)
 			setTitle(doc.title)
-            return doc // Return doc for further use
+			return doc // Return doc for further use
 		} catch (error) {
 			console.error('❌ Error loading document:', error)
 			alert('Failed to load document. Redirecting to documents page.')
 			router.push('/documents')
-            return null
+			return null
 		} finally {
 			setIsLoading(false)
 		}
@@ -97,16 +97,16 @@ export default function DocumentPage() {
 		}
 	}, [documentId, user, loading, workspace, workspaceLoading, fetchDocument])
 
-    const handleVersionRestored = useCallback(async () => {
-        console.log('Version restored, refreshing document...')
-        const newDoc = await fetchDocument()
-        
-        if (newDoc && editorFunctions?.editor) {
-             console.log('Updating editor content with restored version...')
-             // Force update editor content
-             editorFunctions.editor.commands.setContent(newDoc.savedContent || newDoc.content)
-        }
-    }, [fetchDocument, editorFunctions])
+	const handleVersionRestored = useCallback(async () => {
+		console.log('Version restored, refreshing document...')
+		const newDoc = await fetchDocument()
+
+		if (newDoc && editorFunctions?.editor) {
+			console.log('Updating editor content with restored version...')
+			// Force update editor content
+			editorFunctions.editor.commands.setContent(newDoc.savedContent || newDoc.content)
+		}
+	}, [fetchDocument, editorFunctions])
 
 	// Global event handlers
 	useEffect(() => {
@@ -283,12 +283,12 @@ export default function DocumentPage() {
 					/>
 
 					{/* Version History Panel - Side Panel */}
-					<ModalVersions 
-                        isOpen={modalVersionsOpen} 
-                        onClose={() => setModalVersionsOpen(false)} 
-                        documentId={documentId}
-                        onVersionRestored={handleVersionRestored}
-                    />
+					<ModalVersions
+						isOpen={modalVersionsOpen}
+						onClose={() => setModalVersionsOpen(false)}
+						documentId={documentId}
+						onVersionRestored={handleVersionRestored}
+					/>
 				</div>
 			</Room>
 		</div>

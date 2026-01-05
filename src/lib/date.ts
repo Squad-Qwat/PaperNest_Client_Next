@@ -35,32 +35,47 @@ interface FormatOptions {
  * - yyyy: Full year
  * - HH: Hours (24H)
  * - mm: Minutes
- * 
+ *
  * Example: 'd MMMM yyyy, HH:mm' -> '15 Agustus 2023, 16:51'
  */
-export function format(date: Date | string | number | any, formatStr: string, options?: FormatOptions): string {
-    if (!date) return '-'
+export function format(
+	date: Date | string | number | any,
+	formatStr: string,
+	options?: FormatOptions
+): string {
+	if (!date) return '-'
 
-    let d: Date
+	let d: Date
 
-    try {
-        if (date instanceof Date) {
-            d = date
-        } else if (typeof date === 'string' || typeof date === 'number') {
-            d = new Date(date)
-        } else if (date && typeof date === 'object' && 'seconds' in date) {
-            // Handle Firestore Timestamp
-            d = new Date(date.seconds * 1000)
-        } else {
-            return '-'
-        }
+	try {
+		if (date instanceof Date) {
+			d = date
+		} else if (typeof date === 'string' || typeof date === 'number') {
+			d = new Date(date)
+		} else if (date && typeof date === 'object') {
+			if ('seconds' in date) {
+				// Firestore Timestamp
+				d = new Date((date as any).seconds * 1000)
+			} else if ('_seconds' in date) {
+				// Another Firestore variation
+				d = new Date((date as any)._seconds * 1000)
+			} else {
+				// Try parsing as generic date object or string
+				d = new Date(date as any)
+			}
+		} else {
+			console.warn('Invalid date input type:', typeof date, date)
+			return '-'
+		}
 
-        if (isNaN(d.getTime())) {
-            return '-'
-        }
-    } catch (e) {
-        return '-'
-    }
+		if (isNaN(d.getTime())) {
+			console.warn('Invalid Date object created from:', date)
+			return '-'
+		}
+	} catch (e) {
+		console.error('Date formatting error:', e)
+		return '-'
+	}
 
 	const locale = options?.locale || id
 

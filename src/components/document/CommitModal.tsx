@@ -32,9 +32,9 @@ export function CommitModal({ isOpen, onClose, onCommit }: CommitModalProps) {
 			await onCommit({ message })
 			setMessage('')
 			onClose()
-		} catch (err) {
+		} catch (err: any) {
 			console.error('Commit failed:', err)
-			setError('Failed to create version')
+			setError(err.message || err.response?.data?.message || 'Failed to create version')
 		} finally {
 			setLoading(false)
 		}

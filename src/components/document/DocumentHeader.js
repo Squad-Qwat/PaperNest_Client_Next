@@ -36,7 +36,7 @@ const DocumentHeader = ({
 }) => {
 	const [isSyncing, setIsSyncing] = useState(false)
 	const [showCommitModal, setShowCommitModal] = useState(false)
-	const { canCommit, latestReviewStatus } = useDocumentReviews(documentId)
+	const { canCommit, commitBlockReason } = useDocumentReviews(documentId)
 
 	return (
 		<header className='bg-white border-b border-gray-200 sticky top-0 z-40 transition-all duration-300'>
@@ -361,7 +361,7 @@ const DocumentHeader = ({
 								</TooltipTrigger>
 								{!canCommit && (
 									<TooltipContent>
-										<p>Waiting for pending review ({latestReviewStatus})</p>
+										<p>{commitBlockReason || 'Waiting for review'} (Check History)</p>
 									</TooltipContent>
 								)}
 							</Tooltip>
@@ -385,20 +385,21 @@ const DocumentHeader = ({
 							<History className='h-5 w-5' />
 						</Button>
 						<div className='ml-2 flex items-center gap-2'>
-							{user?.avatar ? (
-								<img src={user.avatar} alt={user.name || 'User'} className='h-8 w-8 rounded-full' />
-							) : (
-								<div className='h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center'>
-									<span className='text-white text-sm font-medium'>
-										{user?.name?.charAt(0) || 'U'}
-									</span>
-								</div>
-							)}
+							{user?.avatar
+								? <img
+										src={user.avatar}
+										alt={user.name || 'User'}
+										className='h-8 w-8 rounded-full'
+									/>
+								: <div className='h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center'>
+										<span className='text-white text-sm font-medium'>
+											{user?.name?.charAt(0) || 'U'}
+										</span>
+									</div>}
 						</div>
 					</div>
 				</div>
 			</div>
-
 
 			{/* Commit Modal */}
 			<CommitModal
@@ -406,21 +407,21 @@ const DocumentHeader = ({
 				onClose={() => setShowCommitModal(false)}
 				onCommit={async (data) => {
 					try {
-                        // We also need content usually, but the API doc says content string. 
-                        // If editor content is available, pass it. 
-                        // `editor` prop is available. `editor.getHTML()` or `JSON`.
-                        const content = editor ? editor.getHTML() : '' 
-						await documentsService.createVersion(documentId, { 
-                            message: data.message,
-                            content: content
-                        })
-                        // Refresh versions or notify success
+						// We also need content usually, but the API doc says content string.
+						// If editor content is available, pass it.
+						// `editor` prop is available. `editor.getHTML()` or `JSON`.
+						const content = editor ? editor.getHTML() : ''
+						await documentsService.createVersion(documentId, {
+							message: data.message,
+							content: content,
+						})
+						// Refresh versions or notify success
 						setShowCommitModal(false)
-                        // TODO: trigger version refresh if needed
-                        // Maybe toast.success('Version created')
+						// TODO: trigger version refresh if needed
+						// Maybe toast.success('Version created')
 					} catch (error) {
 						console.error('Failed to commit version:', error)
-                        throw error // Re-throw so Modal can handle it/show error
+						throw error // Re-throw so Modal can handle it/show error
 					}
 				}}
 			/>

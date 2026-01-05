@@ -1,6 +1,7 @@
 import { ArrowLeft, MoreVertical } from 'lucide-react'
 import { useParams } from 'next/navigation'
 import React, { useMemo, useState } from 'react'
+import { ReviewRequestModal } from '@/components/review/ReviewRequestModal'
 import { ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -14,24 +15,30 @@ interface ModalVersionsProps {
 	isOpen: boolean
 	onClose: () => void
 	documentId: string
-    onVersionRestored?: () => void
+	onVersionRestored?: () => void
 }
 
-export default function ModalVersions({ isOpen, onClose, documentId: propDocumentId, onVersionRestored }: ModalVersionsProps) {
+export default function ModalVersions({
+	isOpen,
+	onClose,
+	documentId: propDocumentId,
+	onVersionRestored,
+}: ModalVersionsProps) {
 	const params = useParams()
-    // Prioritize prop, fallback to param (users note: "dapatkan param documentid saja")
-    // But since we fixed the parent passing it, prop should work. 
-    // However, user specifically asked to "try getting param documentid only".
-    // So let's extract it from params if prop is missing OR to be safe.
-    // Actually, let's trust the prop if passed, but if not, use param.
+	// Prioritize prop, fallback to param (users note: "dapatkan param documentid saja")
+	// But since we fixed the parent passing it, prop should work.
+	// However, user specifically asked to "try getting param documentid only".
+	// So let's extract it from params if prop is missing OR to be safe.
+	// Actually, let's trust the prop if passed, but if not, use param.
 	const documentId = propDocumentId || (params?.documentid as string)
-    
+
 	const { user } = useAuthContext()
 	const { versions, loading: versionsLoading, rollbackVersion } = useDocumentVersions(documentId)
-	const { reviews } = useDocumentReviews(documentId)
+	const { reviews, requestReview } = useDocumentReviews(documentId)
 
 	const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null)
 	const [isRollingBack, setIsRollingBack] = useState(false)
+	const [showReviewModal, setShowReviewModal] = useState(false)
 
 	// Set initial selected version to latest when data loads
 	React.useEffect(() => {
@@ -46,19 +53,27 @@ export default function ModalVersions({ isOpen, onClose, documentId: propDocumen
 			// Find review for this version
 			const versionReview = reviews.find((r) => r.documentBodyId === version.documentBodyId)
 
+			// Resolve Author Name
+			// If the ID matches current user, use their name.
+			// "atau ga yang terlogin saja" -> Fallback to current user name if missing
+			let authorName = version.createdBy
+			if (user && (version.createdBy === user.id || !version.createdBy)) {
+				authorName = user.name || 'User'
+			}
+
 			// Map to UI format
 			return {
 				id: version.documentBodyId,
 				versionNumber: version.versionNumber,
 				timestamp: format(version.createdAt, 'd MMMM yyyy, HH:mm', { locale: id }),
-				author: version.createdBy, // In real app, this would be a name, not ID. Assuming ID for now.
+				author: authorName,
 				color: index === 0 ? 'bg-purple-500' : 'bg-orange-500',
 				isCurrent: index === 0,
-                content: version.content,
+				content: version.content,
 				review: versionReview
 					? {
 							reviewer: {
-								name: 'Lecturer', // Placeholder until user data is joined
+								name: versionReview.lecturerUserId || 'Lecturer', // Use ID if no name
 								avatarUrl: undefined,
 							},
 							date: format(versionReview.requestedAt, 'd MMMM yyyy, HH:mm', {
@@ -70,21 +85,19 @@ export default function ModalVersions({ isOpen, onClose, documentId: propDocumen
 					: undefined,
 			}
 		})
-	}, [versions, reviews])
-
-
+	}, [versions, reviews, user])
 
 	const selectedVersion = versionsList.find((v) => v.id === selectedVersionId)
 
 	const handleRollback = async () => {
 		if (!selectedVersion) return
-		
+
 		try {
 			setIsRollingBack(true)
 			await rollbackVersion(selectedVersion.versionNumber)
-            if (onVersionRestored) {
-                onVersionRestored()
-            }
+			if (onVersionRestored) {
+				onVersionRestored()
+			}
 			onClose() // Close modal on success
 			alert('Versi berhasil dipulihkan') // Simple feedback
 		} catch (error: any) {
@@ -167,15 +180,15 @@ export default function ModalVersions({ isOpen, onClose, documentId: propDocumen
 								{/* Document Page Mockup */}
 								<div className='bg-white shadow-sm w-[816px] min-h-[1056px] p-12 border border-gray-200 shrink-0'>
 									{selectedVersion?.content ? (
-                                        <div 
-                                            className='prose max-w-none'
-                                            dangerouslySetInnerHTML={{ __html: selectedVersion.content }}
-                                        />
-                                    ) : (
-                                        <div className='prose max-w-none text-gray-500 italic text-center mt-20'>
-                                            No content available for this version.
-                                        </div>
-                                    )}
+										<div
+											className='prose max-w-none'
+											dangerouslySetInnerHTML={{ __html: selectedVersion.content }}
+										/>
+									) : (
+										<div className='prose max-w-none text-gray-500 italic text-center mt-20'>
+											No content available for this version.
+										</div>
+									)}
 								</div>
 							</div>
 						</ScrollArea>
@@ -196,13 +209,13 @@ export default function ModalVersions({ isOpen, onClose, documentId: propDocumen
 									<div
 										key={version.id}
 										onClick={() => setSelectedVersionId(version.id)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter' || e.key === ' ') {
-                                                setSelectedVersionId(version.id)
-                                            }
-                                        }}
-                                        role="button"
-                                        tabIndex={0}
+										onKeyDown={(e) => {
+											if (e.key === 'Enter' || e.key === ' ') {
+												setSelectedVersionId(version.id)
+											}
+										}}
+										role='button'
+										tabIndex={0}
 										className={`px-4 py-3 cursor-pointer group transition-colors relative ${
 											selectedVersionId === version.id ? 'bg-blue-50' : 'hover:bg-gray-50'
 										}`}
@@ -214,7 +227,9 @@ export default function ModalVersions({ isOpen, onClose, documentId: propDocumen
 												</div>
 												<div className='flex items-center gap-2'>
 													<div className={`w-2 h-2 rounded-full ${version.color}`} />
-													<span className='text-xs text-gray-600'>User</span>
+													<span className='text-xs text-gray-600'>
+														{version.author || 'Unknown'}
+													</span>
 												</div>
 											</div>
 											<Button
@@ -234,48 +249,41 @@ export default function ModalVersions({ isOpen, onClose, documentId: propDocumen
 							{selectedVersion?.isCurrent ? (
 								<div className='text-center text-sm text-gray-500 py-2'>Versi saat ini</div>
 							) : (
-								<Button 
-									className='w-full' 
-									onClick={handleRollback}
-									disabled={isRollingBack}
-								>
+								<Button className='w-full' onClick={handleRollback} disabled={isRollingBack}>
 									{isRollingBack ? 'Memulihkan...' : 'Pulihkan versi ini'}
 								</Button>
 							)}
 
-                            {/* Student Request Review Button */}
-                            {user?.role === 'Student' && selectedVersion && !selectedVersion.review && (
-                                <Button 
-                                    className='w-full' 
-                                    variant='outline'
-                                    onClick={async () => {
-                                        // For now using prompt, ideally a modal
-                                        const message = prompt('Pesan untuk dosen (opsional):', 'Mohon direview Pak/Bu')
-                                        if (message === null) return // Cancelled
-
-                                        // Hardcoded active lecturer for prototype or prompt
-                                        // In real app, user selects from list.
-                                        // For now assume user ID from ENV or known ID, or just asking via prompt for testing
-                                        // "user_lecturer_123" is from docs.
-                                        // Let's rely on a default simple string if no list available. 
-                                        // The user said "endpoint logic" must be correct.
-                                        const lecturerId = 'user_lecturer_123' // Fallback/Placeholder
-                                        
-                                        try {
-                                           await requestReview(selectedVersion.id, lecturerId, message)
-                                           alert('Permintaan review berhasil dikirim')
-                                        } catch (e: any) {
-                                            alert('Gagal meminta review: ' + e.message)
-                                        }
-                                    }}
-                                >
-                                    Minta Review
-                                </Button>
-                            )}
+							{/* Student Request Review Button */}
+							{user?.role === 'Student' && selectedVersion && !selectedVersion.review && (
+								<Button
+									className='w-full'
+									variant='outline'
+									onClick={() => setShowReviewModal(true)}
+								>
+									Minta Review
+								</Button>
+							)}
 						</div>
 					</div>
 				</div>
 			</div>
+
+			<ReviewRequestModal
+				isOpen={showReviewModal}
+				onClose={() => setShowReviewModal(false)}
+				onSubmit={async (data) => {
+					if (!selectedVersion) return
+					try {
+						await requestReview(selectedVersion.id, data.lecturerId, data.message)
+						alert('Permintaan review berhasil dikirim')
+						setShowReviewModal(false)
+					} catch (e: any) {
+						console.error('Review request failed', e)
+						throw e
+					}
+				}}
+			/>
 		</Modal>
 	)
 }

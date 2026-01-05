@@ -21,11 +21,11 @@ class ApiClient extends HttpClient {
 			method: 'GET',
 			cache: cache || 'no-store',
 			next: { revalidate: 0 }, // Disable cache by default for real-time updates
-            headers: {
-                'Cache-Control': 'no-cache, no-store, must-revalidate',
-                'Pragma': 'no-cache',
-                'Expires': '0'
-            }
+			headers: {
+				'Cache-Control': 'no-cache, no-store, must-revalidate',
+				Pragma: 'no-cache',
+				Expires: '0',
+			},
 		})
 	}
 

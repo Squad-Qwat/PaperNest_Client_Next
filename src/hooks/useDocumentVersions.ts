@@ -37,16 +37,16 @@ export function useDocumentVersions(documentId: string): UseDocumentVersionsRetu
 		try {
 			setLoading(true)
 			const response = await documentsService.getVersions(documentId)
-			
-            // Robust handling for versions response
-            let versionsData: Version[] = []
-            if (response && Array.isArray(response.versions)) {
-                versionsData = response.versions
-            } else if (Array.isArray(response)) {
-                versionsData = response as Version[]
-            } else {
-                console.warn('[useDocumentVersions] Unexpected versions response format:', response)
-            }
+
+			// Robust handling for versions response
+			let versionsData: Version[] = []
+			if (response && Array.isArray(response.versions)) {
+				versionsData = response.versions
+			} else if (Array.isArray(response)) {
+				versionsData = response as Version[]
+			} else {
+				console.warn('[useDocumentVersions] Unexpected versions response format:', response)
+			}
 
 			setVersions(versionsData)
 
@@ -107,6 +107,7 @@ interface UseDocumentReviewsReturn {
 	error: string | null
 	refetch: () => Promise<void>
 	canCommit: boolean
+	commitBlockReason: string | null
 	latestReviewStatus: ReviewStatus | null
 
 	// Student Actions
@@ -120,6 +121,8 @@ interface UseDocumentReviewsReturn {
 
 export function useDocumentReviews(documentId: string): UseDocumentReviewsReturn {
 	const { user } = useAuthContext()
+	// Need versions to check correspondence
+	const { versions } = useDocumentVersions(documentId)
 	const [reviews, setReviews] = useState<Review[]>([])
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
@@ -158,22 +161,56 @@ export function useDocumentReviews(documentId: string): UseDocumentReviewsReturn
 
 	const latestReviewStatus = latestReview ? latestReview.status : null
 
-	const canCommit = useMemo(() => {
-		if (!user) return false
-		if (user.role !== 'Student') return true // Lecturer/Admin can always commit if needed (or restricted by other means)
+	// Determine if Student can commit (Strict Logic)
+	const { allowed: canCommit, reason: commitBlockReason } = useMemo(() => {
+		if (!user) return { allowed: false, reason: 'Not authenticated' }
+		if (user.role?.toLowerCase() !== 'student') return { allowed: true, reason: null }
 
-		// Student restriction: NO pending reviews allowed
-		if (latestReviewStatus === 'pending') return false
+		// Need versions loaded to check latest
+		if (versions.length === 0) return { allowed: true, reason: null } // First commit always allowed if no versions (though usually 1 exists)
 
-		return true
-	}, [user, latestReviewStatus])
+		// Find latest version
+		const sortedVersions = [...versions].sort(
+			(a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+		)
+		const latestVersion = sortedVersions[0]
+
+		// "version paling pertama tidak perlu minta review"
+		// Allow creating V2 even if V1 is not reviewed.
+		if (latestVersion.versionNumber === 1) {
+			return { allowed: true, reason: null }
+		}
+
+		// Find review for latest version
+		const reviewForLatest = reviews.find((r) => r.documentBodyId === latestVersion.documentBodyId)
+
+		if (!reviewForLatest) {
+			// "If commit/versions are not reviewed ... user can't make another"
+			// Strict: Must have a review record (even if rejected/approved)
+			// But wait, if I JUST created it, I need to REQUEST it.
+			// If I haven't requested it, implies I am working on it?
+			// "if needs review > assign commit".
+			// Let's assume: Block if NO review exists (means needs to request) OR if review is PENDING.
+			return { allowed: false, reason: 'Waiting for review request or action' }
+		}
+
+		if (reviewForLatest.status === 'pending') {
+			return { allowed: false, reason: 'Waiting for pending review' }
+		}
+
+		// If Approved, Rejected, Revision Required -> Allowed to proceed (create new version to fix/continue)
+		return { allowed: true, reason: null }
+	}, [user, versions, reviews])
 
 	// --- Actions ---
 
 	const requestReview = async (documentBodyId: string, lecturerId: string, message?: string) => {
 		try {
 			setLoading(true)
-			await documentsService.createReview(documentId, documentBodyId, { lecturerId, message })
+			await documentsService.createReview(documentId, documentBodyId, {
+				lecturerUserId: lecturerId,
+				message,
+			})
 			await fetchReviews()
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : 'Failed to request review'
@@ -232,6 +269,7 @@ export function useDocumentReviews(documentId: string): UseDocumentReviewsReturn
 		error,
 		refetch: fetchReviews,
 		canCommit,
+		commitBlockReason,
 		latestReviewStatus,
 		requestReview,
 		approveReview,

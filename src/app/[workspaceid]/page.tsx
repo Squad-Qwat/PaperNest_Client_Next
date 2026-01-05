@@ -242,7 +242,9 @@ export default function WorkspacePage() {
 								</p>
 
 								<div className='flex items-center justify-between text-xs text-gray-500 mb-4'>
-									<span>{format(doc.updatedAt || doc.createdAt, 'd MMMM yyyy', { locale: id })}</span>
+									<span>
+										{format(doc.updatedAt || doc.createdAt, 'd MMMM yyyy', { locale: id })}
+									</span>
 								</div>
 
 								<div className='flex gap-2'>
