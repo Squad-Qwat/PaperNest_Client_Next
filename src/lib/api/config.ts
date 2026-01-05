@@ -64,6 +64,8 @@ export const API_ENDPOINTS = {
 			`/workspaces/${workspaceId}/documents/${documentId}/content`,
 		versions: (documentId: string) => `/documents/${documentId}/versions`,
 		currentVersion: (documentId: string) => `/documents/${documentId}/versions/current`,
+		revert: (documentId: string, versionNumber: number) =>
+			`/documents/${documentId}/versions/${versionNumber}/revert`,
 	},
 
 	// Reviews

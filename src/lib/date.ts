@@ -38,10 +38,28 @@ interface FormatOptions {
  * 
  * Example: 'd MMMM yyyy, HH:mm' -> '15 Agustus 2023, 16:51'
  */
-export function format(date: Date | string | number, formatStr: string, options?: FormatOptions): string {
-	const d = new Date(date)
-    if (isNaN(d.getTime())) {
-        return 'Invalid Date'
+export function format(date: Date | string | number | any, formatStr: string, options?: FormatOptions): string {
+    if (!date) return '-'
+
+    let d: Date
+
+    try {
+        if (date instanceof Date) {
+            d = date
+        } else if (typeof date === 'string' || typeof date === 'number') {
+            d = new Date(date)
+        } else if (date && typeof date === 'object' && 'seconds' in date) {
+            // Handle Firestore Timestamp
+            d = new Date(date.seconds * 1000)
+        } else {
+            return '-'
+        }
+
+        if (isNaN(d.getTime())) {
+            return '-'
+        }
+    } catch (e) {
+        return '-'
     }
 
 	const locale = options?.locale || id

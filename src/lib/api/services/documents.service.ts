@@ -153,6 +153,13 @@ class DocumentsService {
 	}
 
 	/**
+	 * Revert to a specific version
+	 */
+	async revertVersion(documentId: string, versionNumber: number): Promise<void> {
+		return apiClient.post<void>(API_ENDPOINTS.documents.revert(documentId, versionNumber))
+	}
+
+	/**
 	 * Get pending reviews for lecturer
 	 */
 	async getPendingReviews(): Promise<ReviewsResponse> {
@@ -180,6 +187,27 @@ class DocumentsService {
 			throw error
 		}
 	}
+
+    /**
+     * Get single review by ID
+     */
+    async getReview(reviewId: string): Promise<{ review: Review }> {
+        // Since we don't have a strict single review endpoint in docs, 
+        // we try a standard convention or fallback to filtering pending
+        // Try /reviews/:id first
+        try {
+             const data = await apiClient.get<any>(`/reviews/${reviewId}`)
+             return { review: data.review || data }
+        } catch (e) {
+            console.warn('Direct review fetch failed, trying fallback list lookup', e)
+            // Fallback: fetch all reviews (or pending) and find
+            // This is inefficient but necessary if no endpoint exists
+            const all = await this.getPendingReviews() // or generic /reviews
+            const found = all.reviews.find(r => r.id === reviewId)
+            if (found) return { review: found }
+            throw new Error('Review not found')
+        }
+    }
 }
 
 // Export singleton instance

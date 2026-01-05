@@ -19,6 +19,7 @@ interface UseDocumentVersionsReturn {
 	error: string | null
 	refetch: () => Promise<void>
 	currentVersion: Version | null
+	rollbackVersion: (versionNumber: number) => Promise<void>
 }
 
 export function useDocumentVersions(documentId: string): UseDocumentVersionsReturn {
@@ -28,15 +29,29 @@ export function useDocumentVersions(documentId: string): UseDocumentVersionsRetu
 	const [error, setError] = useState<string | null>(null)
 
 	const fetchVersions = useCallback(async () => {
-		if (!documentId) return
+		if (!documentId) {
+			setLoading(false)
+			return
+		}
 
 		try {
 			setLoading(true)
 			const response = await documentsService.getVersions(documentId)
-			setVersions(response.versions)
+			
+            // Robust handling for versions response
+            let versionsData: Version[] = []
+            if (response && Array.isArray(response.versions)) {
+                versionsData = response.versions
+            } else if (Array.isArray(response)) {
+                versionsData = response as Version[]
+            } else {
+                console.warn('[useDocumentVersions] Unexpected versions response format:', response)
+            }
+
+			setVersions(versionsData)
 
 			const currentRes = await documentsService.getCurrentVersion(documentId)
-			setCurrentVersion(currentRes.version)
+			setCurrentVersion(currentRes?.version || null)
 		} catch (err: any) {
 			console.error('[useDocumentVersions] Error fetching versions:', err)
 			if (err?.status === 404) {
@@ -51,6 +66,25 @@ export function useDocumentVersions(documentId: string): UseDocumentVersionsRetu
 		}
 	}, [documentId])
 
+	const rollbackVersion = useCallback(
+		async (versionNumber: number) => {
+			if (!documentId) return
+
+			try {
+				setLoading(true)
+				await documentsService.revertVersion(documentId, versionNumber)
+				await fetchVersions() // Refresh list and current version
+			} catch (err: any) {
+				console.error('[useDocumentVersions] Error reverting version:', err)
+				setError(err instanceof Error ? err.message : 'Failed to revert version')
+				throw err
+			} finally {
+				setLoading(false)
+			}
+		},
+		[documentId, fetchVersions]
+	)
+
 	useEffect(() => {
 		fetchVersions()
 	}, [fetchVersions])
@@ -61,6 +95,7 @@ export function useDocumentVersions(documentId: string): UseDocumentVersionsRetu
 		error,
 		refetch: fetchVersions,
 		currentVersion,
+		rollbackVersion,
 	}
 }
 

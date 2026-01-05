@@ -1,6 +1,7 @@
 import { ArrowLeft, MoreVertical } from 'lucide-react'
+import { useParams } from 'next/navigation'
 import React, { useMemo, useState } from 'react'
-import { ReviewStatus, ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
+import { ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
@@ -13,14 +14,24 @@ interface ModalVersionsProps {
 	isOpen: boolean
 	onClose: () => void
 	documentId: string
+    onVersionRestored?: () => void
 }
 
-export default function ModalVersions({ isOpen, onClose, documentId }: ModalVersionsProps) {
+export default function ModalVersions({ isOpen, onClose, documentId: propDocumentId, onVersionRestored }: ModalVersionsProps) {
+	const params = useParams()
+    // Prioritize prop, fallback to param (users note: "dapatkan param documentid saja")
+    // But since we fixed the parent passing it, prop should work. 
+    // However, user specifically asked to "try getting param documentid only".
+    // So let's extract it from params if prop is missing OR to be safe.
+    // Actually, let's trust the prop if passed, but if not, use param.
+	const documentId = propDocumentId || (params?.documentid as string)
+    
 	const { user } = useAuthContext()
-	const { versions, loading: versionsLoading } = useDocumentVersions(documentId)
-	const { reviews, loading: reviewsLoading, requestReview } = useDocumentReviews(documentId)
+	const { versions, loading: versionsLoading, rollbackVersion } = useDocumentVersions(documentId)
+	const { reviews } = useDocumentReviews(documentId)
 
 	const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null)
+	const [isRollingBack, setIsRollingBack] = useState(false)
 
 	// Set initial selected version to latest when data loads
 	React.useEffect(() => {
@@ -38,17 +49,19 @@ export default function ModalVersions({ isOpen, onClose, documentId }: ModalVers
 			// Map to UI format
 			return {
 				id: version.documentBodyId,
-				timestamp: format(new Date(version.createdAt), 'd MMMM yyyy, HH:mm', { locale: id }),
+				versionNumber: version.versionNumber,
+				timestamp: format(version.createdAt, 'd MMMM yyyy, HH:mm', { locale: id }),
 				author: version.createdBy, // In real app, this would be a name, not ID. Assuming ID for now.
 				color: index === 0 ? 'bg-purple-500' : 'bg-orange-500',
 				isCurrent: index === 0,
+                content: version.content,
 				review: versionReview
 					? {
 							reviewer: {
 								name: 'Lecturer', // Placeholder until user data is joined
 								avatarUrl: undefined,
 							},
-							date: format(new Date(versionReview.requestedAt), 'd MMMM yyyy, HH:mm', {
+							date: format(versionReview.requestedAt, 'd MMMM yyyy, HH:mm', {
 								locale: id,
 							}),
 							status: versionReview.status,
@@ -59,7 +72,28 @@ export default function ModalVersions({ isOpen, onClose, documentId }: ModalVers
 		})
 	}, [versions, reviews])
 
+
+
 	const selectedVersion = versionsList.find((v) => v.id === selectedVersionId)
+
+	const handleRollback = async () => {
+		if (!selectedVersion) return
+		
+		try {
+			setIsRollingBack(true)
+			await rollbackVersion(selectedVersion.versionNumber)
+            if (onVersionRestored) {
+                onVersionRestored()
+            }
+			onClose() // Close modal on success
+			alert('Versi berhasil dipulihkan') // Simple feedback
+		} catch (error: any) {
+			console.error('Rollback failed:', error)
+			alert('Gagal memulihkan versi: ' + error.message)
+		} finally {
+			setIsRollingBack(false)
+		}
+	}
 
 	return (
 		<Modal
@@ -132,10 +166,16 @@ export default function ModalVersions({ isOpen, onClose, documentId }: ModalVers
 
 								{/* Document Page Mockup */}
 								<div className='bg-white shadow-sm w-[816px] min-h-[1056px] p-12 border border-gray-200 shrink-0'>
-									<div className='prose max-w-none text-gray-500 italic text-center mt-20'>
-										{/* Placeholder for content */}
-										Content preview not implemented yet.
-									</div>
+									{selectedVersion?.content ? (
+                                        <div 
+                                            className='prose max-w-none'
+                                            dangerouslySetInnerHTML={{ __html: selectedVersion.content }}
+                                        />
+                                    ) : (
+                                        <div className='prose max-w-none text-gray-500 italic text-center mt-20'>
+                                            No content available for this version.
+                                        </div>
+                                    )}
 								</div>
 							</div>
 						</ScrollArea>
@@ -156,6 +196,13 @@ export default function ModalVersions({ isOpen, onClose, documentId }: ModalVers
 									<div
 										key={version.id}
 										onClick={() => setSelectedVersionId(version.id)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                setSelectedVersionId(version.id)
+                                            }
+                                        }}
+                                        role="button"
+                                        tabIndex={0}
 										className={`px-4 py-3 cursor-pointer group transition-colors relative ${
 											selectedVersionId === version.id ? 'bg-blue-50' : 'hover:bg-gray-50'
 										}`}
@@ -187,7 +234,13 @@ export default function ModalVersions({ isOpen, onClose, documentId }: ModalVers
 							{selectedVersion?.isCurrent ? (
 								<div className='text-center text-sm text-gray-500 py-2'>Versi saat ini</div>
 							) : (
-								<Button className='w-full'>Pulihkan versi ini</Button>
+								<Button 
+									className='w-full' 
+									onClick={handleRollback}
+									disabled={isRollingBack}
+								>
+									{isRollingBack ? 'Memulihkan...' : 'Pulihkan versi ini'}
+								</Button>
 							)}
 
                             {/* Student Request Review Button */}

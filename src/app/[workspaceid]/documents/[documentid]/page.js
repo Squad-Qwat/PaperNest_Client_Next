@@ -1,21 +1,16 @@
 'use client'
 
-import { EditorContent, useEditor } from '@tiptap/react'
-import StarterKit from '@tiptap/starter-kit'
 import { useParams, useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import AIAssistant from '@/components/document/AIAssistant'
 // UI Components
 import DocumentEditor from '@/components/document/DocumentEditor'
 import DocumentHeader from '@/components/document/DocumentHeader'
-import EditorToolbar from '@/components/document/EditorToolbar'
 import { Room } from '@/hooks/liveblocks/room'
 import { useWorkspace } from '@/hooks/useWorkspace'
-import { createEditorExtensions } from '@/lib/editor/extensions'
 import { DocumentService } from '@/lib/firebase/document-service'
 import '@/components/document/EditorStyles.css'
 import ModalVersions from '@/components/document/ModalVersions'
-import ContextMenu from '@/components/editor/context-menu'
 import { useAuthContext } from '@/context/AuthContext'
 
 export default function DocumentPage() {
@@ -56,49 +51,62 @@ export default function DocumentPage() {
 	}, [workspace, workspaceLoading, workspaceError, router])
 
 	// Load document
-	useEffect(() => {
-		const loadDocument = async () => {
-			// Don't load if still checking workspace or no workspace access
-			if (!user || loading || workspaceLoading) return
-			if (!workspace) {
-				console.error('Cannot load document: No workspace access')
+	const fetchDocument = useCallback(async () => {
+		// Don't load if still checking workspace or no workspace access
+		if (!user || loading || workspaceLoading) return
+		if (!workspace) {
+			console.error('Cannot load document: No workspace access')
+			return
+		}
+
+		try {
+			setIsLoading(true)
+			console.log('📖 Loading document:', documentId)
+
+			const doc = await DocumentService.getDocumentById(documentId)
+
+			if (!doc) {
+				console.error('Document not found:', documentId)
+				router.push('/documents')
 				return
 			}
 
-			try {
-				setIsLoading(true)
-				console.log('📖 Loading document:', documentId)
-
-				const doc = await DocumentService.getDocumentById(documentId)
-
-				if (!doc) {
-					console.error('Document not found:', documentId)
-					router.push('/documents')
-					return
-				}
-
-				// Check if document belongs to current workspace
-				if (doc.workspaceId !== workspaceId) {
-					console.error('Document does not belong to this workspace')
-					router.push(`/${workspaceId}`)
-					return
-				}
-
-				setDocumentData(doc)
-				setTitle(doc.title)
-			} catch (error) {
-				console.error('❌ Error loading document:', error)
-				alert('Failed to load document. Redirecting to documents page.')
-				router.push('/documents')
-			} finally {
-				setIsLoading(false)
+			// Check if document belongs to current workspace
+			if (doc.workspaceId !== workspaceId) {
+				console.error('Document does not belong to this workspace')
+				router.push(`/${workspaceId}`)
+				return
 			}
-		}
 
-		if (documentId && user && !loading && workspace && !workspaceLoading) {
-			loadDocument()
+			setDocumentData(doc)
+			setTitle(doc.title)
+            return doc // Return doc for further use
+		} catch (error) {
+			console.error('❌ Error loading document:', error)
+			alert('Failed to load document. Redirecting to documents page.')
+			router.push('/documents')
+            return null
+		} finally {
+			setIsLoading(false)
 		}
 	}, [documentId, user, loading, workspace, workspaceLoading, router, workspaceId])
+
+	useEffect(() => {
+		if (documentId && user && !loading && workspace && !workspaceLoading) {
+			fetchDocument()
+		}
+	}, [documentId, user, loading, workspace, workspaceLoading, fetchDocument])
+
+    const handleVersionRestored = useCallback(async () => {
+        console.log('Version restored, refreshing document...')
+        const newDoc = await fetchDocument()
+        
+        if (newDoc && editorFunctions?.editor) {
+             console.log('Updating editor content with restored version...')
+             // Force update editor content
+             editorFunctions.editor.commands.setContent(newDoc.savedContent || newDoc.content)
+        }
+    }, [fetchDocument, editorFunctions])
 
 	// Global event handlers
 	useEffect(() => {
@@ -205,6 +213,7 @@ export default function DocumentPage() {
 					<h2 className='text-xl font-semibold text-red-600 mb-4'>Editor Error</h2>
 					<p className='text-gray-600 mb-4'>{editorError}</p>
 					<button
+						type='button'
 						onClick={() => window.location.reload()}
 						className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'
 					>
@@ -274,7 +283,12 @@ export default function DocumentPage() {
 					/>
 
 					{/* Version History Panel - Side Panel */}
-					<ModalVersions isOpen={modalVersionsOpen} onClose={() => setModalVersionsOpen(false)} />
+					<ModalVersions 
+                        isOpen={modalVersionsOpen} 
+                        onClose={() => setModalVersionsOpen(false)} 
+                        documentId={documentId}
+                        onVersionRestored={handleVersionRestored}
+                    />
 				</div>
 			</Room>
 		</div>

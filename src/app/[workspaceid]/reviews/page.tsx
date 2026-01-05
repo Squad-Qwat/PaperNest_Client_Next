@@ -12,11 +12,13 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select'
+import { useAuthContext } from '@/context/AuthContext'
 import { documentsService } from '@/lib/api/services/documents.service'
 import type { Review } from '@/lib/api/types/review.types'
 
 export default function ReviewsPage() {
 	const params = useParams()
+	const { loading: authLoading } = useAuthContext()
 	const workspaceId = (params?.workspaceid as string) || 'default-workspace'
 
 	const [reviews, setReviews] = useState<Review[]>([])
@@ -27,6 +29,7 @@ export default function ReviewsPage() {
 	const [sortOrder, setSortOrder] = useState('desc')
 
 	const fetchReviews = useCallback(async () => {
+		if (authLoading) return
 		try {
 			setLoading(true)
 			const response = await documentsService.getPendingReviews()
@@ -36,11 +39,13 @@ export default function ReviewsPage() {
 		} finally {
 			setLoading(false)
 		}
-	}, [])
+	}, [authLoading])
 
 	useEffect(() => {
-		fetchReviews()
-	}, [fetchReviews])
+		if (!authLoading) {
+			fetchReviews()
+		}
+	}, [fetchReviews, authLoading])
 
 	const handleApprove = async (reviewId: string) => {
 		try {
