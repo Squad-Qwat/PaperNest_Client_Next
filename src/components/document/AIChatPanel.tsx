@@ -71,7 +71,7 @@ export function AIChatPanel({ editor, onClose }: AIChatPanelProps) {
 		<div className='flex flex-col h-full bg-white'>
 			{/* Header */}
 			<div className='flex items-center justify-between px-6 py-4 border-b'>
-				<h2 className='text-lg font-semibold text-gray-900'>AI Assistant</h2>
+				<h2 className='text-lg font-semibold text-gray-900'>Neptune</h2>
 				<div className='flex items-center gap-2'>
 					<Button variant='outline' size='sm' onClick={() => setMessages([])}>
 						Clear Chat
@@ -133,7 +133,9 @@ export function AIChatPanel({ editor, onClose }: AIChatPanelProps) {
 							>
 								<div
 									className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-										message.role === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-900'
+										message.role === 'user'
+											? 'bg-primary text-primary-foreground'
+											: 'bg-gray-100 text-gray-900'
 									}`}
 								>
 									<p className='text-sm whitespace-pre-wrap wrap-break-word'>{message.content}</p>
@@ -162,14 +164,19 @@ export function AIChatPanel({ editor, onClose }: AIChatPanelProps) {
 				)}
 			</div>
 
-			{/* Input Area */}
-			<div className='border-t bg-white px-6 py-4'>
+			{/* Input Area - White Theme */}
+			<div className='bg-white px-4 py-4 border-t border-gray-200'>
 				<form onSubmit={handleSubmit} className='relative'>
-					<div className='flex items-end gap-3'>
-						{/* Attachment Button */}
-						<Button type='button' variant='ghost' size='icon' className='shrink-0 mb-1'>
+					{/* Add Context Button */}
+					<div className='mb-3'>
+						<Button
+							type='button'
+							variant='ghost'
+							size='sm'
+							className='h-8 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full px-4 text-sm'
+						>
 							<svg
-								className='w-5 h-5 text-gray-500'
+								className='w-4 h-4 mr-2'
 								fill='none'
 								stroke='currentColor'
 								viewBox='0 0 24 24'
@@ -178,67 +185,120 @@ export function AIChatPanel({ editor, onClose }: AIChatPanelProps) {
 									strokeLinecap='round'
 									strokeLinejoin='round'
 									strokeWidth={2}
-									d='M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13'
+									d='M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207'
 								/>
 							</svg>
+							Add context
 						</Button>
+					</div>
 
-						{/* Text Input */}
-						<div className='flex-1 relative'>
-							<Textarea
-								ref={textareaRef}
-								value={input}
-								onChange={(e) => setInput(e.target.value)}
-								onKeyDown={handleKeyDown}
-								placeholder='Ask, search, or make anything...'
-								className='min-h-12 max-h-[200px] resize-none pr-12 py-3 rounded-3xl border-gray-200 focus:border-gray-300 focus:ring-0'
-								rows={1}
-								disabled={isLoading}
-							/>
+					{/* Text Input Container with White Theme */}
+					<div className='relative bg-gray-50 rounded-2xl border border-gray-200 focus-within:border-gray-300 transition-colors'>
+						<Textarea
+							ref={textareaRef}
+							value={input}
+							onChange={(e) => setInput(e.target.value)}
+							onKeyDown={handleKeyDown}
+							placeholder='Ask, search, or make anything...'
+							className='min-h-[100px] max-h-[200px] resize-none bg-transparent border-0 text-gray-900 placeholder:text-gray-400 focus:ring-0 focus-visible:ring-0 focus-visible:border-0 px-4 pt-4 pb-14 text-base'
+							disabled={isLoading}
+						/>
 
-							{/* Mode Selector inside input */}
-							<div className='absolute left-3 bottom-3 flex items-center gap-2 text-xs text-gray-500'>
-								<span className='flex items-center gap-1'>
-									<svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+						{/* Bottom Controls */}
+						<div className='absolute bottom-0 left-0 right-0 flex items-center justify-between px-4 pb-3'>
+							{/* Left Controls - Attachment + Mode Selectors */}
+							<div className='flex items-center gap-3'>
+								{/* Attachment Button */}
+								<Button
+									type='button'
+									variant='ghost'
+									size='icon'
+									className='h-8 w-8 text-gray-500 hover:text-gray-900 hover:bg-gray-200 rounded-lg'
+								>
+									<svg
+										className='w-4 h-4'
+										fill='none'
+										stroke='currentColor'
+										viewBox='0 0 24 24'
+									>
 										<path
 											strokeLinecap='round'
 											strokeLinejoin='round'
 											strokeWidth={2}
-											d='M13 10V3L4 14h7v7l9-11h-7z'
+											d='M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13'
 										/>
 									</svg>
-									Auto
-								</span>
-								<span className='flex items-center gap-1'>
-									<svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-										<path
-											strokeLinecap='round'
-											strokeLinejoin='round'
-											strokeWidth={2}
-											d='M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9'
-										/>
-									</svg>
-									All Sources
-								</span>
+								</Button>
+
+								{/* Mode Selectors */}
+								<div className='flex items-center gap-4 text-xs text-gray-500'>
+									<button
+										type='button'
+										className='flex items-center gap-1.5 hover:text-gray-900 transition-colors'
+									>
+										<svg
+											className='w-4 h-4'
+											fill='none'
+											stroke='currentColor'
+											viewBox='0 0 24 24'
+										>
+											<path
+												strokeLinecap='round'
+												strokeLinejoin='round'
+												strokeWidth={2}
+												d='M13 10V3L4 14h7v7l9-11h-7z'
+											/>
+										</svg>
+										Auto
+									</button>
+									<button
+										type='button'
+										className='flex items-center gap-1.5 hover:text-gray-900 transition-colors'
+									>
+										<svg
+											className='w-4 h-4'
+											fill='none'
+											stroke='currentColor'
+											viewBox='0 0 24 24'
+										>
+											<path
+												strokeLinecap='round'
+												strokeLinejoin='round'
+												strokeWidth={2}
+												d='M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9'
+											/>
+										</svg>
+										All Sources
+									</button>
+								</div>
 							</div>
-						</div>
 
-						{/* Submit Button */}
+						{/* Right Control - Submit Button */}
 						<Button
 							type='submit'
 							size='icon'
 							disabled={!input.trim() || isLoading}
-							className='shrink-0 rounded-full w-12 h-12 mb-1'
+							className={`shrink-0 rounded-full w-9 h-9 transition-colors ${
+								input.trim() && !isLoading
+									? 'bg-primary hover:bg-primary/90 text-primary-foreground'
+									: 'bg-gray-300 text-gray-500 cursor-not-allowed'
+							}`}
 						>
-							<svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-								<path
-									strokeLinecap='round'
-									strokeLinejoin='round'
-									strokeWidth={2}
-									d='M5 10l7-7m0 0l7 7m-7-7v18'
-								/>
-							</svg>
-						</Button>
+								<svg
+									className='w-4 h-4'
+									fill='none'
+									stroke='currentColor'
+									strokeWidth={2.5}
+									viewBox='0 0 24 24'
+								>
+									<path
+										strokeLinecap='round'
+										strokeLinejoin='round'
+										d='M5 10l7-7m0 0l7 7m-7-7v18'
+									/>
+								</svg>
+							</Button>
+						</div>
 					</div>
 				</form>
 			</div>

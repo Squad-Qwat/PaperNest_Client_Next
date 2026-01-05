@@ -284,7 +284,8 @@ export default function DocumentPage() {
 	}
 
 	return (
-		<div className='min-h-screen bg-gray-50 flex flex-col'>
+		<div className='h-screen bg-gray-50 flex flex-col overflow-hidden'>
+			{/* Header - sticky at top */}
 			<DocumentHeader
 				title={title}
 				setTitle={setTitle}
@@ -312,10 +313,12 @@ export default function DocumentPage() {
 				canRedo={editorFunctions?.canRedo}
 				debugContentExtraction={editorFunctions?.debugContentExtraction}
 			/>
+			
+			{/* Main content area - flex container with independent scroll regions */}
 			<Room documentId={documentId}>
-				<div className='flex flex-1 overflow-hidden'>
-					{/* Document Editor - akan shrink saat AI Assistant open */}
-					<div className='flex-1 flex flex-col overflow-hidden min-w-0'>
+				<div className='flex flex-1 overflow-hidden relative'>
+					{/* Document Editor - scrollable independently */}
+					<div className='flex-1 flex flex-col overflow-y-auto overflow-x-hidden min-w-0'>
 						<DocumentEditor
 							document={documentData}
 							title={title}
@@ -335,7 +338,7 @@ export default function DocumentPage() {
 						/>
 					</div>
 
-					{/* AI Assistant Panel - flex item, bukan fixed overlay */}
+					{/* AI Assistant Panel - sticky, no scroll with document */}
 					<AIAssistant
 						editor={editorFunctions}
 						aiAssistantOpen={aiAssistantOpen}

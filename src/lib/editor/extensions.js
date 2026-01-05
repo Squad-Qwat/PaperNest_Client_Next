@@ -13,14 +13,65 @@ import Blockquote from '@tiptap/extension-blockquote'
 import { BulletList, OrderedList, ListItem } from '@tiptap/extension-list'
 import { TextStyle, FontSize } from '@tiptap/extension-text-style'
 import { Color } from '@tiptap/extension-color'
+import Highlight from '@tiptap/extension-highlight'
+import Link from '@tiptap/extension-link'
+import Image from '@tiptap/extension-image'
+import HorizontalRule from '@tiptap/extension-horizontal-rule'
 import FontFamily from '@tiptap/extension-font-family'
 import TextAlign from '@tiptap/extension-text-align'
 import { Extension } from '@tiptap/core'
+import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { Pages } from '@tiptap-pro/extension-pages'
 import { ExportDocx } from '@tiptap-pro/extension-export-docx'
 import { ImportDocx } from '@tiptap-pro/extension-import-docx'
 import { Placeholder, Gapcursor, TrailingNode } from '@tiptap/extensions'
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table'
+import FileHandler from '@tiptap/extension-file-handler'
+
+// Helper function to compress and resize images
+const compressImage = (file, maxWidth = 1200, quality = 0.8) => {
+	return new Promise((resolve, reject) => {
+		const reader = new FileReader()
+		reader.readAsDataURL(file)
+		reader.onload = (event) => {
+			const img = new Image()
+			img.src = event.target.result
+			img.onload = () => {
+				const canvas = document.createElement('canvas')
+				let width = img.width
+				let height = img.height
+
+				// Resize if width is larger than maxWidth
+				if (width > maxWidth) {
+					height = (height * maxWidth) / width
+					width = maxWidth
+				}
+
+				canvas.width = width
+				canvas.height = height
+
+				const ctx = canvas.getContext('2d')
+				ctx.drawImage(img, 0, 0, width, height)
+
+				// Convert to blob with compression
+				canvas.toBlob(
+					(blob) => {
+						const compressedReader = new FileReader()
+						compressedReader.readAsDataURL(blob)
+						compressedReader.onload = () => {
+							resolve(compressedReader.result)
+						}
+						compressedReader.onerror = reject
+					},
+					file.type,
+					quality
+				)
+			}
+			img.onerror = reject
+		}
+		reader.onerror = reject
+	})
+}
 
 const FontStylePersistence = Extension.create({
 	name: 'fontStylePersistence',
@@ -244,54 +295,81 @@ const CollaborationUndoRedo = Extension.create({
 			'Mod-z': () => {
 				// Try collaboration undo first, fallback to default
 				if (this.options.undoHandler) {
-					const result = this.options.undoHandler()
-					// Apply safe focus setelah undo
-					if (result) {
-						setTimeout(() => {
-							if (this.editor.commands.smartFocus) {
-								this.editor.commands.smartFocus()
-							} else {
-								this.editor.commands.focus('start')
-							}
-						}, 50)
+					try {
+						const result = this.options.undoHandler()
+						// Apply safe focus setelah undo
+						if (result) {
+							setTimeout(() => {
+								try {
+									if (this.editor && this.editor.commands && this.editor.commands.smartFocus) {
+										this.editor.commands.smartFocus()
+									} else if (this.editor && this.editor.commands) {
+										this.editor.commands.focus('start')
+									}
+								} catch (focusError) {
+									console.warn('Focus after undo failed:', focusError)
+								}
+							}, 50)
+						}
+						return result
+					} catch (error) {
+						console.error('Undo handler error:', error)
+						return false
 					}
-					return result
 				}
 				return false // Let default history handle it
 			},
 			'Mod-y': () => {
 				// Try collaboration redo first, fallback to default
 				if (this.options.redoHandler) {
-					const result = this.options.redoHandler()
-					// Apply safe focus setelah redo
-					if (result) {
-						setTimeout(() => {
-							if (this.editor.commands.smartFocus) {
-								this.editor.commands.smartFocus()
-							} else {
-								this.editor.commands.focus('start')
-							}
-						}, 50)
+					try {
+						const result = this.options.redoHandler()
+						// Apply safe focus setelah redo
+						if (result) {
+							setTimeout(() => {
+								try {
+									if (this.editor && this.editor.commands && this.editor.commands.smartFocus) {
+										this.editor.commands.smartFocus()
+									} else if (this.editor && this.editor.commands) {
+										this.editor.commands.focus('start')
+									}
+								} catch (focusError) {
+									console.warn('Focus after redo failed:', focusError)
+								}
+							}, 50)
+						}
+						return result
+					} catch (error) {
+						console.error('Redo handler error:', error)
+						return false
 					}
-					return result
 				}
 				return false // Let default history handle it
 			},
 			'Mod-Shift-z': () => {
 				// Try collaboration redo first, fallback to default
 				if (this.options.redoHandler) {
-					const result = this.options.redoHandler()
-					// Apply safe focus setelah redo
-					if (result) {
-						setTimeout(() => {
-							if (this.editor.commands.smartFocus) {
-								this.editor.commands.smartFocus()
-							} else {
-								this.editor.commands.focus('start')
-							}
-						}, 50)
+					try {
+						const result = this.options.redoHandler()
+						// Apply safe focus setelah redo
+						if (result) {
+							setTimeout(() => {
+								try {
+									if (this.editor && this.editor.commands && this.editor.commands.smartFocus) {
+										this.editor.commands.smartFocus()
+									} else if (this.editor && this.editor.commands) {
+										this.editor.commands.focus('start')
+									}
+								} catch (focusError) {
+									console.warn('Focus after redo failed:', focusError)
+								}
+							}, 50)
+						}
+						return result
+					} catch (error) {
+						console.error('Redo handler error:', error)
+						return false
 					}
-					return result
 				}
 				return false // Let default history handle it
 			},
@@ -309,25 +387,34 @@ const UserOriginExtension = Extension.create({
 		}
 	},
 
-	onCreate() {
-		// Store original dispatch method
-		const originalDispatch = this.editor.view.dispatch
+	addProseMirrorPlugins() {
+		const userOrigin = this.options.userOrigin
 
-		// Override dispatch untuk menambahkan origin pada setiap transaction
-		this.editor.view.dispatch = (transaction) => {
-			// Hanya tambahkan origin jika belum ada dan transaction mengubah dokumen
-			if (!transaction.getMeta('origin') && transaction.docChanged) {
-				transaction.setMeta('origin', this.options.userOrigin)
-				console.log(`Transaction with origin: ${this.options.userOrigin}`)
-			}
+		return [
+			new Plugin({
+				key: new PluginKey('userOrigin'),
 
-			return originalDispatch.call(this.editor.view, transaction)
-		}
-	},
-
-	onDestroy() {
-		// Restore original dispatch method if needed
-		// This will be handled automatically when editor is destroyed
+				// Filter transactions to add origin before they're applied
+				filterTransaction: (transaction, state) => {
+					// Only add origin to user-generated transactions that change the document
+					// Don't interfere with YJS or other system transactions
+					if (
+						transaction.docChanged &&
+						!transaction.getMeta('origin') &&
+						!transaction.getMeta('y-sync$') && // Don't touch YJS sync transactions
+						transaction.getMeta('addToHistory') !== false // Only touch history transactions
+					) {
+						try {
+							transaction.setMeta('origin', userOrigin)
+						} catch (error) {
+							// Silently fail if we can't set meta - transaction might be frozen
+							console.debug('Could not set origin meta:', error)
+						}
+					}
+					return true // Always allow the transaction
+				},
+			}),
+		]
 	},
 })
 
@@ -402,6 +489,9 @@ ImportDocx.configure({
 	Color.configure({
 		types: ['textStyle'],
 	}),
+	Highlight.configure({
+		multicolor: true,
+	}),
 	Heading.configure({
 		levels: [1, 2, 3, 4],
 	}),
@@ -412,6 +502,28 @@ ImportDocx.configure({
 	Code,
 	CodeBlock,
 	Blockquote,
+
+	// Link with auto-link detection
+	Link.configure({
+		openOnClick: false,
+		autolink: true,
+		defaultProtocol: 'https',
+		HTMLAttributes: {
+			class: 'text-blue-600 underline cursor-pointer hover:text-blue-800',
+		},
+	}),
+
+	// Image support
+	Image.configure({
+		inline: true,
+		allowBase64: true,
+		HTMLAttributes: {
+			class: 'max-w-full h-auto rounded',
+		},
+	}),
+
+	// Horizontal rule for visual separation
+	HorizontalRule,
 
 	// Text alignment
 	TextAlign.configure({
@@ -458,6 +570,91 @@ ImportDocx.configure({
 		placeholder: 'Start typing or use the AI assistant to generate content...',
 		emptyEditorClass: 'is-editor-empty',
 		emptyNodeClass: 'is-node-empty',
+	}),
+
+	// File handler for drag & drop
+	FileHandler.configure({
+		allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
+		onDrop: async (currentEditor, files, pos) => {
+			for (const file of files) {
+				try {
+					// Check file size (max 5MB before compression)
+					if (file.size > 5 * 1024 * 1024) {
+						console.warn('Image file too large (>5MB):', file.name)
+						// You can show a toast notification here
+						continue
+					}
+
+					// Compress image before inserting
+					const compressedDataUrl = await compressImage(file, 1200, 0.8)
+
+					// Check compressed size (base64 adds ~33% overhead)
+					// Liveblocks has ~100KB limit for websocket messages
+					const estimatedSize = (compressedDataUrl.length * 3) / 4 / 1024 // KB
+					if (estimatedSize > 80) {
+						console.warn(
+							`Compressed image still too large (~${estimatedSize.toFixed(0)}KB). Consider uploading to server.`
+						)
+						// You can show a toast notification here
+						// For now, we'll still try to insert it
+					}
+
+					currentEditor
+						.chain()
+						.insertContentAt(pos, {
+							type: 'image',
+							attrs: {
+								src: compressedDataUrl,
+							},
+						})
+						.focus()
+						.run()
+				} catch (error) {
+					console.error('Error processing image:', error)
+				}
+			}
+		},
+		onPaste: async (currentEditor, files, htmlContent) => {
+			if (htmlContent) {
+				// if there is htmlContent, stop manual insertion & let other extensions handle insertion via inputRule
+				// you could extract the pasted file from this url string and upload it to a server for example
+				return false
+			}
+
+			for (const file of files) {
+				try {
+					// Check file size
+					if (file.size > 5 * 1024 * 1024) {
+						console.warn('Image file too large (>5MB):', file.name)
+						continue
+					}
+
+					// Compress image before inserting
+					const compressedDataUrl = await compressImage(file, 1200, 0.8)
+
+					// Check compressed size
+					const estimatedSize = (compressedDataUrl.length * 3) / 4 / 1024 // KB
+					if (estimatedSize > 80) {
+						console.warn(
+							`Compressed image still too large (~${estimatedSize.toFixed(0)}KB). Consider uploading to server.`
+						)
+					}
+
+					currentEditor
+						.chain()
+						.insertContentAt(currentEditor.state.selection.anchor, {
+							type: 'image',
+							attrs: {
+								src: compressedDataUrl,
+							},
+						})
+						.focus()
+						.run()
+				} catch (error) {
+					console.error('Error processing image:', error)
+				}
+			}
+		},
 	}),
 ]
 
