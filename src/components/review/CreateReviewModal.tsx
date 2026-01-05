@@ -21,7 +21,7 @@ interface CreateReviewModalProps {
 
 export default function CreateReviewModal({ isOpen, onClose, onSubmit }: CreateReviewModalProps) {
 	const [content, setContent] = useState('')
-	const [status, setStatus] = useState('pending')
+	const [status, setStatus] = useState('approved')
 	const [errors, setErrors] = useState<Record<string, string>>({})
 	const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -41,7 +41,7 @@ export default function CreateReviewModal({ isOpen, onClose, onSubmit }: CreateR
 		try {
 			await onSubmit({ content, status })
 			setContent('')
-			setStatus('pending')
+			setStatus('approved')
 			setErrors({})
 			onClose()
 		} catch (error) {
@@ -57,21 +57,20 @@ export default function CreateReviewModal({ isOpen, onClose, onSubmit }: CreateR
 			onClose={() => {
 				onClose()
 				setContent('')
-				setStatus('pending')
+				setStatus('approved')
 				setErrors({})
 			}}
-			title='Create New Review'
+			title='Review Decision'
 			size='lg'
 		>
 			<div className='space-y-4'>
 				<div className='space-y-2'>
-					<Label htmlFor='status'>Status</Label>
+					<Label htmlFor='status'>Decision</Label>
 					<Select value={status} onValueChange={setStatus} disabled={isSubmitting}>
 						<SelectTrigger className='w-full'>
-							<SelectValue placeholder='Select status' />
+							<SelectValue placeholder='Select decision' />
 						</SelectTrigger>
 						<SelectContent>
-							<SelectItem value='pending'>Pending</SelectItem>
 							<SelectItem value='approved'>Approved</SelectItem>
 							<SelectItem value='revision'>Revision Required</SelectItem>
 							<SelectItem value='rejected'>Rejected</SelectItem>
@@ -97,13 +96,13 @@ export default function CreateReviewModal({ isOpen, onClose, onSubmit }: CreateR
 				</div>
 			</div>
 
-			<ModalFooter>
+		<ModalFooter>
 				<Button
 					variant='outline'
 					onClick={() => {
 						onClose()
 						setContent('')
-						setStatus('pending')
+						setStatus('approved')
 						setErrors({})
 					}}
 					disabled={isSubmitting}
@@ -111,7 +110,7 @@ export default function CreateReviewModal({ isOpen, onClose, onSubmit }: CreateR
 					Cancel
 				</Button>
 				<Button onClick={handleSubmit} disabled={isSubmitting}>
-					{isSubmitting ? 'Creating...' : 'Create Review'}
+					{isSubmitting ? 'Submitting...' : 'Submit Decision'}
 				</Button>
 			</ModalFooter>
 		</Modal>
