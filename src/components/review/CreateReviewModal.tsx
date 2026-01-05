@@ -74,6 +74,7 @@ export default function CreateReviewModal({ isOpen, onClose, onSubmit }: CreateR
 							<SelectItem value='pending'>Pending</SelectItem>
 							<SelectItem value='approved'>Approved</SelectItem>
 							<SelectItem value='revision'>Revision Required</SelectItem>
+							<SelectItem value='rejected'>Rejected</SelectItem>
 						</SelectContent>
 					</Select>
 				</div>
