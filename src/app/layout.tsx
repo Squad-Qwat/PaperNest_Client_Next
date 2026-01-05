@@ -28,7 +28,10 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang='en'>
-			<body className={`${ibmPlexSans.variable} ${ibmPlexMono.variable} antialiased`}>
+			<body 
+				className={`${ibmPlexSans.variable} ${ibmPlexMono.variable} antialiased`}
+				suppressHydrationWarning
+			>
 				<AuthProvider>
 					<AppProvider>{children}</AppProvider>
 				</AuthProvider>
