@@ -24,7 +24,7 @@ export interface Document {
 export interface CreateDocumentDto {
 	title: string
 	description?: string
-	content?: string
+	savedContent?: any // TipTap JSON content (optional on create)
 }
 
 /**
@@ -39,7 +39,7 @@ export interface UpdateDocumentDto {
  * Update document content DTO
  */
 export interface UpdateDocumentContentDto {
-	content: string
+	savedContent: any // TipTap JSON content (standardized field name)
 	versionNote?: string
 }
 

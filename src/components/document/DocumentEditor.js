@@ -28,6 +28,7 @@ export default function DocumentEditor({
 	aiAssistantOpen,
 	// Expose editor functions
 	onEditorReady,
+	onAutoSaveStateChange,
 }) {
 	// Menggunakan custom hook untuk editor dengan Yjs collaboration
 	const {
@@ -37,6 +38,9 @@ export default function DocumentEditor({
 		getCurrentContent,
 		getCurrentHTML,
 		saveCurrentContent,
+		// Auto-save state
+		isSaving: isAutoSaving,
+		lastSavedAt,
 		// Debug functions
 		debugContentExtraction,
 		// Undo/Redo operations
@@ -64,6 +68,7 @@ export default function DocumentEditor({
 		setEditorError,
 		enableLiveblocks: true, // Karena DocumentEditor ada di dalam Room
 		enableAutoSave: true,
+		autoSaveInterval: 2000, // Auto-save 2 seconds after user stops typing
 	})
 
 	// Debug collaboration status
@@ -76,6 +81,13 @@ export default function DocumentEditor({
 			})
 		}
 	}, [collaborationReady, isConnected, getAwarenessStates, yDoc])
+	
+	// Notify parent about auto-save state changes
+	useEffect(() => {
+		if (onAutoSaveStateChange) {
+			onAutoSaveStateChange(isAutoSaving, lastSavedAt)
+		}
+	}, [isAutoSaving, lastSavedAt, onAutoSaveStateChange])
 
 	// Expose editor functions to parent component
 	useEffect(() => {

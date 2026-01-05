@@ -26,6 +26,8 @@ export default function DocumentPage() {
 	const [documentData, setDocumentData] = useState(null)
 	const [isLoading, setIsLoading] = useState(true)
 	const [isSaving, setIsSaving] = useState(false)
+	const [isAutoSaving, setIsAutoSaving] = useState(false)
+	const [lastSavedAt, setLastSavedAt] = useState(null)
 	const [title, setTitle] = useState('')
 	const [aiAssistantOpen, setAiAssistantOpen] = useState(false)
 	const [aiAssistantWidth, setAiAssistantWidth] = useState(320)
@@ -146,11 +148,11 @@ export default function DocumentPage() {
 			}
 
 			// Use current editor content if available, otherwise fallback to stored content
-			const contentToSave = currentContent || documentData.content
+			const contentToSave = currentContent || documentData.savedContent
 
 			await DocumentService.updateDocument(documentId, {
 				title: title,
-				content: contentToSave,
+				savedContent: contentToSave,
 			})
 
 			// Also save using the editor's built-in save function if available
@@ -163,7 +165,7 @@ export default function DocumentPage() {
 			setDocumentData((prev) => ({
 				...prev,
 				title: title,
-				content: contentToSave,
+				savedContent: contentToSave,
 				updatedAt: new Date(),
 			}))
 		} catch (error) {
@@ -176,6 +178,12 @@ export default function DocumentPage() {
 
 	const onEditorReady = useCallback((functions) => {
 		setEditorFunctions(functions)
+	}, [])
+	
+	// Callback untuk update auto-save state dari DocumentEditor
+	const onAutoSaveStateChange = useCallback((saving, savedAt) => {
+		setIsAutoSaving(saving)
+		setLastSavedAt(savedAt)
 	}, [])
 
 	const toggleAiAssistant = () => {
@@ -217,7 +225,6 @@ export default function DocumentPage() {
 
 	return (
 		<div className='min-h-screen bg-gray-50 flex flex-col'>
-			{/* Header */}
 			<DocumentHeader
 				title={title}
 				setTitle={setTitle}
@@ -225,6 +232,8 @@ export default function DocumentPage() {
 				toggleAiAssistant={toggleAiAssistant}
 				handleSave={handleSave}
 				isSaving={isSaving}
+				isAutoSaving={isAutoSaving}
+				lastSavedAt={lastSavedAt}
 				activeDropdown={activeDropdown}
 				toggleDropdown={toggleDropdown}
 				paperSize={paperSize}
@@ -262,6 +271,7 @@ export default function DocumentPage() {
 							user={user}
 							aiAssistantOpen={aiAssistantOpen}
 							onEditorReady={onEditorReady}
+							onAutoSaveStateChange={onAutoSaveStateChange}
 						/>
 					</div>
 

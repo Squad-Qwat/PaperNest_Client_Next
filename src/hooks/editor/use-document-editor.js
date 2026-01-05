@@ -73,12 +73,16 @@ export function useDocumentEditor({
 	setEditorError = () => {},
 	enableLiveblocks = false,
 	enableAutoSave = true,
+	autoSaveInterval = 2000, // 2 seconds after user stops typing
 	initialContent = null,
 	onUpdate = () => {},
 	onCreate = () => {},
 	onDestroy = () => {},
 } = {}) {
 	const [savedContent, setSavedContent] = useState(null)
+	const [lastSavedAt, setLastSavedAt] = useState(null)
+	const [isSaving, setIsSaving] = useState(false)
+	const autoSaveTimerRef = useState({ current: null })[0]
 
 	// Hook untuk Yjs collaboration
 	const {
@@ -182,6 +186,19 @@ export function useDocumentEditor({
 			onUpdate: ({ editor }) => {
 				try {
 					console.log('Content updated:', editor.getHTML())
+					
+					// Reset auto-save timer on content change
+					if (enableAutoSave && document?.documentId) {
+						if (autoSaveTimerRef.current) {
+							clearTimeout(autoSaveTimerRef.current)
+						}
+						
+						autoSaveTimerRef.current = setTimeout(() => {
+							console.log('⏰ Auto-save triggered')
+							saveCurrentContent(document.documentId, { isAutoSave: true })
+						}, autoSaveInterval)
+					}
+					
 					onUpdate({ editor })
 				} catch (error) {
 					console.warn('Error getting editor content:', error)
@@ -234,6 +251,11 @@ export function useDocumentEditor({
 			},
 
 			onDestroy: (params) => {
+				// Cleanup auto-save timer
+				if (autoSaveTimerRef.current) {
+					clearTimeout(autoSaveTimerRef.current)
+				}
+				
 				if (params && params.editor) {
 					console.log('Editor destroyed')
 				} else {
@@ -560,10 +582,15 @@ export function useDocumentEditor({
 
 	// Function untuk sync current editor content ke Firestore
 	const saveCurrentContent = useCallback(
-		async (documentId) => {
+		async (documentId, options = {}) => {
 			if (!editor || !documentId) return false
+			if (isSaving && !options.force) {
+				console.log('⏳ Save already in progress, skipping...')
+				return false
+			}
 
 			try {
+				setIsSaving(true)
 				const content = getCurrentContent()
 				if (!content) return false
 
@@ -573,14 +600,17 @@ export function useDocumentEditor({
 					savedContent: content,
 				})
 
+				setLastSavedAt(new Date())
 				console.log('✅ Content saved successfully')
 				return true
 			} catch (error) {
 				console.error('❌ Error saving content:', error)
 				return false
+			} finally {
+				setIsSaving(false)
 			}
 		},
-		[editor, getCurrentContent]
+		[editor, getCurrentContent, isSaving]
 	)
 
 	// Debug functions (only in development)
@@ -616,6 +646,9 @@ export function useDocumentEditor({
 		getCurrentContent,
 		getCurrentHTML,
 		saveCurrentContent,
+		// Auto-save state
+		isSaving,
+		lastSavedAt,
 		// Undo/Redo operations
 		undo,
 		redo,

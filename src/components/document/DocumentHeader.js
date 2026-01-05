@@ -15,6 +15,8 @@ const DocumentHeader = ({
 	toggleAiAssistant,
 	handleSave,
 	isSaving,
+	isAutoSaving,
+	lastSavedAt,
 	activeDropdown,
 	toggleDropdown,
 	paperSize,
@@ -320,15 +322,32 @@ const DocumentHeader = ({
 					</div>
 
 					<div className='flex items-center gap-3'>
-						<Button
-							variant='outline'
-							size='sm'
-							className='gap-1'
-							onClick={handleSave}
-							disabled={isSaving}
-						>
-							{isSaving ? 'Saving...' : 'Save'}
-						</Button>
+						<div className='flex items-center gap-2'>
+														{(isAutoSaving || lastSavedAt) && (
+								<div className='flex items-center gap-1.5 text-xs text-gray-500'>
+									{isAutoSaving ? (
+										<>
+											<div className='w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse'></div>
+											<span>Saving...</span>
+										</>
+									) : (
+										<>
+											<div className='w-1.5 h-1.5 bg-green-500 rounded-full'></div>
+											<span>Saved {lastSavedAt && new Date(lastSavedAt).toLocaleTimeString()}</span>
+										</>
+									)}
+								</div>
+							)}
+							<Button
+								variant='outline'
+								size='sm'
+								className='gap-1'
+								onClick={handleSave}
+								disabled={isSaving || isAutoSaving}
+							>
+								{isSaving ? 'Saving...' : 'Save'}
+							</Button>
+						</div>
 						<Button variant='outline' size='sm' className='gap-1'>
 							<Share2 className='h-4 w-4' />
 							Share

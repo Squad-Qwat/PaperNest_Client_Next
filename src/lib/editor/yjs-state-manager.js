@@ -210,43 +210,26 @@ export class YjsStateManager {
 			const xmlFragment = ydoc.getXmlFragment('default')
 
 			console.log('🔍 Extracting TipTap content from Yjs document')
-			console.log('📋 XML Fragment:', xmlFragment)
 			console.log('📋 Fragment length:', xmlFragment.length)
+			console.log('📋 Available fragments:', Object.keys(ydoc.share || {}))
 
-			// Debug: log all available fragments
-			console.log('📋 Available fragments in Yjs doc:', {
-				fragmentNames: Object.keys(ydoc.share || {}),
-				hasDefault: ydoc.getXmlFragment('default').length > 0,
-			})
-
+			// Return empty document if fragment is empty
 			if (xmlFragment.length === 0) {
 				console.log('⚠️ XML fragment is empty, returning default content')
 				return {
 					type: 'doc',
-					content: [
-						{
-							type: 'paragraph',
-							content: [],
-						},
-					],
+					content: [{ type: 'paragraph', content: [] }],
 				}
 			}
 
 			// Convert XML fragment to TipTap JSON
-			const proseMirrorDoc = xmlFragment.toJSON()
-			console.log('📄 Extracted ProseMirror doc:', proseMirrorDoc)
+			const content = xmlFragment.toJSON()
+			console.log('✅ Successfully extracted TipTap content, length:', content?.length || 0)
 
-			const tipTapContent = {
+			return {
 				type: 'doc',
-				content: proseMirrorDoc || [],
+				content: content || [],
 			}
-
-			console.log('✅ Successfully extracted TipTap content:', {
-				hasContent: !!(tipTapContent.content && tipTapContent.content.length > 0),
-				contentLength: tipTapContent.content?.length || 0,
-			})
-
-			return tipTapContent
 		} catch (error) {
 			console.error('❌ Error extracting TipTap content from Yjs:', error)
 			return null
