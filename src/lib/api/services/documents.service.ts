@@ -6,17 +6,19 @@
 import { apiClient } from '../clients/api-client'
 import { API_ENDPOINTS } from '../config'
 import type {
-	Document,
 	CreateDocumentDto,
-	UpdateDocumentDto,
-	UpdateDocumentContentDto,
+	Document,
 	DocumentSearchParams,
 	DocumentsResponse,
+	UpdateDocumentContentDto,
+	UpdateDocumentDto,
+	VersionResponse,
+	VersionsResponse,
 } from '../types/document.types'
 import type {
+	CreateReviewDto,
 	Review,
 	ReviewsResponse,
-	CreateReviewDto,
 	UpdateReviewStatusDto,
 } from '../types/review.types'
 
@@ -33,10 +35,10 @@ class DocumentsService {
 	 */
 	async createReview(
 		documentId: string,
-		versionId: string,
+		documentBodyId: string,
 		data: CreateReviewDto
 	): Promise<Review> {
-		return apiClient.post<Review>(API_ENDPOINTS.reviews.create(documentId, versionId), data)
+		return apiClient.post<Review>(API_ENDPOINTS.reviews.create(documentId, documentBodyId), data)
 	}
 
 	/**
@@ -127,6 +129,72 @@ class DocumentsService {
 	 */
 	async delete(workspaceId: string, documentId: string): Promise<void> {
 		await apiClient.delete<void>(API_ENDPOINTS.documents.byId(workspaceId, documentId))
+	}
+
+	/**
+	 * Get all versions of a document
+	 */
+	async getVersions(documentId: string): Promise<VersionsResponse> {
+		return apiClient.get<VersionsResponse>(API_ENDPOINTS.documents.versions(documentId))
+	}
+
+	/**
+	 * Create a new version (Commit)
+	 */
+	async createVersion(
+		documentId: string,
+		data: { message: string; content?: string }
+	): Promise<VersionResponse> {
+		return apiClient.post<VersionResponse>(API_ENDPOINTS.documents.versions(documentId), data)
+	}
+
+	/**
+	 * Get current version of a document
+	 */
+	async getCurrentVersion(documentId: string): Promise<VersionResponse> {
+		return apiClient.get<VersionResponse>(API_ENDPOINTS.documents.currentVersion(documentId))
+	}
+
+	/**
+	 * Revert to a specific version
+	 */
+	async revertVersion(documentId: string, versionNumber: number): Promise<void> {
+		return apiClient.post<void>(API_ENDPOINTS.documents.revert(documentId, versionNumber))
+	}
+
+	/**
+	 * Get pending reviews for lecturer
+	 */
+	async getPendingReviews(): Promise<ReviewsResponse> {
+		return apiClient.get<ReviewsResponse>(API_ENDPOINTS.reviews.lecturer)
+	}
+
+	/**
+	 * Get reviews for student
+	 */
+	async getStudentReviews(): Promise<ReviewsResponse> {
+		return apiClient.get<ReviewsResponse>(API_ENDPOINTS.reviews.student)
+	}
+
+	/**
+	 * Get single review by ID
+	 */
+	async getReview(reviewId: string): Promise<{ review: Review }> {
+		// Since we don't have a strict single review endpoint in docs,
+		// we try a standard convention or fallback to filtering pending
+		// Try /reviews/:id first
+		try {
+			const data = await apiClient.get<any>(`/reviews/${reviewId}`)
+			return { review: data.review || data }
+		} catch (e) {
+			console.warn('Direct review fetch failed, trying fallback list lookup', e)
+			// Fallback: fetch all reviews (or pending) and find
+			// This is inefficient but necessary if no endpoint exists
+			const all = await this.getPendingReviews() // or generic /reviews
+			const found = all.reviews.find((r) => r.reviewId === reviewId)
+			if (found) return { review: found }
+			throw new Error('Review not found')
+		}
 	}
 }
 

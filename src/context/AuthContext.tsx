@@ -5,16 +5,17 @@
 
 'use client'
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
-import { authService } from '@/lib/api/services/auth.service'
+import { usePathname, useRouter } from 'next/navigation'
+import type React from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import { apiClient } from '@/lib/api/clients/api-client'
+import { authService } from '@/lib/api/services/auth.service'
 import type {
-	RegisterDto,
+	AuthResponse,
 	LoginDto,
 	LoginEmailDto,
 	PasswordResetDto,
-	AuthResponse,
+	RegisterDto,
 } from '@/lib/api/types/auth.types'
 import type { User } from '@/lib/api/types/user.types'
 import { getErrorMessage } from '@/lib/api/utils/error-handler'
@@ -58,6 +59,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 				const { accessToken } = authService.initializeAuth()
 
 				if (accessToken) {
+					apiClient.setAuthToken(accessToken)
 					const currentUser = await authService.getCurrentUser()
 					setUser(currentUser)
 				}

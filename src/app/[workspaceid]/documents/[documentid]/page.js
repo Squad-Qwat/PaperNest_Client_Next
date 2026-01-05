@@ -1,21 +1,16 @@
 'use client'
 
-import { EditorContent, useEditor } from '@tiptap/react'
-import StarterKit from '@tiptap/starter-kit'
 import { useParams, useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import AIAssistant from '@/components/document/AIAssistant'
 // UI Components
 import DocumentEditor from '@/components/document/DocumentEditor'
 import DocumentHeader from '@/components/document/DocumentHeader'
-import EditorToolbar from '@/components/document/EditorToolbar'
 import { Room } from '@/hooks/liveblocks/room'
 import { useWorkspace } from '@/hooks/useWorkspace'
-import { createEditorExtensions } from '@/lib/editor/extensions'
 import { DocumentService } from '@/lib/firebase/document-service'
 import '@/components/document/EditorStyles.css'
 import ModalVersions from '@/components/document/ModalVersions'
-import ContextMenu from '@/components/editor/context-menu'
 import { useAuthContext } from '@/context/AuthContext'
 
 export default function DocumentPage() {
@@ -40,6 +35,7 @@ export default function DocumentPage() {
 	const [defaultFontFamily, setDefaultFontFamily] = useState('"Times New Roman", Times, serif')
 	const [defaultFontSize, setDefaultFontSize] = useState('11pt')
 	const [editorFunctions, setEditorFunctions] = useState(null)
+	const [liveblocksAuthReady, setLiveblocksAuthReady] = useState(false)
 	const { user, loading } = useAuthContext()
 
 	// Check workspace access first
@@ -58,49 +54,106 @@ export default function DocumentPage() {
 	}, [workspace, workspaceLoading, workspaceError, router])
 
 	// Load document
+	const fetchDocument = useCallback(async () => {
+		// Don't load if still checking workspace or no workspace access
+		if (!user || loading || workspaceLoading) return
+		if (!workspace) {
+			console.error('Cannot load document: No workspace access')
+			return
+		}
+
+		try {
+			setIsLoading(true)
+			console.log('📖 Loading document:', documentId)
+
+			const doc = await DocumentService.getDocumentById(documentId)
+
+			if (!doc) {
+				console.error('Document not found:', documentId)
+				router.push('/documents')
+				return
+			}
+
+			// Check if document belongs to current workspace
+			if (doc.workspaceId !== workspaceId) {
+				console.error('Document does not belong to this workspace')
+				router.push(`/${workspaceId}`)
+				return
+			}
+
+			setDocumentData(doc)
+			setTitle(doc.title)
+			return doc // Return doc for further use
+		} catch (error) {
+			console.error('❌ Error loading document:', error)
+			alert('Failed to load document. Redirecting to documents page.')
+			router.push('/documents')
+			return null
+		} finally {
+			setIsLoading(false)
+		}
+	}, [documentId, user, loading, workspace, workspaceLoading, router, workspaceId])
+
 	useEffect(() => {
-		const loadDocument = async () => {
-			// Don't load if still checking workspace or no workspace access
-			if (!user || loading || workspaceLoading) return
-			if (!workspace) {
-				console.error('Cannot load document: No workspace access')
+		if (documentId && user && !loading && workspace && !workspaceLoading) {
+			fetchDocument()
+		}
+	}, [documentId, user, loading, workspace, workspaceLoading, fetchDocument])
+
+	// Check Liveblocks auth readiness
+	useEffect(() => {
+		const checkLiveblocksAuth = async () => {
+			if (!user || loading) {
+				setLiveblocksAuthReady(false)
 				return
 			}
 
 			try {
-				setIsLoading(true)
-				console.log('📖 Loading document:', documentId)
-
-				const doc = await DocumentService.getDocumentById(documentId)
-
-				if (!doc) {
-					console.error('Document not found:', documentId)
-					router.push('/documents')
+				const token = localStorage.getItem('accessToken')
+				if (!token) {
+					console.error('No access token found for Liveblocks auth')
+					setLiveblocksAuthReady(false)
 					return
 				}
 
-				// Check if document belongs to current workspace
-				if (doc.workspaceId !== workspaceId) {
-					console.error('Document does not belong to this workspace')
-					router.push(`/${workspaceId}`)
-					return
-				}
+				// Test auth endpoint
+				const response = await fetch('/api/liveblocks-auth', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						Authorization: `Bearer ${token}`,
+					},
+					body: JSON.stringify({ room: `document-${documentId}` }),
+				})
 
-				setDocumentData(doc)
-				setTitle(doc.title)
+				if (response.ok) {
+					console.log('✅ Liveblocks auth ready (status 200)')
+					setLiveblocksAuthReady(true)
+				} else {
+					console.error('❌ Liveblocks auth failed:', response.status)
+					setLiveblocksAuthReady(false)
+				}
 			} catch (error) {
-				console.error('❌ Error loading document:', error)
-				alert('Failed to load document. Redirecting to documents page.')
-				router.push('/documents')
-			} finally {
-				setIsLoading(false)
+				console.error('❌ Error checking Liveblocks auth:', error)
+				setLiveblocksAuthReady(false)
 			}
 		}
 
-		if (documentId && user && !loading && workspace && !workspaceLoading) {
-			loadDocument()
+		if (user && !loading) {
+			checkLiveblocksAuth()
 		}
-	}, [documentId, user, loading, workspace, workspaceLoading, router, workspaceId])
+	}, [user, loading, documentId])
+
+	const handleVersionRestored = useCallback(async () => {
+		console.log('Version restored, refreshing document...')
+		const newDoc = await fetchDocument()
+
+		if (newDoc && editorFunctions?.editor) {
+			console.log('Updating editor content with restored version...')
+			// Force update editor content
+			editorFunctions.editor.commands.setContent(newDoc.savedContent || newDoc.content)
+		}
+	}, [fetchDocument, editorFunctions])
 
 	// Global event handlers
 	useEffect(() => {
@@ -198,10 +251,16 @@ export default function DocumentPage() {
 		setModalVersionsOpen(!modalVersionsOpen)
 	}
 
-	if (isLoading) {
+	// Show loading until both document and Liveblocks auth are ready
+	if (isLoading || !liveblocksAuthReady) {
 		return (
 			<div className='min-h-screen bg-white flex items-center justify-center'>
-				<div className='animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600'></div>
+				<div className='flex flex-col items-center gap-4'>
+					<div className='animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600'></div>
+					<p className='text-gray-600 text-sm'>
+						{isLoading ? 'Loading document...' : 'Initializing collaboration...'}
+					</p>
+				</div>
 			</div>
 		)
 	}
@@ -213,6 +272,7 @@ export default function DocumentPage() {
 					<h2 className='text-xl font-semibold text-red-600 mb-4'>Editor Error</h2>
 					<p className='text-gray-600 mb-4'>{editorError}</p>
 					<button
+						type='button'
 						onClick={() => window.location.reload()}
 						className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'
 					>
@@ -284,7 +344,12 @@ export default function DocumentPage() {
 					/>
 
 					{/* Version History Panel - Side Panel */}
-					<ModalVersions isOpen={modalVersionsOpen} onClose={() => setModalVersionsOpen(false)} />
+					<ModalVersions
+						isOpen={modalVersionsOpen}
+						onClose={() => setModalVersionsOpen(false)}
+						documentId={documentId}
+						onVersionRestored={handleVersionRestored}
+					/>
 				</div>
 			</Room>
 		</div>

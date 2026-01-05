@@ -1,33 +1,65 @@
 'use client'
 
+import { AlertCircle } from 'lucide-react'
+import { useParams } from 'next/navigation'
+import { useState } from 'react'
 import { Navbar } from '@/components/layout/navbar'
+import { ReviewComment } from '@/components/review/ReviewComment'
+import { ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
-import { AlertCircle } from 'lucide-react'
-import { useState } from 'react'
-import { ReviewComment } from '@/components/review/ReviewComment'
-import { ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
-
-import { useParams } from 'next/navigation'
+import { useAuthContext } from '@/context/AuthContext'
+import { documentsService } from '@/lib/api/services/documents.service'
 
 export default function ReviewDetailPage() {
 	const params = useParams()
 	const { reviewId } = params
-	const [comment, setComment] = useState('')
+	const { loading: authLoading } = useAuthContext()
+	const [review, setReview] = useState<any | null>(null) // using any to map easier to UI for now, or use Review type
+	const [loading, setLoading] = useState(true)
 
-	// Mock data based on provided context
-	const review = {
-		id: reviewId,
-		title: 'Review Keamanan Sistem',
-		lecturerName: 'Dr. Robert Wilson',
-		status: 'Approved' as const, // Gitlab style: Open, Merged (Approved), Closed
-		timeline_status: 'failed' as const, // pipeline failed style
-		requestBy: 'Fa Ainama Caldera S',
-		createdAt: '3 days ago',
-		description:
-			'Implementasi blockchain sangat inovatif dan secure. Analisis keamanan komprehensif. Sangat direkomendasikan untuk publikasi.',
-		documentName: 'Implementasi Blockchain dalam Sistem Keamanan Data',
+	useEffect(() => {
+		const fetchReview = async () => {
+			if (!reviewId || authLoading) return
+			try {
+				const { review: reviewData } = await documentsService.getReview(reviewId as string)
+				// Map API response to UI shape
+				setReview({
+					id: reviewData.reviewId,
+					title: 'Review Document', // Generic title
+					lecturerName: 'Lecturer', // Backend doesn't return name yet
+					status: reviewData.status,
+					requestBy: 'Student', // Backend returns ID
+					createdAt: new Date(reviewData.requestedAt).toLocaleDateString(),
+					description: reviewData.message,
+					documentName: 'Document', // Backend id: reviewData.documentId
+					lecturerUserId: reviewData.lecturerUserId,
+				})
+			} catch (e) {
+				console.error('Failed to fetch review:', e)
+			} finally {
+				setLoading(false)
+			}
+		}
+
+		if (!authLoading) {
+			fetchReview()
+		}
+	}, [reviewId, authLoading])
+
+	if (authLoading || loading) {
+		return (
+			<div className='min-h-screen bg-gray-50 flex items-center justify-center'>Loading...</div>
+		)
+	}
+
+	if (!review) {
+		return (
+			<div className='min-h-screen bg-gray-50 flex items-center justify-center'>
+				Review not found
+			</div>
+		)
 	}
 
 	return (
@@ -62,9 +94,9 @@ export default function ReviewDetailPage() {
 
 					<ReviewComment
 						authorName={review.lecturerName}
-						authorInitials='RW'
-						date='2 days ago'
-						content={review.description}
+						authorInitials='LC'
+						date={review.createdAt}
+						content={review.description || 'No comment provided'}
 						userType='lecturer'
 					/>
 				</div>

@@ -1,23 +1,24 @@
 'use client'
 
-import { useState, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useAuthContext } from '@/context/AuthContext'
-import { useWorkspace } from '@/hooks/useWorkspace'
-import { useDocuments } from '@/hooks/useDocuments'
-import { documentsService } from '@/lib/api/services/documents.service'
+import { useMemo, useState } from 'react'
 import { Navbar } from '@/components/layout/navbar'
-import { SearchInput } from '@/components/ui/search-input'
 import { StatusBadge } from '@/components/ui/badge'
-import { Modal, ModalFooter } from '@/components/ui/modal'
-import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { WorkspaceSettingsModal } from '@/components/workspace/WorkspaceSettingsModal'
-import { RadioGroup } from '@/components/ui/radio-group'
-import { OptionCard } from '@/components/ui/option-card'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Modal, ModalFooter } from '@/components/ui/modal'
+import { OptionCard } from '@/components/ui/option-card'
+import { RadioGroup } from '@/components/ui/radio-group'
+import { SearchInput } from '@/components/ui/search-input'
 import { Textarea } from '@/components/ui/textarea'
+import { WorkspaceSettingsModal } from '@/components/workspace/WorkspaceSettingsModal'
+import { useAuthContext } from '@/context/AuthContext'
+import { useDocuments } from '@/hooks/useDocuments'
+import { useWorkspace } from '@/hooks/useWorkspace'
+import { documentsService } from '@/lib/api/services/documents.service'
+import { format, id } from '@/lib/date'
 
 export default function WorkspacePage() {
 	const params = useParams()
@@ -241,7 +242,9 @@ export default function WorkspacePage() {
 								</p>
 
 								<div className='flex items-center justify-between text-xs text-gray-500 mb-4'>
-									<span>{new Date(doc.updatedAt).toLocaleDateString('id-ID')}</span>
+									<span>
+										{format(doc.updatedAt || doc.createdAt, 'd MMMM yyyy', { locale: id })}
+									</span>
 								</div>
 
 								<div className='flex gap-2'>

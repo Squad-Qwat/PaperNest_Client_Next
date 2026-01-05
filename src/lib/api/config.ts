@@ -62,13 +62,19 @@ export const API_ENDPOINTS = {
 			`/workspaces/${workspaceId}/documents/${documentId}`,
 		content: (workspaceId: string, documentId: string) =>
 			`/workspaces/${workspaceId}/documents/${documentId}/content`,
+		versions: (documentId: string) => `/documents/${documentId}/versions`,
+		currentVersion: (documentId: string) => `/documents/${documentId}/versions/current`,
+		revert: (documentId: string, versionNumber: number) =>
+			`/documents/${documentId}/versions/${versionNumber}/revert`,
 	},
 
 	// Reviews
 	reviews: {
+		student: '/reviews', // Endpoint for Student
+		lecturer: '/reviews/pending', // Endpoint for Lecturer (Pending Reviews)
 		byDocument: (documentId: string) => `/documents/${documentId}/reviews`,
-		create: (documentId: string, versionId: string) =>
-			`/documents/${documentId}/versions/${versionId}/reviews`,
+		create: (documentId: string, documentBodyId: string) =>
+			`/documents/${documentId}/versions/${documentBodyId}/reviews`,
 		approve: (reviewId: string) => `/reviews/${reviewId}/approve`,
 		reject: (reviewId: string) => `/reviews/${reviewId}/reject`,
 		requestRevision: (reviewId: string) => `/reviews/${reviewId}/request-revision`,

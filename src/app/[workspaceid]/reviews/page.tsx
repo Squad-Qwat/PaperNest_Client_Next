@@ -1,8 +1,12 @@
 'use client'
 
+import { Search } from 'lucide-react'
+import { useParams, useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { Navbar } from '@/components/layout/navbar'
 import { ReviewCard } from '@/components/review/ReviewCard'
-import { SearchInput } from '@/components/ui/search-input'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
 	Select,
 	SelectContent,
@@ -10,172 +14,201 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select'
-import { useState } from 'react'
-import { useParams } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import CreateReviewModal from '@/components/review/CreateReviewModal'
+import { useAuthContext } from '@/context/AuthContext'
+import { documentsService } from '@/lib/api/services/documents.service'
+import type { Document } from '@/lib/api/types/document.types'
+import type { Review } from '@/lib/api/types/review.types'
+import { format, id } from '@/lib/date'
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function ReviewsPage() {
 	const params = useParams()
-	const workspaceId = (params?.workspaceid as string) || 'default-workspace'
+	const router = useRouter()
+	const { user } = useAuthContext()
+	const workspaceId = params.workspaceid as string
 
+	const [reviews, setReviews] = useState<Review[]>([])
+	const [documents, setDocuments] = useState<Document[]>([])
+	const [loading, setLoading] = useState(true)
+
+	// Filters
+	const [docFilter, setDocFilter] = useState<string>('all')
 	const [searchQuery, setSearchQuery] = useState('')
-	const [selectedDocument, setSelectedDocument] = useState('all')
-	const [selectedStatus, setSelectedStatus] = useState('all')
-    const [showCreateModal, setShowCreateModal] = useState(false)
-	const [sortOrder, setSortOrder] = useState('desc')
+	const [statusFilter, setStatusFilter] = useState<string>('all')
+	const [sortOrder, setSortOrder] = useState<string>('newest')
 
-	// Mock data based on the image
-	const reviews = [
-		{
-			id: '1',
-			title: 'Review Keamanan Sistem',
-			lecturerUserId: 'Prof. Robert Wilson',
-			date: '1 November 2025',
-			status: 'Approved' as const,
-			message:
-				'Implementasi blockchain sangat inovatif dan secure. Analisis keamanan komprehensif. Sangat direkomendasikan untuk publikasi.',
-			documentBodyId: 'Implementasi Blockchain dalam Sistem Keamanan Data',
-		},
-		{
-			id: '2',
-			title: 'Review UX Research',
-			lecturerUserId: 'Dr. Lisa Anderson',
-			date: '31 Oktober 2025',
-			status: 'Pending' as const,
-			message:
-				'Penelitian UX sangat detail dan metodologi yang digunakan tepat. Perlu penambahan sampel untuk validitas yang lebih kuat.',
-			documentBodyId: 'Evaluasi User Experience pada Platform E-Learning',
-		},
-	]
+	useEffect(() => {
+		const fetchData = async () => {
+			if (!user || !workspaceId) return
+			try {
+				setLoading(true)
 
-	// Sort reviews based on sortOrder
-	const sortedReviews = [...reviews].sort((a, b) => {
-		// Mock date parsing (Assuming format "D Month YYYY", simplified for this mock)
-		// Ideally use real Date objects or a date library
-		const dateA = new Date(a.date).getTime()
-		const dateB = new Date(b.date).getTime()
-		
-		// Fallback for mock strings if they don't parse well, usually mock data needs ISO format for reliable sorting
-		// Since we have consistent mock strings "1 November 2025", we can try simple parsing or just id based sorting for now if dates are tricky without library
-		// Let's use ID for simplicity in mock if dates are equal or invalid, but try to respect the user request "by latest". 
-        // We'll trust the mock order or reverse it.
-        if (sortOrder === 'desc') {
-            return b.id.localeCompare(a.id); // Assuming higher ID is newer
-        } else {
-            return a.id.localeCompare(b.id);
-        }
-	})
+				// Fetch Reviews
+				let reviewsRes
+				if (user.role?.toLowerCase() === 'student') {
+					reviewsRes = await documentsService.getStudentReviews()
+				} else {
+					reviewsRes = await documentsService.getPendingReviews()
+				}
+				setReviews(reviewsRes.reviews || [])
+
+				// Fetch Documents for titles and filter
+				const docsRes = await documentsService.getWorkspaceDocuments(workspaceId)
+				setDocuments(docsRes.documents || [])
+			} catch (error) {
+				console.error('Failed to fetch data:', error)
+			} finally {
+				setLoading(false)
+			}
+		}
+
+		fetchData()
+	}, [user, workspaceId])
+
+	// Derive visible reviews
+	const filteredReviews = reviews
+		.filter((review) => {
+			// Document Filter
+			if (docFilter !== 'all' && review.documentId !== docFilter) return false
+
+			// Status Filter
+			if (statusFilter !== 'all') {
+				if (statusFilter === 'pending' && review.status !== 'pending') return false
+				if (statusFilter === 'approved' && review.status !== 'approved') return false
+				if (statusFilter === 'rejected' && review.status !== 'rejected') return false
+				if (statusFilter === 'revision_required' && review.status !== 'revision_required')
+					return false
+			}
+
+			// Search Query (Title or Message)
+			if (searchQuery) {
+				const doc = documents.find((d) => d.documentId === review.documentId)
+				const title = doc?.title?.toLowerCase() || ''
+				const msg = review.message?.toLowerCase() || ''
+				const query = searchQuery.toLowerCase()
+				return title.includes(query) || msg.includes(query)
+			}
+
+			return true
+		})
+		.sort((a, b) => {
+			const dateA = new Date(a.requestedAt).getTime()
+			const dateB = new Date(b.requestedAt).getTime()
+			return sortOrder === 'newest' ? dateB - dateA : dateA - dateB
+		})
+
+	const getDocTitle = (docId: string) => {
+		return documents.find((d) => d.documentId === docId)?.title || 'Untitled Document'
+	}
 
 	return (
 		<div className='min-h-screen bg-gray-50'>
 			<Navbar mode='workspace' />
-
 			<main className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
-
-
-
-				<div className='mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
-					<div className='space-y-2'>
-						<h1 className='text-3xl font-bold text-gray-900'>Reviews</h1>
-						<p className='text-gray-600'>Kelola dan tinjau review di semua dokumen</p>
+				<div className='mb-8'>
+					<div className='flex items-center justify-between mb-2'>
+						<div className='flex items-center gap-3'>
+							<h1 className='text-3xl font-bold text-gray-900'>Reviews</h1>
+						</div>
 					</div>
-
 				</div>
 
-                <CreateReviewModal
-                    isOpen={showCreateModal}
-                    onClose={() => setShowCreateModal(false)}
-                    onSubmit={async (data) => {
-                        console.log('New Review:', data)
-                        // TODO: Implement actual create logic
-                        await new Promise(resolve => setTimeout(resolve, 1000))
-                        setShowCreateModal(false)
-                    }}
-                />
-
-				<div className='space-y-6'>
-					{/* Filters Section */}
-					<div className='flex flex-col sm:flex-row justify-between gap-4'>
-						{/* Left: Document Filter */}
-						<div className='w-full sm:w-[250px]'>
-							<Select value={selectedDocument} onValueChange={setSelectedDocument}>
-								<SelectTrigger className='bg-white'>
-									<SelectValue placeholder='Pilih dokumen' />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value='all'>Semua Dokumen</SelectItem>
-									<SelectItem value='doc1'>
-										Implementasi Blockchain dalam Sistem Keamanan Data
+				{/* Filters Row */}
+				<div className='flex flex-wrap gap-4 mb-8'>
+					{/* Document Filter */}
+					<div className='w-[200px]'>
+						<Select value={docFilter} onValueChange={setDocFilter}>
+							<SelectTrigger className='bg-white'>
+								<SelectValue placeholder='Semua Dokumen' />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value='all'>Semua Dokumen</SelectItem>
+								{documents.map((doc) => (
+									<SelectItem key={doc.documentId} value={doc.documentId}>
+										{doc.title}
 									</SelectItem>
-									<SelectItem value='doc2'>
-										Evaluasi User Experience pada Platform E-Learning
-									</SelectItem>
-								</SelectContent>
-							</Select>
-						</div>
-
-						{/* Right: Search and Status Filter */}
-						<div className='flex flex-col sm:flex-row gap-4 w-full sm:w-auto'>
-							<div className='w-full sm:w-[320px]'>
-								<SearchInput
-									placeholder='Cari review...'
-									className='w-full bg-white'
-									value={searchQuery}
-									onChange={setSearchQuery}
-								/>
-							</div>
-							<div className='w-full sm:w-[140px]'>
-								<Select value={selectedStatus} onValueChange={setSelectedStatus}>
-									<SelectTrigger className='bg-white'>
-										<SelectValue placeholder='Pending' />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value='all'>Semua Status</SelectItem>
-										<SelectItem value='pending'>Pending</SelectItem>
-										<SelectItem value='approved'>Approved</SelectItem>
-										<SelectItem value='revision'>Revision Required</SelectItem>
-									</SelectContent>
-								</Select>
-							</div>
-							{/* Sort Order Dropdown */}
-							<div className='w-full sm:w-[140px]'>
-								<Select value={sortOrder} onValueChange={setSortOrder}>
-									<SelectTrigger className='bg-white'>
-										<SelectValue placeholder='Sort' />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value='desc'>Newest First</SelectItem>
-										<SelectItem value='asc'>Oldest First</SelectItem>
-									</SelectContent>
-								</Select>
-							</div>
-						</div>
-					</div>
-
-					{reviews.length > 0 && (
-						<div className='space-y-4'>
-							<h2 className='text-lg font-semibold text-gray-900'>
-								Semua Review ({sortedReviews.length})
-							</h2>
-
-							<div className='grid gap-4'>
-								{sortedReviews.map((review, index) => (
-									<ReviewCard
-										key={review.id}
-										{...review}
-										reviewId={review.id}
-										workspaceId={workspaceId}
-										onDelete={() => console.log('Delete', review.id)}
-                                        isLatest={index === 0}
-                                        onAddReview={() => setShowCreateModal(true)}
-									/>
 								))}
-							</div>
-						</div>
-					)}
+							</SelectContent>
+						</Select>
+					</div>
+
+					{/* Search */}
+					<div className='flex-1 relative'>
+						<Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400' />
+						<Input
+							placeholder='Cari review...'
+							className='pl-9 bg-white'
+							value={searchQuery}
+							onChange={(e) => setSearchQuery(e.target.value)}
+						/>
+					</div>
+
+					{/* Status Filter */}
+					<div className='w-[180px]'>
+						<Select value={statusFilter} onValueChange={setStatusFilter}>
+							<SelectTrigger className='bg-white'>
+								<SelectValue placeholder='Semua Status' />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value='all'>Semua Status</SelectItem>
+								<SelectItem value='pending'>Pending</SelectItem>
+								<SelectItem value='approved'>Approved</SelectItem>
+								<SelectItem value='revision_required'>Revision Required</SelectItem>
+								<SelectItem value='rejected'>Rejected</SelectItem>
+							</SelectContent>
+						</Select>
+					</div>
+
+					{/* Sort */}
+					<div className='w-[180px]'>
+						<Select value={sortOrder} onValueChange={setSortOrder}>
+							<SelectTrigger className='bg-white'>
+								<SelectValue placeholder='Sort Order' />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value='newest'>Newest First</SelectItem>
+								<SelectItem value='oldest'>Oldest First</SelectItem>
+							</SelectContent>
+						</Select>
+					</div>
 				</div>
+
+				{/* List Header */}
+				<h2 className='text-lg font-bold text-gray-900 mb-4'>
+					Semua Review ({filteredReviews.length})
+				</h2>
+
+				{/* Reviews List */}
+				{loading ? (
+					<div className='text-center py-20 text-gray-500'>Loading reviews...</div>
+				) : filteredReviews.length === 0 ? (
+					<div className='text-center py-12 text-gray-500 bg-white rounded-lg border border-dashed border-gray-300'>
+						No reviews found matching your filters.
+					</div>
+				) : (
+					<div className='grid gap-4'>
+						{filteredReviews.map((review, index) => (
+							<ReviewCard
+								key={review.reviewId}
+								reviewId={review.reviewId}
+								documentBodyId={review.documentBodyId || review.documentId}
+								lecturerUserId={review.lecturerUserId || 'Unknown Reviewer'}
+								message={review.message}
+								status={review.status}
+								date={format(review.requestedAt, 'd MMMM yyyy', { locale: id })}
+								title={getDocTitle(review.documentId)}
+								workspaceId={workspaceId}
+								isLatest={index === 0 && sortOrder === 'newest'}
+								onAddReview={
+									user?.role === 'Student'
+										? () => {
+												router.push(`/${workspaceId}/documents/${review.documentId}`)
+											}
+										: undefined
+								}
+							/>
+						))}
+					</div>
+				)}
 			</main>
 		</div>
 	)

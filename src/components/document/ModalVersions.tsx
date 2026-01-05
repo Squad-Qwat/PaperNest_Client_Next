@@ -1,84 +1,112 @@
 import { ArrowLeft, MoreVertical } from 'lucide-react'
-import React, { useState } from 'react'
-import { type ReviewStatus, ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
+import { useParams } from 'next/navigation'
+import React, { useMemo, useState } from 'react'
+import { ReviewRequestModal } from '@/components/review/ReviewRequestModal'
+import { ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { ScrollArea } from '@/components/ui/scroll-area'
-
-interface Review {
-	reviewer: {
-		name: string
-		avatarUrl?: string
-	}
-	date: string
-	status: ReviewStatus
-	content?: string
-}
-
-interface Version {
-	id: string
-	timestamp: string
-	author: string
-	color: string
-	isCurrent?: boolean
-	review?: Review
-}
+import { useAuthContext } from '@/context/AuthContext'
+import { useDocumentReviews, useDocumentVersions } from '@/hooks/useDocumentVersions'
+import { format, id } from '@/lib/date'
 
 interface ModalVersionsProps {
 	isOpen: boolean
 	onClose: () => void
+	documentId: string
+	onVersionRestored?: () => void
 }
 
-const MOCK_VERSIONS: Version[] = [
-	{
-		id: '1',
-		timestamp: '15 Agustus 2023, 16:51',
-		author: 'Fa Ainama Caldera',
-		color: 'bg-purple-500',
-		isCurrent: true,
-		review: {
-			reviewer: {
-				name: 'Pak Dosen',
-				avatarUrl: 'https://github.com/shadcn.png',
-			},
-			date: '16 Agustus 2023, 09:00',
-			status: 'Revision Required',
-			content:
-				'Secara keseluruhan sudah bagus, namun tolong perbaiki bagian metodologi penelitian. Penjelasannya masih kurang mendalam dan perlu ditambahkan referensi yang lebih baru.',
-		},
-	},
-	{
-		id: '2',
-		timestamp: '15 Agustus 2023, 16:15',
-		author: 'Fa Ainama Caldera',
-		color: 'bg-purple-500',
-		review: {
-			reviewer: {
-				name: 'Pak Dosen',
-			},
-			date: '15 Agustus 2023, 17:30',
-			status: 'Pending',
-		},
-	},
-	{
-		id: '3',
-		timestamp: '14 Agustus 2023, 14:30',
-		author: 'Rangga',
-		color: 'bg-orange-500',
-	},
-	{
-		id: '4',
-		timestamp: '14 Agustus 2023, 13:00',
-		author: 'Rangga',
-		color: 'bg-orange-500',
-	},
-]
+export default function ModalVersions({
+	isOpen,
+	onClose,
+	documentId: propDocumentId,
+	onVersionRestored,
+}: ModalVersionsProps) {
+	const params = useParams()
+	// Prioritize prop, fallback to param (users note: "dapatkan param documentid saja")
+	// But since we fixed the parent passing it, prop should work.
+	// However, user specifically asked to "try getting param documentid only".
+	// So let's extract it from params if prop is missing OR to be safe.
+	// Actually, let's trust the prop if passed, but if not, use param.
+	const documentId = propDocumentId || (params?.documentid as string)
 
-export default function ModalVersions({ isOpen, onClose }: ModalVersionsProps) {
-	const [selectedVersionId, setSelectedVersionId] = useState<string>('1')
+	const { user } = useAuthContext()
+	const { versions, loading: versionsLoading, rollbackVersion } = useDocumentVersions(documentId)
+	const { reviews, requestReview } = useDocumentReviews(documentId)
 
-	const selectedVersion = MOCK_VERSIONS.find((v) => v.id === selectedVersionId)
+	const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null)
+	const [isRollingBack, setIsRollingBack] = useState(false)
+	const [showReviewModal, setShowReviewModal] = useState(false)
+
+	// Set initial selected version to latest when data loads
+	React.useEffect(() => {
+		if (versions.length > 0 && !selectedVersionId) {
+			setSelectedVersionId(versions[0].documentBodyId)
+		}
+	}, [versions, selectedVersionId])
+
+	// Merge Version and Review Data
+	const versionsList = useMemo(() => {
+		return versions.map((version, index) => {
+			// Find review for this version
+			const versionReview = reviews.find((r) => r.documentBodyId === version.documentBodyId)
+
+			// Resolve Author Name
+			// If the ID matches current user, use their name.
+			// "atau ga yang terlogin saja" -> Fallback to current user name if missing
+			let authorName = version.createdBy
+			if (user && (version.createdBy === user.id || !version.createdBy)) {
+				authorName = user.name || 'User'
+			}
+
+			// Map to UI format
+			return {
+				id: version.documentBodyId,
+				versionNumber: version.versionNumber,
+				timestamp: format(version.createdAt, 'd MMMM yyyy, HH:mm', { locale: id }),
+				author: authorName,
+				color: index === 0 ? 'bg-purple-500' : 'bg-orange-500',
+				isCurrent: index === 0,
+				content: version.content,
+				review: versionReview
+					? {
+							reviewer: {
+								name: versionReview.lecturerUserId || 'Lecturer', // Use ID if no name
+								avatarUrl: undefined,
+							},
+							date: format(versionReview.requestedAt, 'd MMMM yyyy, HH:mm', {
+								locale: id,
+							}),
+							status: versionReview.status,
+							content: versionReview.message,
+						}
+					: undefined,
+			}
+		})
+	}, [versions, reviews, user])
+
+	const selectedVersion = versionsList.find((v) => v.id === selectedVersionId)
+
+	const handleRollback = async () => {
+		if (!selectedVersion) return
+
+		try {
+			setIsRollingBack(true)
+			await rollbackVersion(selectedVersion.versionNumber)
+			if (onVersionRestored) {
+				onVersionRestored()
+			}
+			onClose() // Close modal on success
+			alert('Versi berhasil dipulihkan') // Simple feedback
+		} catch (error: any) {
+			console.error('Rollback failed:', error)
+			alert('Gagal memulihkan versi: ' + error.message)
+		} finally {
+			setIsRollingBack(false)
+		}
+	}
 
 	return (
 		<Modal
@@ -86,7 +114,7 @@ export default function ModalVersions({ isOpen, onClose }: ModalVersionsProps) {
 			onClose={onClose}
 			size='full'
 			showCloseButton={false}
-			title='Riwayat versi' // nanti ini berganti sesuai dengan yang timestamp yang dipilih
+			title='Riwayat versi'
 			visuallyHiddenTitle={true}
 		>
 			<div className='flex flex-col h-screen w-full bg-white'>
@@ -102,7 +130,13 @@ export default function ModalVersions({ isOpen, onClose }: ModalVersionsProps) {
 						</Button>
 						<div className='flex flex-col'>
 							<span className='text-sm font-medium text-gray-900'>Riwayat versi</span>
-							<span className='text-xs text-gray-500'>Nama Dokumen</span>
+							<span className='text-xs text-gray-500'>
+								{selectedVersion
+									? selectedVersion.timestamp
+									: versionsLoading
+										? 'Loading...'
+										: 'No version selected'}
+							</span>
 						</div>
 					</div>
 
@@ -121,12 +155,7 @@ export default function ModalVersions({ isOpen, onClose }: ModalVersionsProps) {
 												<Avatar className='h-8 w-8 border border-gray-200'>
 													<AvatarImage src={selectedVersion.review.reviewer.avatarUrl} />
 													<AvatarFallback className='text-xs bg-blue-50 text-blue-600 font-medium'>
-														{selectedVersion.review.reviewer.name
-															.split(' ')
-															.map((n) => n[0])
-															.join('')
-															.substring(0, 2)
-															.toUpperCase()}
+														L
 													</AvatarFallback>
 												</Avatar>
 												<div className='flex flex-col'>
@@ -149,7 +178,18 @@ export default function ModalVersions({ isOpen, onClose }: ModalVersionsProps) {
 								)}
 
 								{/* Document Page Mockup */}
-								<div className='bg-white shadow-sm w-[816px] min-h-[1056px] p-12 border border-gray-200 shrink-0'></div>
+								<div className='bg-white shadow-sm w-[816px] min-h-[1056px] p-12 border border-gray-200 shrink-0'>
+									{selectedVersion?.content ? (
+										<div
+											className='prose max-w-none'
+											dangerouslySetInnerHTML={{ __html: selectedVersion.content }}
+										/>
+									) : (
+										<div className='prose max-w-none text-gray-500 italic text-center mt-20'>
+											No content available for this version.
+										</div>
+									)}
+								</div>
 							</div>
 						</ScrollArea>
 					</div>
@@ -161,12 +201,21 @@ export default function ModalVersions({ isOpen, onClose }: ModalVersionsProps) {
 
 						<ScrollArea className='flex-1'>
 							<div className='py-2'>
-								<div className='px-4 py-2 text-xs font-medium text-gray-500'>Hari ini</div>
+								<div className='px-4 py-2 text-xs font-medium text-gray-500'>
+									{versionsLoading ? 'Memuat...' : 'Versi Dokumen'}
+								</div>
 
-								{MOCK_VERSIONS.map((version) => (
+								{versionsList.map((version) => (
 									<div
 										key={version.id}
 										onClick={() => setSelectedVersionId(version.id)}
+										onKeyDown={(e) => {
+											if (e.key === 'Enter' || e.key === ' ') {
+												setSelectedVersionId(version.id)
+											}
+										}}
+										role='button'
+										tabIndex={0}
 										className={`px-4 py-3 cursor-pointer group transition-colors relative ${
 											selectedVersionId === version.id ? 'bg-blue-50' : 'hover:bg-gray-50'
 										}`}
@@ -178,7 +227,9 @@ export default function ModalVersions({ isOpen, onClose }: ModalVersionsProps) {
 												</div>
 												<div className='flex items-center gap-2'>
 													<div className={`w-2 h-2 rounded-full ${version.color}`} />
-													<span className='text-xs text-gray-600'>{version.author}</span>
+													<span className='text-xs text-gray-600'>
+														{version.author || 'Unknown'}
+													</span>
 												</div>
 											</div>
 											<Button
@@ -194,16 +245,45 @@ export default function ModalVersions({ isOpen, onClose }: ModalVersionsProps) {
 							</div>
 						</ScrollArea>
 
-						<div className='p-4 border-t'>
+						<div className='p-4 border-t space-y-3'>
 							{selectedVersion?.isCurrent ? (
 								<div className='text-center text-sm text-gray-500 py-2'>Versi saat ini</div>
 							) : (
-								<Button className='w-full'>Pulihkan versi ini</Button>
+								<Button className='w-full' onClick={handleRollback} disabled={isRollingBack}>
+									{isRollingBack ? 'Memulihkan...' : 'Pulihkan versi ini'}
+								</Button>
+							)}
+
+							{/* Student Request Review Button */}
+							{user?.role === 'Student' && selectedVersion && !selectedVersion.review && (
+								<Button
+									className='w-full'
+									variant='outline'
+									onClick={() => setShowReviewModal(true)}
+								>
+									Minta Review
+								</Button>
 							)}
 						</div>
 					</div>
 				</div>
 			</div>
+
+			<ReviewRequestModal
+				isOpen={showReviewModal}
+				onClose={() => setShowReviewModal(false)}
+				onSubmit={async (data) => {
+					if (!selectedVersion) return
+					try {
+						await requestReview(selectedVersion.id, data.lecturerId, data.message)
+						alert('Permintaan review berhasil dikirim')
+						setShowReviewModal(false)
+					} catch (e: any) {
+						console.error('Review request failed', e)
+						throw e
+					}
+				}}
+			/>
 		</Modal>
 	)
 }
