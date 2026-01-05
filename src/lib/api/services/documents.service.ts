@@ -44,8 +44,8 @@ class DocumentsService {
 	/**
 	 * Approve a review
 	 */
-	async approveReview(reviewId: string): Promise<void> {
-		return apiClient.post<void>(API_ENDPOINTS.reviews.approve(reviewId))
+	async approveReview(reviewId: string, data?: UpdateReviewStatusDto): Promise<void> {
+		return apiClient.post<void>(API_ENDPOINTS.reviews.approve(reviewId), data)
 	}
 
 	/**

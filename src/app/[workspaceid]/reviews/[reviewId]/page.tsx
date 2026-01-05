@@ -2,7 +2,7 @@
 
 import { AlertCircle } from 'lucide-react'
 import { useParams } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Navbar } from '@/components/layout/navbar'
 import { ReviewComment } from '@/components/review/ReviewComment'
 import { ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
