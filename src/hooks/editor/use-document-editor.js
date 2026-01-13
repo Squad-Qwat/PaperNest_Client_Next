@@ -70,14 +70,14 @@ export function useDocumentEditor({
 	document = null,
 	title = '',
 	user = null,
-	setEditorError = () => {},
+	setEditorError = () => { },
 	enableLiveblocks = false,
 	enableAutoSave = true,
 	autoSaveInterval = 2000, // 2 seconds after user stops typing
 	initialContent = null,
-	onUpdate = () => {},
-	onCreate = () => {},
-	onDestroy = () => {},
+	onUpdate = () => { },
+	onCreate = () => { },
+	onDestroy = () => { },
 } = {}) {
 	const [savedContent, setSavedContent] = useState(null)
 	const [lastSavedAt, setLastSavedAt] = useState(null)
@@ -185,23 +185,21 @@ export function useDocumentEditor({
 
 			onUpdate: ({ editor }) => {
 				try {
-					console.log('Content updated:', editor.getHTML())
-					
 					// Reset auto-save timer on content change
 					if (enableAutoSave && document?.documentId) {
 						if (autoSaveTimerRef.current) {
 							clearTimeout(autoSaveTimerRef.current)
 						}
-						
+
 						autoSaveTimerRef.current = setTimeout(() => {
 							console.log('⏰ Auto-save triggered')
 							saveCurrentContent(document.documentId, { isAutoSave: true })
 						}, autoSaveInterval)
 					}
-					
+
 					onUpdate({ editor })
 				} catch (error) {
-					console.warn('Error getting editor content:', error)
+					console.warn('Error in editor update handler:', error)
 				}
 			},
 
@@ -255,7 +253,7 @@ export function useDocumentEditor({
 				if (autoSaveTimerRef.current) {
 					clearTimeout(autoSaveTimerRef.current)
 				}
-				
+
 				if (params && params.editor) {
 					console.log('Editor destroyed')
 				} else {

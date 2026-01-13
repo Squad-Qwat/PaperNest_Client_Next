@@ -7,8 +7,21 @@ import { AIChatPanel } from './AIChatPanel'
  * AI Assistant Component with Resizable Panel
  * Features a resizable sidebar for AI chat functionality
  */
-interface AIAssistantProps {
+interface EditorFunctions {
 	editor?: any
+	getCurrentContent?: () => any
+	getCurrentHTML?: () => string
+	saveCurrentContent?: () => Promise<void>
+	insertTable?: (rows: number, cols: number) => void
+	undo?: () => void
+	redo?: () => void
+	canUndo?: boolean
+	canRedo?: boolean
+	debugContentExtraction?: () => void
+}
+
+interface AIAssistantProps {
+	editor?: EditorFunctions
 	aiAssistantOpen?: boolean
 	toggleAiAssistant?: () => void
 	onWidthChange?: (width: number) => void
