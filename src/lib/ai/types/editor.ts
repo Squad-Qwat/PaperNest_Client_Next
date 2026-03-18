@@ -7,8 +7,6 @@
  * @module lib/ai/types/editor
  */
 
-import type { Editor } from '@tiptap/core'
-
 // ============================================================================
 // Document Structure Types
 // ============================================================================
@@ -111,8 +109,8 @@ export interface CursorContext {
     selectedText: string
     /** Current element type at cursor (e.g., 'paragraph', 'heading', 'tableCell') */
     inElement: string
-    /** Full hierarchy from cursor to root (e.g., ['tableCell', 'tableRow', 'table', 'doc']) */
-    elementHierarchy: string[]
+    /** Full hierarchy from cursor to root (optional - mainly for ProseMirror editors) */
+    elementHierarchy?: string[]
     /** Name of the containing section (if any) */
     nearestSection: string | null
     /** Text before cursor (limited) */
@@ -297,6 +295,6 @@ export interface ContextBuildOptions {
  * Function signature for context builder
  */
 export type ContextBuilder = (
-    editor: Editor,
+    editor: any,
     options?: ContextBuildOptions
 ) => DocumentContext

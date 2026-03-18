@@ -5,7 +5,7 @@
 
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuthContext } from '@/context/AuthContext'
 import { documentsService } from '@/lib/api/services/documents.service'
 import type { Version } from '@/lib/api/types/document.types'
@@ -28,11 +28,22 @@ export function useDocumentVersions(documentId: string): UseDocumentVersionsRetu
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
 
+	// Track in-flight request to prevent duplicate concurrent calls
+	const inFlightRef = useRef<boolean>(false)
+
 	const fetchVersions = useCallback(async () => {
 		if (!documentId) {
 			setLoading(false)
 			return
 		}
+
+		// Skip if already fetching (prevent duplicate concurrent requests)
+		if (inFlightRef.current) {
+			console.log('[useDocumentVersions] 🚫 Request already in-flight, skipping duplicate')
+			return
+		}
+
+		inFlightRef.current = true
 
 		try {
 			setLoading(true)
@@ -63,6 +74,7 @@ export function useDocumentVersions(documentId: string): UseDocumentVersionsRetu
 			}
 		} finally {
 			setLoading(false)
+			inFlightRef.current = false
 		}
 	}, [documentId])
 
@@ -73,6 +85,7 @@ export function useDocumentVersions(documentId: string): UseDocumentVersionsRetu
 			try {
 				setLoading(true)
 				await documentsService.revertVersion(documentId, versionNumber)
+				inFlightRef.current = false // Reset flag before refetch
 				await fetchVersions() // Refresh list and current version
 			} catch (err: any) {
 				console.error('[useDocumentVersions] Error reverting version:', err)
@@ -85,9 +98,10 @@ export function useDocumentVersions(documentId: string): UseDocumentVersionsRetu
 		[documentId, fetchVersions]
 	)
 
+	// Fix: Depend on documentId, not fetchVersions callback (callback recreated on each render)
 	useEffect(() => {
 		fetchVersions()
-	}, [fetchVersions])
+	}, [documentId])
 
 	return {
 		versions,
@@ -121,14 +135,25 @@ interface UseDocumentReviewsReturn {
 
 export function useDocumentReviews(documentId: string): UseDocumentReviewsReturn {
 	const { user } = useAuthContext()
-	// Need versions to check correspondence
+	// Keep versions hook but it won't fetch extra due to our effect dependency fix
 	const { versions } = useDocumentVersions(documentId)
 	const [reviews, setReviews] = useState<Review[]>([])
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
 
+	// Track in-flight request to prevent duplicate concurrent calls
+	const inFlightRef = useRef<boolean>(false)
+
 	const fetchReviews = useCallback(async () => {
 		if (!documentId || !user) return
+
+		// Skip if already fetching
+		if (inFlightRef.current) {
+			console.log('[useDocumentReviews] 🚫 Request already in-flight, skipping duplicate')
+			return
+		}
+
+		inFlightRef.current = true
 
 		try {
 			setLoading(true)
@@ -143,12 +168,14 @@ export function useDocumentReviews(documentId: string): UseDocumentReviewsReturn
 			}
 		} finally {
 			setLoading(false)
+			inFlightRef.current = false
 		}
 	}, [documentId, user])
 
+	// Fix: Depend on documentId + user, not fetchReviews callback
 	useEffect(() => {
 		fetchReviews()
-	}, [fetchReviews])
+	}, [documentId, user])
 
 	// Computed Properties
 	const latestReview = useMemo(() => {
@@ -203,7 +230,6 @@ export function useDocumentReviews(documentId: string): UseDocumentReviewsReturn
 	}, [user, versions, reviews])
 
 	// --- Actions ---
-
 	const requestReview = async (documentBodyId: string, lecturerId: string, message?: string) => {
 		try {
 			setLoading(true)
@@ -211,6 +237,7 @@ export function useDocumentReviews(documentId: string): UseDocumentReviewsReturn
 				lecturerUserId: lecturerId,
 				message,
 			})
+			inFlightRef.current = false // Reset flag before refetch
 			await fetchReviews()
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : 'Failed to request review'
@@ -225,6 +252,7 @@ export function useDocumentReviews(documentId: string): UseDocumentReviewsReturn
 		try {
 			setLoading(true)
 			await documentsService.approveReview(reviewId)
+			inFlightRef.current = false // Reset flag before refetch
 			await fetchReviews()
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : 'Failed to approve review'
@@ -239,6 +267,7 @@ export function useDocumentReviews(documentId: string): UseDocumentReviewsReturn
 		try {
 			setLoading(true)
 			await documentsService.rejectReview(reviewId, { message: feedback })
+			inFlightRef.current = false // Reset flag before refetch
 			await fetchReviews()
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : 'Failed to reject review'
@@ -253,6 +282,7 @@ export function useDocumentReviews(documentId: string): UseDocumentReviewsReturn
 		try {
 			setLoading(true)
 			await documentsService.requestRevision(reviewId, { message: feedback })
+			inFlightRef.current = false // Reset flag before refetch
 			await fetchReviews()
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : 'Failed to request revision'

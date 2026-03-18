@@ -13,35 +13,40 @@ import AIAssistant from '@/components/document/AIAssistant'
 import EditorContextMenu from '@/components/document/EditorContextMenu'
 
 // Komponen Editor yang ada di dalam Room
-export default function DocumentEditor({
-	document,
-	title,
-	setTitle,
-	paperSize,
-	defaultFontFamily,
-	defaultFontSize,
-	setEditorError,
-	contextMenu,
-	setContextMenu,
-	handleSave,
-	isSaving,
-	user,
-	aiAssistantOpen,
-	// Expose editor functions
-	onEditorReady,
-	onAutoSaveStateChange,
-}) {
+export default function DocumentEditor(props) {
+	const {
+		document,
+		title,
+		setTitle,
+		paperSize,
+		defaultFontFamily,
+		defaultFontSize,
+		setEditorError,
+		contextMenu,
+		setContextMenu,
+		handleSave,
+		isSaving,
+		user,
+		aiAssistantOpen,
+		onEditorReady,
+		onAutoSaveStateChange,
+		isPdfHidden,
+		shouldInitializeFromFirestore,
+	} = props
+	
+	// Default to true if not specified (safe to load from Firestore)
+	const shouldLoad = shouldInitializeFromFirestore !== false
+	
 	return (
-		<div className='flex-1 overflow-visible transition-all duration-300 w-full bg-gray-100 p-4 md:p-8'>
-			<div className='max-w-[1200px] mx-auto h-[calc(100vh-140px)]'>
-				<LatexEditor 
-					documentId={document?.documentId}
-					user={user}
-					initialContent={document?.savedContent}
-					title={title}
-					onEditorReady={onEditorReady}
-				/>
-			</div>
+		<div className='w-full h-full flex-1 overflow-hidden bg-white'>
+			<LatexEditor 
+				documentId={document?.documentId}
+				user={user}
+				initialContent={shouldLoad ? document?.savedContent : undefined}
+				title={title}
+				onEditorReady={onEditorReady}
+				isPdfHidden={isPdfHidden}
+			/>
 		</div>
 	)
 }

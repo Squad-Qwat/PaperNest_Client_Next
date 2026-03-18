@@ -25,10 +25,6 @@ interface AIChatPanelProps {
 	documentId?: string
 }
 
-/**
- * Execute AI tool on the real Tiptap editor instance
- */
-const executeToolOnEditor = executeEditorTool;
 export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 	const [messages, setMessages] = useState<Message[]>([])
 	const [input, setInput] = useState('')
@@ -70,8 +66,8 @@ const threadIdRef = useRef<string>(`thread_${Date.now()}_${Math.random().toStrin
 		])
 
 		try {
-			// Get real Tiptap editor for tool execution
-			const tiptapEditor = editor?.editor
+			// Get editor instance for AI tool execution (CodeMirror/LaTeX)
+			const editorInstance = editor?.editor
 
 			const conversationHistory = messages.slice(-10).map((msg) => ({
 				role: msg.role,
@@ -82,22 +78,11 @@ const threadIdRef = useRef<string>(`thread_${Date.now()}_${Math.random().toStrin
 			let docText = ''
 			let docHtml = ''
 			let sections: string[] = []
-			if (tiptapEditor) {
+			if (editorInstance) {
 				try {
-					// Handle both Tiptap and CodeMirror
-					if (typeof tiptapEditor.getText === 'function') {
-						docText = tiptapEditor.getText()
-						docHtml = tiptapEditor.getHTML()
-						const docJson = tiptapEditor.getJSON()
-						docJson.content?.forEach((node: any) => {
-							if (node.type === 'heading') {
-								const text = node.content?.map((c: any) => c.text || '').join('') || ''
-								if (text) sections.push(text)
-							}
-						})
-					} else if (tiptapEditor.state?.doc) {
-						// CodeMirror path
-						docText = tiptapEditor.state.doc.toString()
+					// CodeMirror/LaTeX editor
+					if (editorInstance.state?.doc) {
+						docText = editorInstance.state.doc.toString()
 						docHtml = docText // Plain text for LaTeX
 						
 						// Basic LaTeX section parsing
@@ -127,12 +112,10 @@ const threadIdRef = useRef<string>(`thread_${Date.now()}_${Math.random().toStrin
 				let currentDocText = docText
 				let currentDocHtml = docHtml
 				let currentSections = sections
-				if (tiptapEditor && currentStep > 1) {
+				if (editorInstance && currentStep > 1) {
 					try {
-						if (typeof tiptapEditor.getText === 'function') {
-							currentDocText = tiptapEditor.getText()
-						} else if (tiptapEditor.state?.doc) {
-							currentDocText = tiptapEditor.state.doc.toString()
+						if (editorInstance.state?.doc) {
+							currentDocText = editorInstance.state.doc.toString()
 						}
 					} catch (e) { /* ignore */ }
 				}
@@ -185,7 +168,7 @@ const threadIdRef = useRef<string>(`thread_${Date.now()}_${Math.random().toStrin
 										hasToolCalls = true
 										for (const toolCall of data.toolCalls) {
 											try {
-												const result = await executeToolOnEditor(tiptapEditor, toolCall.name, toolCall.args, documentId)
+												const result = await executeEditorTool(editorInstance, toolCall.name, toolCall.args, documentId)
 												toolResultsForContinuation.push({
 													toolCallId: toolCall.id,
 													name: toolCall.name,

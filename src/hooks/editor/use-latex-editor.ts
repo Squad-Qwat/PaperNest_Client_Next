@@ -40,10 +40,12 @@ export function useLatexEditor({
         yDoc,
         undoManager,
         isReady: collaborationReady,
+        hasSyncedOnce,
         awareness
     } = useLatexCollaboration({
         enabled: !!documentId && enabled,
-        user
+        user,
+        documentId
     })
 
     const onUpdate = useCallback((update: ViewUpdate) => {
@@ -64,13 +66,16 @@ export function useLatexEditor({
     }, [documentId, autoSaveInterval])
 
     useEffect(() => {
-        if (!editorRef.current || (enabled && !collaborationReady)) return
+        if (!editorRef.current || (enabled && (!collaborationReady || !hasSyncedOnce))) return
 
         const yText = yDoc ? yDoc.getText('latex') : null
         
         // If Yjs is ready and empty, but we have initial content, seed it
-        if (yText && yText.length === 0 && initialContent && initialContent !== 'Start writing here...') {
+        if (yText?.length === 0 && initialContent && initialContent !== 'Start writing here...') {
             yText.insert(0, initialContent)
+            console.log('📝 [LaTeX] Loaded initial content from Firestore')
+        } else if (yText?.length === 0 && !initialContent) {
+            console.log('🔄 [LaTeX] Skipping Firestore init - relying on Yjs sync from existing room')
         }
 
         const extensions: Extension[] = [
@@ -109,7 +114,7 @@ export function useLatexEditor({
         }
 
         const state = EditorState.create({
-            doc: yText ? yText.toString() : initialContent,
+            doc: yText ? yText.toJSON() : initialContent,
             extensions
         })
 
@@ -124,7 +129,7 @@ export function useLatexEditor({
             newView.destroy()
             if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
         }
-    }, [collaborationReady, enabled]) // Removed initialContent from dependencies
+    }, [collaborationReady, hasSyncedOnce, enabled]) // Removed initialContent from dependencies
 
     return {
         editorRef,

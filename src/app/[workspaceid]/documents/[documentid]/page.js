@@ -9,6 +9,7 @@ import DocumentHeader from '@/components/document/DocumentHeader'
 import { Room } from '@/hooks/liveblocks/room'
 import { useWorkspace } from '@/hooks/useWorkspace'
 import { DocumentService } from '@/lib/firebase/document-service'
+import { documentsService } from '@/lib/api/services/documents.service'
 import '@/components/document/EditorStyles.css'
 import ModalVersions from '@/components/document/ModalVersions'
 import { useAuthContext } from '@/context/AuthContext'
@@ -35,7 +36,8 @@ export default function DocumentPage() {
 	const [defaultFontFamily, setDefaultFontFamily] = useState('"Times New Roman", Times, serif')
 	const [defaultFontSize, setDefaultFontSize] = useState('11pt')
 	const [editorFunctions, setEditorFunctions] = useState(null)
-	const [liveblocksAuthReady, setLiveblocksAuthReady] = useState(false)
+	const [isPdfHidden, setIsPdfHidden] = useState(false)
+	const [activeUsersInRoom, setActiveUsersInRoom] = useState(0)
 	const { user, loading } = useAuthContext()
 
 	// Check workspace access first
@@ -66,7 +68,25 @@ export default function DocumentPage() {
 			setIsLoading(true)
 			console.log('📖 Loading document:', documentId)
 
-			const doc = await DocumentService.getDocumentById(documentId)
+			let doc
+			let activeUsers = 0
+
+			// Try fetching with room state (API endpoint)
+			try {
+				const roomStateData = await documentsService.getDocumentWithRoomState(documentId)
+				doc = roomStateData.document
+				activeUsers = roomStateData.room.activeUsers
+				console.log(`📊 Users in room for this document: ${activeUsers}`)
+			} catch (roomStateError) {
+				// Fallback: get document from Firestore if API endpoint unavailable
+				console.warn(
+					'⚠️ Room state endpoint unavailable, fetching from Firestore fallback',
+					roomStateError
+				)
+				doc = await DocumentService.getDocumentById(documentId)
+				activeUsers = 0 // Assume no active users (safe - will load from Firestore)
+				console.log('📖 Document loaded via Firestore fallback (activeUsers: 0)')
+			}
 
 			if (!doc) {
 				console.error('Document not found:', documentId)
@@ -83,6 +103,7 @@ export default function DocumentPage() {
 
 			setDocumentData(doc)
 			setTitle(doc.title)
+			setActiveUsersInRoom(activeUsers)
 			return doc // Return doc for further use
 		} catch (error) {
 			console.error('❌ Error loading document:', error)
@@ -99,50 +120,6 @@ export default function DocumentPage() {
 			fetchDocument()
 		}
 	}, [documentId, user, loading, workspace, workspaceLoading, fetchDocument])
-
-	// Check Liveblocks auth readiness
-	useEffect(() => {
-		const checkLiveblocksAuth = async () => {
-			if (!user || loading) {
-				setLiveblocksAuthReady(false)
-				return
-			}
-
-			try {
-				const token = localStorage.getItem('accessToken')
-				if (!token) {
-					console.error('No access token found for Liveblocks auth')
-					setLiveblocksAuthReady(false)
-					return
-				}
-
-				// Test auth endpoint
-				const response = await fetch('/api/liveblocks-auth', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						Authorization: `Bearer ${token}`,
-					},
-					body: JSON.stringify({ room: `document-${documentId}` }),
-				})
-
-				if (response.ok) {
-					console.log('✅ Liveblocks auth ready (status 200)')
-					setLiveblocksAuthReady(true)
-				} else {
-					console.error('❌ Liveblocks auth failed:', response.status)
-					setLiveblocksAuthReady(false)
-				}
-			} catch (error) {
-				console.error('❌ Error checking Liveblocks auth:', error)
-				setLiveblocksAuthReady(false)
-			}
-		}
-
-		if (user && !loading) {
-			checkLiveblocksAuth()
-		}
-	}, [user, loading, documentId])
 
 	const handleVersionRestored = useCallback(async () => {
 		console.log('Version restored, refreshing document...')
@@ -252,6 +229,14 @@ export default function DocumentPage() {
 		setAiAssistantOpen(!aiAssistantOpen)
 	}
 
+	const handleResizeStart = useCallback(() => {
+		setIsPdfHidden(true)
+	}, [])
+
+	const handleResizeEnd = useCallback(() => {
+		setIsPdfHidden(false)
+	}, [])
+
 	const toggleDropdown = (dropdownName) => {
 		setActiveDropdown(activeDropdown === dropdownName ? null : dropdownName)
 	}
@@ -260,15 +245,14 @@ export default function DocumentPage() {
 		setModalVersionsOpen(!modalVersionsOpen)
 	}
 
-	// Show loading until both document and Liveblocks auth are ready
-	if (isLoading || !liveblocksAuthReady) {
+	// Show loading until document is ready
+	// Room component handles Liveblocks auth internally
+	if (isLoading) {
 		return (
 			<div className='min-h-screen bg-white flex items-center justify-center'>
 				<div className='flex flex-col items-center gap-4'>
 					<div className='animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600'></div>
-					<p className='text-gray-600 text-sm'>
-						{isLoading ? 'Loading document...' : 'Initializing collaboration...'}
-					</p>
+					<p className='text-gray-600 text-sm'>Loading document...</p>
 				</div>
 			</div>
 		)
@@ -325,27 +309,25 @@ export default function DocumentPage() {
 			
 			{/* Main content area - flex container with independent scroll regions */}
 			<Room documentId={documentId}>
-				<div className='flex flex-1 overflow-hidden relative'>
-					{/* Document Editor - scrollable independently */}
-					<div className='flex-1 flex flex-col overflow-y-auto overflow-x-hidden min-w-0'>
-						<DocumentEditor
-							document={documentData}
-							title={title}
-							setTitle={setTitle}
-							paperSize={paperSize}
-							defaultFontFamily={defaultFontFamily}
-							defaultFontSize={defaultFontSize}
-							setEditorError={setEditorError}
-							contextMenu={contextMenu}
-							setContextMenu={setContextMenu}
-							handleSave={handleSave}
-							isSaving={isSaving}
-							user={user}
-							aiAssistantOpen={aiAssistantOpen}
-							onEditorReady={onEditorReady}
-							onAutoSaveStateChange={onAutoSaveStateChange}
-						/>
-					</div>
+				<div className='flex flex-1 overflow-hidden'>
+					{/* Document Editor - Full width/height */}
+					<DocumentEditor
+						document={documentData}
+						title={title}
+						setTitle={setTitle}
+						paperSize={paperSize}
+						defaultFontFamily={defaultFontFamily}
+						defaultFontSize={defaultFontSize}
+						setEditorError={setEditorError}
+						contextMenu={contextMenu}
+						setContextMenu={setContextMenu}
+						handleSave={handleSave}
+						isSaving={isSaving}
+						user={user}
+						aiAssistantOpen={aiAssistantOpen}
+						onEditorReady={onEditorReady}
+						shouldInitializeFromFirestore={activeUsersInRoom === 0}
+						onAutoSaveStateChange={onAutoSaveStateChange}						isPdfHidden={isPdfHidden}					/>
 
 					{/* AI Assistant Panel - sticky, no scroll with document */}
 					<AIAssistant
@@ -353,8 +335,8 @@ export default function DocumentPage() {
 						aiAssistantOpen={aiAssistantOpen}
 						toggleAiAssistant={toggleAiAssistant}
 						onWidthChange={setAiAssistantWidth}
-						documentId={documentId}
-					/>
+						documentId={documentId}						onResizeStart={handleResizeStart}
+						onResizeEnd={handleResizeEnd}					/>
 
 					{/* Version History Panel - Side Panel */}
 					<ModalVersions

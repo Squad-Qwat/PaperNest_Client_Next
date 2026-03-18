@@ -64,6 +64,7 @@ export const API_ENDPOINTS = {
 			`/workspaces/${workspaceId}/documents/${documentId}/content`,
 		versions: (documentId: string) => `/documents/${documentId}/versions`,
 		currentVersion: (documentId: string) => `/documents/${documentId}/versions/current`,
+		withRoomState: (documentId: string) => `/documents/${documentId}/with-room-state`,
 		revert: (documentId: string, versionNumber: number) =>
 			`/documents/${documentId}/versions/${versionNumber}/revert`,
 	},

@@ -26,6 +26,8 @@ interface AIAssistantProps {
 	toggleAiAssistant?: () => void
 	onWidthChange?: (width: number) => void
 	documentId?: string
+	onResizeStart?: () => void
+	onResizeEnd?: () => void
 }
 
 const AIAssistant: React.FC<AIAssistantProps> = ({
@@ -34,6 +36,8 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 	toggleAiAssistant,
 	onWidthChange,
 	documentId,
+	onResizeStart,
+	onResizeEnd,
 }) => {
 	const [width, setWidth] = useState(320) // Default width 320px
 	const [isResizing, setIsResizing] = useState(false)
@@ -91,6 +95,8 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 		(e: React.MouseEvent) => {
 			e.preventDefault()
 			setIsResizing(true)
+			// Trigger resize start callback
+			if (onResizeStart) onResizeStart()
 
 			const startX = e.clientX
 			const startWidth = width
@@ -106,6 +112,8 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 
 			const handleMouseUp = () => {
 				setIsResizing(false)
+				// Trigger resize end callback
+				if (onResizeEnd) onResizeEnd()
 				document.removeEventListener('mousemove', handleMouseMove)
 				document.removeEventListener('mouseup', handleMouseUp)
 			}
@@ -113,7 +121,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 			document.addEventListener('mousemove', handleMouseMove)
 			document.addEventListener('mouseup', handleMouseUp)
 		},
-		[width, onWidthChange]
+		[width, onWidthChange, onResizeStart, onResizeEnd]
 	)
 
 	if (!aiAssistantOpen) return null

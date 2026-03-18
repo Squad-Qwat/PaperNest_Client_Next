@@ -1,12 +1,13 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useLatexEditor } from '@/hooks/editor/use-latex-editor'
 import { laTeXService } from '@/lib/latex/LaTeXService'
 import { Button } from '@/components/ui/button'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Loader2, Play } from 'lucide-react'
 import { undo as cmUndo, redo as cmRedo } from '@codemirror/commands'
-import { EditorView } from '@codemirror/view'
+import { useOthers } from '@liveblocks/react/suspense'
 
 interface LatexEditorProps {
     documentId?: string | null;
@@ -15,6 +16,7 @@ interface LatexEditorProps {
     title?: string;
     onEditorReady?: (functions: any) => void;
     onAutoSaveStateChange?: (isSaving: boolean, lastSavedAt: Date | null) => void;
+    isPdfHidden?: boolean;
 }
 
 export function LatexEditor({
@@ -23,12 +25,34 @@ export function LatexEditor({
     initialContent,
     title,
     onEditorReady,
-    onAutoSaveStateChange
+    onAutoSaveStateChange,
+    isPdfHidden = false
 }: LatexEditorProps) {
+    const others = useOthers()
     const [isCompiling, setIsCompiling] = useState(false)
     const [compileResult, setCompileResult] = useState<any>(null)
     const [pdfUrl, setPdfUrl] = useState<string | null>(null)
     const [showLog, setShowLog] = useState(false)
+    const [editorPdfSplitWidth, setEditorPdfSplitWidth] = useState(55) // Editor width as percentage
+    const [isEditorPdfResizing, setIsEditorPdfResizing] = useState(false)
+    const containerRef = useRef<HTMLDivElement>(null)
+
+    const collaborators = useMemo(() => {
+        return others.map((other) => {
+            const info = other.info
+            const name = info?.name || info?.email?.split('@')[0] || 'Guest'
+
+            return {
+                id: String(other.connectionId),
+                name,
+                avatar: info?.avatar,
+                color: info?.color || '#6b7280',
+            }
+        })
+    }, [others])
+
+    const visibleCollaborators = collaborators.slice(0, 4)
+    const hiddenCollaboratorsCount = Math.max(collaborators.length - visibleCollaborators.length, 0)
 
     const {
         editorRef,
@@ -113,106 +137,182 @@ export function LatexEditor({
         }
     }, [pdfUrl])
 
+    // Handle resize between editor and PDF viewer
+    const handleSplitMouseDown = useCallback(
+        (e: React.MouseEvent) => {
+            e.preventDefault()
+            setIsEditorPdfResizing(true)
+
+            const startX = e.clientX
+            const startWidth = editorPdfSplitWidth
+            const containerWidth = containerRef.current?.offsetWidth || 0
+
+            const handleMouseMove = (moveEvent: MouseEvent) => {
+                const deltaX = moveEvent.clientX - startX
+                const deltaPercent = (deltaX / containerWidth) * 100
+                const newWidth = Math.min(Math.max(startWidth + deltaPercent, 30), 70) // 30-70% for editor
+                setEditorPdfSplitWidth(newWidth)
+            }
+
+            const handleMouseUp = () => {
+                setIsEditorPdfResizing(false)
+                document.removeEventListener('mousemove', handleMouseMove)
+                document.removeEventListener('mouseup', handleMouseUp)
+            }
+
+            document.addEventListener('mousemove', handleMouseMove)
+            document.addEventListener('mouseup', handleMouseUp)
+        },
+        [editorPdfSplitWidth]
+    )
+
     return (
-        <div className="flex flex-col h-full w-full bg-[#fbfbfb] shadow-2xl border border-gray-200/50 rounded-xl overflow-hidden backdrop-blur-sm">
-            {/* Premium Toolbar with Glassmorphism */}
-            <div className="flex items-center justify-between px-6 py-3 border-b border-gray-200/60 bg-white/70 backdrop-blur-md sticky top-0 z-10">
-                <div className="flex items-center gap-3">
-                    <div className="p-1.5 bg-blue-500/10 rounded-md">
-                        <Play className="w-4 h-4 text-blue-600 fill-blue-600/20" />
+        <div className="flex flex-col h-full w-full bg-white overflow-hidden">
+            {/* Compact Toolbar */}
+            <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200/60 bg-white sticky top-0 z-10">
+                <div className="flex items-center gap-2">
+                    <div className="p-1 bg-blue-500/10 rounded-md">
+                        <Play className="w-4 h-4 text-blue-600" />
                     </div>
                     <div className="flex flex-col">
-                        <span className="text-sm font-bold text-gray-800 tracking-tight truncate max-w-[300px]">
+                        <span className="text-sm font-semibold text-gray-900 truncate max-w-[300px]">
                             {title || 'Untitled Document'}.tex
                         </span>
                         <div className="flex items-center gap-1.5">
                             <div className={`w-1.5 h-1.5 rounded-full ${collaborationReady ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`} />
-                            <span className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">
-                                {collaborationReady ? 'Live Sync Active' : 'Connecting...'}
+                            <span className="text-[10px] text-gray-500 font-medium">
+                                {collaborationReady ? 'Live Sync' : 'Connecting'}
                             </span>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    {isSaving && (
-                        <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-100/50 rounded-full">
-                            <Loader2 className="w-3 h-3 animate-spin text-blue-500" />
-                            <span className="text-[10px] font-medium text-gray-500">Saving...</span>
+                <div className="flex items-center gap-2">
+                    {visibleCollaborators.length > 0 && (
+                        <div className="flex items-center gap-1.5 pr-1">
+                            <div className="flex -space-x-2">
+                                {visibleCollaborators.map((collaborator) => (
+                                    <Avatar
+                                        key={collaborator.id}
+                                        className="h-6 w-6 border-2 border-white shadow-sm"
+                                        title={collaborator.name}
+                                    >
+                                        <AvatarImage src={collaborator.avatar} alt={collaborator.name} />
+                                        <AvatarFallback
+                                            className="text-[10px] font-semibold text-white"
+                                            style={{ backgroundColor: collaborator.color }}
+                                        >
+                                            {collaborator.name.charAt(0).toUpperCase()}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                ))}
+                            </div>
+                            {hiddenCollaboratorsCount > 0 && (
+                                <span className="text-[10px] font-medium text-gray-500">
+                                    +{hiddenCollaboratorsCount}
+                                </span>
+                            )}
                         </div>
                     )}
-                    <div className="h-6 w-[1px] bg-gray-200 mx-1" />
+
+                    {isSaving && (
+                        <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 rounded">
+                            <Loader2 className="w-3 h-3 animate-spin text-blue-500" />
+                            <span className="text-[10px] font-medium text-blue-600">Saving</span>
+                        </div>
+                    )}
+                    <div className="h-4 w-[1px] bg-gray-200" />
                     <Button 
                         variant="default" 
                         size="sm" 
                         onClick={handleCompile}
                         disabled={isCompiling || !collaborationReady}
-                        className="bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 transition-all duration-200 active:scale-95 flex items-center gap-2 px-4"
+                        className="bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 active:scale-95 flex items-center gap-2"
                     >
                         {isCompiling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-3.5 h-3.5 fill-current" />}
-                        <span className="font-semibold tracking-wide">Compile</span>
+                        <span className="font-semibold">Compile</span>
                     </Button>
                 </div>
             </div>
 
-            <div className="flex flex-1 overflow-hidden">
-                {/* Editor Container with refined shadows */}
-                <div className="flex-1 overflow-hidden relative border-r border-gray-200/50 bg-white group">
-                    <div ref={editorRef} className="h-full w-full cm-editor-container transition-all duration-300" />
+            <div className="flex flex-1 overflow-hidden" ref={containerRef}>
+                {/* Editor Container - Resizable Width */}
+                <div 
+                    className="overflow-hidden relative bg-white border-r border-gray-100"
+                    style={{ width: `${editorPdfSplitWidth}%` }}
+                >
+                    <div ref={editorRef} className="h-full w-full cm-editor-container" />
                     
-                    {/* Floating Save Indicator */}
+                    {/* Cloud Sync Indicator */}
                     {!isSaving && collaborationReady && (
-                        <div className="absolute bottom-4 right-6 text-[11px] font-medium text-gray-400 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
-                            Cloud Synced
+                        <div className="absolute bottom-3 right-3 text-[10px] font-medium text-gray-400 bg-white/50 px-2 py-1 rounded opacity-0 hover:opacity-100 transition-opacity">
+                            Synced
                         </div>
                     )}
                 </div>
 
-                {/* Preview Container - Multi-pane with smooth transitions */}
-                <div className={`flex-1 overflow-hidden relative transition-all duration-500 ease-in-out ${pdfUrl ? 'bg-[#525659]' : 'bg-gray-50'}`}>
+                {/* Resize Handle */}
+                <div
+                    className={`w-1 cursor-col-resize hover:bg-blue-400 transition-colors ${
+                        isEditorPdfResizing ? 'bg-blue-500' : 'bg-gray-200 hover:bg-blue-300'
+                    }`}
+                    onMouseDown={handleSplitMouseDown}
+                    style={{
+                        userSelect: 'none',
+                        flex: '0 0 auto',
+                    }}
+                    title="Drag to resize editor and PDF viewer"
+                />
+
+                {/* Preview Container - Resizable Width */}
+                <div 
+                    className={`overflow-hidden relative transition-all duration-200 ${pdfUrl ? 'bg-[#525659]' : 'bg-gray-50'}`}
+                    style={{ 
+                        width: `${100 - editorPdfSplitWidth}%`,
+                        display: isEditorPdfResizing || isPdfHidden ? 'none' : 'flex',
+                    }}
+                >
                     {pdfUrl ? (
                         <div className="w-full h-full flex flex-col">
                              <iframe 
                                 src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`} 
-                                className="w-full h-full border-none shadow-inner"
+                                className="w-full h-full border-none"
                                 title="PDF Preview"
                             />
                         </div>
                     ) : (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 p-8 text-center italic">
-                            <FileTextIcon className="w-12 h-12 mb-4 opacity-20" />
-                            <p className="text-sm font-medium">No preview available.</p>
-                            <p className="text-xs mt-1">Press "Compile" to generate your document.</p>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 p-4 text-center text-sm">
+                            <FileTextIcon className="w-10 h-10 mb-3 opacity-20" />
+                            <p className="font-medium">Ready to compile</p>
+                            <p className="text-xs text-gray-500 mt-1">Press "Compile" to see preview</p>
                         </div>
                     )}
 
-                    {/* Quick Logs Toggle */}
+                    {/* Logs Toggle */}
                     {compileResult && (
                         <button 
                             onClick={() => setShowLog(!showLog)}
-                            className={`absolute bottom-4 left-4 z-20 px-3 py-1.5 rounded-full text-[10px] font-bold tracking-widest uppercase transition-all shadow-lg ${
+                            className={`absolute bottom-3 left-3 z-20 px-2.5 py-1 rounded text-[10px] font-bold uppercase transition-all ${
                                 compileResult.status === 0 
                                 ? 'bg-green-500/90 hover:bg-green-600 text-white' 
                                 : 'bg-red-500/90 hover:bg-red-600 text-white'
                             }`}
                         >
-                            {showLog ? 'Hide Logs' : 'Show Logs'}
+                            {showLog ? 'Hide' : 'Logs'}
                         </button>
                     )}
                 </div>
             </div>
 
-            {/* Premium Compilation Log Overlay */}
+            {/* Compilation Log Overlay - Compact */}
             {compileResult && showLog && (
-                <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-[#0d1117]/95 backdrop-blur-xl text-gray-300 p-6 font-mono text-[11px] overflow-auto border-t border-white/10 shadow-2xl animate-in slide-in-from-bottom duration-300 z-30">
-                    <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-2">
+                <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-[#0d1117]/95 text-gray-300 p-4 font-mono text-[10px] overflow-auto border-t border-white/10 z-30">
+                    <div className="flex items-center justify-between mb-3 border-b border-white/10 pb-2">
                         <div className="flex items-center gap-2">
                             <div className={`w-2 h-2 rounded-full ${compileResult.status === 0 ? 'bg-green-500' : 'bg-red-500'}`} />
-                            <span className="font-bold tracking-widest text-white uppercase">Build Output</span>
+                            <span className="font-bold text-white">Build Output</span>
                         </div>
-                        <button onClick={() => setShowLog(false)} className="text-gray-500 hover:text-white transition-colors">
-                            Close
-                        </button>
+                        <button onClick={() => setShowLog(false)} className="text-gray-500 hover:text-white">✕</button>
                     </div>
                     <pre className="whitespace-pre-wrap leading-relaxed selection:bg-blue-500/30">
                         {compileResult.log}
@@ -224,24 +324,61 @@ export function LatexEditor({
                 .cm-editor-container .cm-editor {
                     height: 100%;
                     outline: none !important;
+                    background: #ffffff;
                 }
                 .cm-editor-container .cm-scroller {
                     font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', monospace !important;
-                    font-size: 14px !important;
-                    padding-top: 20px;
-                    line-height: 1.6;
+                    font-size: 13px !important;
+                    padding: 16px 0 !important;
+                    line-height: 1.5 !important;
                 }
                 .cm-editor-container .cm-gutters {
-                    background-color: transparent !important;
-                    border-right: 1px solid #f0f0f0 !important;
-                    color: #a0a0a0 !important;
+                    background-color: #fafbfc !important;
+                    border-right: 1px solid #e5e7eb !important;
+                    color: #9ca3af !important;
+                    font-size: 12px;
                 }
                 .cm-editor-container .cm-activeLine {
-                    background-color: #f8fafc !important;
+                    background-color: #f0f7ff !important;
                 }
                 .cm-editor-container .cm-activeLineGutter {
-                    background-color: #f1f5f9 !important;
+                    background-color: #eff6ff !important;
                     color: #3b82f6 !important;
+                }
+                .cm-editor-container .cm-line {
+                    padding-left: 4px;
+                }
+                .cm-editor-container .cm-ySelection {
+                    border-radius: 2px;
+                    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+                }
+                .cm-editor-container .cm-yLineSelection {
+                    box-shadow: none;
+                }
+                .cm-editor-container .cm-ySelectionCaret {
+                    border-left-width: 2px !important;
+                    border-right: 0 !important;
+                    margin-left: -1px;
+                    margin-right: 0;
+                }
+                .cm-editor-container .cm-ySelectionCaretDot {
+                    width: 0.5rem !important;
+                    height: 0.5rem !important;
+                    top: -0.26rem !important;
+                    left: -0.26rem !important;
+                    box-shadow: 0 0 0 2px #ffffff;
+                }
+                .cm-editor-container .cm-ySelectionInfo {
+                    top: -1.45em !important;
+                    left: 2px !important;
+                    font-size: 10px !important;
+                    font-family: ui-sans-serif, system-ui, sans-serif !important;
+                    font-weight: 600 !important;
+                    letter-spacing: 0.01em;
+                    border-radius: 9999px;
+                    padding: 2px 8px !important;
+                    opacity: 0.95 !important;
+                    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
                 }
             `}</style>
         </div>

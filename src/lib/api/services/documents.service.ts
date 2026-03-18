@@ -14,6 +14,7 @@ import type {
 	UpdateDocumentDto,
 	VersionResponse,
 	VersionsResponse,
+	DocumentWithRoomStateResponse,
 } from '../types/document.types'
 import type {
 	CreateReviewDto,
@@ -23,11 +24,41 @@ import type {
 } from '../types/review.types'
 
 class DocumentsService {
+	// Request deduplication cache: key -> Promise
+	private inFlightRequests = new Map<string, Promise<any>>()
+
+	/**
+	 * Deduplicate concurrent identical API requests
+	 * If request already in-flight, return same promise
+	 */
+	private async deduplicateRequest<T>(
+		key: string,
+		fetcher: () => Promise<T>
+	): Promise<T> {
+		// Check if request already in-flight
+		if (this.inFlightRequests.has(key)) {
+			console.log(`♻️ [DocumentsService] Reusing in-flight request: ${key}`)
+			return this.inFlightRequests.get(key)!
+		}
+
+		// Create new request promise
+		const promise = fetcher().finally(() => {
+			// Clean up cache after request completes
+			this.inFlightRequests.delete(key)
+		})
+
+		// Store in cache
+		this.inFlightRequests.set(key, promise)
+		return promise
+	}
+
 	/**
 	 * Get reviews for a document
 	 */
 	async getReviews(documentId: string): Promise<ReviewsResponse> {
-		return apiClient.get<ReviewsResponse>(API_ENDPOINTS.reviews.byDocument(documentId))
+		return this.deduplicateRequest(`getReviews:${documentId}`, () =>
+			apiClient.get<ReviewsResponse>(API_ENDPOINTS.reviews.byDocument(documentId))
+		)
 	}
 
 	/**
@@ -135,7 +166,9 @@ class DocumentsService {
 	 * Get all versions of a document
 	 */
 	async getVersions(documentId: string): Promise<VersionsResponse> {
-		return apiClient.get<VersionsResponse>(API_ENDPOINTS.documents.versions(documentId))
+		return this.deduplicateRequest(`getVersions:${documentId}`, () =>
+			apiClient.get<VersionsResponse>(API_ENDPOINTS.documents.versions(documentId))
+		)
 	}
 
 	/**
@@ -152,7 +185,39 @@ class DocumentsService {
 	 * Get current version of a document
 	 */
 	async getCurrentVersion(documentId: string): Promise<VersionResponse> {
-		return apiClient.get<VersionResponse>(API_ENDPOINTS.documents.currentVersion(documentId))
+		return this.deduplicateRequest(`getCurrentVersion:${documentId}`, () =>
+			apiClient.get<VersionResponse>(API_ENDPOINTS.documents.currentVersion(documentId))
+		)
+	}
+
+	/**
+	 * Get document with room state information
+	 * Returns document details + active user count in Liveblocks room
+	 * Used to determine if initial content should be loaded from Firestore
+	 * 
+	 * @param documentId - Document ID
+	 * @returns Document data with room state (activeUsers count)
+	 * @throws - If endpoint fails, throws error (page will fallback to Firestore)
+	 */
+	async getDocumentWithRoomState(documentId: string): Promise<DocumentWithRoomStateResponse> {
+		try {
+			console.log('🔀 [DocumentService] Checking room state for document:', documentId)
+			const response = await apiClient.get<DocumentWithRoomStateResponse>(
+				API_ENDPOINTS.documents.withRoomState(documentId)
+			)
+			console.log('✅ [DocumentService] Room state fetched:', {
+				activeUsers: response.room.activeUsers,
+				roomId: response.room.id,
+			})
+			return response
+		} catch (error) {
+			console.warn(
+				'⚠️ [DocumentService] Failed to fetch room state endpoint - page will use Firestore fallback',
+				error
+			)
+			// Re-throw: let page.js handle fallback to Firestore DocumentService
+			throw error
+		}
 	}
 
 	/**
