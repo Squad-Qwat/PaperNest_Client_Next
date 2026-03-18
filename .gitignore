@@ -44,3 +44,5 @@ next-env.d.ts
 .agent
 .agents
 skills-lock.json
+backup
+.vector_cache

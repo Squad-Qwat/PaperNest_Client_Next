@@ -228,6 +228,81 @@ export const executeEditorTool = async (
 ): Promise<string> => {
 	if (!tiptapEditor) return 'Error: Editor not available'
 
+	// DETECT EDITOR TYPE
+	const isCodeMirror = !!(tiptapEditor.state?.doc && tiptapEditor.dispatch)
+	
+	if (isCodeMirror) {
+		const view = tiptapEditor;
+		try {
+			switch (toolName) {
+				case 'read_document': {
+					const docText = view.state.doc.toString()
+					return JSON.stringify({
+						metadata: {
+							title: 'LaTeX Document',
+							characterCount: docText.length,
+							lineCount: view.state.doc.lines
+						},
+						preview: docText.substring(0, 500),
+						hasFullContent: true
+					})
+				}
+				
+				case 'insert_content': {
+					const { content, position } = args
+					const selection = view.state.selection.main
+					let from = selection.from
+					let to = selection.to
+					
+					if (position === 'start') { from = 0; to = 0; }
+					else if (position === 'end') { from = view.state.doc.length; to = view.state.doc.length; }
+					
+					view.dispatch({
+						changes: { from, to, insert: content },
+						selection: { anchor: from + content.length },
+						scrollIntoView: true
+					})
+					view.focus()
+					return `Inserted content at ${position || 'cursor'}`
+				}
+				
+				case 'apply_diff_edit': {
+					const { searchBlock, replaceBlock } = args
+					const docText = view.state.doc.toString()
+					const index = docText.indexOf(searchBlock)
+					
+					if (index === -1) {
+						return `Error: Could not find exact match for search block.`
+					}
+					
+					view.dispatch({
+						changes: { from: index, to: index + searchBlock.length, insert: replaceBlock },
+						scrollIntoView: true
+					})
+					view.focus()
+					return `Successfully applied patch.`
+				}
+				
+				case 'get_cursor_info': {
+					const selection = view.state.selection.main
+					const doc = view.state.doc
+					return JSON.stringify({
+						position: selection.from,
+						selectedText: doc.sliceString(selection.from, selection.to),
+						textBefore: doc.sliceString(Math.max(0, selection.from - 50), selection.from),
+						textAfter: doc.sliceString(selection.to, Math.min(doc.length, selection.to + 50)),
+						documentSize: doc.length
+					})
+				}
+				
+				default:
+					return `Tool "${toolName}" is not yet optimized for LaTeX mode, but basic content tools are available.`
+			}
+		} catch (e) {
+			return `Error in CodeMirror tool execution: ${e instanceof Error ? e.message : 'Unknown error'}`
+		}
+	}
+
 	try {
 		switch (toolName) {
 			// CURSOR CONTROL

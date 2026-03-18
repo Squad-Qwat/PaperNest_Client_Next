@@ -1,0 +1,671 @@
+// @ts-nocheck
+// src/services/TypstService.ts
+import { t } from '@/i18n';
+import { nanoid } from 'nanoid';
+
+import type { TypstCompileResult, TypstOutputFormat, TypstPdfOptions } from '../types/typst';
+import type { FileNode } from '../types/files';
+import { fileStorageService } from './FileStorageService';
+import { notificationService } from './NotificationService';
+import { cleanContent } from '../utils/fileCommentUtils';
+import { TypstCompilerEngine } from '../extensions/typst.ts/TypstCompilerEngine';
+import { isTypstFile, isTemporaryFile, toArrayBuffer } from '../utils/fileUtils';
+import { downloadFiles } from '../utils/zipUtils';
+
+type CompilationStatus = 'unloaded' | 'loading' | 'ready' | 'compiling' | 'error';
+
+class TypstService {
+    private status: CompilationStatus = 'unloaded';
+    private statusListeners: Set<() => void> = new Set();
+    private defaultFormat: TypstOutputFormat = 'pdf';
+    private compilationAbortController: AbortController | null = null;
+    private compilerEngine: TypstCompilerEngine = new TypstCompilerEngine();
+
+    async initialize(): Promise<void> {
+        if (this.status === 'ready') return;
+        if (this.status === 'loading') {
+            return this.waitForReady();
+        }
+
+        this.setStatus('loading');
+        try {
+            await this.warmWorker();
+            this.setStatus('ready');
+        } catch (error) {
+            this.setStatus('error');
+            throw new Error(`Failed to initialize Typst worker: ${error}`);
+        }
+    }
+
+    private async waitForReady(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const checkStatus = () => {
+                if (this.status === 'ready') resolve();
+                else if (this.status === 'error') reject(new Error('Typst worker failed to load'));
+                else setTimeout(checkStatus, 100);
+            };
+            checkStatus();
+        });
+    }
+
+    private async warmWorker(): Promise<void> {
+        await this.compilerEngine.ping();
+    }
+
+    async compileTypst(
+        mainFileName: string,
+        fileTree: FileNode[],
+        format: TypstOutputFormat = this.defaultFormat,
+        pdfOptions?: TypstPdfOptions
+    ): Promise<TypstCompileResult> {
+        if (!this.isReady()) {
+            await this.initialize();
+        }
+
+        const operationId = `typst-compile-${nanoid()}`;
+        this.setStatus('compiling');
+        this.compilationAbortController = new AbortController();
+
+        const normalizedMainFileName = this.normalizePath(mainFileName);
+
+        try {
+            this.showNotification('info', t('Preparing files for Typst compilation...'), operationId, format);
+
+            const { mainContent, sources } = await this.prepareSources(
+                normalizedMainFileName,
+                fileTree,
+                this.compilationAbortController.signal
+            );
+
+            if (!mainContent?.trim()) {
+                const result: TypstCompileResult = {
+                    status: 1,
+                    log: `Main file '${normalizedMainFileName}' is empty or not found`,
+                    format,
+                };
+                this.handleCompilationError(operationId, format, result.log);
+                return result;
+            }
+
+            this.showNotification('info', t(`Compiling Typst to {format}...`, { format: format.toUpperCase() }), operationId, format);
+
+            const { output, diagnostics } = await this.performCompilationInWorker(
+                normalizedMainFileName,
+                sources,
+                format,
+                pdfOptions,
+                this.compilationAbortController.signal
+            );
+
+            const formattedLog = this.formatDiagnostics(diagnostics);
+            const hasErrors = diagnostics?.some((d: any) => {
+                const sev = d.severity;
+                return sev === 'error' || sev === 'Error' || (typeof sev === 'object' && sev.Error !== undefined);
+            });
+
+            if (hasErrors || (output instanceof Uint8Array && output.length === 0)) {
+                const result: TypstCompileResult = {
+                    status: 1,
+                    log: formattedLog || 'Compilation failed with errors',
+                    format,
+                };
+                this.handleCompilationError(operationId, format, 'Compilation failed');
+                await this.saveCompilationLog(normalizedMainFileName, result.log);
+                return result;
+            }
+
+            const result = this.createSuccessResult(output, format, formattedLog);
+            await this.saveCompilationOutput(normalizedMainFileName, result);
+
+            this.showNotification('success', t(`Typst {format} compilation completed`, { format: format.toUpperCase() }), operationId, format, 3000);
+
+            return result;
+        } catch (error) {
+            if (error instanceof Error && /cancel/i.test(error.message)) {
+                const result: TypstCompileResult = {
+                    status: 1,
+                    log: 'Compilation was cancelled',
+                    format,
+                };
+                return result;
+            }
+
+            const diagnostics = this.parseDiagnosticsFromError(error);
+            const formattedLog = diagnostics.length > 0
+                ? this.formatDiagnostics(diagnostics)
+                : (error instanceof Error ? error.message : t('Unknown error'));
+
+            const result: TypstCompileResult = {
+                status: 1,
+                log: formattedLog,
+                format,
+            };
+
+            this.handleCompilationError(operationId, format, 'Compilation failed');
+            await this.saveCompilationLog(normalizedMainFileName, result.log);
+
+            return result;
+        } finally {
+            this.setStatus('ready');
+            this.compilationAbortController = null;
+        }
+    }
+
+    async exportDocument(
+        mainFileName: string,
+        fileTree: FileNode[],
+        options: {
+            format?: TypstOutputFormat;
+            includeLog?: boolean;
+            pdfOptions?: TypstPdfOptions;
+        } = {}
+    ): Promise<void> {
+        const { format = this.defaultFormat, includeLog = false, pdfOptions } = options;
+        const operationId = `typst-export-${nanoid()}`;
+
+        if (!this.isReady()) {
+            await this.initialize();
+        }
+
+        this.setStatus('compiling');
+        this.compilationAbortController = new AbortController();
+
+        const normalizedMainFileName = this.normalizePath(mainFileName);
+
+        try {
+            this.showNotification('info', t('Preparing files for export...'), operationId, format);
+
+            const { sources } = await this.prepareSources(
+                normalizedMainFileName,
+                fileTree,
+                this.compilationAbortController.signal
+            );
+
+            this.showNotification(
+                'info',
+                t('Compiling for export to {format}...', { format: format.toUpperCase() }),
+                operationId,
+                format
+            );
+
+            const { output, diagnostics } = await this.performCompilationInWorker(
+                normalizedMainFileName,
+                sources,
+                format,
+                pdfOptions,
+                this.compilationAbortController.signal
+            );
+
+            const hasErrors = diagnostics?.some((d: any) => d.severity === 'error');
+
+            if (hasErrors) {
+                this.showNotification('error', t('Export failed'), operationId, format, 3000);
+                return;
+            }
+
+            const baseName = this.getBaseName(normalizedMainFileName);
+            const files: Array<{ content: Uint8Array; name: string; mimeType: string }> = [];
+
+            if ((format === 'pdf' || format === 'canvas-pdf') && output instanceof Uint8Array) {
+                files.push({
+                    content: output,
+                    name: `${baseName}.pdf`,
+                    mimeType: 'application/pdf'
+                });
+            } else if ((format === 'svg' || format === 'canvas') && typeof output === 'string') {
+                const content = new TextEncoder().encode(output);
+                files.push({
+                    content,
+                    name: `${baseName}.svg`,
+                    mimeType: 'image/svg+xml'
+                });
+            }
+
+            if (includeLog) {
+                const formattedLog = this.formatDiagnostics(diagnostics);
+                const logContent = new TextEncoder().encode(formattedLog);
+                files.push({
+                    content: logContent,
+                    name: `${baseName}.log`,
+                    mimeType: 'text/plain'
+                });
+            }
+
+            if (files.length > 0) {
+                await downloadFiles(files, baseName);
+            }
+
+            this.showNotification('success', t('Export completed successfully'), operationId, format, 2000);
+        } catch (error) {
+            if (error instanceof Error && /cancel/i.test(error.message)) {
+                return;
+            }
+
+            const errorMessage = error instanceof Error ? error.message : t('Unknown error');
+            this.showNotification('error', `Export error: ${errorMessage}`, operationId, format, 5000);
+        } finally {
+            this.setStatus('ready');
+            this.compilationAbortController = null;
+        }
+    }
+
+    setDefaultFormat(format: TypstOutputFormat): void {
+        this.defaultFormat = format;
+    }
+
+    getDefaultFormat(): TypstOutputFormat {
+        return this.defaultFormat;
+    }
+
+    getStatus(): string {
+        return this.status;
+    }
+
+    isReady(): boolean {
+        return this.status === 'ready';
+    }
+
+    isCompiling(): boolean {
+        return this.status === 'compiling';
+    }
+
+    addStatusListener(listener: () => void): () => void {
+        this.statusListeners.add(listener);
+        return () => this.statusListeners.delete(listener);
+    }
+
+    stopCompilation(): void {
+        if (this.compilationAbortController) {
+            this.compilationAbortController.abort();
+        }
+        if (this.isCompiling()) {
+            this.setStatus('ready');
+        }
+    }
+
+    clearCache(): void {
+        this.compilerEngine.terminate();
+    }
+
+    private async performCompilationInWorker(
+        mainFilePath: string,
+        sources: Record<string, string | Uint8Array>,
+        format: TypstOutputFormat,
+        pdfOptions: TypstPdfOptions | undefined,
+        signal: AbortSignal
+    ): Promise<{ output: Uint8Array | string; diagnostics?: any[] }> {
+        const result = await this.compilerEngine.compile(
+            mainFilePath,
+            sources,
+            format,
+            pdfOptions,
+            signal
+        );
+
+        return { output: result.output, diagnostics: result.diagnostics };
+    }
+
+    private createSuccessResult(output: Uint8Array | string, format: TypstOutputFormat, log?: string): TypstCompileResult {
+        console.log('[TypstService] createSuccessResult', {
+            format,
+            outputType: typeof output,
+            isUint8Array: output instanceof Uint8Array,
+            isString: typeof output === 'string',
+            outputLength: output instanceof Uint8Array ? output.length : output.length
+        });
+
+        const result: TypstCompileResult = {
+            status: 0,
+            log: log || 'Compilation successful',
+            format,
+        };
+
+        switch (format) {
+            case 'pdf':
+                result.pdf = output as Uint8Array;
+                break;
+            case 'svg':
+                result.svg = output as string;
+                break;
+            case 'canvas':
+                console.log('[TypstService] Creating canvas result, encoding string to Uint8Array');
+                result.canvas = new TextEncoder().encode(output as string);
+                break;
+            case 'canvas-pdf':
+                result.canvas = output as Uint8Array;
+                break;
+        }
+
+        return result;
+    }
+
+    private async prepareSources(
+        mainFileName: string,
+        fileTree: FileNode[],
+        signal: AbortSignal
+    ): Promise<{ mainContent: string; sources: Record<string, string | Uint8Array> }> {
+        const relevantFiles = this.filterRelevantFiles(fileTree, mainFileName);
+        const sources: Record<string, string | Uint8Array> = {};
+        let mainContent = '';
+
+        for (const fileNode of relevantFiles) {
+            if (signal.aborted) throw new Error(t('Compilation cancelled'));
+
+            try {
+                const content = await this.getFileContent(fileNode);
+                if (!content) continue;
+
+                const cleanedContent = cleanContent(content);
+                const normalizedPath = this.normalizePath(fileNode.path);
+
+                if (this.isMainFile(fileNode, mainFileName)) {
+                    mainContent =
+                        typeof cleanedContent === 'string'
+                            ? cleanedContent
+                            : new TextDecoder().decode(cleanedContent);
+                }
+
+                if (typeof cleanedContent === 'string') {
+                    sources[normalizedPath] = cleanedContent;
+                } else {
+                    sources[normalizedPath] = new Uint8Array(cleanedContent);
+                }
+            } catch (error) {
+                console.warn(`Failed to process file ${fileNode.path}:`, error);
+            }
+        }
+
+        if (!mainContent) {
+            for (const [path, content] of Object.entries(sources)) {
+                if (isTypstFile(path) && typeof content === 'string' && content.trim()) {
+                    mainContent = content;
+                    break;
+                }
+            }
+        }
+
+        return { mainContent, sources };
+    }
+
+    private filterRelevantFiles(fileTree: FileNode[], mainFileName: string): FileNode[] {
+        const allFiles = this.collectFiles(fileTree);
+        const normalizedMainPath = this.normalizePath(mainFileName);
+        const mainDir = this.getDirectoryPath(normalizedMainPath);
+
+        return allFiles.filter((file) => {
+            if (file.type !== 'file' || file.isDeleted || isTemporaryFile(file.path)) {
+                return false;
+            }
+
+            const normalizedPath = this.normalizePath(file.path);
+
+            if (this.isMainFile(file, mainFileName) || isTypstFile(normalizedPath)) {
+                return true;
+            }
+
+            if (normalizedPath.match(/\.(toml|yaml|yml)$/)) {
+                return true;
+            }
+
+            if (normalizedPath.match(/\.(png|jpg|jpeg|gif|svg|pdf|bib|cls|sty)$/i)) {
+                return true;
+            }
+
+            const fileDir = this.getDirectoryPath(normalizedPath);
+            if (fileDir === mainDir) {
+                return true;
+            }
+
+            return false;
+        });
+    }
+
+    private collectFiles(nodes: FileNode[]): FileNode[] {
+        const files: FileNode[] = [];
+        const traverse = (nodeList: FileNode[]) => {
+            for (const node of nodeList) {
+                if (node.type === 'file') files.push(node);
+                if (node.children) traverse(node.children);
+            }
+        };
+        traverse(nodes);
+        return files;
+    }
+
+    private async getFileContent(file: FileNode): Promise<ArrayBuffer | string | null> {
+        if (file.content !== undefined) {
+            return file.content;
+        }
+        try {
+            const storedFile = await fileStorageService.getFile(file.id);
+            return storedFile?.content || null;
+        } catch (error) {
+            console.warn(`Failed to retrieve content for ${file.path}:`, error);
+            return null;
+        }
+    }
+
+    private isMainFile(file: FileNode, mainFileName: string): boolean {
+        const normalizedMainPath = this.normalizePath(mainFileName);
+        const normalizedFilePath = this.normalizePath(file.path);
+        return (
+            normalizedFilePath === normalizedMainPath ||
+            file.name === mainFileName ||
+            file.name === normalizedMainPath.split('/').pop()
+        );
+    }
+
+    private normalizePath(path: string): string {
+        return path.replace(/^\/+/, '');
+    }
+
+    private getDirectoryPath(path: string): string {
+        const lastSlash = path.lastIndexOf('/');
+        return lastSlash >= 0 ? path.substring(0, lastSlash) : '';
+    }
+
+    private async saveCompilationOutput(mainFile: string, result: TypstCompileResult): Promise<void> {
+        try {
+            const outputFiles = this.createOutputFiles(mainFile, result);
+            if (outputFiles.length > 0) {
+                await this.ensureOutputDirectoriesExist();
+                await fileStorageService.batchStoreFiles(outputFiles, {
+                    showConflictDialog: false,
+                });
+            }
+        } catch (error) {
+            console.error('Failed to save compilation output:', error);
+        }
+    }
+
+    private createOutputFiles(mainFile: string, result: TypstCompileResult): FileNode[] {
+        const files: FileNode[] = [];
+        const baseName = this.getBaseName(mainFile);
+
+        if (result.pdf && result.format === 'pdf') {
+            const buffer = result.pdf instanceof Uint8Array ? result.pdf.buffer : result.pdf;
+            files.push(this.createFileNode(`${baseName}.pdf`, buffer, 'application/pdf', true));
+        } else if ((result.svg || result.canvas) && (result.format === 'svg' || result.format === 'canvas')) {
+            const content = result.format === 'svg' ? result.svg : new TextDecoder().decode(result.canvas!);
+            const buffer = new TextEncoder().encode(content).buffer;
+            files.push(this.createFileNode(`${baseName}.svg`, buffer, 'image/svg+xml', false));
+        }
+
+        files.push(this.createLogFile(baseName, result.log));
+
+        return files;
+    }
+
+    private createFileNode(name: string, content: ArrayBuffer | ArrayBufferLike, mimeType: string, isBinary: boolean): FileNode {
+        const buffer = content instanceof ArrayBuffer ? content : toArrayBuffer(content) as ArrayBuffer;
+        return {
+            id: nanoid(),
+            name,
+            path: `/.texlyre_src/__output/${name}`,
+            type: 'file',
+            content: buffer,
+            lastModified: Date.now(),
+            size: buffer.byteLength,
+            mimeType,
+            isBinary,
+            excludeFromSync: true,
+        };
+    }
+
+    private createLogFile(baseName: string, log: string): FileNode {
+        const logContent = new TextEncoder().encode(log).buffer;
+        return this.createFileNode(`${baseName}.log`, logContent, 'text/plain', false);
+    }
+
+    private async saveCompilationLog(mainFile: string, log: string): Promise<void> {
+        try {
+            await this.ensureOutputDirectoriesExist();
+            const logFile = this.createLogFile(this.getBaseName(mainFile), log);
+            await fileStorageService.batchStoreFiles([logFile], {
+                showConflictDialog: false,
+            });
+        } catch (error) {
+            console.error('Failed to save compilation log:', error);
+        }
+    }
+
+    private async ensureOutputDirectoriesExist(): Promise<void> {
+        const directories = ['/.texlyre_src', '/.texlyre_src/__output'];
+        const existingFiles = await fileStorageService.getAllFiles();
+        const existingPaths = new Set(existingFiles.map((file) => file.path));
+
+        const directoriesToCreate = directories
+            .filter((dir) => !existingPaths.has(dir))
+            .map((dir) => ({
+                id: nanoid(),
+                name: dir.split('/').pop()!,
+                path: dir,
+                type: 'directory' as const,
+                lastModified: Date.now(),
+            }));
+
+        if (directoriesToCreate.length > 0) {
+            await fileStorageService.batchStoreFiles(directoriesToCreate, {
+                showConflictDialog: false,
+            });
+        }
+    }
+
+    private getBaseName(filePath: string): string {
+        const fileName = filePath.split('/').pop() || filePath;
+        return fileName.includes('.') ? fileName.split('.').slice(0, -1).join('.') : fileName;
+    }
+
+    private handleCompilationError(operationId: string, format: TypstOutputFormat, message: string): void {
+        this.setStatus('ready');
+        this.showNotification('error', t(`Typst compilation failed: {message}`, { message }), operationId, format, 5000);
+    }
+
+    private showNotification(
+        type: 'info' | 'success' | 'error',
+        message: string,
+        operationId?: string,
+        format?: TypstOutputFormat,
+        duration?: number,
+    ): void {
+        if (!this.areNotificationsEnabled() ||
+            format.toLowerCase().includes("canvas")) return;
+
+        switch (type) {
+            case 'info':
+                notificationService.showLoading(message, operationId);
+                break;
+            case 'success':
+                notificationService.showSuccess(message, { operationId, duration });
+                break;
+            case 'error':
+                notificationService.showError(message, { operationId, duration });
+                break;
+        }
+    }
+
+    private parseDiagnosticsFromError(error: any): any[] {
+        const errorStr = String(error.message || error);
+
+        const diagnostics: any[] = [];
+        const diagPattern = /SourceDiagnostic\s*\{\s*severity:\s*(\w+),\s*span:\s*([^,]+),\s*message:\s*"([^"]+)"(?:[^}]*?)hints:\s*\[([^\]]*)\]/g;
+
+        let match;
+        while ((match = diagPattern.exec(errorStr)) !== null) {
+            const hintsStr = match[4];
+            const hints: string[] = [];
+
+            const hintPattern = /"([^"]+)"/g;
+            let hintMatch;
+            while ((hintMatch = hintPattern.exec(hintsStr)) !== null) {
+                hints.push(hintMatch[1]);
+            }
+
+            diagnostics.push({
+                severity: match[1],
+                span: match[2].trim(),
+                message: match[3],
+                hints: hints
+            });
+        }
+
+        return diagnostics;
+    }
+
+    private formatDiagnostics(diagnostics?: any[]): string {
+        if (!diagnostics || diagnostics.length === 0) {
+            return 'Compilation successful';
+        }
+
+        const lines: string[] = [];
+
+        for (const diag of diagnostics) {
+            const severity = diag.severity || 'error';
+            const message = diag.message || t('Unknown error');
+
+            let location = '';
+            if (diag.path) {
+                location = diag.path.replace(/^\//, '');
+                if (diag.range) {
+                    const startPos = diag.range.split('-')[0];
+                    location += `:${startPos}`;
+                }
+            } else if (diag.span) {
+                location = String(diag.span).replace(/^Span\(|\)$/g, '');
+            }
+
+            const severityStr = typeof severity === 'string'
+                ? severity.toLowerCase()
+                : 'error';
+
+            const prefix = severityStr === 'error' ? 'error' : severityStr === 'warning' ? 'warning' : 'info';
+            lines.push(location ? `${prefix}[${location}]: ${message}` : `${prefix}: ${message}`);
+
+            if (diag.hints && Array.isArray(diag.hints) && diag.hints.length > 0) {
+                for (const hint of diag.hints) {
+                    lines.push(`  hint: ${hint}`);
+                }
+            }
+        }
+
+        return lines.join('\n');
+    }
+
+    private areNotificationsEnabled(): boolean {
+        try {
+            const userId = localStorage.getItem('texlyre-current-user');
+            const storageKey = userId ? `texlyre-user-${userId}-settings` : 'texlyre-settings';
+            const settings = JSON.parse(localStorage.getItem(storageKey) || '{}');
+            return settings['typst-notifications'] !== false;
+        } catch {
+            return true;
+        }
+    }
+
+    private setStatus(status: CompilationStatus): void {
+        this.status = status;
+        this.statusListeners.forEach((listener) => listener());
+    }
+}
+
+export const typstService = new TypstService();

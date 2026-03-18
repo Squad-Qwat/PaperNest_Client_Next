@@ -1,0 +1,8 @@
+Draw.io Embed Mirror
+Synced: Sun Feb 22 20:21:39 UTC 2026
+Light files: 114
+Dark files: 114
+Light languages: 59
+Dark languages: 59
+Light plugins: 20
+Dark plugins: 20

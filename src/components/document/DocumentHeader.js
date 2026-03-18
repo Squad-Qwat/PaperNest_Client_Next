@@ -2,7 +2,7 @@ import { ChevronLeft, GitCommit, History, MessageSquare, RefreshCw, Share2, X } 
 import Link from 'next/link'
 import { useState } from 'react'
 import { CommitModal } from '@/components/document/CommitModal'
-import EditorToolbar from '@/components/document/EditorToolbar'
+import LatexToolbar from '@/components/document/LatexToolbar'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useDocumentReviews } from '@/hooks/useDocumentVersions'
@@ -429,7 +429,7 @@ const DocumentHeader = ({
 						// We also need content usually, but the API doc says content string.
 						// If editor content is available, pass it.
 						// `editor` prop is available. `editor.getHTML()` or `JSON`.
-						const content = editor ? editor.getHTML() : ''
+						const content = editor ? editor.state.doc.toString() : ''
 						await documentsService.createVersion(documentId, {
 							message: data.message,
 							content: content,
@@ -446,15 +446,13 @@ const DocumentHeader = ({
 			/>
 
 			{/* Editor Toolbar - sticky di bawah header */}
-			<EditorToolbar
+			<LatexToolbar
 				editor={editor}
 				insertTable={insertTable}
-				aiAssistantOpen={aiAssistantOpen}
 				undo={undo}
 				redo={redo}
 				canUndo={canUndo}
 				canRedo={canRedo}
-				debugContentExtraction={debugContentExtraction}
 			/>
 		</header>
 	)

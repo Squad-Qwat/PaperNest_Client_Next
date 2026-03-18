@@ -150,8 +150,17 @@ export default function DocumentPage() {
 
 		if (newDoc && editorFunctions?.editor) {
 			console.log('Updating editor content with restored version...')
-			// Force update editor content
-			editorFunctions.editor.commands.setContent(newDoc.savedContent || newDoc.content)
+			// Force update editor content for CodeMirror
+			const editor = editorFunctions.editor
+			const newContent = newDoc.savedContent || newDoc.content
+			
+			editor.dispatch({
+				changes: {
+					from: 0,
+					to: editor.state.doc.length,
+					insert: newContent || ''
+				}
+			})
 		}
 	}, [fetchDocument, editorFunctions])
 

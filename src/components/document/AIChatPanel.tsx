@@ -84,21 +84,31 @@ const threadIdRef = useRef<string>(`thread_${Date.now()}_${Math.random().toStrin
 			let sections: string[] = []
 			if (tiptapEditor) {
 				try {
-					docText = tiptapEditor.getText()
-					docHtml = tiptapEditor.getHTML()
-					const docJson = tiptapEditor.getJSON()
-					docJson.content?.forEach((node: any) => {
-						if (node.type === 'heading') {
-							const text = node.content?.map((c: any) => c.text || '').join('') || ''
-							if (text) sections.push(text)
-						} else if (node.type === 'paragraph' && node.content) {
-							const text = node.content?.map((c: any) => c.text || '').join('') || ''
-							const hasBold = node.content?.some((c: any) => c.marks?.some((m: any) => m.type === 'bold'))
-							if (text && hasBold && text === text.toUpperCase() && text.length > 3) {
-								sections.push(text)
+					// Handle both Tiptap and CodeMirror
+					if (typeof tiptapEditor.getText === 'function') {
+						docText = tiptapEditor.getText()
+						docHtml = tiptapEditor.getHTML()
+						const docJson = tiptapEditor.getJSON()
+						docJson.content?.forEach((node: any) => {
+							if (node.type === 'heading') {
+								const text = node.content?.map((c: any) => c.text || '').join('') || ''
+								if (text) sections.push(text)
 							}
-						}
-					})
+						})
+					} else if (tiptapEditor.state?.doc) {
+						// CodeMirror path
+						docText = tiptapEditor.state.doc.toString()
+						docHtml = docText // Plain text for LaTeX
+						
+						// Basic LaTeX section parsing
+						const lines = docText.split('\n')
+						lines.forEach(line => {
+							const sectionMatch = line.match(/\\(?:sub)*section\{([^}]+)\}/)
+							if (sectionMatch) {
+								sections.push(sectionMatch[1])
+							}
+						})
+					}
 				} catch (e) {
 					console.log('[AI] Could not get document context:', e)
 				}
@@ -119,16 +129,11 @@ const threadIdRef = useRef<string>(`thread_${Date.now()}_${Math.random().toStrin
 				let currentSections = sections
 				if (tiptapEditor && currentStep > 1) {
 					try {
-						currentDocText = tiptapEditor.getText()
-						currentDocHtml = tiptapEditor.getHTML()
-						const docJson = tiptapEditor.getJSON()
-						currentSections = []
-						docJson.content?.forEach((node: any) => {
-							if (node.type === 'heading') {
-								const text = node.content?.map((c: any) => c.text || '').join('') || ''
-								if (text) currentSections.push(text)
-							}
-						})
+						if (typeof tiptapEditor.getText === 'function') {
+							currentDocText = tiptapEditor.getText()
+						} else if (tiptapEditor.state?.doc) {
+							currentDocText = tiptapEditor.state.doc.toString()
+						}
 					} catch (e) { /* ignore */ }
 				}
 

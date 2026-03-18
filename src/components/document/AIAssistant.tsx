@@ -41,8 +41,8 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 
 	// Sync document to vector store when updated
 	useEffect(() => {
-		const tiptapEditor = editor?.editor
-		if (!tiptapEditor || !documentId) return
+		const cmView = editor?.editor
+		if (!cmView || !documentId) return
 
 		const handleUpdate = () => {
 			if (indexingTimeoutRef.current) clearTimeout(indexingTimeoutRef.current)
@@ -50,20 +50,16 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 			// Debounce 5 seconds without typing before indexing
 			indexingTimeoutRef.current = setTimeout(async () => {
 				try {
-					const content = tiptapEditor.getText()
+					const content = cmView.state.doc.toString()
 					// Only index if there is substantial text
 					if (!content || content.length < 50) return
 					
-					// Find the title (usually in the first heading)
+					// Find the title (for LaTeX, we can look for \title{...})
 					let title = 'Untitled'
-					const json = tiptapEditor.getJSON()
-					json.content?.find((node: any) => {
-						if (node.type === 'heading' && node.content) {
-							title = node.content.map((c: any) => c.text || '').join('')
-							return true
-						}
-						return false
-					})
+					const titleMatch = content.match(/\\title\{([^}]+)\}/)
+					if (titleMatch) {
+						title = titleMatch[1]
+					}
 
 					await fetch('/api/ai-rag-index', {
 						method: 'POST',
@@ -80,10 +76,13 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 			}, 5000)
 		}
 
-		tiptapEditor.on('update', handleUpdate)
+		// Since we can't easily add a listener to an existing view without reconfiguring
+		// we'll use an interval or a more direct approach if the parent can provide a callback
+		// For now, let's use a simple interval to check for changes if the view is available
+		const interval = setInterval(handleUpdate, 10000) // Check every 10s
 
 		return () => {
-			tiptapEditor.off('update', handleUpdate)
+			clearInterval(interval)
 			if (indexingTimeoutRef.current) clearTimeout(indexingTimeoutRef.current)
 		}
 	}, [editor?.editor, documentId])
