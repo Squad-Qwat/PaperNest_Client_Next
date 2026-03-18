@@ -1,5 +1,8 @@
+
+
 /**
  * LangGraph Agent Definition - Advanced Plan-and-Execute
+
  *
  * Compiles the StateGraph with Planner, Executor, Tool, and Reflector nodes.
  */
@@ -41,6 +44,7 @@ const graphBuilder = new StateGraph(AgentState)
     .addConditionalEdges(ROUTES.EXECUTOR, routeAfterExecutor, {
         [ROUTES.TOOLS]: ROUTES.TOOLS,
         [ROUTES.REFLECTOR]: ROUTES.REFLECTOR, // If no tool call, treating as step done (or fail?)
+        [ROUTES.END]: END, // Added to support client-side tool execution pause
     })
 
     // Tools -> Reflector
@@ -80,7 +84,8 @@ export async function* streamAgent(
     documentHTML: string,
     threadId: string,
     conversationHistory: Array<{ role: string; content: string }> = [],
-    existingToolResults?: ToolResult[]
+    existingToolResults?: ToolResult[],
+    documentId?: string
 ): AsyncGenerator<StreamEvent> {
     console.log('[Graph] Starting Plan-and-Execute agent for thread:', threadId)
 
@@ -99,6 +104,7 @@ export async function* streamAgent(
             needsReplanning: false,
             iteration: 0,
             maxIterations: 15,
+            documentId: documentId || '',
         }
 
         if (existingToolResults && existingToolResults.length > 0) {
@@ -139,7 +145,7 @@ export async function* streamAgent(
             streamMode: 'updates' as const,
         }
 
-        let fullContent = ''
+        const contentParts: string[] = []
         let pendingToolCalls: { id: string; name: string; args: Record<string, unknown> }[] = []
 
         for await (const update of await graph.stream(initialState, config)) {
@@ -167,7 +173,7 @@ export async function* streamAgent(
                                 : JSON.stringify(lastMsg.content)
 
                         if (content && content.trim()) {
-                            fullContent += content
+                            contentParts.push(content)
                             yield { type: 'content', content }
                         }
 
@@ -193,7 +199,7 @@ export async function* streamAgent(
 
         yield {
             type: 'done',
-            fullContent,
+            fullContent: contentParts.join(''),
             hasMoreSteps: false, // In this arch, done means truly done
         }
     } catch (error) {

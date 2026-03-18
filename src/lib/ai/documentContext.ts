@@ -1,5 +1,8 @@
+
+
 /**
  * Document Context Builder for AI Agent
+
  *
  * Provides comprehensive document context extraction for AI processing.
  * Builds semantic understanding of document structure, cursor position,
@@ -9,6 +12,8 @@
  */
 
 import type { Editor } from '@tiptap/core'
+import { getNodeText, isPseudoHeading } from '@/lib/ai/utils'
+
 import type {
     DocumentContext,
     DocumentStructure,
@@ -28,48 +33,6 @@ import type {
 const DEFAULT_MAX_CONTENT_LENGTH = 6000
 const DEFAULT_CURSOR_CONTEXT_RADIUS = 100
 const CHUNKING_THRESHOLD = 8000
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-/**
- * Extract text content from a TipTap node recursively
- */
-const getNodeText = (node: any): string => {
-    if (node.text) return node.text
-    if (!node.content) return ''
-    return node.content.map((child: any) => getNodeText(child)).join('')
-}
-
-/**
- * Check if a paragraph node functions as a heading (bold + caps/large font)
- */
-const isPseudoHeading = (node: any): boolean => {
-    if (node.type !== 'paragraph' || !node.content) return false
-
-    const text = getNodeText(node)
-    if (!text || text.length < 3) return false
-
-    let hasBold = false
-    let hasLargeFont = false
-
-    node.content.forEach((child: any) => {
-        if (!child.marks) return
-        if (child.marks.some((m: any) => m.type === 'bold')) hasBold = true
-
-        const textStyle = child.marks.find((m: any) => m.type === 'textStyle')
-        if (textStyle?.attrs?.fontSize) {
-            const fs = textStyle.attrs.fontSize
-            if ((fs.includes('px') && parseInt(fs) >= 16) || (fs.includes('pt') && parseInt(fs) >= 12)) {
-                hasLargeFont = true
-            }
-        }
-    })
-
-    const isAllCaps = text === text.toUpperCase()
-    return hasBold && (hasLargeFont || isAllCaps)
-}
 
 // ============================================================================
 // Structure Extraction
@@ -204,14 +167,103 @@ export const extractImages = (editor: Editor): ImageInfo[] => {
 }
 
 /**
- * Build complete document structure
+ * Build complete document structure with single tree traversal
  */
 export const buildDocumentStructure = (editor: Editor): DocumentStructure => {
+    const doc = editor.state.doc
+    const sections: Section[] = []
+    const tables: TableInfo[] = []
+    const lists: ListInfo[] = []
+    const images: ImageInfo[] = []
+    let currentPos = 0
+
+    // Single-pass traversal for sections
+    doc.content.forEach((node: any, offset: number, index: number) => {
+        const nodeStart = currentPos
+        const nodeEnd = currentPos + node.nodeSize
+        const text = getNodeText(node).trim()
+
+        const isHeading = node.type.name === 'heading'
+        const isFakeHeading = isPseudoHeading(node)
+
+        if ((isHeading || isFakeHeading) && text) {
+            sections.push({
+                name: text,
+                level: isHeading ? (node.attrs?.level || 1) : 2,
+                type: isHeading ? 'heading' : 'bold-paragraph',
+                startPos: nodeStart,
+                endPos: nodeEnd,
+                nodeIndex: index,
+            })
+        }
+
+        currentPos = nodeEnd
+    })
+
+    // Update section endPos
+    for (let i = 0; i < sections.length; i++) {
+        if (i < sections.length - 1) {
+            sections[i].endPos = sections[i + 1].startPos
+        } else {
+            sections[i].endPos = doc.content.size
+        }
+    }
+
+    // Single descendants traversal for tables, lists, images
+    doc.descendants((node: any, pos: number) => {
+        const nodeType = node.type.name
+
+        if (nodeType === 'table') {
+            let rows = 0
+            let cols = 0
+            let textContent = ''
+            let hasHeader = false
+
+            node.descendants((child: any) => {
+                if (child.type.name === 'tableRow') rows++
+                if (child.type.name === 'tableCell' || child.type.name === 'tableHeader') {
+                    if (rows === 1) cols++
+                    if (child.type.name === 'tableHeader') hasHeader = true
+                }
+                if (child.isText) textContent += child.text + ' '
+            })
+
+            tables.push({
+                index: tables.length + 1,
+                rows,
+                cols,
+                startPos: pos,
+                endPos: pos + node.nodeSize,
+                contentPreview: textContent.trim().substring(0, 100),
+                hasHeader,
+            })
+        } else if (nodeType === 'bulletList' || nodeType === 'orderedList' || nodeType === 'taskList') {
+            const items: string[] = []
+            node.content?.forEach((item: any) => {
+                items.push(getNodeText(item))
+            })
+
+            lists.push({
+                type: nodeType as ListInfo['type'],
+                itemCount: items.length,
+                startPos: pos,
+                endPos: pos + node.nodeSize,
+                preview: items.slice(0, 3).join('; ').substring(0, 100),
+            })
+        } else if (nodeType === 'image') {
+            images.push({
+                src: node.attrs?.src || '',
+                alt: node.attrs?.alt || '',
+                position: pos,
+            })
+        }
+    })
+
     return {
-        sections: extractSections(editor),
-        tables: extractTables(editor),
-        lists: extractLists(editor),
-        images: extractImages(editor),
+        sections,
+        tables,
+        lists,
+        images,
     }
 }
 

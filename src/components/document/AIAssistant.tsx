@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { AIChatPanel } from './AIChatPanel'
 
 /**
@@ -25,6 +25,7 @@ interface AIAssistantProps {
 	aiAssistantOpen?: boolean
 	toggleAiAssistant?: () => void
 	onWidthChange?: (width: number) => void
+	documentId?: string
 }
 
 const AIAssistant: React.FC<AIAssistantProps> = ({
@@ -32,9 +33,60 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 	aiAssistantOpen = false,
 	toggleAiAssistant,
 	onWidthChange,
+	documentId,
 }) => {
 	const [width, setWidth] = useState(320) // Default width 320px
 	const [isResizing, setIsResizing] = useState(false)
+	const indexingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+	// Sync document to vector store when updated
+	useEffect(() => {
+		const tiptapEditor = editor?.editor
+		if (!tiptapEditor || !documentId) return
+
+		const handleUpdate = () => {
+			if (indexingTimeoutRef.current) clearTimeout(indexingTimeoutRef.current)
+			
+			// Debounce 5 seconds without typing before indexing
+			indexingTimeoutRef.current = setTimeout(async () => {
+				try {
+					const content = tiptapEditor.getText()
+					// Only index if there is substantial text
+					if (!content || content.length < 50) return
+					
+					// Find the title (usually in the first heading)
+					let title = 'Untitled'
+					const json = tiptapEditor.getJSON()
+					json.content?.find((node: any) => {
+						if (node.type === 'heading' && node.content) {
+							title = node.content.map((c: any) => c.text || '').join('')
+							return true
+						}
+						return false
+					})
+
+					await fetch('/api/ai-rag-index', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({
+							documentId,
+							content,
+							title,
+						}),
+					})
+				} catch (err) {
+					console.error('[AI] Failed to index document:', err)
+				}
+			}, 5000)
+		}
+
+		tiptapEditor.on('update', handleUpdate)
+
+		return () => {
+			tiptapEditor.off('update', handleUpdate)
+			if (indexingTimeoutRef.current) clearTimeout(indexingTimeoutRef.current)
+		}
+	}, [editor?.editor, documentId])
 
 	const handleMouseDown = useCallback(
 		(e: React.MouseEvent) => {
@@ -92,7 +144,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 			{/* Content - with independent scroll */}
 			<div className='flex-1 flex flex-col overflow-hidden'>
 				{/* AI Chat Panel Content - scrollable independently */}
-				<AIChatPanel editor={editor} onClose={toggleAiAssistant} />
+				<AIChatPanel editor={editor} onClose={toggleAiAssistant} documentId={documentId} />
 			</div>
 		</div>
 	)

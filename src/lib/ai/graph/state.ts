@@ -49,6 +49,10 @@ export const AgentState = Annotation.Root({
     }),
 
     // ===== DOCUMENT CONTEXT =====
+    documentId: Annotation<string>({
+        reducer: (_, newVal) => newVal ?? '',
+        default: () => '',
+    }),
     documentContent: Annotation<string>({
         reducer: (_, newVal) => newVal ?? '',
         default: () => '',

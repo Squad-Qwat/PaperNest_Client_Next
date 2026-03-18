@@ -344,6 +344,7 @@ export default function DocumentPage() {
 						aiAssistantOpen={aiAssistantOpen}
 						toggleAiAssistant={toggleAiAssistant}
 						onWidthChange={setAiAssistantWidth}
+						documentId={documentId}
 					/>
 
 					{/* Version History Panel - Side Panel */}
