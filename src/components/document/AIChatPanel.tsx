@@ -106,6 +106,7 @@ interface EditorFunctions {
 	editor?: any
 	getCurrentContent?: () => any
 	handleCompile?: () => Promise<void>
+	setPendingMerge?: (data: { original: string, modified: string, description?: string } | null) => void
 }
 
 interface AIChatPanelProps {
@@ -296,7 +297,21 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 											)
 
 											try {
-												const result = await executeEditorTool(editor, toolCall.name, toolCall.args, documentId)
+												// Add staging flag for tools that modify the document
+												const toolArgs = { ...toolCall.args };
+												if (['insert_content', 'apply_diff_edit', 'format_latex'].includes(toolCall.name)) {
+													toolArgs.stage = true;
+												}
+
+												const result = await executeEditorTool(editor, toolCall.name, toolArgs, documentId)
+												
+												// If tool returned a staged change, trigger the merge view
+												if (result && typeof result === 'object' && result.type === 'staged_change') {
+													if (editor?.setPendingMerge) {
+														editor.setPendingMerge(result);
+													}
+												}
+
 												setMessages((prev) =>
 													prev.map((msg) => {
 														if (msg.key !== assistantKey) return msg

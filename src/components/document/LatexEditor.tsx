@@ -10,6 +10,7 @@ import { undo as cmUndo, redo as cmRedo } from '@codemirror/commands'
 import { useOthers } from '@liveblocks/react/suspense'
 import { LatexVisualEditor } from './LatexVisualEditor'
 import { LaTeXConverter } from '@/lib/latex/LaTeXConverter'
+import { MergePreview } from './MergePreview'
 
 interface LatexEditorProps {
     documentId?: string | null;
@@ -39,6 +40,7 @@ export function LatexEditor({
     const [isEditorPdfResizing, setIsEditorPdfResizing] = useState(false)
     const [viewMode, setViewMode] = useState<'source' | 'visual'>('source')
     const [visualEditor, setVisualEditor] = useState<any>(null)
+    const [pendingMerge, setPendingMerge] = useState<{ original: string, modified: string, description?: string } | null>(null)
     const containerRef = useRef<HTMLDivElement>(null)
 
     const collaborators = useMemo(() => {
@@ -114,10 +116,11 @@ export function LatexEditor({
                     } else {
                         setViewMode('source');
                     }
-                }
+                },
+                setPendingMerge
             })
         }
-    }, [view, onEditorReady, documentId, isCompiling, visibleCollaborators, hiddenCollaboratorsCount, viewMode, visualEditor])
+    }, [view, onEditorReady, documentId, isCompiling, visibleCollaborators, hiddenCollaboratorsCount, viewMode, visualEditor, setPendingMerge])
 
     const handleCompile = async () => {
         if (!view) return
@@ -195,10 +198,26 @@ export function LatexEditor({
                 >
                     <div 
                         ref={editorRef} 
-                        className={`h-full w-full cm-editor-container ${viewMode !== 'source' ? 'hidden' : ''}`} 
+                        className={`h-full w-full cm-editor-container ${viewMode !== 'source' || pendingMerge ? 'hidden' : ''}`} 
                     />
 
-                    {viewMode === 'visual' && (
+                    {pendingMerge && (
+                        <MergePreview 
+                            original={pendingMerge.original}
+                            modified={pendingMerge.modified}
+                            onAccept={(content) => {
+                                if (view) {
+                                    view.dispatch({
+                                        changes: { from: 0, to: view.state.doc.length, insert: content }
+                                    });
+                                }
+                                setPendingMerge(null);
+                            }}
+                            onDiscard={() => setPendingMerge(null)}
+                        />
+                    )}
+
+                    {viewMode === 'visual' && !pendingMerge && (
                         <LatexVisualEditor 
                             content={view?.state.doc.toString() || initialContent || ''}
                             onEditorReady={setVisualEditor}

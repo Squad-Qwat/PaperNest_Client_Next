@@ -197,12 +197,15 @@ export const findTextRangeExact = (editor: any, searchText: string): { from: num
 /**
  * Primary tool execution dispatcher for AI interactions (CodeMirror/LaTeX only)
  */
+/**
+ * Primary tool execution dispatcher for AI interactions (CodeMirror/LaTeX only)
+ */
 export const executeEditorTool = async (
 	editor: any,
 	toolName: string,
 	args: any,
 	documentId?: string
-): Promise<string> => {
+): Promise<any> => {
 	if (!editor) return 'Error: Editor not available'
 
 	// Extract CodeMirror view from the editor wrapper provided by LatexEditor
@@ -289,7 +292,7 @@ export const executeEditorTool = async (
 				}
 			
 			case 'insert_content': {
-				const { content, position } = args
+				const { content, position, stage } = args
 				const selection = view.state.selection.main
 				let from = selection.from
 				let to = selection.to
@@ -297,6 +300,18 @@ export const executeEditorTool = async (
 				if (position === 'start') { from = 0; to = 0; }
 				else if (position === 'end') { from = view.state.doc.length; to = view.state.doc.length; }
 				
+				if (stage) {
+					const doc = view.state.doc
+					const prefix = doc.sliceString(0, from)
+					const suffix = doc.sliceString(to)
+					return {
+						type: 'staged_change',
+						original: doc.toString(),
+						modified: prefix + content + suffix,
+						description: `Insert content at ${position || 'cursor'}`
+					}
+				}
+
 				view.dispatch({
 					changes: { from, to, insert: content },
 					selection: { anchor: from + content.length },
@@ -307,7 +322,7 @@ export const executeEditorTool = async (
 			}
 			
 			case 'apply_diff_edit': {
-				const { searchBlock, replaceBlock } = args
+				const { searchBlock, replaceBlock, stage } = args
 				const docText = view.state.doc.toString()
 				const index = docText.indexOf(searchBlock)
 				
@@ -315,6 +330,15 @@ export const executeEditorTool = async (
 					return `Error: Could not find exact match for search block.`
 				}
 				
+				if (stage) {
+					return {
+						type: 'staged_change',
+						original: docText,
+						modified: docText.slice(0, index) + replaceBlock + docText.slice(index + searchBlock.length),
+						description: 'Apply diff edit'
+					}
+				}
+
 				view.dispatch({
 					changes: { from: index, to: index + searchBlock.length, insert: replaceBlock },
 					scrollIntoView: true
@@ -362,9 +386,6 @@ export const executeEditorTool = async (
 			}
 
 			case 'get_compile_logs': {
-				// The editor functions passed to AIChatPanel should include state info
-				// or we can try to find the log in a shared state if available.
-				// For now, we expect the editor object to have the log.
 				if (editor.compileResult?.log) {
 					return editor.compileResult.log
 				}
@@ -372,15 +393,25 @@ export const executeEditorTool = async (
 			}
 
 			case 'format_latex': {
+				const { stage } = args
 				const docText = view.state.doc.toString()
 				// Simple regex-based formatting for now
 				const formatted = docText
-					.replace(/([^\\])\s+/g, '$1 ') // simplify spaces
-					.replace(/\\(section|subsection|subsubsection|paragraph)\{/g, '\n\\$1{') // ensure newline before sections
+					.replace(/([^\\])\s+/g, '$1 ') 
+					.replace(/\\(section|subsection|subsubsection|paragraph)\{/g, '\n\\$1{') 
 					.replace(/\\begin\{/g, '\n\\begin{')
 					.replace(/\\end\{/g, '\\end{\n')
 					.trim()
 				
+				if (stage) {
+					return {
+						type: 'staged_change',
+						original: docText,
+						modified: formatted,
+						description: 'Format LaTeX document'
+					}
+				}
+
 				view.dispatch({
 					changes: { from: 0, to: docText.length, insert: formatted }
 				})
@@ -394,3 +425,4 @@ export const executeEditorTool = async (
 		return `Error in CodeMirror tool execution: ${e instanceof Error ? e.message : 'Unknown error'}`
 	}
 }
+
