@@ -96,10 +96,14 @@ export function LatexEditor({
                         selection: { anchor: selection.from + 16 }
                     })
                     view.focus()
-                }
+                },
+                handleCompile,
+                isCompiling,
+                visibleCollaborators,
+                hiddenCollaboratorsCount
             })
         }
-    }, [view, onEditorReady, documentId])
+    }, [view, onEditorReady, documentId, isCompiling, visibleCollaborators, hiddenCollaboratorsCount])
 
     const handleCompile = async () => {
         if (!view) return
@@ -168,72 +172,6 @@ export function LatexEditor({
 
     return (
         <div className="flex flex-col h-full w-full bg-white overflow-hidden">
-            {/* Compact Toolbar */}
-            <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200/60 bg-white sticky top-0 z-10">
-                <div className="flex items-center gap-2">
-                    <div className="p-1 bg-blue-500/10 rounded-md">
-                        <Play className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-sm font-semibold text-gray-900 truncate max-w-[300px]">
-                            {title || 'Untitled Document'}.tex
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                            <div className={`w-1.5 h-1.5 rounded-full ${collaborationReady ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`} />
-                            <span className="text-[10px] text-gray-500 font-medium">
-                                {collaborationReady ? 'Live Sync' : 'Connecting'}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                    {visibleCollaborators.length > 0 && (
-                        <div className="flex items-center gap-1.5 pr-1">
-                            <div className="flex -space-x-2">
-                                {visibleCollaborators.map((collaborator) => (
-                                    <Avatar
-                                        key={collaborator.id}
-                                        className="h-6 w-6 border-2 border-white shadow-sm"
-                                        title={collaborator.name}
-                                    >
-                                        <AvatarImage src={collaborator.avatar} alt={collaborator.name} />
-                                        <AvatarFallback
-                                            className="text-[10px] font-semibold text-white"
-                                            style={{ backgroundColor: collaborator.color }}
-                                        >
-                                            {collaborator.name.charAt(0).toUpperCase()}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                ))}
-                            </div>
-                            {hiddenCollaboratorsCount > 0 && (
-                                <span className="text-[10px] font-medium text-gray-500">
-                                    +{hiddenCollaboratorsCount}
-                                </span>
-                            )}
-                        </div>
-                    )}
-
-                    {isSaving && (
-                        <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 rounded">
-                            <Loader2 className="w-3 h-3 animate-spin text-blue-500" />
-                            <span className="text-[10px] font-medium text-blue-600">Saving</span>
-                        </div>
-                    )}
-                    <div className="h-4 w-[1px] bg-gray-200" />
-                    <Button 
-                        variant="default" 
-                        size="sm" 
-                        onClick={handleCompile}
-                        disabled={isCompiling || !collaborationReady}
-                        className="bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 active:scale-95 flex items-center gap-2"
-                    >
-                        {isCompiling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-3.5 h-3.5 fill-current" />}
-                        <span className="font-semibold">Compile</span>
-                    </Button>
-                </div>
-            </div>
 
             <div className="flex flex-1 overflow-hidden" ref={containerRef}>
                 {/* Editor Container - Resizable Width */}

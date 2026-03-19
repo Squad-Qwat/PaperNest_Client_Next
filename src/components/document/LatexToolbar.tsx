@@ -14,7 +14,9 @@ import {
     Heading2,
     Code,
     Table as TableIcon,
-    Sigma
+    Sigma,
+    Loader2,
+    Play
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -31,6 +33,8 @@ interface LatexToolbarProps {
     canUndo?: boolean;
     canRedo?: boolean;
     insertTable?: () => void;
+    handleCompile?: () => void;
+    isCompiling?: boolean;
 }
 
 export default function LatexToolbar({
@@ -39,7 +43,9 @@ export default function LatexToolbar({
     redo,
     canUndo,
     canRedo,
-    insertTable
+    insertTable,
+    handleCompile,
+    isCompiling
 }: LatexToolbarProps) {
     
     const insertSnippet = (snippet: string, selectionOffset: number = 0) => {
@@ -118,7 +124,7 @@ export default function LatexToolbar({
 
     return (
         <TooltipProvider delayDuration={400}>
-            <div className="flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm border-b border-gray-200 overflow-x-auto no-scrollbar">
+            <div className="flex items-center gap-1 px-4 py-1 bg-white/50 backdrop-blur-sm border-b border-gray-200 overflow-x-auto no-scrollbar">
                 {toolbarGroups.map((group, groupIdx) => (
                     <React.Fragment key={group.name}>
                         {groupIdx > 0 && <div className="h-4 w-[1px] bg-gray-300 mx-1 flex-shrink-0" />}
@@ -144,6 +150,28 @@ export default function LatexToolbar({
                         </div>
                     </React.Fragment>
                 ))}
+
+                {handleCompile && (
+                    <>
+                        <div className="h-4 w-[1px] bg-gray-300 mx-1 flex-shrink-0" />
+                        <div className="flex items-center ml-auto pr-2">
+                            <Button 
+                                variant="default" 
+                                size="sm" 
+                                onClick={handleCompile}
+                                disabled={isCompiling}
+                                className="h-8 bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 active:scale-95 flex items-center gap-2 px-3"
+                            >
+                                {isCompiling ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                    <Play className="w-3 h-3 fill-current" />
+                                )}
+                                <span className="text-xs font-bold uppercase tracking-wide">Compile</span>
+                            </Button>
+                        </div>
+                    </>
+                )}
             </div>
         </TooltipProvider>
     )

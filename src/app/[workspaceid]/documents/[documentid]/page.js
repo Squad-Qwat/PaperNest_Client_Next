@@ -304,6 +304,10 @@ export default function DocumentPage() {
 				redo={editorFunctions?.redo}
 				canUndo={editorFunctions?.canUndo}
 				canRedo={editorFunctions?.canRedo}
+				handleCompile={editorFunctions?.handleCompile}
+				isCompiling={editorFunctions?.isCompiling}
+				visibleCollaborators={editorFunctions?.visibleCollaborators}
+				hiddenCollaboratorsCount={editorFunctions?.hiddenCollaboratorsCount}
 				debugContentExtraction={editorFunctions?.debugContentExtraction}
 			/>
 			
