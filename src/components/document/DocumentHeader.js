@@ -37,6 +37,9 @@ const DocumentHeader = ({
 	canRedo,
 	handleCompile,
 	isCompiling,
+	viewMode,
+	toggleViewMode,
+	visualEditor,
 	visibleCollaborators,
 	hiddenCollaboratorsCount,
 	debugContentExtraction,
@@ -488,6 +491,9 @@ const DocumentHeader = ({
 				canRedo={canRedo}
 				handleCompile={handleCompile}
 				isCompiling={isCompiling}
+				viewMode={viewMode}
+				toggleViewMode={toggleViewMode}
+				visualEditor={visualEditor}
 			/>
 		</header>
 	)

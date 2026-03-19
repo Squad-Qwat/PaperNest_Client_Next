@@ -308,6 +308,9 @@ export default function DocumentPage() {
 				isCompiling={editorFunctions?.isCompiling}
 				visibleCollaborators={editorFunctions?.visibleCollaborators}
 				hiddenCollaboratorsCount={editorFunctions?.hiddenCollaboratorsCount}
+				viewMode={editorFunctions?.viewMode}
+				toggleViewMode={editorFunctions?.toggleViewMode}
+				visualEditor={editorFunctions?.visualEditor}
 				debugContentExtraction={editorFunctions?.debugContentExtraction}
 			/>
 			

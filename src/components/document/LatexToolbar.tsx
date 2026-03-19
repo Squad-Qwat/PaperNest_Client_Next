@@ -28,6 +28,9 @@ import {
 
 interface LatexToolbarProps {
     editor: any; // CodeMirror EditorView
+    visualEditor?: any; // Tiptap editor
+    viewMode?: 'source' | 'visual';
+    toggleViewMode?: () => void;
     undo?: () => void;
     redo?: () => void;
     canUndo?: boolean;
@@ -39,6 +42,9 @@ interface LatexToolbarProps {
 
 export default function LatexToolbar({
     editor,
+    visualEditor,
+    viewMode = 'source',
+    toggleViewMode,
     undo,
     redo,
     canUndo,
@@ -49,30 +55,44 @@ export default function LatexToolbar({
 }: LatexToolbarProps) {
     
     const insertSnippet = (snippet: string, selectionOffset: number = 0) => {
-        if (!editor) return
-        
-        const selection = editor.state.selection.main
-        const text = editor.state.doc.toString()
-        const selectedText = text.slice(selection.from, selection.to)
-        
-        let insertText = snippet.replace('$SELECTION$', selectedText)
-        
-        editor.dispatch({
-            changes: {
-                from: selection.from,
-                to: selection.to,
-                insert: insertText
-            },
-            selection: {
-                anchor: selection.from + selectionOffset + (selectedText ? selectedText.length : 0)
-            },
-            scrollIntoView: true
-        })
-        
-        editor.focus()
+        if (viewMode === 'source') {
+            if (!editor) return
+            
+            const selection = editor.state.selection.main
+            const text = editor.state.doc.toString()
+            const selectedText = text.slice(selection.from, selection.to)
+            
+            let insertText = snippet.replace('$SELECTION$', selectedText)
+            
+            editor.dispatch({
+                changes: {
+                    from: selection.from,
+                    to: selection.to,
+                    insert: insertText
+                },
+                selection: {
+                    anchor: selection.from + selectionOffset + (selectedText ? selectedText.length : 0)
+                },
+                scrollIntoView: true
+            })
+            
+            editor.focus()
+        } else if (visualEditor) {
+            // Very basic Tiptap snippet insertion - could be improved with custom commands
+            // For now, we mainly rely on Tiptap's built-in formatting for the toolbar
+            visualEditor.chain().focus().insertContent(snippet.replace('$SELECTION$', '')).run()
+        }
     }
 
     const wrapInCommand = (command: string) => {
+        if (viewMode === 'visual' && visualEditor) {
+            if (command === 'textbf') visualEditor.chain().focus().toggleBold().run();
+            else if (command === 'textit') visualEditor.chain().focus().toggleItalic().run();
+            else if (command === 'underline') visualEditor.chain().focus().toggleUnderline().run();
+            else if (command === 'section') visualEditor.chain().focus().toggleHeading({ level: 1 }).run();
+            else if (command === 'subsection') visualEditor.chain().focus().toggleHeading({ level: 2 }).run();
+            return;
+        }
         insertSnippet(`\\${command}{$SELECTION$}`, command.length + 2)
     }
 
@@ -154,7 +174,27 @@ export default function LatexToolbar({
                 {handleCompile && (
                     <>
                         <div className="h-4 w-[1px] bg-gray-300 mx-1 flex-shrink-0" />
-                        <div className="flex items-center ml-auto pr-2">
+                        <div className="flex items-center ml-auto pr-2 gap-2">
+                            {/* Mode Toggle */}
+                            <div className="flex items-center bg-gray-100 rounded-md p-1">
+                                <Button
+                                    variant={viewMode === 'source' ? 'secondary' : 'ghost'}
+                                    size="sm"
+                                    className={`h-7 px-3 text-[10px] uppercase font-bold tracking-wider ${viewMode === 'source' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                    onClick={() => viewMode !== 'source' && toggleViewMode?.()}
+                                >
+                                    Source
+                                </Button>
+                                <Button
+                                    variant={viewMode === 'visual' ? 'secondary' : 'ghost'}
+                                    size="sm"
+                                    className={`h-7 px-3 text-[10px] uppercase font-bold tracking-wider ${viewMode === 'visual' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                    onClick={() => viewMode !== 'visual' && toggleViewMode?.()}
+                                >
+                                    Visual
+                                </Button>
+                            </div>
+
                             <Button 
                                 variant="default" 
                                 size="sm" 
