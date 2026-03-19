@@ -1,7 +1,7 @@
 import { loadPrompts } from '../../promptLoader'
 import { createAIModel } from '../../config'
-import { createDocumentTools } from '../../tools'
-import { AgentState, AgentStateType } from '../state'
+import { createCodeMirrorTools } from '../../codeMirrorTools'
+import { AgentStateType } from '../state'
 import { SystemMessage } from '@langchain/core/messages'
 
 /**
@@ -11,7 +11,7 @@ import { SystemMessage } from '@langchain/core/messages'
 export const executorNode = async (state: AgentStateType) => {
 	const prompts = await loadPrompts(['system', 'executor'])
 	const model = createAIModel()
-    const tools = createDocumentTools(null as any) // Backend cannot access Tiptap Editor
+	const tools = createCodeMirrorTools()
     const modelWithTools = (model as any).bindTools(tools)
 	
 	const contextContent = `\n[CURRENT DOCUMENT STATE]\n${state.documentContent}\n`

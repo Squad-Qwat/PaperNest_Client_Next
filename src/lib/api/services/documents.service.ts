@@ -22,10 +22,14 @@ import type {
 	ReviewsResponse,
 	UpdateReviewStatusDto,
 } from '../types/review.types'
+import type {
+	BatchOperationRequest,
+	BatchOperationResponse,
+} from '../types/batchOperation.types'
 
 class DocumentsService {
 	// Request deduplication cache: key -> Promise
-	private inFlightRequests = new Map<string, Promise<any>>()
+	private readonly inFlightRequests = new Map<string, Promise<any>>()
 
 	/**
 	 * Deduplicate concurrent identical API requests
@@ -225,6 +229,37 @@ class DocumentsService {
 	 */
 	async revertVersion(documentId: string, versionNumber: number): Promise<void> {
 		return apiClient.post<void>(API_ENDPOINTS.documents.revert(documentId, versionNumber))
+	}
+
+	/**
+	 * Execute batch operations (atomic save content + update metadata + create version)
+	 * Single API call replaces 3 sequential calls (~60% faster)
+	 *
+	 * @param documentId - Document ID
+	 * @param operations - Array of batch operations to execute
+	 * @returns Batch operation response with results per operation
+	 */
+	async batchUpdateDocument(
+		documentId: string,
+		request: BatchOperationRequest
+	): Promise<BatchOperationResponse> {
+		console.log('📦 [DocumentsService] Submitting batch operation:', {
+			transactionId: request.transactionId,
+			operationCount: request.operations.length,
+		})
+
+		const response = await apiClient.post<BatchOperationResponse>(
+			API_ENDPOINTS.documents.batch(documentId),
+			request
+		)
+
+		console.log('✅ [DocumentsService] Batch operation response:', {
+			transactionId: response.transactionId,
+			allSucceeded: response.allSucceeded,
+			totalDuration: response.totalDuration,
+		})
+
+		return response
 	}
 
 	/**

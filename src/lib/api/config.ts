@@ -27,6 +27,7 @@ export const API_ENDPOINTS = {
 		me: '/auth/me',
 		deleteAccount: '/auth/account',
 		updateEmail: '/auth/email',
+		// sonar: intentional - API endpoint path, not a secret password
 		passwordReset: '/auth/password/reset',
 	},
 
@@ -65,6 +66,7 @@ export const API_ENDPOINTS = {
 		versions: (documentId: string) => `/documents/${documentId}/versions`,
 		currentVersion: (documentId: string) => `/documents/${documentId}/versions/current`,
 		withRoomState: (documentId: string) => `/documents/${documentId}/with-room-state`,
+		batch: (documentId: string) => `/documents/${documentId}/batch`,
 		revert: (documentId: string, versionNumber: number) =>
 			`/documents/${documentId}/versions/${versionNumber}/revert`,
 	},

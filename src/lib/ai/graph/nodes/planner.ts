@@ -5,11 +5,27 @@ import { AgentState, AgentStateType } from '../state'
  * Generates a step-by-step plan for the task
  */
 export const plannerNode = async (state: AgentStateType) => {
-    // Basic single-step plan for ReAct-style loop until advanced planning is needed
-    if (state.plan && state.plan.length > 0) {
-        return {} // Maintain existing plan
+    // If plan already exists, don't overwrite it unless replanning is needed
+    if (state.plan && state.plan.length > 0 && !state.needsReplanning) {
+        return {}
     }
+
+    const lastMessage = state.messages.at(-1)?.content?.toString() || ''
+    
+    // Simple heuristic-based planner for multi-step LaTeX tasks
+    // In a real scenario, this would call an LLM to generate the plan
+    const plan: any[] = []
+    
+    if (lastMessage.toLowerCase().includes('fix') || lastMessage.toLowerCase().includes('perbaiki')) {
+        plan.push({ id: '1', description: 'Analyze logs and document content', status: 'active' })
+        plan.push({ id: '2', description: 'Apply fix and verify with compilation', status: 'pending' })
+    } else {
+        plan.push({ id: '1', description: 'Analyze and execute user request', status: 'active' })
+        plan.push({ id: '2', description: 'Verify changes with LaTeX compilation', status: 'pending' })
+    }
+
 	return {
-		plan: [{ id: '1', description: 'Address user request', status: 'active' }],
+		plan,
+        needsReplanning: false
 	}
 }

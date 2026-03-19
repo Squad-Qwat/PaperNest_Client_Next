@@ -205,22 +205,88 @@ export const executeEditorTool = async (
 ): Promise<string> => {
 	if (!editor) return 'Error: Editor not available'
 
-	// All editors are CodeMirror/LaTeX now
-	const view = editor;
+	// Extract CodeMirror view from the editor wrapper provided by LatexEditor
+	const view = editor.editor
+	if (!view) return 'Error: CodeMirror view not available'
+	
 	try {
 		switch (toolName) {
 			case 'read_document': {
-				const docText = view.state.doc.toString()
+				const { fromLine, toLine, full } = args
+				const doc = view.state.doc
+				
+				if (full) {
+					return doc.toString()
+				}
+				
+				if (fromLine !== undefined) {
+					const startLine = Math.max(1, fromLine)
+					const endLine = toLine !== undefined ? Math.min(doc.lines, toLine) : Math.min(doc.lines, startLine + 100)
+					
+					let content = ''
+					for (let i = startLine; i <= endLine; i++) {
+						content += doc.line(i).text + '\n'
+					}
+					
+					return JSON.stringify({
+						metadata: {
+							fromLine: startLine,
+							toLine: endLine,
+							totalLines: doc.lines
+						},
+						content
+					})
+				}
+
+				const docText = doc.toString()
 				return JSON.stringify({
 					metadata: {
 						title: 'LaTeX Document',
 						characterCount: docText.length,
-						lineCount: view.state.doc.lines
+						lineCount: doc.lines
 					},
-					preview: docText.substring(0, 500),
-					hasFullContent: true
+					preview: docText.substring(0, 1000),
+					hasFullContent: false
 				})
 			}
+
+				case 'get_sections': {
+					const docText = view.state.doc.toString()
+					const sectionRegex = /^\\(?:sub)*section\{([^}]+)\}/gm
+					const sections: Array<{ text: string; level: number; line: number }> = []
+					let match: RegExpExecArray | null
+
+					while ((match = sectionRegex.exec(docText)) !== null) {
+						const textBeforeMatch = docText.slice(0, match.index)
+						const line = textBeforeMatch.split('\n').length
+						const command = match[0].match(/^\\((?:sub)*)section/)?.[1] ?? ''
+						const level = 1 + Math.floor(command.length / 3)
+
+						sections.push({
+							text: match[1],
+							level,
+							line,
+						})
+					}
+
+					return JSON.stringify({
+						sections,
+						totalSections: sections.length,
+					})
+				}
+
+				case 'get_document_stats': {
+					const docText = view.state.doc.toString()
+					const words = docText.trim().length === 0 ? 0 : docText.trim().split(/\s+/).length
+					const readingTimeMinutes = Math.max(1, Math.ceil(words / 200))
+
+					return JSON.stringify({
+						characterCount: docText.length,
+						lineCount: view.state.doc.lines,
+						wordCount: words,
+						estimatedReadingTimeMinutes: readingTimeMinutes,
+					})
+				}
 			
 			case 'insert_content': {
 				const { content, position } = args
@@ -287,8 +353,42 @@ export const executeEditorTool = async (
 				}
 			}
 
+			case 'compile_latex': {
+				if (typeof editor.handleCompile === 'function') {
+					await editor.handleCompile()
+					return 'Compilation triggered. Check logs if you need details on errors.'
+				}
+				return 'Error: compile_latex is not supported by this editor instance.'
+			}
+
+			case 'get_compile_logs': {
+				// The editor functions passed to AIChatPanel should include state info
+				// or we can try to find the log in a shared state if available.
+				// For now, we expect the editor object to have the log.
+				if (editor.compileResult?.log) {
+					return editor.compileResult.log
+				}
+				return 'No compilation logs found. Try calling compile_latex first.'
+			}
+
+			case 'format_latex': {
+				const docText = view.state.doc.toString()
+				// Simple regex-based formatting for now
+				const formatted = docText
+					.replace(/([^\\])\s+/g, '$1 ') // simplify spaces
+					.replace(/\\(section|subsection|subsubsection|paragraph)\{/g, '\n\\$1{') // ensure newline before sections
+					.replace(/\\begin\{/g, '\n\\begin{')
+					.replace(/\\end\{/g, '\\end{\n')
+					.trim()
+				
+				view.dispatch({
+					changes: { from: 0, to: docText.length, insert: formatted }
+				})
+				return 'Document formatted successfully.'
+			}
+
 			default:
-				return `Tool "${toolName}" is not yet available for LaTeX editor. Basic content tools (insert_content, apply_diff_edit, get_cursor_info) are supported.`
+				return `Tool "${toolName}" is not yet available for LaTeX editor. Supported tools: read_document, get_sections, get_document_stats, insert_content, apply_diff_edit, get_cursor_info, search_document_context.`
 		}
 	} catch (e) {
 		return `Error in CodeMirror tool execution: ${e instanceof Error ? e.message : 'Unknown error'}`

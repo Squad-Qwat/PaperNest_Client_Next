@@ -3,6 +3,8 @@
 import { useParams, useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import AIAssistant from '@/components/document/AIAssistant'
+import SidenavPanel from '@/components/document/SidenavPanel'
+import DynamicContentPanel from '@/components/document/DynamicContentPanel'
 // UI Components
 import DocumentEditor from '@/components/document/DocumentEditor'
 import DocumentHeader from '@/components/document/DocumentHeader'
@@ -26,15 +28,15 @@ export default function DocumentPage() {
 	const [lastSavedAt, setLastSavedAt] = useState(null)
 	const [title, setTitle] = useState('')
 	const [aiAssistantOpen, setAiAssistantOpen] = useState(false)
-	const [aiAssistantWidth, setAiAssistantWidth] = useState(320)
+	const [activePanel, setActivePanel] = useState(null)
 	const [contextMenu, setContextMenu] = useState({ show: false, x: 0, y: 0 })
 	const [editorError, setEditorError] = useState(null)
 	const [activeDropdown, setActiveDropdown] = useState(null)
 	const [paperSize, setPaperSize] = useState('A4')
 	const [paperSizeSubmenuOpen, setPaperSizeSubmenuOpen] = useState(false)
 	const [modalVersionsOpen, setModalVersionsOpen] = useState(false)
-	const [defaultFontFamily, setDefaultFontFamily] = useState('"Times New Roman", Times, serif')
-	const [defaultFontSize, setDefaultFontSize] = useState('11pt')
+	const defaultFontFamily = '"Times New Roman", Times, serif'
+	const defaultFontSize = '11pt'
 	const [editorFunctions, setEditorFunctions] = useState(null)
 	const [isPdfHidden, setIsPdfHidden] = useState(false)
 	const [activeUsersInRoom, setActiveUsersInRoom] = useState(0)
@@ -177,11 +179,11 @@ export default function DocumentPage() {
 		setIsSaving(true)
 
 		try {
-			console.log('💾 Saving document:', documentId)
+			console.log('💾 Saving document with batch operation:', documentId)
 
 			// Get current content from editor if available
 			let currentContent = null
-			if (editorFunctions && editorFunctions.getCurrentContent) {
+			if (editorFunctions?.getCurrentContent) {
 				currentContent = editorFunctions.getCurrentContent()
 				console.log('📄 Got current content from editor:', !!currentContent)
 			}
@@ -189,31 +191,79 @@ export default function DocumentPage() {
 			// Use current editor content if available, otherwise fallback to stored content
 			const contentToSave = currentContent || documentData.savedContent
 
-			await DocumentService.updateDocument(documentId, {
-				title: title,
-				savedContent: contentToSave,
-			})
-
-			// Also save using the editor's built-in save function if available
-			if (editorFunctions && editorFunctions.saveCurrentContent) {
-				await editorFunctions.saveCurrentContent(documentId)
-			}
-
-			console.log('✅ Document saved successfully')
-
+			// Optimistic update - update UI immediately
 			setDocumentData((prev) => ({
 				...prev,
 				title: title,
 				savedContent: contentToSave,
 				updatedAt: new Date(),
 			}))
+			setLastSavedAt(new Date())
+
+			// Build batch operations
+			const batchOperations = [
+				{
+					operationType: 'save-content',
+					payload: {
+						content: contentToSave || '',
+					},
+				},
+				{
+					operationType: 'update-metadata',
+					payload: {
+						title: title,
+						defaultFont: defaultFontFamily,
+						defaultFontSize: defaultFontSize,
+						paperSize: paperSize,
+					},
+				},
+				{
+					operationType: 'create-checkpoint',
+					payload: {
+						message: 'Auto-save checkpoint',
+						userId: user.uid,
+					},
+				},
+			]
+
+			// Execute batch operation
+			const response = await documentsService.batchUpdateDocument(documentId, {
+				operations: batchOperations,
+			})
+
+			if (response.allSucceeded) {
+				console.log('✅ All batch operations completed successfully')
+				console.log('📊 Batch stats:', {
+					transactionId: response.transactionId,
+					totalDuration: response.totalDuration,
+					operationCount: response.results.length,
+				})
+			} else {
+				// Some operations failed
+				const failedOps = response.results.filter((r) => !r.success)
+				console.warn('⚠️ Some batch operations failed:', failedOps)
+				const failedOpsList = failedOps.map((op) => `${op.operationType} failed`).join(', ')
+				alert(`Save completed with issues: ${failedOpsList}`)
+			}
+
+			// Also save using the editor's built-in save function if available (for Liveblocks sync)
+			if (editorFunctions?.saveCurrentContent) {
+				await editorFunctions.saveCurrentContent(documentId)
+			}
 		} catch (error) {
 			console.error('❌ Error saving document:', error)
 			alert('Failed to save document. Please try again.')
+			// Revert optimistic update on error
+			setDocumentData((prev) => ({
+				...prev,
+				title: documentData.title,
+				savedContent: documentData.savedContent,
+				updatedAt: documentData.updatedAt,
+			}))
 		} finally {
 			setIsSaving(false)
 		}
-	}, [documentData, user, documentId, editorFunctions, title])
+	}, [documentData, user, documentId, editorFunctions, title, defaultFontFamily, defaultFontSize, paperSize])
 
 	const onEditorReady = useCallback((functions) => {
 		setEditorFunctions(functions)
@@ -227,6 +277,35 @@ export default function DocumentPage() {
 
 	const toggleAiAssistant = () => {
 		setAiAssistantOpen(!aiAssistantOpen)
+	}
+
+	const handlePanelIconClick = (panelId) => {
+		// Toggle: if same panel clicked, close it; otherwise open/switch to new panel
+		setActivePanel(activePanel === panelId ? null : panelId)
+	}
+
+	const handleClosePanel = () => {
+		setActivePanel(null)
+	}
+
+	const handleDynamicPanelWidthChange = (width) => {
+		// Note: width parameter available for future use if needed for resize constraints
+		// For now, just update active state if needed
+	}
+
+	const handleNavigateToSection = (heading, position) => {
+		if (!editorFunctions?.editor) return
+
+		const editor = editorFunctions.editor
+		
+		// Navigate to position and scroll into view
+		editor.dispatch({
+			selection: { anchor: position },
+			scrollIntoView: true,
+		})
+
+		// Optionally highlight the line (add visual feedback)
+		console.log(`Navigated to section: ${heading}`)
 	}
 
 	const handleResizeStart = useCallback(() => {
@@ -266,7 +345,7 @@ export default function DocumentPage() {
 					<p className='text-gray-600 mb-4'>{editorError}</p>
 					<button
 						type='button'
-						onClick={() => window.location.reload()}
+						onClick={() => globalThis.location.reload()}
 						className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'
 					>
 						Reload Page
@@ -317,7 +396,26 @@ export default function DocumentPage() {
 			{/* Main content area - flex container with independent scroll regions */}
 			<Room documentId={documentId}>
 				<div className='flex flex-1 overflow-hidden'>
-					{/* Document Editor - Full width/height */}
+					{/* Sidenav Panel - Fixed width 48px */}
+					<SidenavPanel
+						activePanel={activePanel}
+						onPanelClick={handlePanelIconClick}
+					/>
+
+					{/* Dynamic Content Panel - Resizable 280-600px */}
+					<DynamicContentPanel
+						activePanel={activePanel}
+						onClose={handleClosePanel}
+						onWidthChange={handleDynamicPanelWidthChange}
+						onResizeStart={handleResizeStart}
+						onResizeEnd={handleResizeEnd}
+						currentContent={documentData?.savedContent}
+						onNavigateToSection={handleNavigateToSection}
+						editorView={editorFunctions?.editor}
+						getCurrentContent={editorFunctions?.getCurrentContent}
+					/>
+
+					{/* Document Editor - Full flex-1 width */}
 					<DocumentEditor
 						document={documentData}
 						title={title}
@@ -334,17 +432,18 @@ export default function DocumentPage() {
 						aiAssistantOpen={aiAssistantOpen}
 						onEditorReady={onEditorReady}
 						shouldInitializeFromFirestore={activeUsersInRoom === 0}
-						onAutoSaveStateChange={onAutoSaveStateChange}						isPdfHidden={isPdfHidden}					/>
+						onAutoSaveStateChange={onAutoSaveStateChange}
+						isPdfHidden={isPdfHidden}
+					/>
 
 					{/* AI Assistant Panel - sticky, no scroll with document */}
 					<AIAssistant
 						editor={editorFunctions}
 						aiAssistantOpen={aiAssistantOpen}
-						toggleAiAssistant={toggleAiAssistant}
-						onWidthChange={setAiAssistantWidth}
-						documentId={documentId}						onResizeStart={handleResizeStart}
-						onResizeEnd={handleResizeEnd}					/>
-
+						toggleAiAssistant={toggleAiAssistant}					documentId={documentId}
+					onResizeStart={handleResizeStart}
+					onResizeEnd={handleResizeEnd}
+				/>
 					{/* Version History Panel - Side Panel */}
 					<ModalVersions
 						isOpen={modalVersionsOpen}

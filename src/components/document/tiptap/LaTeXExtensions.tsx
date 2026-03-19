@@ -4,6 +4,8 @@
  */
 
 import { Mark, Node as TiptapNode, mergeAttributes } from '@tiptap/core';
+import { ReactNodeViewRenderer } from '@tiptap/react';
+import { ProtectedBlockView } from './ProtectedBlockView';
 
 /**
  * Extension for LaTeX font size commands
@@ -397,6 +399,10 @@ export const LaTeXProtectedBlock = TiptapNode.create({
   selectable: true,
   draggable: false,
 
+  addNodeView() {
+    return ReactNodeViewRenderer(ProtectedBlockView);
+  },
+
   addAttributes() {
     return {
       latex: {
@@ -446,7 +452,7 @@ export const LaTeXProtectedBlock = TiptapNode.create({
         class: 'latex-protected-block',
         style: 'background: #f5f5f5; border: 1px dashed #ccc; border-radius: 4px; padding: 8px 12px; margin: 8px 0; font-family: monospace; font-size: 12px; color: #666; cursor: not-allowed; user-select: none;'
       }),
-      `[${blockType}] Edit in Source Mode`
+      `[${blockType}]`
     ];
   },
 });

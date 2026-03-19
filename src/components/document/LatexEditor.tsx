@@ -103,6 +103,7 @@ export function LatexEditor({
                 },
                 handleCompile,
                 isCompiling,
+                compileResult,
                 visibleCollaborators,
                 hiddenCollaboratorsCount,
                 viewMode,
@@ -319,6 +320,17 @@ export function LatexEditor({
                 }
                 .cm-editor-container .cm-line {
                     padding-left: 4px;
+                }
+                .cm-editor-container .cm-editor .cm-selectionBackground {
+                    background-color: rgba(59, 130, 246, 0.30) !important;
+                }
+                .cm-editor-container .cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground {
+                    background-color: rgba(37, 99, 235, 0.34) !important;
+                }
+                .cm-editor-container .cm-content ::selection,
+                .cm-editor-container .cm-line::selection,
+                .cm-editor-container .cm-content::selection {
+                    background-color: rgba(59, 130, 246, 0.30) !important;
                 }
                 .cm-editor-container .cm-ySelection {
                     border-radius: 2px;

@@ -167,14 +167,19 @@ export async function* streamAgent(
                 if (nodeName === ROUTES.EXECUTOR && output.messages) {
                     const lastMsg = output.messages.at(-1)
                     if (lastMsg) {
-                        const content =
-                            typeof lastMsg.content === 'string'
-                                ? lastMsg.content
-                                : JSON.stringify(lastMsg.content)
+                        let textContent = ''
+                        if (typeof lastMsg.content === 'string') {
+                            textContent = lastMsg.content
+                        } else if (Array.isArray(lastMsg.content)) {
+                            textContent = lastMsg.content
+                                .filter((part: any) => part.type === 'text')
+                                .map((part: any) => part.text)
+                                .join('')
+                        }
 
-                        if (content && content.trim()) {
-                            contentParts.push(content)
-                            yield { type: 'content', content }
+                        if (textContent && textContent.trim()) {
+                            contentParts.push(textContent)
+                            yield { type: 'content', content: textContent }
                         }
 
                         if ('tool_calls' in lastMsg) {

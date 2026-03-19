@@ -273,42 +273,42 @@ export class LaTeXConverter {
         twocolumnBlocks.forEach((rawLatex, index) => {
             const placeholder = `__LATEX_PROTECTED_TWOCOLUMN_${index}__`;
             const escaped = escapeForAttr(rawLatex);
-            html = html.replace(placeholder, `<div data-type="latex-protected" data-latex="${escaped}" data-block-type="twocolumn" contenteditable="false" class="latex-protected-block">[twocolumn] Edit in Source Mode</div>`);
+            html = html.replace(placeholder, `<div data-type="latex-protected" data-latex="${escaped}" data-block-type="twocolumn" contenteditable="false" class="latex-protected-block">[twocolumn]</div>`);
         });
 
         // Restore table blocks
         tableBlocks.forEach((rawLatex, index) => {
             const placeholder = `__LATEX_PROTECTED_TABLE_${index}__`;
             const escaped = escapeForAttr(rawLatex);
-            html = html.replace(placeholder, `<div data-type="latex-protected" data-latex="${escaped}" data-block-type="table" contenteditable="false" class="latex-protected-block">[table] Edit in Source Mode</div>`);
+            html = html.replace(placeholder, `<div data-type="latex-protected" data-latex="${escaped}" data-block-type="table" contenteditable="false" class="latex-protected-block">[table]</div>`);
         });
 
         // Restore figure blocks
         figureBlocks.forEach((rawLatex, index) => {
             const placeholder = `__LATEX_PROTECTED_FIGURE_${index}__`;
             const escaped = escapeForAttr(rawLatex);
-            html = html.replace(placeholder, `<div data-type="latex-protected" data-latex="${escaped}" data-block-type="figure" contenteditable="false" class="latex-protected-block">[figure] Edit in Source Mode</div>`);
+            html = html.replace(placeholder, `<div data-type="latex-protected" data-latex="${escaped}" data-block-type="figure" contenteditable="false" class="latex-protected-block">[figure]</div>`);
         });
 
         // Restore bibliography blocks
         bibBlocks.forEach((rawLatex, index) => {
             const placeholder = `__LATEX_PROTECTED_BIB_${index}__`;
             const escaped = escapeForAttr(rawLatex);
-            html = html.replace(placeholder, `<div data-type="latex-protected" data-latex="${escaped}" data-block-type="thebibliography" contenteditable="false" class="latex-protected-block">[bibliography] Edit in Source Mode</div>`);
+            html = html.replace(placeholder, `<div data-type="latex-protected" data-latex="${escaped}" data-block-type="thebibliography" contenteditable="false" class="latex-protected-block">[bibliography]</div>`);
         });
 
         // Restore abstract blocks
         abstractBlocks.forEach((rawLatex, index) => {
             const placeholder = `__LATEX_PROTECTED_ABSTRACT_${index}__`;
             const escaped = escapeForAttr(rawLatex);
-            html = html.replace(placeholder, `<div data-type="latex-protected" data-latex="${escaped}" data-block-type="abstract" contenteditable="false" class="latex-protected-block">[abstract] Edit in Source Mode</div>`);
+            html = html.replace(placeholder, `<div data-type="latex-protected" data-latex="${escaped}" data-block-type="abstract" contenteditable="false" class="latex-protected-block">[abstract]</div>`);
         });
 
         // Restore math environment blocks
         mathEnvBlocks.forEach((rawLatex, index) => {
             const placeholder = `__LATEX_PROTECTED_MATHENV_${index}__`;
             const escaped = escapeForAttr(rawLatex);
-            html = html.replace(placeholder, `<div data-type="latex-protected" data-latex="${escaped}" data-block-type="equation" contenteditable="false" class="latex-protected-block">[equation] Edit in Source Mode</div>`);
+            html = html.replace(placeholder, `<div data-type="latex-protected" data-latex="${escaped}" data-block-type="equation" contenteditable="false" class="latex-protected-block">[equation]</div>`);
         });
 
         return html;
