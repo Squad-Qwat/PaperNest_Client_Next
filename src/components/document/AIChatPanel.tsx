@@ -122,6 +122,7 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 	const [modelSelectorOpen, setModelSelectorOpen] = useState(false)
 	const [useWebSearch, setUseWebSearch] = useState<boolean>(false)
 	const [useMicrophone, setUseMicrophone] = useState<boolean>(false)
+	const [currentPlan, setCurrentPlan] = useState<any[]>([])
 
 	const threadIdRef = useRef<string>(`thread_${Date.now()}_${nanoid(6)}`)
 	const abortControllerRef = useRef<AbortController | null>(null)
@@ -129,6 +130,7 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 
 	const handleClearChat = () => {
 		setMessages([])
+		setCurrentPlan([])
 		threadIdRef.current = `thread_${Date.now()}_${nanoid(6)}`
 	}
 
@@ -220,6 +222,7 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 						toolResults: toolResultsForContinuation.length > 0 ? toolResultsForContinuation : undefined,
 						threadId: threadIdRef.current,
 						documentId,
+						plan: currentPlan,
 					}),
 					signal: controller.signal
 				})
@@ -360,6 +363,9 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 												toolResultsForContinuation.push({ toolCallId: toolCall.id, name: toolCall.name, result: `Error: ${errMsg}` })
 											}
 										}
+										break
+									case 'plan_update':
+										setCurrentPlan(data.plan || [])
 										break
 									case 'stream_end':
 										if (data.hasMoreSteps === false || !hasToolCalls) shouldContinue = false

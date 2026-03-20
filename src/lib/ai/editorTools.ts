@@ -335,6 +335,8 @@ export const executeEditorTool = async (
 						type: 'staged_change',
 						original: docText,
 						modified: docText.slice(0, index) + replaceBlock + docText.slice(index + searchBlock.length),
+						searchBlock,
+						replaceBlock,
 						description: 'Apply diff edit'
 					}
 				}

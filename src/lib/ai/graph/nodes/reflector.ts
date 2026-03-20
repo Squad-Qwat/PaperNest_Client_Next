@@ -5,11 +5,22 @@ import { AgentState, AgentStateType } from '../state'
  * Evaluates the results of the execution
  */
 export const reflectorNode = async (state: AgentStateType) => {
-    // If this node is reached, the executor emitted a normal text message without tool calls.
-    // This implies the current step is complete.
-    const newPlan = state.plan.slice(1)
+    const plan = [...state.plan]
+    const activeIndex = plan.findIndex(s => s.status === 'active' || s.status === 'pending')
+    
+    let pastSteps = [...(state.pastSteps || [])]
+    
+    if (activeIndex !== -1) {
+        const completedStep = plan[activeIndex]
+        plan[activeIndex] = { ...completedStep, status: 'completed' }
+        pastSteps.push([completedStep.id, completedStep.description])
+    }
+    
+    const remainingSteps = plan.filter(s => s.status === 'pending' || s.status === 'active')
+    
 	return {
-        plan: newPlan,
-		isComplete: newPlan.length === 0,
+        plan,
+        pastSteps,
+		isComplete: remainingSteps.length === 0,
 	}
 }

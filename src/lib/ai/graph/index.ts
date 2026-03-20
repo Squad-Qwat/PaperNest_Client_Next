@@ -85,7 +85,8 @@ export async function* streamAgent(
     threadId: string,
     conversationHistory: Array<{ role: string; content: string }> = [],
     existingToolResults?: ToolResult[],
-    documentId?: string
+    documentId?: string,
+    initialPlan?: any[]
 ): AsyncGenerator<StreamEvent> {
     console.log('[Graph] Starting Plan-and-Execute agent for thread:', threadId)
 
@@ -99,12 +100,13 @@ export async function* streamAgent(
             documentContent,
             documentHTML,
             cursorPosition: 0,
-            plan: [],
+            plan: initialPlan || [],
             pastSteps: [], // Initialize pastSteps for tracking
             needsReplanning: false,
             iteration: 0,
             maxIterations: 15,
             documentId: documentId || '',
+            isComplete: false, // Explicitly initialize
         }
 
         if (existingToolResults && existingToolResults.length > 0) {
@@ -205,7 +207,7 @@ export async function* streamAgent(
         yield {
             type: 'done',
             fullContent: contentParts.join(''),
-            hasMoreSteps: false, // In this arch, done means truly done
+            hasMoreSteps: pendingToolCalls.length > 0, // Suggesting more steps if tools were called
         }
     } catch (error) {
         console.error('[Graph] Error:', error)

@@ -51,7 +51,7 @@ export class LaTeXService {
 
 	async compileSingleFile(fileName: string, content: string): Promise<CompileResult> {
 		const engine = this.getCurrentEngine();
-		
+
 		if (!engine.isReady()) {
 			await engine.initialize();
 		}
@@ -83,7 +83,7 @@ export class LaTeXService {
 		if (!dvipdfmxEngine.isReady()) {
 			await dvipdfmxEngine.initialize();
 		}
-		
+
 		const baseFileName = mainFileName.replace(/\.(tex|ltx)$/i, '');
 		const dviFileName = `${baseFileName}.xdv`;
 

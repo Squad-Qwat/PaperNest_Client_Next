@@ -12,16 +12,23 @@ export const executorNode = async (state: AgentStateType) => {
 	const prompts = await loadPrompts(['system', 'executor'])
 	const model = createAIModel()
 	const tools = createCodeMirrorTools()
-    const modelWithTools = (model as any).bindTools(tools)
+	const modelWithTools = (model as any).bindTools(tools)
+	
+	const currentStep = state.plan.find(s => s.status === 'active') || state.plan.find(s => s.status === 'pending')
+	const planText = state.plan.map(s => `- [${s.status === 'active' ? '/' : s.status === 'completed' ? 'x' : ' '}] ${s.description}`).join('\n')
+	
+	let executorPrompt = prompts.executor || ''
+	executorPrompt = executorPrompt.replace('{current_step}', currentStep ? currentStep.description : 'No active step')
+	executorPrompt = executorPrompt.replace('{full_plan}', planText)
 	
 	const contextContent = `\n[CURRENT DOCUMENT STATE]\n${state.documentContent}\n`
-    const sysMsg = new SystemMessage((prompts.system || '') + '\n\n' + (prompts.executor || '') + '\n\n' + contextContent)
-    
-    // Call AI model
-    const response = await modelWithTools.invoke([sysMsg, ...state.messages])
+	const sysMsg = new SystemMessage((prompts.system || '') + '\n\n' + executorPrompt + '\n\n' + contextContent)
 	
+	// Call AI model
+	const response = await modelWithTools.invoke([sysMsg, ...state.messages])
+
 	return {
-        messages: [response],
+		messages: [response],
 		iteration: (state.iteration || 0) + 1,
 	}
 }

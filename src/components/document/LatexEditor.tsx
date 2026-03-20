@@ -41,7 +41,13 @@ export function LatexEditor({
     const [isEditorPdfResizing, setIsEditorPdfResizing] = useState(false)
     const [viewMode, setViewMode] = useState<'source' | 'visual'>('source')
     const [visualEditor, setVisualEditor] = useState<any>(null)
-    const [pendingMerge, setPendingMerge] = useState<{ original: string, modified: string, description?: string } | null>(null)
+    const [pendingMerge, setPendingMerge] = useState<{
+        original: string,
+        modified: string,
+        searchBlock?: string,
+        replaceBlock?: string,
+        description?: string
+    } | null>(null);
     const containerRef = useRef<HTMLDivElement>(null)
 
     const collaborators = useMemo(() => {
@@ -209,12 +215,33 @@ export function LatexEditor({
                             modified={pendingMerge.modified}
                             onAccept={(content) => {
                                 if (view) {
-                                    const changes = computeCodeMirrorChanges(view.state.doc.toString(), content);
-                                    if (changes.length > 0) {
-                                        view.dispatch({
-                                            changes,
-                                            scrollIntoView: false
-                                        });
+                                    const currentDoc = view.state.doc.toString();
+                                    let applied = false;
+
+                                    // OPTIMIZATION: Surgical Replace (Best for Multi-user context)
+                                    // If the staged change has a specific search/replace block, try to find it in the current document.
+                                    // This handles the case where other users have added/removed text in other parts of the document.
+                                    if (pendingMerge.searchBlock && pendingMerge.replaceBlock) {
+                                        const index = currentDoc.indexOf(pendingMerge.searchBlock);
+                                        if (index !== -1) {
+                                            view.dispatch({
+                                                changes: { from: index, to: index + pendingMerge.searchBlock.length, insert: pendingMerge.replaceBlock },
+                                                scrollIntoView: false
+                                            });
+                                            applied = true;
+                                        }
+                                    }
+
+                                    // FALLBACK: Granular Diffing
+                                    // If surgical replace wasn't possible or not applicable, use diffing to find minimal changes.
+                                    if (!applied) {
+                                        const changes = computeCodeMirrorChanges(currentDoc, content);
+                                        if (changes.length > 0) {
+                                            view.dispatch({
+                                                changes,
+                                                scrollIntoView: false
+                                            });
+                                        }
                                     }
                                 }
                                 setPendingMerge(null);
@@ -290,8 +317,8 @@ export function LatexEditor({
                         <button
                             onClick={() => setShowLog(!showLog)}
                             className={`absolute bottom-3 left-3 z-20 px-2.5 py-1 rounded text-[10px] font-bold uppercase transition-all ${compileResult.status === 0
-                                    ? 'bg-green-500/90 hover:bg-green-600 text-white'
-                                    : 'bg-red-500/90 hover:bg-red-600 text-white'
+                                ? 'bg-green-500/90 hover:bg-green-600 text-white'
+                                : 'bg-red-500/90 hover:bg-red-600 text-white'
                                 }`}
                         >
                             {showLog ? 'Hide' : 'Logs'}
