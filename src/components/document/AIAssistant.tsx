@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { AIChatPanel } from './AIChatPanel'
 
 /**
@@ -25,6 +25,9 @@ interface AIAssistantProps {
 	aiAssistantOpen?: boolean
 	toggleAiAssistant?: () => void
 	onWidthChange?: (width: number) => void
+	documentId?: string
+	onResizeStart?: () => void
+	onResizeEnd?: () => void
 }
 
 const AIAssistant: React.FC<AIAssistantProps> = ({
@@ -32,14 +35,68 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 	aiAssistantOpen = false,
 	toggleAiAssistant,
 	onWidthChange,
+	documentId,
+	onResizeStart,
+	onResizeEnd,
 }) => {
 	const [width, setWidth] = useState(320) // Default width 320px
 	const [isResizing, setIsResizing] = useState(false)
+	const indexingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+	// Sync document to vector store when updated
+	useEffect(() => {
+		const cmView = editor?.editor
+		if (!cmView || !documentId) return
+
+		const handleUpdate = () => {
+			if (indexingTimeoutRef.current) clearTimeout(indexingTimeoutRef.current)
+			
+			// Debounce 5 seconds without typing before indexing
+			indexingTimeoutRef.current = setTimeout(async () => {
+				try {
+					const content = cmView.state.doc.toString()
+					// Only index if there is substantial text
+					if (!content || content.length < 50) return
+					
+					// Find the title (for LaTeX, we can look for \title{...})
+					let title = 'Untitled'
+					const titleMatch = content.match(/\\title\{([^}]+)\}/)
+					if (titleMatch) {
+						title = titleMatch[1]
+					}
+
+					await fetch('/api/ai-rag-index', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({
+							documentId,
+							content,
+							title,
+						}),
+					})
+				} catch (err) {
+					console.error('[AI] Failed to index document:', err)
+				}
+			}, 5000)
+		}
+
+		// Since we can't easily add a listener to an existing view without reconfiguring
+		// we'll use an interval or a more direct approach if the parent can provide a callback
+		// For now, let's use a simple interval to check for changes if the view is available
+		const interval = setInterval(handleUpdate, 10000) // Check every 10s
+
+		return () => {
+			clearInterval(interval)
+			if (indexingTimeoutRef.current) clearTimeout(indexingTimeoutRef.current)
+		}
+	}, [editor?.editor, documentId])
 
 	const handleMouseDown = useCallback(
 		(e: React.MouseEvent) => {
 			e.preventDefault()
 			setIsResizing(true)
+			// Trigger resize start callback
+			if (onResizeStart) onResizeStart()
 
 			const startX = e.clientX
 			const startWidth = width
@@ -55,6 +112,8 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 
 			const handleMouseUp = () => {
 				setIsResizing(false)
+				// Trigger resize end callback
+				if (onResizeEnd) onResizeEnd()
 				document.removeEventListener('mousemove', handleMouseMove)
 				document.removeEventListener('mouseup', handleMouseUp)
 			}
@@ -62,7 +121,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 			document.addEventListener('mousemove', handleMouseMove)
 			document.addEventListener('mouseup', handleMouseUp)
 		},
-		[width, onWidthChange]
+		[width, onWidthChange, onResizeStart, onResizeEnd]
 	)
 
 	if (!aiAssistantOpen) return null
@@ -92,7 +151,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 			{/* Content - with independent scroll */}
 			<div className='flex-1 flex flex-col overflow-hidden'>
 				{/* AI Chat Panel Content - scrollable independently */}
-				<AIChatPanel editor={editor} onClose={toggleAiAssistant} />
+				<AIChatPanel editor={editor} onClose={toggleAiAssistant} documentId={documentId} />
 			</div>
 		</div>
 	)

@@ -43,7 +43,8 @@ export function routeAfterExecutor(state: AgentStateType): RouteType {
         const toolCalls = aiMessage.tool_calls ?? []
 
         if (toolCalls.length > 0) {
-            return ROUTES.TOOLS
+            // End graph execution so client can process tool calls
+            return ROUTES.END
         }
     }
 

@@ -1,5 +1,8 @@
+
+
 /**
  * Document Context Builder for AI Agent
+
  *
  * Provides comprehensive document context extraction for AI processing.
  * Builds semantic understanding of document structure, cursor position,
@@ -8,7 +11,8 @@
  * @module lib/ai/documentContext
  */
 
-import type { Editor } from '@tiptap/core'
+import type { EditorView } from '@codemirror/view'
+
 import type {
     DocumentContext,
     DocumentStructure,
@@ -30,87 +34,48 @@ const DEFAULT_CURSOR_CONTEXT_RADIUS = 100
 const CHUNKING_THRESHOLD = 8000
 
 // ============================================================================
-// Helper Functions
+// Structure Extraction (LaTeX/CodeMirror Text-Based)
 // ============================================================================
 
 /**
- * Extract text content from a TipTap node recursively
+ * Extract all sections from LaTeX document
  */
-const getNodeText = (node: any): string => {
-    if (node.text) return node.text
-    if (!node.content) return ''
-    return node.content.map((child: any) => getNodeText(child)).join('')
-}
-
-/**
- * Check if a paragraph node functions as a heading (bold + caps/large font)
- */
-const isPseudoHeading = (node: any): boolean => {
-    if (node.type !== 'paragraph' || !node.content) return false
-
-    const text = getNodeText(node)
-    if (!text || text.length < 3) return false
-
-    let hasBold = false
-    let hasLargeFont = false
-
-    node.content.forEach((child: any) => {
-        if (!child.marks) return
-        if (child.marks.some((m: any) => m.type === 'bold')) hasBold = true
-
-        const textStyle = child.marks.find((m: any) => m.type === 'textStyle')
-        if (textStyle?.attrs?.fontSize) {
-            const fs = textStyle.attrs.fontSize
-            if ((fs.includes('px') && parseInt(fs) >= 16) || (fs.includes('pt') && parseInt(fs) >= 12)) {
-                hasLargeFont = true
-            }
-        }
-    })
-
-    const isAllCaps = text === text.toUpperCase()
-    return hasBold && (hasLargeFont || isAllCaps)
-}
-
-// ============================================================================
-// Structure Extraction
-// ============================================================================
-
-/**
- * Extract all sections from document
- */
-export const extractSections = (editor: Editor): Section[] => {
+export const extractSections = (editor: EditorView): Section[] => {
     const doc = editor.state.doc
+    const text = doc.toString()
     const sections: Section[] = []
+    const lines = text.split('\n')
     let currentPos = 0
 
-    doc.content.forEach((node: any, offset: number, index: number) => {
-        const nodeStart = currentPos
-        const nodeEnd = currentPos + node.nodeSize
-        const text = getNodeText(node).trim()
-
-        const isHeading = node.type.name === 'heading'
-        const isFakeHeading = isPseudoHeading(node)
-
-        if ((isHeading || isFakeHeading) && text) {
+    lines.forEach((line, lineIndex) => {
+        // Match LaTeX sections: \section{...}, \subsection{...}, etc.
+        const sectionMatch = line.match(/\\(section|subsection|subsubsection|chapter)\{([^}]+)\}/)
+        if (sectionMatch) {
+            const [, level, name] = sectionMatch
+            const levelMap: Record<string, number> = {
+                chapter: 0,
+                section: 1,
+                subsection: 2,
+                subsubsection: 3,
+            }
             sections.push({
-                name: text,
-                level: isHeading ? (node.attrs?.level || 1) : 2,
-                type: isHeading ? 'heading' : 'bold-paragraph',
-                startPos: nodeStart,
-                endPos: nodeEnd, // Will be updated later
-                nodeIndex: index,
+                name: name.trim(),
+                level: levelMap[level] || 1,
+                type: 'heading',
+                startPos: currentPos,
+                endPos: currentPos + line.length,
+                nodeIndex: lineIndex,
             })
         }
-
-        currentPos = nodeEnd
+        currentPos += line.length + 1 // +1 for newline
     })
 
-    // Update endPos for each section to extend to next section start
+    // Update endPos for each section
     for (let i = 0; i < sections.length; i++) {
         if (i < sections.length - 1) {
             sections[i].endPos = sections[i + 1].startPos
         } else {
-            sections[i].endPos = doc.content.size
+            sections[i].endPos = text.length
         }
     }
 
@@ -118,87 +83,81 @@ export const extractSections = (editor: Editor): Section[] => {
 }
 
 /**
- * Extract all tables from document
+ * Extract tables from LaTeX document (basic detection)
  */
-export const extractTables = (editor: Editor): TableInfo[] => {
+export const extractTables = (editor: EditorView): TableInfo[] => {
     const doc = editor.state.doc
+    const text = doc.toString()
     const tables: TableInfo[] = []
+    const tableMatches = text.matchAll(/\\begin\{tabular\}[\s\S]*?\\end\{tabular\}/g)
 
-    doc.descendants((node: any, pos: number) => {
-        if (node.type.name === 'table') {
-            let rows = 0
-            let cols = 0
-            let textContent = ''
-            let hasHeader = false
+    for (const match of tableMatches) {
+        const content = match[0]
+        // Simple row/col estimation from tabular format
+        const colsMatch = content.match(/\{(\|?[lcr|]+\|?)\}/)
+        const cols = colsMatch ? colsMatch[1].replace(/[|]/g, '').length : 0
+        const rows = (content.match(/\\\\/g) || []).length + 1
 
-            node.descendants((child: any) => {
-                if (child.type.name === 'tableRow') rows++
-                if (child.type.name === 'tableCell' || child.type.name === 'tableHeader') {
-                    if (rows === 1) cols++
-                    if (child.type.name === 'tableHeader') hasHeader = true
-                }
-                if (child.isText) textContent += child.text + ' '
-            })
-
-            tables.push({
-                index: tables.length + 1,
-                rows,
-                cols,
-                startPos: pos,
-                endPos: pos + node.nodeSize,
-                contentPreview: textContent.trim().substring(0, 100),
-                hasHeader,
-            })
-        }
-    })
+        tables.push({
+            index: tables.length + 1,
+            rows,
+            cols,
+            startPos: match.index || 0,
+            endPos: (match.index || 0) + content.length,
+            contentPreview: content.substring(0, 100),
+            hasHeader: false,
+        })
+    }
 
     return tables
 }
 
 /**
- * Extract all lists from document
+ * Extract lists from LaTeX document
  */
-export const extractLists = (editor: Editor): ListInfo[] => {
+export const extractLists = (editor: EditorView): ListInfo[] => {
     const doc = editor.state.doc
+    const text = doc.toString()
     const lists: ListInfo[] = []
 
-    doc.descendants((node: any, pos: number) => {
-        const type = node.type.name
-        if (type === 'bulletList' || type === 'orderedList' || type === 'taskList') {
-            const items: string[] = []
-            node.content?.forEach((item: any) => {
-                items.push(getNodeText(item))
-            })
+    // Match itemize and enumerate environments
+    const listMatches = text.matchAll(/\\begin\{(itemize|enumerate)\}[\s\S]*?\\end\{\1\}/g)
 
-            lists.push({
-                type: type as ListInfo['type'],
-                itemCount: items.length,
-                startPos: pos,
-                endPos: pos + node.nodeSize,
-                preview: items.slice(0, 3).join('; ').substring(0, 100),
-            })
-        }
-    })
+    for (const match of listMatches) {
+        const content = match[0]
+        const type = match[1] as 'itemize' | 'enumerate'
+        const itemCount = (content.match(/\\item/g) || []).length
+
+        lists.push({
+            type: type === 'itemize' ? 'bulletList' : 'orderedList',
+            itemCount,
+            startPos: match.index || 0,
+            endPos: (match.index || 0) + content.length,
+            preview: content.substring(0, 100),
+        })
+    }
 
     return lists
 }
 
 /**
- * Extract all images from document
+ * Extract images from LaTeX document
  */
-export const extractImages = (editor: Editor): ImageInfo[] => {
+export const extractImages = (editor: EditorView): ImageInfo[] => {
     const doc = editor.state.doc
+    const text = doc.toString()
     const images: ImageInfo[] = []
 
-    doc.descendants((node: any, pos: number) => {
-        if (node.type.name === 'image') {
-            images.push({
-                src: node.attrs?.src || '',
-                alt: node.attrs?.alt || '',
-                position: pos,
-            })
-        }
-    })
+    // Match includegraphics commands
+    const imageMatches = text.matchAll(/\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}/g)
+
+    for (const match of imageMatches) {
+        images.push({
+            src: match[1],
+            alt: match[1],
+            position: match.index || 0,
+        })
+    }
 
     return images
 }
@@ -206,12 +165,17 @@ export const extractImages = (editor: Editor): ImageInfo[] => {
 /**
  * Build complete document structure
  */
-export const buildDocumentStructure = (editor: Editor): DocumentStructure => {
+export const buildDocumentStructure = (editor: EditorView): DocumentStructure => {
+    const sections = extractSections(editor)
+    const tables = extractTables(editor)
+    const lists = extractLists(editor)
+    const images = extractImages(editor)
+
     return {
-        sections: extractSections(editor),
-        tables: extractTables(editor),
-        lists: extractLists(editor),
-        images: extractImages(editor),
+        sections,
+        tables,
+        lists,
+        images,
     }
 }
 
@@ -223,27 +187,21 @@ export const buildDocumentStructure = (editor: Editor): DocumentStructure => {
  * Build cursor context from editor state
  */
 export const buildCursorContext = (
-    editor: Editor,
+    editor: EditorView,
     sections: Section[],
     radius: number = DEFAULT_CURSOR_CONTEXT_RADIUS
 ): CursorContext => {
-    const { from, to, empty } = editor.state.selection
+    const { from, to } = editor.state.selection.main
     const doc = editor.state.doc
-    const docSize = doc.content.size
-
-    // Get element hierarchy
-    const resolvedPos = doc.resolve(from)
-    const hierarchy: string[] = []
-    for (let d = resolvedPos.depth; d >= 0; d--) {
-        hierarchy.push(resolvedPos.node(d).type.name)
-    }
+    const docSize = doc.length
+    const text = doc.toString()
 
     // Get text around cursor
     const beforeStart = Math.max(0, from - radius)
     const afterEnd = Math.min(docSize, to + radius)
-    const textBefore = doc.textBetween(beforeStart, from, ' ')
-    const textAfter = doc.textBetween(to, afterEnd, ' ')
-    const selectedText = empty ? '' : doc.textBetween(from, to, ' ')
+    const textBefore = text.substring(beforeStart, from)
+    const textAfter = text.substring(to, afterEnd)
+    const selectedText = from === to ? '' : text.substring(from, to)
 
     // Find nearest section
     let nearestSection: string | null = null
@@ -257,10 +215,9 @@ export const buildCursorContext = (
     return {
         position: from,
         selectionEnd: to,
-        hasSelection: !empty,
+        hasSelection: from !== to,
         selectedText: selectedText.substring(0, 200),
-        inElement: hierarchy[0] || 'doc',
-        elementHierarchy: hierarchy.reverse(),
+        inElement: 'LaTeX',
         nearestSection,
         textBefore: textBefore.substring(textBefore.length - radius),
         textAfter: textAfter.substring(0, radius),
@@ -274,19 +231,17 @@ export const buildCursorContext = (
 /**
  * Calculate document metadata
  */
-export const buildDocumentMetadata = (editor: Editor): DocumentMetadata => {
-    const text = editor.getText()
-    const json = editor.getJSON()
+export const buildDocumentMetadata = (editor: EditorView): DocumentMetadata => {
+    const text = editor.state.doc.toString()
     const words = text.split(/\s+/).filter(Boolean)
     const wordCount = words.length
     const charCount = text.length
-    const nodeCount = json.content?.length || 0
 
     return {
         wordCount,
         charCount,
         sectionCount: 0, // Will be set from structure
-        nodeCount,
+        nodeCount: 0, // CodeMirror documents don't have discrete nodes like ProseMirror
         needsChunking: charCount > CHUNKING_THRESHOLD,
         readingTimeMinutes: Math.ceil(wordCount / 200),
     }
@@ -299,7 +254,7 @@ export const buildDocumentMetadata = (editor: Editor): DocumentMetadata => {
 /**
  * Build complete document context for AI agent
  *
- * @param editor - TipTap editor instance
+ * @param editor - CodeMirror editor instance
  * @param options - Context building options
  * @returns Complete document context
  *
@@ -311,7 +266,7 @@ export const buildDocumentMetadata = (editor: Editor): DocumentMetadata => {
  * ```
  */
 export const buildDocumentContext = (
-    editor: Editor,
+    editor: EditorView,
     options: ContextBuildOptions = {}
 ): DocumentContext => {
     const {
@@ -333,7 +288,7 @@ export const buildDocumentContext = (
     metadata.sectionCount = structure.sections.length
 
     // Get text content (potentially truncated)
-    let textContent = editor.getText()
+    let textContent = editor.state.doc.toString()
     if (textContent.length > maxContentLength) {
         textContent = textContent.substring(0, maxContentLength) + '\n...[truncated]'
     }
@@ -398,38 +353,36 @@ ${textContent}
 /**
  * Get local context around a specific position
  *
- * @param editor - TipTap editor instance
+ * @param editor - CodeMirror editor instance
  * @param position - Position to get context around
  * @param radius - Characters before/after to include
  * @returns Local text context
  */
 export const getLocalContext = (
-    editor: Editor,
+    editor: EditorView,
     position: number,
     radius: number = 200
 ): string => {
-    const doc = editor.state.doc
-    const docSize = doc.content.size
+    const docSize = editor.state.doc.length
 
     const start = Math.max(0, position - radius)
     const end = Math.min(docSize, position + radius)
 
-    return doc.textBetween(start, end, ' ')
+    return editor.state.sliceDoc(start, end)
 }
 
 /**
  * Get complete content for a specific section
  *
- * @param editor - TipTap editor instance
+ * @param editor - CodeMirror editor instance
  * @param sectionName - Name of section to get (fuzzy match)
  * @returns Section content or null if not found
  */
 export const getSectionContent = (
-    editor: Editor,
+    editor: EditorView,
     sectionName: string
 ): { name: string; content: string } | null => {
     const sections = extractSections(editor)
-    const doc = editor.state.doc
     const searchLower = sectionName.toLowerCase()
 
     const section = sections.find(
@@ -439,7 +392,7 @@ export const getSectionContent = (
 
     if (!section) return null
 
-    const content = doc.textBetween(section.startPos, section.endPos, '\n')
+    const content = editor.state.sliceDoc(section.startPos, section.endPos)
 
     return {
         name: section.name,

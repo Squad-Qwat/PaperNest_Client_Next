@@ -2,8 +2,9 @@ import { ChevronLeft, GitCommit, History, MessageSquare, RefreshCw, Share2, X } 
 import Link from 'next/link'
 import { useState } from 'react'
 import { CommitModal } from '@/components/document/CommitModal'
-import EditorToolbar from '@/components/document/EditorToolbar'
+import LatexToolbar from '@/components/document/LatexToolbar'
 import { Button } from '@/components/ui/button'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useDocumentReviews } from '@/hooks/useDocumentVersions'
 import { documentsService } from '@/lib/api/services/documents.service'
@@ -34,6 +35,13 @@ const DocumentHeader = ({
 	redo,
 	canUndo,
 	canRedo,
+	handleCompile,
+	isCompiling,
+	viewMode,
+	toggleViewMode,
+	visualEditor,
+	visibleCollaborators,
+	hiddenCollaboratorsCount,
 	debugContentExtraction,
 }) => {
 	const [isSyncing, setIsSyncing] = useState(false)
@@ -42,7 +50,7 @@ const DocumentHeader = ({
 
 	return (
 		<header className='bg-white border-b border-gray-200 sticky top-0 z-[1001] transition-all duration-300'>
-			<div className='container mx-auto px-4 py-2'>
+			<div className='px-4 py-2'>
 				<div className='flex items-center justify-between'>
 					<div className='flex items-center gap-4'>
 						<Link href={`/${workspaceId}`} className='p-2 rounded-full hover:bg-gray-100'>
@@ -346,6 +354,34 @@ const DocumentHeader = ({
 									)}
 								</div>
 							)}
+
+							{visibleCollaborators && visibleCollaborators.length > 0 && (
+								<div className="flex items-center gap-1.5 pr-2 mr-1 border-r border-gray-200">
+									<div className="flex -space-x-3">
+										{visibleCollaborators.map((collaborator) => (
+											<Avatar
+												key={collaborator.id}
+												className="h-8 w-8 border-2 border-white shadow-sm"
+												title={collaborator.name}
+											>
+												<AvatarImage src={collaborator.avatar} alt={collaborator.name} />
+												<AvatarFallback
+													className="text-xs font-semibold text-white"
+													style={{ backgroundColor: collaborator.color }}
+												>
+													{collaborator.name.charAt(0).toUpperCase()}
+												</AvatarFallback>
+											</Avatar>
+										))}
+									</div>
+									{hiddenCollaboratorsCount > 0 && (
+										<span className="text-xs font-medium text-gray-500">
+											+{hiddenCollaboratorsCount}
+										</span>
+									)}
+								</div>
+							)}
+
 							<Button
 								variant='outline'
 								size='sm'
@@ -429,7 +465,7 @@ const DocumentHeader = ({
 						// We also need content usually, but the API doc says content string.
 						// If editor content is available, pass it.
 						// `editor` prop is available. `editor.getHTML()` or `JSON`.
-						const content = editor ? editor.getHTML() : ''
+						const content = editor ? editor.state.doc.toString() : ''
 						await documentsService.createVersion(documentId, {
 							message: data.message,
 							content: content,
@@ -446,15 +482,18 @@ const DocumentHeader = ({
 			/>
 
 			{/* Editor Toolbar - sticky di bawah header */}
-			<EditorToolbar
+			<LatexToolbar
 				editor={editor}
 				insertTable={insertTable}
-				aiAssistantOpen={aiAssistantOpen}
 				undo={undo}
 				redo={redo}
 				canUndo={canUndo}
 				canRedo={canRedo}
-				debugContentExtraction={debugContentExtraction}
+				handleCompile={handleCompile}
+				isCompiling={isCompiling}
+				viewMode={viewMode}
+				toggleViewMode={toggleViewMode}
+				visualEditor={visualEditor}
 			/>
 		</header>
 	)

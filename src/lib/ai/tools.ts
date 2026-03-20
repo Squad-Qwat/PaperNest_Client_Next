@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Document Editing Tools for AI Assistant (Neptune)
  * 

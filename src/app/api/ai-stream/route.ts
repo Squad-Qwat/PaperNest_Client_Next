@@ -20,6 +20,8 @@ export async function POST(request: NextRequest) {
 			documentSections = [],
 			conversationHistory = [],
 			toolResults,
+			documentId,
+			plan,
 			threadId: bodyThreadId, // Extract threadId from body
 		} = body
 
@@ -48,7 +50,9 @@ export async function POST(request: NextRequest) {
 						documentHTML, // Pass HTML for tools
 						threadId,
 						conversationHistory,
-						toolResults as ToolResult[] | undefined
+						toolResults as ToolResult[] | undefined,
+						documentId,
+						plan
 					)) {
 						controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`))
 						await new Promise(resolve => setTimeout(resolve, 5))

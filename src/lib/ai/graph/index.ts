@@ -1,5 +1,8 @@
+
+
 /**
  * LangGraph Agent Definition - Advanced Plan-and-Execute
+
  *
  * Compiles the StateGraph with Planner, Executor, Tool, and Reflector nodes.
  */
@@ -41,6 +44,7 @@ const graphBuilder = new StateGraph(AgentState)
     .addConditionalEdges(ROUTES.EXECUTOR, routeAfterExecutor, {
         [ROUTES.TOOLS]: ROUTES.TOOLS,
         [ROUTES.REFLECTOR]: ROUTES.REFLECTOR, // If no tool call, treating as step done (or fail?)
+        [ROUTES.END]: END, // Added to support client-side tool execution pause
     })
 
     // Tools -> Reflector
@@ -80,7 +84,9 @@ export async function* streamAgent(
     documentHTML: string,
     threadId: string,
     conversationHistory: Array<{ role: string; content: string }> = [],
-    existingToolResults?: ToolResult[]
+    existingToolResults?: ToolResult[],
+    documentId?: string,
+    initialPlan?: any[]
 ): AsyncGenerator<StreamEvent> {
     console.log('[Graph] Starting Plan-and-Execute agent for thread:', threadId)
 
@@ -94,11 +100,13 @@ export async function* streamAgent(
             documentContent,
             documentHTML,
             cursorPosition: 0,
-            plan: [],
+            plan: initialPlan || [],
             pastSteps: [], // Initialize pastSteps for tracking
             needsReplanning: false,
             iteration: 0,
             maxIterations: 15,
+            documentId: documentId || '',
+            isComplete: false, // Explicitly initialize
         }
 
         if (existingToolResults && existingToolResults.length > 0) {
@@ -139,7 +147,7 @@ export async function* streamAgent(
             streamMode: 'updates' as const,
         }
 
-        let fullContent = ''
+        const contentParts: string[] = []
         let pendingToolCalls: { id: string; name: string; args: Record<string, unknown> }[] = []
 
         for await (const update of await graph.stream(initialState, config)) {
@@ -161,14 +169,19 @@ export async function* streamAgent(
                 if (nodeName === ROUTES.EXECUTOR && output.messages) {
                     const lastMsg = output.messages.at(-1)
                     if (lastMsg) {
-                        const content =
-                            typeof lastMsg.content === 'string'
-                                ? lastMsg.content
-                                : JSON.stringify(lastMsg.content)
+                        let textContent = ''
+                        if (typeof lastMsg.content === 'string') {
+                            textContent = lastMsg.content
+                        } else if (Array.isArray(lastMsg.content)) {
+                            textContent = lastMsg.content
+                                .filter((part: any) => part.type === 'text')
+                                .map((part: any) => part.text)
+                                .join('')
+                        }
 
-                        if (content && content.trim()) {
-                            fullContent += content
-                            yield { type: 'content', content }
+                        if (textContent && textContent.trim()) {
+                            contentParts.push(textContent)
+                            yield { type: 'content', content: textContent }
                         }
 
                         if ('tool_calls' in lastMsg) {
@@ -193,8 +206,8 @@ export async function* streamAgent(
 
         yield {
             type: 'done',
-            fullContent,
-            hasMoreSteps: false, // In this arch, done means truly done
+            fullContent: contentParts.join(''),
+            hasMoreSteps: pendingToolCalls.length > 0, // Suggesting more steps if tools were called
         }
     } catch (error) {
         console.error('[Graph] Error:', error)

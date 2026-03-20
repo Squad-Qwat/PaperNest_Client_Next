@@ -20,6 +20,7 @@ type Presence = {
 		name: string
 		avatar?: string
 		color?: string
+		colorLight?: string
 	} | null
 }
 
@@ -35,6 +36,7 @@ type UserMeta = {
 		email?: string
 		avatar?: string
 		color?: string // Generated color for collaboration cursor
+		colorLight?: string // Semi-transparent selection highlight color
 	}
 }
 

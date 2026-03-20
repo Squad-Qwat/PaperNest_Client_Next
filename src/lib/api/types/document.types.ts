@@ -84,3 +84,22 @@ export interface VersionsResponse {
 export interface VersionResponse {
 	version: Version
 }
+
+/**
+ * Room info from Liveblocks
+ */
+export interface RoomInfo {
+	id: string
+	activeUsers: number
+	status?: 'active' | 'inactive'
+}
+
+/**
+ * Document with room state response
+ * Used for checking active users in Liveblocks room before initializing editor
+ */
+export interface DocumentWithRoomStateResponse {
+	document: Document
+	currentVersion?: Version
+	room: RoomInfo
+}

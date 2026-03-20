@@ -4,6 +4,7 @@ import '@/app/css/globals.css'
 import { Toaster } from '@/components/ui/toaster'
 import { AuthProvider } from '@/context/AuthContext'
 import { AppProvider } from '@/lib/store'
+import { TooltipProvider } from "@/components/ui/tooltip"
 
 const ibmPlexSans = IBM_Plex_Sans({
 	variable: '--font-ibmPlex-sans',
@@ -34,7 +35,9 @@ export default function RootLayout({
 				suppressHydrationWarning
 			>
 				<AuthProvider>
-					<AppProvider>{children}</AppProvider>
+					<TooltipProvider>
+						<AppProvider>{children}</AppProvider>
+					</TooltipProvider>
 					<Toaster />
 				</AuthProvider>
 			</body>
