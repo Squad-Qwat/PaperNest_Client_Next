@@ -11,6 +11,7 @@ import { useOthers } from '@liveblocks/react/suspense'
 import { LatexVisualEditor } from './LatexVisualEditor'
 import { LaTeXConverter } from '@/lib/latex/LaTeXConverter'
 import { MergePreview } from './MergePreview'
+import { computeCodeMirrorChanges } from '@/lib/utils/diff'
 
 interface LatexEditorProps {
     documentId?: string | null;
@@ -124,13 +125,14 @@ export function LatexEditor({
 
     const handleCompile = async () => {
         if (!view) return
-        
+
         setIsCompiling(true)
         try {
-            const content = view.state.doc.toString()
+            // Use modified content if a merge is pending, otherwise use current editor content
+            const content = pendingMerge ? pendingMerge.modified : view.state.doc.toString()
             const result = await laTeXService.compileSingleFile('main.tex', content)
             setCompileResult(result)
-            
+
             if (result.pdf) {
                 const blob = new Blob([result.pdf as any], { type: 'application/pdf' })
                 if (pdfUrl) URL.revokeObjectURL(pdfUrl)
@@ -192,24 +194,28 @@ export function LatexEditor({
 
             <div className="flex flex-1 overflow-hidden" ref={containerRef}>
                 {/* Editor Container - Resizable Width */}
-                <div 
+                <div
                     className="overflow-hidden relative bg-white border-r border-gray-100"
                     style={{ width: `${editorPdfSplitWidth}%` }}
                 >
-                    <div 
-                        ref={editorRef} 
-                        className={`h-full w-full cm-editor-container ${viewMode !== 'source' || pendingMerge ? 'hidden' : ''}`} 
+                    <div
+                        ref={editorRef}
+                        className={`h-full w-full cm-editor-container ${viewMode !== 'source' || pendingMerge ? 'hidden' : ''}`}
                     />
 
                     {pendingMerge && (
-                        <MergePreview 
+                        <MergePreview
                             original={pendingMerge.original}
                             modified={pendingMerge.modified}
                             onAccept={(content) => {
                                 if (view) {
-                                    view.dispatch({
-                                        changes: { from: 0, to: view.state.doc.length, insert: content }
-                                    });
+                                    const changes = computeCodeMirrorChanges(view.state.doc.toString(), content);
+                                    if (changes.length > 0) {
+                                        view.dispatch({
+                                            changes,
+                                            scrollIntoView: false
+                                        });
+                                    }
                                 }
                                 setPendingMerge(null);
                             }}
@@ -218,7 +224,7 @@ export function LatexEditor({
                     )}
 
                     {viewMode === 'visual' && !pendingMerge && (
-                        <LatexVisualEditor 
+                        <LatexVisualEditor
                             content={view?.state.doc.toString() || initialContent || ''}
                             onEditorReady={setVisualEditor}
                             onChange={(newContent) => {
@@ -234,7 +240,7 @@ export function LatexEditor({
                             }}
                         />
                     )}
-                    
+
                     {/* Cloud Sync Indicator */}
                     {!isSaving && collaborationReady && (
                         <div className="absolute bottom-3 right-3 text-[10px] font-medium text-gray-400 bg-white/50 px-2 py-1 rounded opacity-0 hover:opacity-100 transition-opacity">
@@ -245,9 +251,8 @@ export function LatexEditor({
 
                 {/* Resize Handle */}
                 <div
-                    className={`w-1 cursor-col-resize hover:bg-blue-400 transition-colors ${
-                        isEditorPdfResizing ? 'bg-blue-500' : 'bg-gray-200 hover:bg-blue-300'
-                    }`}
+                    className={`w-1 cursor-col-resize hover:bg-blue-400 transition-colors ${isEditorPdfResizing ? 'bg-blue-500' : 'bg-gray-200 hover:bg-blue-300'
+                        }`}
                     onMouseDown={handleSplitMouseDown}
                     style={{
                         userSelect: 'none',
@@ -257,17 +262,17 @@ export function LatexEditor({
                 />
 
                 {/* Preview Container - Resizable Width */}
-                <div 
+                <div
                     className={`overflow-hidden relative transition-all duration-200 ${pdfUrl ? 'bg-[#525659]' : 'bg-gray-50'}`}
-                    style={{ 
+                    style={{
                         width: `${100 - editorPdfSplitWidth}%`,
                         display: isEditorPdfResizing || isPdfHidden ? 'none' : 'flex',
                     }}
                 >
                     {pdfUrl ? (
                         <div className="w-full h-full flex flex-col">
-                             <iframe 
-                                src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`} 
+                            <iframe
+                                src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
                                 className="w-full h-full border-none"
                                 title="PDF Preview"
                             />
@@ -282,13 +287,12 @@ export function LatexEditor({
 
                     {/* Logs Toggle */}
                     {compileResult && (
-                        <button 
+                        <button
                             onClick={() => setShowLog(!showLog)}
-                            className={`absolute bottom-3 left-3 z-20 px-2.5 py-1 rounded text-[10px] font-bold uppercase transition-all ${
-                                compileResult.status === 0 
-                                ? 'bg-green-500/90 hover:bg-green-600 text-white' 
-                                : 'bg-red-500/90 hover:bg-red-600 text-white'
-                            }`}
+                            className={`absolute bottom-3 left-3 z-20 px-2.5 py-1 rounded text-[10px] font-bold uppercase transition-all ${compileResult.status === 0
+                                    ? 'bg-green-500/90 hover:bg-green-600 text-white'
+                                    : 'bg-red-500/90 hover:bg-red-600 text-white'
+                                }`}
                         >
                             {showLog ? 'Hide' : 'Logs'}
                         </button>
@@ -390,23 +394,23 @@ export function LatexEditor({
 
 function FileTextIcon({ className }: { className?: string }) {
     return (
-        <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            width="24" 
-            height="24" 
-            viewBox="0 0 24 24" 
-            fill="none" 
-            stroke="currentColor" 
-            strokeWidth="2" 
-            strokeLinecap="round" 
-            strokeLinejoin="round" 
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
             className={className}
         >
-            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-            <polyline points="14 2 14 8 20 8"/>
-            <line x1="16" y1="13" x2="8" y2="13"/>
-            <line x1="16" y1="17" x2="8" y2="17"/>
-            <line x1="10" y1="9" x2="8" y2="9"/>
+            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+            <line x1="10" y1="9" x2="8" y2="9" />
         </svg>
     )
 }

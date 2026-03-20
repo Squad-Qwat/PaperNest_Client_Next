@@ -304,7 +304,7 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 												}
 
 												const result = await executeEditorTool(editor, toolCall.name, toolArgs, documentId)
-												
+
 												// If tool returned a staged change, trigger the merge view
 												if (result && typeof result === 'object' && result.type === 'staged_change') {
 													if (editor?.setPendingMerge) {
