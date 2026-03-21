@@ -102,7 +102,7 @@ function MathLiveComponent({ node, updateAttributes }: any) {
   };
 
   return (
-    <NodeViewWrapper className="math-node-wrapper inline-block align-middle mx-1 border border-transparent hover:border-blue-400 rounded transition-colors bg-blue-50/30 px-1 py-0.5">
+    <NodeViewWrapper className="math-node-wrapper inline-block align-baseline mx-0.5 border border-transparent hover:border-primary-subtle rounded transition-all bg-primary-subtle px-1 py-0.5 cursor-pointer">
       {/* @ts-ignore */}
       <math-field
         ref={mfRef}
@@ -112,7 +112,9 @@ function MathLiveComponent({ node, updateAttributes }: any) {
           outline: 'none',
           border: 'none',
           background: 'transparent',
-          minWidth: '10px',
+          minWidth: '1em',
+          verticalAlign: 'middle',
+          color: 'var(--foreground)',
         }}
         focus-ring="none"
       />

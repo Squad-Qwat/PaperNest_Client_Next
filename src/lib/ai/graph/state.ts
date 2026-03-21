@@ -30,10 +30,11 @@ export interface PlanStep {
     result?: string
     // Smart Planning Fields
     confidence?: number
-    acceptanceCriteria?: string
+    acceptanceCriteria?: string  // How to verify this step succeeded (used by reflector)
     dependencies?: number[]
     suggestedTools?: string[]
 }
+
 
 /**
  * Agent State Annotation
@@ -144,6 +145,16 @@ export const AgentState = Annotation.Root({
     taskSummary: Annotation<string>({
         reducer: (_, newVal) => newVal ?? '',
         default: () => '',
+    }),
+
+    // ===== PROVIDER CONFIG =====
+    providerId: Annotation<string>({
+        reducer: (_, newVal) => newVal ?? 'google-genai',
+        default: () => 'google-genai',
+    }),
+    modelId: Annotation<string>({
+        reducer: (_, newVal) => newVal ?? 'gemini-2.5-flash-lite',
+        default: () => 'gemini-2.5-flash-lite',
     }),
 })
 

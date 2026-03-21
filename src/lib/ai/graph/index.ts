@@ -21,6 +21,20 @@ import {
 import { HumanMessage, AIMessage, BaseMessage, ToolMessage } from '@langchain/core/messages'
 import { ToolCall } from '@langchain/core/messages/tool'
 
+const toSafeText = (value: unknown): string => {
+    if (typeof value === 'string') {
+        return value
+    }
+    if (value === null || value === undefined) {
+        return ''
+    }
+    try {
+        return JSON.stringify(value)
+    } catch {
+        return '[unserializable-value]'
+    }
+}
+
 /**
  * Define the graph architecture
  */
@@ -86,14 +100,24 @@ export async function* streamAgent(
     conversationHistory: Array<{ role: string; content: string }> = [],
     existingToolResults?: ToolResult[],
     documentId?: string,
-    initialPlan?: any[]
+    initialPlan?: any[],
+    providerId?: string,
+    modelId?: string
 ): AsyncGenerator<StreamEvent> {
     console.log('[Graph] Starting Plan-and-Execute agent for thread:', threadId)
 
     try {
-        const historyMessages = conversationHistory.map((msg) =>
-            msg.role === 'user' ? new HumanMessage(msg.content) : new AIMessage(msg.content)
-        )
+        const historyMessages = conversationHistory
+            .map((msg) => {
+                const text = toSafeText(msg?.content).trim()
+                return {
+                    role: msg?.role,
+                    text,
+                }
+            })
+            .filter((msg) => msg.role === 'user' || msg.role === 'assistant')
+            .filter((msg) => msg.text.length > 0)
+            .map((msg) => (msg.role === 'user' ? new HumanMessage(msg.text) : new AIMessage(msg.text)))
 
         const initialState: Partial<AgentStateType> = {
             messages: [...historyMessages, new HumanMessage(userMessage)],
@@ -107,14 +131,24 @@ export async function* streamAgent(
             maxIterations: 15,
             documentId: documentId || '',
             isComplete: false, // Explicitly initialize
+            providerId: providerId || 'google-genai',
+            modelId: modelId || 'gemini-2.5-flash-lite',
         }
 
         if (existingToolResults && existingToolResults.length > 0) {
-            initialState.lastToolResults = existingToolResults
+            const normalizedToolResults = existingToolResults.map((r, index) => ({
+                ...r,
+                toolCallId: r?.toolCallId || `tool_${index + 1}`,
+                name: r?.name || 'unknown_tool',
+                result: toSafeText(r?.result),
+                success: typeof r?.success === 'boolean' ? r.success : true,
+            }))
+
+            initialState.lastToolResults = normalizedToolResults
 
             // Reconstruct the AIMessage that triggered these tools
             // Add placeholder content to avoid Gemini 400 error on empty messages
-            const toolCalls = existingToolResults.map(r => ({
+            const toolCalls = normalizedToolResults.map(r => ({
                 id: r.toolCallId,
                 name: r.name,
                 args: {}
@@ -125,10 +159,10 @@ export async function* streamAgent(
                 tool_calls: toolCalls
             })
 
-            const toolResultMessages = existingToolResults.map(
+            const toolResultMessages = normalizedToolResults.map(
                 (r) =>
                     new ToolMessage({
-                        content: r.result,
+                        content: toSafeText(r.result),
                         tool_call_id: r.toolCallId,
                         name: r.name,
                     })

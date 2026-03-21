@@ -12,11 +12,14 @@ import { Check, X, Columns, Rows } from 'lucide-react'
 interface MergePreviewProps {
     original: string
     modified: string
+    queuePosition?: number
+    queueTotal?: number
     onAccept: (content: string) => void
+    onAcceptAll?: () => void
     onDiscard: () => void
 }
 
-export function MergePreview({ original, modified, onAccept, onDiscard }: MergePreviewProps) {
+export function MergePreview({ original, modified, queuePosition = 0, queueTotal = 0, onAccept, onAcceptAll, onDiscard }: MergePreviewProps) {
     const containerRef = useRef<HTMLDivElement>(null)
     const mergeViewRef = useRef<MergeView | null>(null)
     const editorViewRef = useRef<EditorView | null>(null)
@@ -127,6 +130,11 @@ export function MergePreview({ original, modified, onAccept, onDiscard }: MergeP
                     <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-gray-700">Review AI Suggestion</span>
                         <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Merge Preview</span>
+                        {queueTotal > 0 && (
+                            <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold">
+                                {queuePosition} of {queueTotal}
+                            </span>
+                        )}
                     </div>
 
                     <div className="flex bg-gray-200/50 p-0.5 rounded-md border border-gray-200">
@@ -162,12 +170,22 @@ export function MergePreview({ original, modified, onAccept, onDiscard }: MergeP
                     </Button>
                     <Button
                         size="sm"
-                        className="h-8 text-xs bg-black hover:bg-gray-800 text-white gap-1.5"
+                        className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white gap-1.5"
                         onClick={() => onAccept(modified)}
                     >
                         <Check className="w-3.5 h-3.5" />
-                        Accept All
+                        Accept This
                     </Button>
+                    {queueTotal > 1 && onAcceptAll && (
+                        <Button
+                            size="sm"
+                            className="h-8 text-xs bg-black hover:bg-gray-800 text-white gap-1.5"
+                            onClick={onAcceptAll}
+                        >
+                            <Check className="w-3.5 h-3.5" />
+                            Accept All {queueTotal}
+                        </Button>
+                    )}
                 </div>
             </div>
 

@@ -30,24 +30,14 @@ This tool uses **ARRAYS** for searching & replacing at multiple locations in one
 ✓ searchBlock.length = replaceBlock.length (MUST match)
 ✓ NO \n\n inside any searchBlock item
 ✓ Single \n preserved exactly from read_document output
-✓ Empty replaceBlock strings are ALLOWED (they delete that paragraph)
-
-**Key:** For deletion (empty replaceBlock), uses first matching occurrence. For replacement, backtracking ensures atomic batch.
 
 ### WORKFLOW:
 1. **read_document** → get exact text with \n\n visible
-2. **Count paragraphs** → say the count out loud: "I see X paragraphs"
+2. **Count paragraphs** → say the count out loud: "I see 3 paragraphs"
 3. **Show segmentation** → print each paragraph separately
 4. **Build arrays** → One item per paragraph; 1:1 mapping
 5. **Validate** → Lengths match? No \n\n inside? Single \n preserved?
 6. **Call apply_diff_edit** → Only when ALL validations pass
-
-**MANDATORY CHECKS BEFORE CALLING apply_diff_edit:**
-- ✓ searchBlock.length = replaceBlock.length (EXACT MATCH)
-- ✓ NO \n\n inside any searchBlock item (only single \n allowed)
-- ✓ Each searchBlock item matches EXACTLY from read_document (no rewrites/beautifying)
-- ✓ Segmentation shown explicitly in response (user can verify)
-- ✓ Paragraph count stated out loud: "I counted X paragraphs"
 
 ### EXAMPLE (CORRECT):
 ```json
@@ -63,23 +53,6 @@ This tool uses **ARRAYS** for searching & replacing at multiple locations in one
 }
 ```
 ✅ Valid: 2 items (2 paragraphs), single `\n` preserved, lengths match
-
-### EXAMPLE (DELETE with empty replaceBlock):
-```json
-{
-  "searchBlock": [
-    "Para 1: Full text to delete",
-    "Para 2: Another paragraph",
-    "Para 3: Third paragraph"
-  ],
-  "replaceBlock": [
-    "",
-    "Merge para 2 and 3 here",
-    ""
-  ]
-}
-```
-✅ Valid: 3 search + 3 replace (empty = delete). Para 1 deleted, Para 2 replaced, Para 3 deleted
 
 ### NEVER:
 - ✗ Put \n\n inside searchBlock items

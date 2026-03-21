@@ -221,9 +221,16 @@ export class LaTeXConverter {
 
         // 9. Environments (General fallback - Support @ and * and _)
         // Skip environments that are handled as protected blocks or lists
-        const protectedEnvs = ['itemize', 'enumerate', 'tabular', 'table', 'figure', 'thebibliography', 'abstract', 'equation', 'equation*', 'align', 'align*', 'gather', 'gather*', 'multline', 'multline*', 'eqnarray', 'eqnarray*'];
+        const protectedEnvs = ['itemize', 'enumerate', 'tabular', 'table', 'figure', 'thebibliography', 'abstract', 'equation', 'equation*', 'align', 'align*', 'gather', 'gather*', 'multline', 'multline*', 'eqnarray', 'eqnarray*', 'center', 'quote', 'flushleft', 'flushright', '@twocolumnfalse'];
         html = html.replace(/\\begin\{([a-zA-Z0-9@_*]+)\}([\s\S]*?)\\end\{\1\}/g, (match: string, env: string, content: string) => {
-            if (protectedEnvs.includes(env)) return match;
+            if (protectedEnvs.includes(env)) {
+                // If it's a layout environment like center or quote, we might want to protect it
+                // to avoid it being treated as a paragraph if it contains complex stuff.
+                // For 'center', 'quote', 'abstract' (if not already handled), etc.
+                const placeholder = `__LATEX_PROTECTED_ENV_${env.replace(/[@*]/g, '_')}_${mathEnvBlocks.length}__`;
+                mathEnvBlocks.push(match);
+                return placeholder;
+            }
             return `<pre data-type="latex-env" data-env="${env}"><code>${content.trim()}</code></pre>`;
         });
 
@@ -304,11 +311,25 @@ export class LaTeXConverter {
             html = html.replace(placeholder, `<div data-type="latex-protected" data-latex="${escaped}" data-block-type="abstract" contenteditable="false" class="latex-protected-block">[abstract]</div>`);
         });
 
-        // Restore math environment blocks
+        // Restore math environment blocks (includes newly added protected layout envs)
         mathEnvBlocks.forEach((rawLatex, index) => {
-            const placeholder = `__LATEX_PROTECTED_MATHENV_${index}__`;
+            // Find which marker was used (either MATHENV or ENV_name)
+            const mathMarker = `__LATEX_PROTECTED_MATHENV_${index}__`;
+            const envMarkerRegex = new RegExp(`__LATEX_PROTECTED_ENV_[a-zA-Z0-9_]+_${index}__`);
+            
             const escaped = escapeForAttr(rawLatex);
-            html = html.replace(placeholder, `<div data-type="latex-protected" data-latex="${escaped}" data-block-type="equation" contenteditable="false" class="latex-protected-block">[equation]</div>`);
+            
+            // Extract env name from rawLatex for better label
+            const envMatch = rawLatex.match(/\\begin\{([a-zA-Z0-9@*_]+)\}/);
+            const envName = envMatch ? envMatch[1] : 'env';
+
+            const nodeHtml = `<div data-type="latex-protected" data-latex="${escaped}" data-block-type="${envName}" contenteditable="false" class="latex-protected-block">[${envName}]</div>`;
+
+            if (html.includes(mathMarker)) {
+                html = html.replace(mathMarker, nodeHtml);
+            } else {
+                html = html.replace(envMarkerRegex, nodeHtml);
+            }
         });
 
         return html;

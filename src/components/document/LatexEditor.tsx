@@ -12,6 +12,8 @@ import { LatexVisualEditor } from './LatexVisualEditor'
 import { LaTeXConverter } from '@/lib/latex/LaTeXConverter'
 import { MergePreview } from './MergePreview'
 import { computeCodeMirrorChanges } from '@/lib/utils/diff'
+import { DocumentFile } from '@/lib/api/types/document.types'
+import { DocumentService } from '@/lib/firebase/document-service'
 
 interface LatexEditorProps {
     documentId?: string | null;
@@ -21,6 +23,14 @@ interface LatexEditorProps {
     onEditorReady?: (functions: any) => void;
     onAutoSaveStateChange?: (isSaving: boolean, lastSavedAt: Date | null) => void;
     isPdfHidden?: boolean;
+}
+
+type PendingMergeChange = {
+    original: string
+    modified: string
+    searchBlock?: string[]
+    replaceBlock?: string[]
+    description?: string
 }
 
 export function LatexEditor({
@@ -41,14 +51,19 @@ export function LatexEditor({
     const [isEditorPdfResizing, setIsEditorPdfResizing] = useState(false)
     const [viewMode, setViewMode] = useState<'source' | 'visual'>('source')
     const [visualEditor, setVisualEditor] = useState<any>(null)
-    const [pendingMerge, setPendingMerge] = useState<{
-        original: string,
-        modified: string,
-        searchBlock?: string,
-        replaceBlock?: string,
-        description?: string
-    } | null>(null);
+    const [pendingMerges, setPendingMerges] = useState<PendingMergeChange[]>([])
+    const [files, setFiles] = useState<DocumentFile[]>([]);
     const containerRef = useRef<HTMLDivElement>(null)
+    const activePendingMerge = pendingMerges[0] ?? null
+
+    const enqueuePendingMerge = useCallback((data: PendingMergeChange | null) => {
+        if (!data) return
+        setPendingMerges(prev => [...prev, data])
+    }, [])
+
+    const consumePendingMerge = useCallback(() => {
+        setPendingMerges(prev => prev.slice(1))
+    }, [])
 
     const collaborators = useMemo(() => {
         return others.map((other) => {
@@ -77,6 +92,13 @@ export function LatexEditor({
         user,
         initialContent
     })
+
+    // Fetch files when documentId changes
+    useEffect(() => {
+        if (documentId) {
+            DocumentService.getDocumentFiles(documentId).then(setFiles);
+        }
+    }, [documentId]);
 
     // Report editor functions back to parent
     useEffect(() => {
@@ -124,10 +146,10 @@ export function LatexEditor({
                         setViewMode('source');
                     }
                 },
-                setPendingMerge
+                setPendingMerge: enqueuePendingMerge
             })
         }
-    }, [view, onEditorReady, documentId, isCompiling, visibleCollaborators, hiddenCollaboratorsCount, viewMode, visualEditor, setPendingMerge])
+    }, [view, onEditorReady, documentId, isCompiling, visibleCollaborators, hiddenCollaboratorsCount, viewMode, visualEditor, enqueuePendingMerge])
 
     const handleCompile = async () => {
         if (!view) return
@@ -135,8 +157,16 @@ export function LatexEditor({
         setIsCompiling(true)
         try {
             // Use modified content if a merge is pending, otherwise use current editor content
-            const content = pendingMerge ? pendingMerge.modified : view.state.doc.toString()
-            const result = await laTeXService.compileSingleFile('main.tex', content)
+            const content = activePendingMerge ? activePendingMerge.modified : view.state.doc.toString()
+            
+            // Re-fetch files to ensure we have the latest list (in case of recent uploads)
+            let currentFiles = files;
+            if (documentId) {
+                currentFiles = await DocumentService.getDocumentFiles(documentId);
+                setFiles(currentFiles);
+            }
+
+            const result = await laTeXService.compileWithAssets('main.tex', content, currentFiles)
             setCompileResult(result)
 
             if (result.pdf) {
@@ -206,51 +236,150 @@ export function LatexEditor({
                 >
                     <div
                         ref={editorRef}
-                        className={`h-full w-full cm-editor-container ${viewMode !== 'source' || pendingMerge ? 'hidden' : ''}`}
+                        className={`h-full w-full cm-editor-container ${viewMode !== 'source' || activePendingMerge ? 'hidden' : ''}`}
                     />
 
-                    {pendingMerge && (
+                    {activePendingMerge && (
                         <MergePreview
-                            original={pendingMerge.original}
-                            modified={pendingMerge.modified}
+                            original={activePendingMerge.original}
+                            modified={activePendingMerge.modified}
+                            queuePosition={pendingMerges.length === 0 ? 0 : 1}
+                            queueTotal={pendingMerges.length}
                             onAccept={(content) => {
+                                const mergeToApply = activePendingMerge
+                                if (!mergeToApply) return
+
                                 if (view) {
                                     const currentDoc = view.state.doc.toString();
                                     let applied = false;
+                                    const isApplyDiffMerge = Array.isArray(mergeToApply.searchBlock) && Array.isArray(mergeToApply.replaceBlock)
 
                                     // OPTIMIZATION: Surgical Replace (Best for Multi-user context)
-                                    // If the staged change has a specific search/replace block, try to find it in the current document.
-                                    // This handles the case where other users have added/removed text in other parts of the document.
-                                    if (pendingMerge.searchBlock && pendingMerge.replaceBlock) {
-                                        const index = currentDoc.indexOf(pendingMerge.searchBlock);
-                                        if (index !== -1) {
-                                            view.dispatch({
-                                                changes: { from: index, to: index + pendingMerge.searchBlock.length, insert: pendingMerge.replaceBlock },
-                                                scrollIntoView: false
-                                            });
-                                            applied = true;
+                                    // If the staged change has array-based search/replace blocks, apply them in reverse order.
+                                    if (isApplyDiffMerge) {
+                                        const searchBlock = mergeToApply.searchBlock ?? [];
+                                        const replaceBlock = mergeToApply.replaceBlock ?? [];
+                                        if (searchBlock.length === replaceBlock.length && searchBlock.length > 0) {
+                                            const ranges: Array<{ from: number; to: number; insert: string }> = [];
+                                            let batchValid = true;
+
+                                            for (let i = 0; i < searchBlock.length; i++) {
+                                                const search = searchBlock[i];
+                                                const replace = replaceBlock[i];
+                                                if (typeof search !== 'string' || typeof replace !== 'string' || search.length === 0) {
+                                                    batchValid = false;
+                                                    break;
+                                                }
+
+                                                const firstIndex = currentDoc.indexOf(search);
+                                                const duplicateIndex = firstIndex === -1 ? -1 : currentDoc.indexOf(search, firstIndex + 1);
+                                                if (firstIndex === -1 || duplicateIndex !== -1) {
+                                                    batchValid = false;
+                                                    break;
+                                                }
+
+                                                ranges.push({ from: firstIndex, to: firstIndex + search.length, insert: replace });
+                                            }
+
+                                            if (batchValid) {
+                                                ranges.sort((a, b) => b.from - a.from);
+                                                view.dispatch({
+                                                    changes: ranges,
+                                                    scrollIntoView: false
+                                                });
+                                                applied = true;
+                                            }
                                         }
                                     }
 
                                     // FALLBACK: Granular Diffing
                                     // If surgical replace wasn't possible or not applicable, use diffing to find minimal changes.
-                                    if (!applied) {
+                                    if (!applied && !isApplyDiffMerge) {
                                         const changes = computeCodeMirrorChanges(currentDoc, content);
                                         if (changes.length > 0) {
                                             view.dispatch({
                                                 changes,
                                                 scrollIntoView: false
                                             });
+                                            applied = true;
                                         }
                                     }
+
+                                    // For apply_diff_edit merges, never fallback to full diff because it can overwrite accepted merges.
+                                    if (!applied && isApplyDiffMerge) {
+                                        console.warn('Merge preview apply failed: staged apply_diff_edit no longer matches current document.');
+                                        return;
+                                    }
                                 }
-                                setPendingMerge(null);
+                                consumePendingMerge();
                             }}
-                            onDiscard={() => setPendingMerge(null)}
+                            onAcceptAll={() => {
+                                // Accept ALL remaining merges in sequence
+                                let remaining = [...pendingMerges];
+                                while (remaining.length > 0) {
+                                    const merge = remaining[0];
+                                    if (view) {
+                                        const currentDoc = view.state.doc.toString();
+                                        let applied = false;
+                                        const isApplyDiffMerge = Array.isArray(merge.searchBlock) && Array.isArray(merge.replaceBlock);
+
+                                        if (isApplyDiffMerge) {
+                                            const searchBlock = merge.searchBlock ?? [];
+                                            const replaceBlock = merge.replaceBlock ?? [];
+                                            if (searchBlock.length === replaceBlock.length && searchBlock.length > 0) {
+                                                const ranges: Array<{ from: number; to: number; insert: string }> = [];
+                                                let batchValid = true;
+
+                                                for (let i = 0; i < searchBlock.length; i++) {
+                                                    const search = searchBlock[i];
+                                                    const replace = replaceBlock[i];
+                                                    if (typeof search !== 'string' || typeof replace !== 'string' || search.length === 0) {
+                                                        batchValid = false;
+                                                        break;
+                                                    }
+
+                                                    const firstIndex = currentDoc.indexOf(search);
+                                                    const duplicateIndex = firstIndex === -1 ? -1 : currentDoc.indexOf(search, firstIndex + 1);
+                                                    if (firstIndex === -1 || duplicateIndex !== -1) {
+                                                        batchValid = false;
+                                                        break;
+                                                    }
+
+                                                    ranges.push({ from: firstIndex, to: firstIndex + search.length, insert: replace });
+                                                }
+
+                                                if (batchValid) {
+                                                    ranges.sort((a, b) => b.from - a.from);
+                                                    view.dispatch({
+                                                        changes: ranges,
+                                                        scrollIntoView: false
+                                                    });
+                                                    applied = true;
+                                                }
+                                            }
+                                        }
+
+                                        if (!applied && !isApplyDiffMerge) {
+                                            const changes = computeCodeMirrorChanges(currentDoc, merge.modified);
+                                            if (changes.length > 0) {
+                                                view.dispatch({
+                                                    changes,
+                                                    scrollIntoView: false
+                                                });
+                                                applied = true;
+                                            }
+                                        }
+                                    }
+                                    remaining = remaining.slice(1);
+                                }
+                                // Clear all pending merges
+                                setPendingMerges([]);
+                            }}
+                            onDiscard={() => consumePendingMerge()}
                         />
                     )}
 
-                    {viewMode === 'visual' && !pendingMerge && (
+                    {viewMode === 'visual' && !activePendingMerge && (
                         <LatexVisualEditor
                             content={view?.state.doc.toString() || initialContent || ''}
                             onEditorReady={setVisualEditor}
@@ -342,79 +471,6 @@ export function LatexEditor({
                     </pre>
                 </div>
             )}
-
-            <style jsx global>{`
-                .cm-editor-container .cm-editor {
-                    height: 100%;
-                    outline: none !important;
-                    background: #ffffff;
-                }
-                .cm-editor-container .cm-scroller {
-                    font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', monospace !important;
-                    font-size: 13px !important;
-                    padding: 16px 0 !important;
-                    line-height: 1.5 !important;
-                }
-                .cm-editor-container .cm-gutters {
-                    background-color: #fafbfc !important;
-                    border-right: 1px solid #e5e7eb !important;
-                    color: #9ca3af !important;
-                    font-size: 12px;
-                }
-                .cm-editor-container .cm-activeLine {
-                    background-color: #f0f7ff !important;
-                }
-                .cm-editor-container .cm-activeLineGutter {
-                    background-color: #eff6ff !important;
-                    color: #3b82f6 !important;
-                }
-                .cm-editor-container .cm-line {
-                    padding-left: 4px;
-                }
-                .cm-editor-container .cm-editor .cm-selectionBackground {
-                    background-color: rgba(59, 130, 246, 0.30) !important;
-                }
-                .cm-editor-container .cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground {
-                    background-color: rgba(37, 99, 235, 0.34) !important;
-                }
-                .cm-editor-container .cm-content ::selection,
-                .cm-editor-container .cm-line::selection,
-                .cm-editor-container .cm-content::selection {
-                    background-color: rgba(59, 130, 246, 0.30) !important;
-                }
-                .cm-editor-container .cm-ySelection {
-                    border-radius: 2px;
-                    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
-                }
-                .cm-editor-container .cm-yLineSelection {
-                    box-shadow: none;
-                }
-                .cm-editor-container .cm-ySelectionCaret {
-                    border-left-width: 2px !important;
-                    border-right: 0 !important;
-                    margin-left: -1px;
-                    margin-right: 0;
-                }
-                .cm-editor-container .cm-ySelectionCaretDot {
-                    width: 0.5rem !important;
-                    height: 0.5rem !important;
-                    top: -0.26rem !important;
-                    left: -0.26rem !important;
-                    box-shadow: 0 0 0 2px #ffffff;
-                }
-                .cm-editor-container .cm-ySelectionInfo {
-                    top: -1.45em !important;
-                    left: 2px !important;
-                    font-size: 10px !important;
-                    font-family: ui-sans-serif, system-ui, sans-serif !important;
-                    font-weight: 600 !important;
-                    letter-spacing: 0.01em;
-                    border-radius: 9999px;
-                    padding: 2px 8px !important;
-                    opacity: 0.95 !important;
-                    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
-                }
-            `}</style>
         </div>
     )
 }

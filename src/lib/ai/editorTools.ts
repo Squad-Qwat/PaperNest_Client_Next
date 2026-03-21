@@ -194,6 +194,165 @@ export const findTextRangeExact = (editor: any, searchText: string): { from: num
 	return null
 }
 
+type DiffPair = {
+	index: number
+	search: string
+	replace: string
+}
+
+type DiffMatch = {
+	pairIndex: number
+	from: number
+	to: number
+	search: string
+	replace: string
+}
+
+const parseApplyDiffPairs = (args: any): { pairs?: DiffPair[]; error?: string } => {
+	const { searchBlock, replaceBlock } = args || {}
+
+	if (!Array.isArray(searchBlock) || !Array.isArray(replaceBlock)) {
+		return { error: 'Error: apply_diff_edit requires both searchBlock and replaceBlock as arrays of strings.' }
+	}
+
+	if (searchBlock.length !== replaceBlock.length) {
+		return { error: `Error: apply_diff_edit requires equal length arrays. searchBlock.length=${searchBlock.length}, replaceBlock.length=${replaceBlock.length}.` }
+	}
+
+	if (searchBlock.length === 0) {
+		return { error: 'Error: apply_diff_edit requires at least one pair.' }
+	}
+
+	const normalizeSpaces = (text: string): string => {
+		return text
+			.split('\n')
+			.map((line) => line.trimEnd())
+			.join('\n')
+			.trimStart()
+	}
+
+	const pairs: DiffPair[] = []
+	for (let i = 0; i < searchBlock.length; i++) {
+		let search = searchBlock[i]
+		let replace = replaceBlock[i]
+
+		if (typeof search !== 'string' || typeof replace !== 'string') {
+			return { error: `Error: apply_diff_edit expects string values in arrays. Invalid value at index ${i}.` }
+		}
+
+		if (search.length === 0) {
+			return { error: `Error: apply_diff_edit searchBlock[${i}] cannot be empty.` }
+		}
+
+		search = normalizeSpaces(search)
+		replace = normalizeSpaces(replace)
+
+		pairs.push({ index: i, search, replace })
+	}
+
+	return { pairs }
+}
+
+const findAtomicDiffMatches = (docText: string, pairs: DiffPair[]): { matches?: DiffMatch[]; error?: string } => {
+	const candidateMatchesByPair: DiffMatch[][] = []
+	const isDeletionByPair: boolean[] = []
+
+	for (const pair of pairs) {
+		const candidates: DiffMatch[] = []
+		let searchFrom = 0
+		const isDeletion = pair.replace.length === 0
+
+		while (searchFrom <= docText.length) {
+			const index = docText.indexOf(pair.search, searchFrom)
+			if (index === -1) break
+
+			candidates.push({
+				pairIndex: pair.index,
+				from: index,
+				to: index + pair.search.length,
+				search: pair.search,
+				replace: pair.replace,
+			})
+
+			// For deletions, use only first match (deterministic)
+			if (isDeletion) {
+				searchFrom = docText.length + 1
+				break
+			}
+
+			searchFrom = index + 1
+		}
+
+		if (candidates.length === 0) {
+			return {
+				error: `error: apply_diff_edit FAILED at index ${pair.index} — search text not found.\nreason: searchBlock[${pair.index}] does not exist exactly in document.\ninstructions: Use search_text_lines and replace_lines for this block, then retry batch if needed.`,
+			}
+		}
+
+		candidateMatchesByPair.push(candidates)
+		isDeletionByPair.push(isDeletion)
+	}
+
+	if (pairs.length === 1 && candidateMatchesByPair[0].length > 1 && !isDeletionByPair[0]) {
+		return {
+			error: `error: apply_diff_edit FAILED at index ${pairs[0].index} — search text is ambiguous.\nreason: searchBlock[${pairs[0].index}] appears multiple times; batch replacement is unsafe.\ninstructions: Disambiguate with line-based tools (search_text_lines + replace_lines).`,
+		}
+	}
+
+	const solutions: DiffMatch[][] = []
+	const current: DiffMatch[] = []
+
+	const backtrack = (pairIdx: number, minStart: number) => {
+		if (pairIdx === candidateMatchesByPair.length) {
+			solutions.push([...current])
+			return
+		}
+
+		// For deletions, always use first match (deterministic, no backtracking)
+		if (isDeletionByPair[pairIdx]) {
+			const candidate = candidateMatchesByPair[pairIdx][0]
+			if (candidate && candidate.from >= minStart) {
+				current.push(candidate)
+				backtrack(pairIdx + 1, candidate.to)
+				current.pop()
+			}
+		} else {
+			// For non-deletions: use GREEDY matching (first valid candidate only)
+			// This avoids "ambiguous match" errors by always picking earliest match
+			const validCandidates = candidateMatchesByPair[pairIdx].filter(c => c.from >= minStart)
+			if (validCandidates.length > 0) {
+				const candidate = validCandidates[0] // Greedy: take earliest
+				current.push(candidate)
+				backtrack(pairIdx + 1, candidate.to)
+				current.pop()
+			}
+		}
+	}
+
+	backtrack(0, 0)
+
+	if (solutions.length === 0) {
+		return {
+			error: `error: apply_diff_edit FAILED — overlapping or out-of-order batch ranges detected.\nreason: provided search blocks cannot be mapped to one non-overlapping sequence in document order.\ninstructions: split the operation into smaller ordered edits.`,
+		}
+	}
+
+	// With greedy matching, should always have exactly 1 solution now
+	// (no more "ambiguous match" errors)
+	return { matches: solutions[0] }
+}
+
+const applyMatchesToText = (docText: string, matches: DiffMatch[]): string => {
+	let result = docText
+	const sortedDesc = [...matches].sort((a, b) => b.from - a.from)
+
+	for (const match of sortedDesc) {
+		result = result.slice(0, match.from) + match.replace + result.slice(match.to)
+	}
+
+	return result
+}
+
 /**
  * Primary tool execution dispatcher for AI interactions (CodeMirror/LaTeX only)
  */
@@ -211,95 +370,140 @@ export const executeEditorTool = async (
 	// Extract CodeMirror view from the editor wrapper provided by LatexEditor
 	const view = editor.editor
 	if (!view) return 'Error: CodeMirror view not available'
-	
+
 	try {
 		switch (toolName) {
 			case 'read_document': {
 				const { fromLine, toLine, full } = args
+				const isFull = full ?? true
 				const doc = view.state.doc
-				
-				if (full) {
-					return doc.toString()
+
+				// Helper: format content with line numbers for LLM reference
+				const withLineNumbers = (startLine: number, endLine: number): string => {
+					const lines: string[] = []
+					for (let i = startLine; i <= endLine; i++) {
+						const lineNum = String(i).padStart(4, ' ')
+						lines.push(`${lineNum} | ${doc.line(i).text}`)
+					}
+					return lines.join('\n')
 				}
-				
+
+				if (isFull) {
+					return `[Document Content (Full)]\nTotal Lines: ${doc.lines}\n\n` + withLineNumbers(1, doc.lines)
+				}
+
 				if (fromLine !== undefined) {
 					const startLine = Math.max(1, fromLine)
 					const endLine = toLine !== undefined ? Math.min(doc.lines, toLine) : Math.min(doc.lines, startLine + 100)
-					
-					let content = ''
-					for (let i = startLine; i <= endLine; i++) {
-						content += doc.line(i).text + '\n'
-					}
-					
-					return JSON.stringify({
-						metadata: {
-							fromLine: startLine,
-							toLine: endLine,
-							totalLines: doc.lines
-						},
-						content
+
+					return `[Document Slice: Lines ${startLine} to ${endLine}]\nTotal Lines: ${doc.lines}\n\n` + withLineNumbers(startLine, endLine)
+				}
+
+				// Default preview: first 50 lines with line numbers
+				const previewEnd = Math.min(doc.lines, 50)
+				return `[Document Preview: First 50 Lines]\nTotal Lines: ${doc.lines}\nNote: Use fromLine/toLine or full=true for more.\n\n` + withLineNumbers(1, previewEnd)
+			}
+
+			case 'get_sections': {
+				const docText = view.state.doc.toString()
+				const sectionRegex = /^\\(?:sub)*section\{([^}]+)\}/gm
+				const sections: Array<{ text: string; level: number; line: number }> = []
+				let match: RegExpExecArray | null
+
+				while ((match = sectionRegex.exec(docText)) !== null) {
+					const textBeforeMatch = docText.slice(0, match.index)
+					const line = textBeforeMatch.split('\n').length
+					const command = match[0].match(/^\\((?:sub)*)section/)?.[1] ?? ''
+					const level = 1 + Math.floor(command.length / 3)
+
+					sections.push({
+						text: match[1],
+						level,
+						line,
 					})
 				}
 
-				const docText = doc.toString()
 				return JSON.stringify({
-					metadata: {
-						title: 'LaTeX Document',
-						characterCount: docText.length,
-						lineCount: doc.lines
-					},
-					preview: docText.substring(0, 1000),
-					hasFullContent: false
+					sections,
+					totalSections: sections.length,
 				})
 			}
 
-				case 'get_sections': {
-					const docText = view.state.doc.toString()
-					const sectionRegex = /^\\(?:sub)*section\{([^}]+)\}/gm
-					const sections: Array<{ text: string; level: number; line: number }> = []
-					let match: RegExpExecArray | null
+			case 'get_document_stats': {
+				const docText = view.state.doc.toString()
+				const words = docText.trim().length === 0 ? 0 : docText.trim().split(/\s+/).length
+				const readingTimeMinutes = Math.max(1, Math.ceil(words / 200))
 
-					while ((match = sectionRegex.exec(docText)) !== null) {
-						const textBeforeMatch = docText.slice(0, match.index)
-						const line = textBeforeMatch.split('\n').length
-						const command = match[0].match(/^\\((?:sub)*)section/)?.[1] ?? ''
-						const level = 1 + Math.floor(command.length / 3)
+				return JSON.stringify({
+					characterCount: docText.length,
+					lineCount: view.state.doc.lines,
+					wordCount: words,
+					estimatedReadingTimeMinutes: readingTimeMinutes,
+				})
+			}
 
-						sections.push({
-							text: match[1],
-							level,
-							line,
-						})
+			case 'search_text_lines': {
+				const { query, caseSensitive } = args
+				const doc = view.state.doc
+				const results: { line: number; text: string }[] = []
+				const searchString = caseSensitive ? query : query.toLowerCase()
+
+				for (let i = 1; i <= doc.lines; i++) {
+					const lineText = doc.line(i).text
+					const compareText = caseSensitive ? lineText : lineText.toLowerCase()
+					if (compareText.includes(searchString)) {
+						results.push({ line: i, text: lineText })
 					}
-
-					return JSON.stringify({
-						sections,
-						totalSections: sections.length,
-					})
 				}
 
-				case 'get_document_stats': {
-					const docText = view.state.doc.toString()
-					const words = docText.trim().length === 0 ? 0 : docText.trim().split(/\s+/).length
-					const readingTimeMinutes = Math.max(1, Math.ceil(words / 200))
+				let output = `[Search Results for "${query}"]\n`
+				output += `Match Count: ${results.length}\n`
+				if (results.length >= 50) output += `Note: Showing first 50 matches.\n`
+				output += `\n` + results.map(r => `${String(r.line).padStart(4, ' ')} | ${r.text}`).join('\n')
 
-					return JSON.stringify({
-						characterCount: docText.length,
-						lineCount: view.state.doc.lines,
-						wordCount: words,
-						estimatedReadingTimeMinutes: readingTimeMinutes,
-					})
+				return output
+			}
+
+			case 'replace_lines': {
+				const { fromLine, toLine, newContent, stage } = args
+				const doc = view.state.doc
+
+				if (fromLine < 1 || toLine > doc.lines || fromLine > toLine) {
+					return `Error: Invalid line range ${fromLine}-${toLine}. Total lines: ${doc.lines}`
 				}
-			
+
+				const fromPos = doc.line(fromLine).from
+				const toPos = doc.line(toLine).to
+
+				if (stage) {
+					const original = doc.toString()
+					const prefix = doc.sliceString(0, fromPos)
+					const suffix = doc.sliceString(toPos)
+					return {
+						type: 'staged_change',
+						original,
+						modified: prefix + newContent + suffix,
+						description: `Replace lines ${fromLine}-${toLine}`
+					}
+				}
+
+				view.dispatch({
+					changes: { from: fromPos, to: toPos, insert: newContent },
+					scrollIntoView: true
+				})
+				view.focus()
+				return `Successfully replaced lines ${fromLine} to ${toLine}.`
+			}
+
 			case 'insert_content': {
 				const { content, position, stage } = args
 				const selection = view.state.selection.main
 				let from = selection.from
 				let to = selection.to
-				
+
 				if (position === 'start') { from = 0; to = 0; }
 				else if (position === 'end') { from = view.state.doc.length; to = view.state.doc.length; }
-				
+
 				if (stage) {
 					const doc = view.state.doc
 					const prefix = doc.sliceString(0, from)
@@ -320,35 +524,48 @@ export const executeEditorTool = async (
 				view.focus()
 				return `Inserted content at ${position || 'cursor'}`
 			}
-			
+
 			case 'apply_diff_edit': {
-				const { searchBlock, replaceBlock, stage } = args
-				const docText = view.state.doc.toString()
-				const index = docText.indexOf(searchBlock)
-				
-				if (index === -1) {
-					return `Error: Could not find exact match for search block.`
+				const { stage } = args
+				const parsed = parseApplyDiffPairs(args)
+				if (!parsed.pairs) {
+					return parsed.error
 				}
-				
+
+				const docText = view.state.doc.toString()
+				const resolved = findAtomicDiffMatches(docText, parsed.pairs)
+				if (!resolved.matches) {
+					return resolved.error
+				}
+
+				const matches = resolved.matches
+				const modified = applyMatchesToText(docText, matches)
+				const sortedDesc = [...matches].sort((a, b) => b.from - a.from)
+
 				if (stage) {
+					const isBatch = parsed.pairs.length > 1
 					return {
 						type: 'staged_change',
 						original: docText,
-						modified: docText.slice(0, index) + replaceBlock + docText.slice(index + searchBlock.length),
-						searchBlock,
-						replaceBlock,
-						description: 'Apply diff edit'
+						modified,
+						searchBlock: parsed.pairs.map(pair => pair.search),
+						replaceBlock: parsed.pairs.map(pair => pair.replace),
+						description: isBatch
+							? `Apply diff edit (batch ${parsed.pairs.length} items)`
+							: 'Apply diff edit'
 					}
 				}
 
 				view.dispatch({
-					changes: { from: index, to: index + searchBlock.length, insert: replaceBlock },
+					changes: sortedDesc.map(match => ({ from: match.from, to: match.to, insert: match.replace })),
 					scrollIntoView: true
 				})
 				view.focus()
-				return `Successfully applied patch.`
+				return parsed.pairs.length > 1
+					? `Successfully applied batch patch (${parsed.pairs.length} items).`
+					: `Successfully applied patch.`
 			}
-			
+
 			case 'get_cursor_info': {
 				const selection = view.state.selection.main
 				const doc = view.state.doc
@@ -359,24 +576,6 @@ export const executeEditorTool = async (
 					textAfter: doc.sliceString(selection.to, Math.min(doc.length, selection.to + 50)),
 					documentSize: doc.length
 				})
-			}
-			
-			case 'search_document_context': {
-				const { query, k } = args
-				if (!documentId) return 'Error: documentId is not available for context search'
-				
-				try {
-					const response = await fetch('/api/ai-rag-query', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({ documentId, query, k }),
-					})
-					if (!response.ok) throw new Error(`API returned ${response.status}`)
-					const data = await response.json()
-					return data.context || data.error || 'No relevant context found'
-				} catch (e) {
-					return `Error searching document context: ${e instanceof Error ? e.message : 'Unknown error'}`
-				}
 			}
 
 			case 'compile_latex': {
@@ -399,12 +598,12 @@ export const executeEditorTool = async (
 				const docText = view.state.doc.toString()
 				// Simple regex-based formatting for now
 				const formatted = docText
-					.replace(/([^\\])\s+/g, '$1 ') 
-					.replace(/\\(section|subsection|subsubsection|paragraph)\{/g, '\n\\$1{') 
+					.replace(/([^\\])\s+/g, '$1 ')
+					.replace(/\\(section|subsection|subsubsection|paragraph)\{/g, '\n\\$1{')
 					.replace(/\\begin\{/g, '\n\\begin{')
 					.replace(/\\end\{/g, '\\end{\n')
 					.trim()
-				
+
 				if (stage) {
 					return {
 						type: 'staged_change',

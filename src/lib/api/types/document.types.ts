@@ -103,3 +103,16 @@ export interface DocumentWithRoomStateResponse {
 	currentVersion?: Version
 	room: RoomInfo
 }
+
+/**
+ * Document attachment file entity
+ */
+export interface DocumentFile {
+	fileId: string
+	name: string
+	type: string
+	url: string
+	r2Key: string
+	createdAt: any
+	size?: number
+}

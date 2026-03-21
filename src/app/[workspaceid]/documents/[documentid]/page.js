@@ -411,6 +411,7 @@ export default function DocumentPage() {
 						onResizeEnd={handleResizeEnd}
 						currentContent={documentData?.savedContent}
 						onNavigateToSection={handleNavigateToSection}
+						documentId={documentId}
 						editorView={editorFunctions?.editor}
 						getCurrentContent={editorFunctions?.getCurrentContent}
 					/>

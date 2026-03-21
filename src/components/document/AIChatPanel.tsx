@@ -89,9 +89,8 @@ interface ToolCall {
 }
 
 const models = [
-	{ id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', chef: 'Google', chefSlug: 'google', providers: ['google'] },
-	{ id: 'openai-gpt-4o', name: 'GPT-4o', chef: 'OpenAI', chefSlug: 'openai', providers: ['openai'] },
-	{ id: 'claude-3-sonnet', name: 'Claude 3.5 Sonnet', chef: 'Anthropic', chefSlug: 'anthropic', providers: ['anthropic'] },
+	{ id: 'google-genai:gemini-2.5-flash-lite', name: 'Neptune AI', chef: 'Google', chefSlug: 'google' },
+	{ id: 'google-genai:gemini-2.5-flash', name: 'Neptune AI Pro', chef: 'Google', chefSlug: 'google' },
 ]
 
 const suggestions = [
@@ -106,7 +105,13 @@ interface EditorFunctions {
 	editor?: any
 	getCurrentContent?: () => any
 	handleCompile?: () => Promise<void>
-	setPendingMerge?: (data: { original: string, modified: string, description?: string } | null) => void
+	setPendingMerge?: (data: {
+		original: string
+		modified: string
+		description?: string
+		searchBlock?: string[]
+		replaceBlock?: string[]
+	} | null) => void
 }
 
 interface AIChatPanelProps {
@@ -127,6 +132,16 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 	const threadIdRef = useRef<string>(`thread_${Date.now()}_${nanoid(6)}`)
 	const abortControllerRef = useRef<AbortController | null>(null)
 	const selectedModelData = models.find(m => m.id === model)
+
+	const stringifyToolResult = (value: unknown): string => {
+		if (typeof value === 'string') return value
+		if (value === null || value === undefined) return ''
+		try {
+			return JSON.stringify(value)
+		} catch {
+			return '[unserializable-value]'
+		}
+	}
 
 	const handleClearChat = () => {
 		setMessages([])
@@ -223,6 +238,9 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 						threadId: threadIdRef.current,
 						documentId,
 						plan: currentPlan,
+						// Extract provider and model from model ID
+						providerId: model.split(':')[0],
+						modelId: model.split(':')[1],
 					}),
 					signal: controller.signal
 				})
@@ -336,7 +354,11 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 														}
 													})
 												)
-												toolResultsForContinuation.push({ toolCallId: toolCall.id, name: toolCall.name, result })
+												toolResultsForContinuation.push({
+													toolCallId: toolCall.id,
+													name: toolCall.name,
+													result: stringifyToolResult(result)
+												})
 											} catch (e) {
 												const errMsg = e instanceof Error ? e.message : 'Tool error'
 												setMessages((prev) =>

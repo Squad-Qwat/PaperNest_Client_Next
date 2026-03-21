@@ -10,14 +10,14 @@ import { z } from 'zod'
 export const createCodeMirrorTools = () => {
 	return [
 		tool(
-			async ({ fromLine, toLine, full }) => JSON.stringify({ action: 'read_document', fromLine, toLine, full }),
+			async ({ fromLine, toLine, full }) => JSON.stringify({ action: 'read_document', fromLine, toLine, full: full ?? true }),
 			{
 				name: 'read_document',
-				description: 'Read document content. Can read a range of lines, the full document, or a preview.',
+				description: 'Read document content. Defaults to full document read.',
 				schema: z.object({
 					fromLine: z.number().optional().describe('Start line number (1-based)'),
 					toLine: z.number().optional().describe('End line number (inclusive)'),
-					full: z.boolean().optional().describe('Read the entire document (use with caution for large files)'),
+					full: z.boolean().optional().default(true).describe('Read the entire document. Defaults to true.'),
 				}),
 			}
 		),
@@ -33,13 +33,15 @@ export const createCodeMirrorTools = () => {
 			}
 		),
 		tool(
-			async ({ searchBlock, replaceBlock }) => JSON.stringify({ action: 'apply_diff_edit', searchBlock, replaceBlock }),
+			async ({ searchBlock, replaceBlock }) =>
+				JSON.stringify({ action: 'apply_diff_edit', searchBlock, replaceBlock }),
 			{
 				name: 'apply_diff_edit',
-				description: 'Apply exact block replacement by searching for a text block and replacing it.',
+				description:
+					'Apply array-based block replacement. Each searchBlock item is replaced with the corresponding replaceBlock item by index.',
 				schema: z.object({
-					searchBlock: z.string().describe('Exact text block to find'),
-					replaceBlock: z.string().describe('Replacement text block'),
+					searchBlock: z.array(z.string()).describe('Array of search text blocks.'),
+					replaceBlock: z.array(z.string()).describe('Array of replacement text blocks.'),
 				}),
 			}
 		),
