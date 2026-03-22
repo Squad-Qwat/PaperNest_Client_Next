@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { nanoid } from 'nanoid'
-import { CheckIcon, GlobeIcon, MicIcon, Sparkles } from 'lucide-react'
+import { CheckIcon, Sparkles } from 'lucide-react'
 
 import { executeEditorTool } from '@/lib/ai/tools/functions'
 import { AIChatHeader } from './ai/AIChatHeader'
@@ -470,14 +470,19 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 											)}
 
 											<MessageContent className={message.from === 'assistant' ? 'w-full' : ''}>
-												{(version.parts || []).map((part) => {
+												{(version.parts || []).map((part, index) => {
+													const isFirstPart = index === 0
 													if (part.type === 'text') {
-														return <MessageResponse key={part.id}>{part.content || ''}</MessageResponse>
+														return (
+															<div key={part.id} className={isFirstPart ? 'my-2' : ''}>
+																<MessageResponse>{part.content || ''}</MessageResponse>
+															</div>
+														)
 													}
 													if (part.type === 'tool' && part.tool) {
 														const { tool } = part
 														return (
-															<div key={part.id} className='my-3 w-full'>
+															<div key={part.id} className={isFirstPart ? 'my-2 w-full' : 'w-full'}>
 																<Tool className="w-full">
 																	<ToolHeader title={tool.name} type="dynamic-tool" toolName={tool.name} state={mapStatusToShadcn(tool.status)} />
 																	<ToolContent className="w-full">
@@ -594,21 +599,13 @@ function AIChatInput({
 			<PromptInputFooter>
 				<PromptInputTools>
 					<Button
-						size="icon"
-						onClick={() => setUseMicrophone(!useMicrophone)}
-						variant={useMicrophone ? "default" : "ghost"}
-						className="h-8 w-8"
-					>
-						<MicIcon className="w-4 h-4" />
-					</Button>
-					<Button
 						size="default"
 						onClick={() => setUseWebSearch(!useWebSearch)}
 						variant={useWebSearch ? "default" : "ghost"}
 						className="h-8 text-xs gap-1"
 					>
-						<GlobeIcon className="w-4 h-4" />
-						<span className="hidden sm:inline">Cari</span>
+						<Sparkles className="w-4 h-4" />
+						<span className="hidden sm:inline">Reasoning</span>
 					</Button>
 					<ModelSelector onOpenChange={setModelSelectorOpen} open={modelSelectorOpen}>
 						<ModelSelectorTrigger asChild>
