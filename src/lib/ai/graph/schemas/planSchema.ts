@@ -11,9 +11,9 @@ export const PlanStepSchema = z.object({
         .max(200)
         .describe('Clear description (max 200 chars) of what this step accomplishes'),
     tool: z
-        .enum(['read_document', 'apply_diff_edit', 'compile_latex', 'insert_content'])
+        .enum(['read_document', 'search_text_lines', 'replace_lines', 'apply_diff_edit', 'compile_latex', 'insert_content'])
         .optional()
-        .describe('Suggested tool: read_document, apply_diff_edit, compile_latex, or insert_content'),
+        .describe('Suggested tool: read_document, search_text_lines, replace_lines, apply_diff_edit, compile_latex, or insert_content'),
     acceptanceCriteria: z
         .string()
         .max(150)

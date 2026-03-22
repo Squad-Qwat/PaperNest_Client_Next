@@ -165,6 +165,52 @@ const applyMatchesToText = (docText: string, matches: DiffMatch[]): string => {
 	return result
 }
 
+const findAllOccurrences = (text: string, search: string, caseSensitive = false): number[] => {
+	const source = caseSensitive ? text : text.toLowerCase()
+	const target = caseSensitive ? search : search.toLowerCase()
+	const positions: number[] = []
+	if (!target) return positions
+
+	let cursor = 0
+	while (cursor <= source.length) {
+		const index = source.indexOf(target, cursor)
+		if (index === -1) break
+		positions.push(index)
+		cursor = index + 1
+	}
+
+	return positions
+}
+
+const findLatexEndDocumentIndex = (text: string): number => text.lastIndexOf(String.raw`\end{document}`)
+
+const findLatexBibliographyStart = (text: string, limitExclusive?: number): number | null => {
+	const limit = typeof limitExclusive === 'number' ? limitExclusive : text.length
+	const patterns = [
+		/\\begin\{thebibliography\}/g,
+		/\\printbibliography\b/g,
+		/\\bibliography\s*\{/g,
+		/\\(?:section|chapter)\*?\{\s*(?:references|reference|bibliography|daftar\s+pustaka)\s*\}/gi,
+	]
+
+	let bestIndex = -1
+	for (const pattern of patterns) {
+		pattern.lastIndex = 0
+		let match: RegExpExecArray | null
+		while ((match = pattern.exec(text)) !== null) {
+			if (match.index < limit && match.index > bestIndex) {
+				bestIndex = match.index
+			}
+		}
+	}
+
+	return bestIndex >= 0 ? bestIndex : null
+}
+
+const looksLikeLatexSectionContent = (content: string): boolean => {
+	return /\\(?:chapter|section|subsection|subsubsection)\*?\{/.test(content)
+}
+
 /**
  * Primary tool execution dispatcher for AI interactions (CodeMirror/LaTeX only)
  */
@@ -308,23 +354,96 @@ export const executeEditorTool = async (
 			}
 
 			case 'insert_content': {
-				const { content, position, stage } = args
+				const { content, position, stage, atLine, afterText, beforeText, occurrence, caseSensitive } = args
 				const selection = view.state.selection.main
+				const docText = view.state.doc.toString()
+				const endDocumentIndex = findLatexEndDocumentIndex(docText)
+				const isSectionInsert = looksLikeLatexSectionContent(content)
+				const bibliographyLimit = endDocumentIndex >= 0 ? endDocumentIndex : undefined
+				const bibliographyIndex = isSectionInsert
+					? findLatexBibliographyStart(docText, bibliographyLimit)
+					: null
 				let from = selection.from
 				let to = selection.to
 
-				if (position === 'start') { from = 0; to = 0; }
-				else if (position === 'end') { from = view.state.doc.length; to = view.state.doc.length; }
+				if (typeof atLine === 'number') {
+					if (atLine < 1 || atLine > view.state.doc.lines) {
+						return `Error: Invalid atLine=${atLine}. Total lines: ${view.state.doc.lines}`
+					}
+					from = view.state.doc.line(atLine).from
+					to = from
+				} else if (typeof afterText === 'string' && afterText.length > 0) {
+					const matches = findAllOccurrences(docText, afterText, caseSensitive ?? false)
+					if (matches.length === 0) {
+						return `Error: insert_content anchor not found (afterText). Use search_text_lines first to get exact anchor.`
+					}
+					if (matches.length > 1 && !occurrence) {
+						return `Error: insert_content anchor ambiguous (${matches.length} matches). Use search_text_lines to disambiguate, then pass occurrence.`
+					}
+					const occurrenceIndex = Math.max(1, occurrence ?? 1)
+					if (occurrenceIndex > matches.length) {
+						return `Error: occurrence=${occurrenceIndex} out of range. Found ${matches.length} anchor matches.`
+					}
+					const startIndex = matches[occurrenceIndex - 1]
+					from = startIndex + afterText.length
+					to = from
+				} else if (typeof beforeText === 'string' && beforeText.length > 0) {
+					const matches = findAllOccurrences(docText, beforeText, caseSensitive ?? false)
+					if (matches.length === 0) {
+						return `Error: insert_content anchor not found (beforeText). Use search_text_lines first to get exact anchor.`
+					}
+					if (matches.length > 1 && !occurrence) {
+						return `Error: insert_content anchor ambiguous (${matches.length} matches). Use search_text_lines to disambiguate, then pass occurrence.`
+					}
+					const occurrenceIndex = Math.max(1, occurrence ?? 1)
+					if (occurrenceIndex > matches.length) {
+						return `Error: occurrence=${occurrenceIndex} out of range. Found ${matches.length} anchor matches.`
+					}
+					from = matches[occurrenceIndex - 1]
+					to = from
+				} else if (position === 'start') {
+					from = 0
+					to = 0
+				} else if (position === 'end') {
+					if (bibliographyIndex !== null) {
+						from = bibliographyIndex
+						to = bibliographyIndex
+					} else if (endDocumentIndex >= 0) {
+						from = endDocumentIndex
+						to = endDocumentIndex
+					} else {
+						from = view.state.doc.length
+						to = view.state.doc.length
+					}
+				}
+
+				if (isSectionInsert) {
+					if (endDocumentIndex >= 0 && from > endDocumentIndex) {
+						const endDocumentMarker = String.raw`\end{document}`
+						return `Error: invalid section placement. New section cannot be inserted after ${endDocumentMarker}. Use get_sections + search_text_lines and insert before bibliography/references or before ${endDocumentMarker}.`
+					}
+
+					if (bibliographyIndex !== null && from > bibliographyIndex) {
+						return 'Error: invalid section placement. New section cannot be inserted after bibliography/references. Use get_sections + search_text_lines, then insert before bibliography marker.'
+					}
+				}
 
 				if (stage) {
-					const doc = view.state.doc
-					const prefix = doc.sliceString(0, from)
-					const suffix = doc.sliceString(to)
+					const prefix = view.state.doc.sliceString(0, from)
+					const suffix = view.state.doc.sliceString(to)
+					let insertionLabel = position || 'cursor'
+					if (typeof atLine === 'number') {
+						insertionLabel = `line ${atLine}`
+					} else if (typeof afterText === 'string' && afterText.length > 0) {
+						insertionLabel = 'afterText anchor'
+					} else if (typeof beforeText === 'string' && beforeText.length > 0) {
+						insertionLabel = 'beforeText anchor'
+					}
 					return {
 						type: 'staged_change',
-						original: doc.toString(),
+						original: docText,
 						modified: prefix + content + suffix,
-						description: `Insert content at ${position || 'cursor'}`
+						description: `Insert content at ${insertionLabel}`
 					}
 				}
 

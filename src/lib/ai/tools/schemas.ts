@@ -2,7 +2,7 @@ import { tool } from '@langchain/core/tools'
 import { z } from 'zod'
 
 /**
- * Minimal toolset for CodeMirror/LaTeX editor integration.
+				description: 'Insert content with robust placement: cursor/start/end (LaTeX-safe before end-document marker), specific line (atLine), or text anchors (afterText/beforeText). For new sections, use get_sections first.',
  *
  * These tools are intentionally limited to handlers implemented in
  * `executeEditorTool` on the client side.
@@ -22,13 +22,19 @@ export const createCodeMirrorTools = () => {
 			}
 		),
 		tool(
-			async ({ content, position }) => JSON.stringify({ action: 'insert_content', content, position }),
+			async ({ content, position, atLine, afterText, beforeText, occurrence, caseSensitive }) =>
+				JSON.stringify({ action: 'insert_content', content, position, atLine, afterText, beforeText, occurrence, caseSensitive }),
 			{
 				name: 'insert_content',
-				description: 'Insert content at cursor, start, or end of document.',
+				description: 'Insert content with robust placement: cursor/start/end (LaTeX-safe before end-document marker), specific line (atLine), or text anchors (afterText/beforeText). For new sections, use get_sections first.',
 				schema: z.object({
 					content: z.string().describe('Text content to insert'),
-					position: z.enum(['cursor', 'start', 'end']).optional(),
+					position: z.enum(['cursor', 'start', 'end']).optional().describe('Basic insertion position.'),
+					atLine: z.number().optional().describe('Insert at start of this 1-based line.'),
+					afterText: z.string().optional().describe('Insert after this exact anchor text.'),
+					beforeText: z.string().optional().describe('Insert before this exact anchor text.'),
+					occurrence: z.number().optional().describe('Occurrence index for anchor match (1-based). Defaults to 1 when unique.'),
+					caseSensitive: z.boolean().optional().describe('Case-sensitive anchor match. Defaults to false.'),
 				}),
 			}
 		),
@@ -49,7 +55,7 @@ export const createCodeMirrorTools = () => {
 			async () => JSON.stringify({ action: 'get_sections' }),
 			{
 				name: 'get_sections',
-				description: 'Get LaTeX section headings from current document.',
+				description: 'Get LaTeX section headings from current document. Use this before inserting new sections (e.g., Kesimpulan/Conclusion) to keep structure correct.',
 				schema: z.object({}),
 			}
 		),
