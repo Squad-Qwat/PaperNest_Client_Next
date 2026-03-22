@@ -25,6 +25,13 @@ export function MergePreview({ original, modified, queuePosition = 0, queueTotal
     const editorViewRef = useRef<EditorView | null>(null)
     const [viewMode, setViewMode] = React.useState<'side-by-side' | 'unified'>('unified')
 
+    const getCurrentMergedContent = React.useCallback((): string => {
+        if (viewMode === 'side-by-side') {
+            return mergeViewRef.current?.b?.state.doc.toString() ?? modified
+        }
+        return editorViewRef.current?.state.doc.toString() ?? modified
+    }, [viewMode, modified])
+
     useEffect(() => {
         if (!containerRef.current) return
 
@@ -171,7 +178,7 @@ export function MergePreview({ original, modified, queuePosition = 0, queueTotal
                     <Button
                         size="sm"
                         className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white gap-1.5"
-                        onClick={() => onAccept(modified)}
+                        onClick={() => onAccept(getCurrentMergedContent())}
                     >
                         <Check className="w-3.5 h-3.5" />
                         Accept This

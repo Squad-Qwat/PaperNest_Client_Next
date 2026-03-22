@@ -18,6 +18,12 @@ export interface ToolResult {
     success: boolean
 }
 
+export type ExecutionOutcome =
+    | 'executed_tool'
+    | 'executed_text_only'
+    | 'no_execution'
+    | 'execution_error'
+
 /**
  * Plan step definition for Plan-and-Execute
  */
@@ -91,8 +97,8 @@ export const AgentState = Annotation.Root({
 
     // ===== META-COGNITION STATE =====
     confidence: Annotation<number>({
-        reducer: (_, newVal) => newVal ?? 1.0,
-        default: () => 1.0,
+        reducer: (_, newVal) => newVal ?? 1,
+        default: () => 1,
     }),
     progress: Annotation<number>({
         reducer: (_, newVal) => newVal ?? 0,
@@ -125,6 +131,22 @@ export const AgentState = Annotation.Root({
     lastToolResults: Annotation<ToolResult[]>({
         reducer: (_, newVal) => newVal ?? [],
         default: () => [],
+    }),
+    lastExecutionOutcome: Annotation<ExecutionOutcome>({
+        reducer: (_, newVal) => newVal ?? 'no_execution',
+        default: () => 'no_execution',
+    }),
+    lastExecutionEvidence: Annotation<string>({
+        reducer: (_, newVal) => newVal ?? '',
+        default: () => '',
+    }),
+    consecutiveNoExecutionCycles: Annotation<number>({
+        reducer: (_, newVal) => newVal ?? 0,
+        default: () => 0,
+    }),
+    replanAttempts: Annotation<number>({
+        reducer: (_, newVal) => newVal ?? 0,
+        default: () => 0,
     }),
 
     // ===== ERROR HANDLING =====

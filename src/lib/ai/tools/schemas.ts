@@ -46,14 +46,6 @@ export const createCodeMirrorTools = () => {
 			}
 		),
 		tool(
-			async () => JSON.stringify({ action: 'get_cursor_info' }),
-			{
-				name: 'get_cursor_info',
-				description: 'Get current cursor position, selection, and surrounding context.',
-				schema: z.object({}),
-			}
-		),
-		tool(
 			async () => JSON.stringify({ action: 'get_sections' }),
 			{
 				name: 'get_sections',
@@ -62,21 +54,25 @@ export const createCodeMirrorTools = () => {
 			}
 		),
 		tool(
-			async () => JSON.stringify({ action: 'get_document_stats' }),
+			async ({ query, caseSensitive }) => JSON.stringify({ action: 'search_text_lines', query, caseSensitive }),
 			{
-				name: 'get_document_stats',
-				description: 'Get document statistics such as character count, line count, and estimated word count.',
-				schema: z.object({}),
+				name: 'search_text_lines',
+				description: 'Search for text within the document by line content. Returns matching line numbers and text.',
+				schema: z.object({
+					query: z.string().describe('Text to search for'),
+					caseSensitive: z.boolean().optional().describe('Whether search is case-sensitive. Defaults to false.'),
+				}),
 			}
 		),
 		tool(
-			async ({ query, k }) => JSON.stringify({ action: 'search_document_context', query, k }),
+			async ({ fromLine, toLine, newContent }) => JSON.stringify({ action: 'replace_lines', fromLine, toLine, newContent }),
 			{
-				name: 'search_document_context',
-				description: 'Search semantic context from indexed document chunks.',
+				name: 'replace_lines',
+				description: 'Replace content in a range of lines. More robust than apply_diff_edit for multi-line changes.',
 				schema: z.object({
-					query: z.string().describe('Search query for contextual retrieval'),
-					k: z.number().optional().describe('Number of chunks to retrieve'),
+					fromLine: z.number().describe('Start line number (1-based)'),
+					toLine: z.number().describe('End line number (inclusive)'),
+					newContent: z.string().describe('New content to insert'),
 				}),
 			}
 		),
@@ -93,14 +89,6 @@ export const createCodeMirrorTools = () => {
 			{
 				name: 'get_compile_logs',
 				description: 'Get the LaTeX compilation logs. Use this if compile_latex reported errors to understand what went wrong.',
-				schema: z.object({}),
-			}
-		),
-		tool(
-			async () => JSON.stringify({ action: 'format_latex' }),
-			{
-				name: 'format_latex',
-				description: 'Automatically format the LaTeX source code for better readability.',
 				schema: z.object({}),
 			}
 		),

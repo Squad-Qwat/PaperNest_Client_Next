@@ -4,7 +4,7 @@ import { useState, useRef } from 'react'
 import { nanoid } from 'nanoid'
 import { CheckIcon, GlobeIcon, MicIcon, Sparkles } from 'lucide-react'
 
-import { executeEditorTool } from '@/lib/ai/editorTools'
+import { executeEditorTool } from '@/lib/ai/tools/functions'
 import { AIChatHeader } from './ai/AIChatHeader'
 
 import {
@@ -227,6 +227,12 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 			while (shouldContinue && currentStep < MAX_STEPS) {
 				currentStep++
 
+				// CRITICAL FIX: Don't send completed plan on new messages
+				// Let backend generate fresh plan for each new task
+				const hasUncompletedSteps = currentPlan && currentPlan.length > 0 
+					&& currentPlan.some((s: any) => s.status !== 'completed')
+				const planToSend = hasUncompletedSteps ? currentPlan : undefined
+
 				const response = await fetch('/api/ai-stream', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
@@ -237,7 +243,7 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 						toolResults: toolResultsForContinuation.length > 0 ? toolResultsForContinuation : undefined,
 						threadId: threadIdRef.current,
 						documentId,
-						plan: currentPlan,
+						plan: planToSend, // Only send if has pending/active steps
 						// Extract provider and model from model ID
 						providerId: model.split(':')[0],
 						modelId: model.split(':')[1],
@@ -320,7 +326,7 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 											try {
 												// Add staging flag for tools that modify the document
 												const toolArgs = { ...toolCall.args };
-												if (['insert_content', 'apply_diff_edit', 'format_latex'].includes(toolCall.name)) {
+												if (['insert_content', 'apply_diff_edit', 'replace_lines', 'format_latex'].includes(toolCall.name)) {
 													toolArgs.stage = true;
 												}
 

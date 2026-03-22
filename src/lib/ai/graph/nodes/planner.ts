@@ -1,7 +1,7 @@
-import { HumanMessage, SystemMessage } from '@langchain/core/messages'
+import { SystemMessage, HumanMessage } from '@langchain/core/messages'
 import { loadPrompts } from '../../promptLoader'
 import { createAIModel } from '../../config'
-import { createCodeMirrorTools } from '../../codeMirrorTools'
+import { createCodeMirrorTools } from '../../tools/schemas'
 import { AgentStateType } from '../state'
 import { PlanSchema } from '../schemas/planSchema'
 
@@ -24,9 +24,24 @@ function getToolDescriptions(): string {
 export const plannerNode = async (state: AgentStateType) => {
     const prompts = await loadPrompts(['system', 'planner'])
 
+    // Early exit: validate we have the required prompts
+    if (!prompts.system || !prompts.planner) {
+        console.error('[Planner] Missing required prompts (system or planner)')
+        return {
+            plan: [{
+                id: '1',
+                description: 'ERROR: System prompts not loaded',
+                status: 'failed' as const,
+                confidence: 0,
+                acceptanceCriteria: 'Prompt loading failed',
+            }],
+            goal: state.goal, // Preserve existing goal
+        }
+    }
+
     // Skip replanning if a valid plan already exists and replanning isn't requested
     if (state.plan && state.plan.length > 0 && !state.needsReplanning) {
-        return {}
+        return { goal: state.goal } // Return early but preserve goal
     }
 
     const model = createAIModel({
@@ -34,17 +49,51 @@ export const plannerNode = async (state: AgentStateType) => {
         model: state.modelId,
     })
 
-    const taskMessage = state.messages.at(-1)?.content?.toString() || ''
+    // Extract task: use goal if replanning, otherwise extract from messages
+    const taskMessage = state.goal && state.goal.trim()
+        ? state.goal
+        : (state.messages.at(-1)?.content && typeof state.messages.at(-1)!.content === 'string')
+            ? (state.messages.at(-1)!.content as string).trim()
+            : ''
+
+    // Early exit: no task provided
+    if (!taskMessage) {
+        console.warn('[Planner] No task message provided, cannot create plan')
+        return {
+            plan: [{
+                id: '1',
+                description: 'No task provided',
+                status: 'failed' as const,
+                confidence: 0,
+                acceptanceCriteria: 'Task required to create plan',
+            }],
+        }
+    }
+
     const documentSnippet = state.documentContent?.slice(0, 2000) || '(no document content)'
     const toolDescriptions = getToolDescriptions()
 
     // Build the planner prompt with all placeholders filled
-    const plannerPrompt = (prompts.planner || '')
+    const plannerPrompt = prompts.planner
         .replace('{tool_descriptions}', toolDescriptions)
         .replace('{document_snippet}', documentSnippet)
         .replace('{task}', taskMessage)
 
-    const sysMsg = new SystemMessage((prompts.system || '') + '\n\n' + plannerPrompt)
+    // Validate prompt is not empty
+    if (!plannerPrompt.trim()) {
+        console.error('[Planner] Planner prompt is empty after substitution')
+        return {
+            plan: [{
+                id: '1',
+                description: taskMessage,
+                status: 'pending' as const,
+                confidence: 0.5,
+                acceptanceCriteria: 'Prompt substitution failed, using fallback',
+            }],
+        }
+    }
+
+    const sysMsg = new SystemMessage(prompts.system + '\n\n' + plannerPrompt)
 
     try {
         // Use structured output to get a type-safe, validated plan from the LLM
@@ -53,7 +102,21 @@ export const plannerNode = async (state: AgentStateType) => {
             strict: false,
         })
 
-        const response = await modelWithStructure.invoke([sysMsg])
+        console.log('[Planner] Invoking structured output with:', {
+            messageCount: 2,
+            taskMessage: taskMessage.substring(0, 50),
+        })
+
+        // Always include HumanMessage to satisfy Gemini 'contents' requirement
+        const response = await modelWithStructure.invoke([
+            sysMsg,
+            new HumanMessage(`Plan this task: ${taskMessage}`),
+        ])
+
+        console.log('[Planner] Structured output succeeded:', {
+            stepsCount: response.steps?.length,
+            firstStepTool: response.steps?.[0]?.tool,
+        })
 
         const plan = response.steps.map((step: any, idx: number) => ({
             ...step,
@@ -63,26 +126,45 @@ export const plannerNode = async (state: AgentStateType) => {
         }))
 
         console.log(`[Planner] Generated ${plan.length} steps via LLM. Reasoning: ${response.reasoning || 'N/A'}`)
+        console.log('[Planner] Plan details:', {
+            steps: plan.map((s: any) => ({
+                id: s.id,
+                description: s.description?.substring(0, 40),
+                tool: s.tool,
+                status: s.status,
+            })),
+        })
 
         return {
             plan,
             needsReplanning: false,
+            consecutiveNoExecutionCycles: 0,
             goal: taskMessage,
         }
     } catch (err) {
         // Fallback: single generic step if structured output fails
-        console.error('[Planner] Structured output failed, using fallback plan:', err)
+        console.error('[Planner] Structured output failed, using fallback plan:', err instanceof Error ? err.message : String(err))
+        const fallbackPlan = [
+            {
+                id: '1',
+                description: taskMessage,
+                status: 'pending' as const,
+                confidence: 0.7,
+                acceptanceCriteria: 'Task executed without error',
+                tool: undefined, // Explicitly note that fallback has no tool
+            },
+        ]
+        console.warn('[Planner] Fallback plan created (no tool field!):', {
+            steps: fallbackPlan.map(s => ({
+                id: s.id,
+                tool: s.tool,
+                status: s.status,
+            })),
+        })
         return {
-            plan: [
-                {
-                    id: '1',
-                    description: taskMessage,
-                    status: 'pending' as const,
-                    confidence: 0.7,
-                    acceptanceCriteria: 'Task executed without error',
-                },
-            ],
+            plan: fallbackPlan,
             needsReplanning: false,
+            consecutiveNoExecutionCycles: 0,
             goal: taskMessage,
         }
     }

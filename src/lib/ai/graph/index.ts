@@ -13,13 +13,11 @@ import { plannerNode, executorNode, toolNode, reflectorNode } from './nodes'
 import {
     routeAfterPlanner,
     routeAfterExecutor,
-    routeAfterTools,
     routeAfterReflector,
     ROUTES
 } from './routing'
 
 import { HumanMessage, AIMessage, BaseMessage, ToolMessage } from '@langchain/core/messages'
-import { ToolCall } from '@langchain/core/messages/tool'
 
 const toSafeText = (value: unknown): string => {
     if (typeof value === 'string') {
@@ -33,6 +31,39 @@ const toSafeText = (value: unknown): string => {
     } catch {
         return '[unserializable-value]'
     }
+}
+
+/**
+ * Prune old messages to prevent history explosion
+ * Keeps most recent N messages + original conversation turn
+ * Removes old ToolMessages but preserves AIMessages for context
+ */
+const pruneMessageHistory = (messages: BaseMessage[], maxMessages: number = 20): BaseMessage[] => {
+    if (messages.length <= maxMessages) {
+        return messages
+    }
+
+    // Keep: first message (user), last N messages
+    const firstMsg = messages[0]
+    const recentMessages = messages.slice(-Math.max(5, maxMessages - 2))
+
+    // Remove consecutive ToolMessages to reduce noise
+    const pruned: BaseMessage[] = [firstMsg, ...recentMessages]
+    const dedupedMessages: BaseMessage[] = []
+
+    for (const msg of pruned) {
+        const prevMsg = dedupedMessages.at(-1)
+
+        // Skip consecutive ToolMessages (keep the latest one)
+        if (msg instanceof ToolMessage && prevMsg instanceof ToolMessage) {
+            dedupedMessages[dedupedMessages.length - 1] = msg
+        } else {
+            dedupedMessages.push(msg)
+        }
+    }
+
+    console.log(`[History] Pruned from ${messages.length} to ${dedupedMessages.length} messages`)
+    return dedupedMessages
 }
 
 /**
@@ -54,11 +85,11 @@ const graphBuilder = new StateGraph(AgentState)
         [ROUTES.END]: END,
     })
 
-    // Executor routing (Tool? or Reflector?)
+    // Executor routing: Tool execution → Reflector evaluation
+    // FIXED: All tool calls now route through TOOLS → REFLECTOR for proper evaluation
     .addConditionalEdges(ROUTES.EXECUTOR, routeAfterExecutor, {
         [ROUTES.TOOLS]: ROUTES.TOOLS,
-        [ROUTES.REFLECTOR]: ROUTES.REFLECTOR, // If no tool call, treating as step done (or fail?)
-        [ROUTES.END]: END, // Added to support client-side tool execution pause
+        [ROUTES.REFLECTOR]: ROUTES.REFLECTOR,
     })
 
     // Tools -> Reflector
@@ -119,18 +150,41 @@ export async function* streamAgent(
             .filter((msg) => msg.text.length > 0)
             .map((msg) => (msg.role === 'user' ? new HumanMessage(msg.text) : new AIMessage(msg.text)))
 
+        // Prune history to prevent message explosion (cost & context size)
+        const prunedHistory = pruneMessageHistory(historyMessages)
+
+        // Extract task for goal preservation  
+        const taskForGoal = conversationHistory.length > 0
+            ? conversationHistory.at(-1)?.content?.toString() || userMessage
+            : userMessage
+
+        // CRITICAL FIX: Don't reuse plan if all steps are already completed
+        // (happens when frontend sends plan from previous execution)
+        // New message = generate fresh plan
+        const shouldUseInitialPlan = initialPlan && initialPlan.length > 0 
+            && !initialPlan.every((s: any) => s.status === 'completed')
+        
+        console.log('[Graph] Plan reuse check:', {
+            hasInitialPlan: !!initialPlan,
+            initialPlanLength: initialPlan?.length ?? 0,
+            allCompleted: initialPlan?.every?.((s: any) => s.status === 'completed') ?? false,
+            shouldUseInitialPlan,
+            action: shouldUseInitialPlan ? 'RESUMING existing plan' : 'GENERATING fresh plan',
+        })
+        
         const initialState: Partial<AgentStateType> = {
-            messages: [...historyMessages, new HumanMessage(userMessage)],
+            messages: [...prunedHistory, new HumanMessage(userMessage)],
             documentContent,
             documentHTML,
             cursorPosition: 0,
-            plan: initialPlan || [],
+            plan: shouldUseInitialPlan ? initialPlan : [], // Empty if already completed
             pastSteps: [], // Initialize pastSteps for tracking
             needsReplanning: false,
             iteration: 0,
             maxIterations: 15,
             documentId: documentId || '',
             isComplete: false, // Explicitly initialize
+            goal: taskForGoal, // Preserve task for replan cycles
             providerId: providerId || 'google-genai',
             modelId: modelId || 'gemini-2.5-flash-lite',
         }
@@ -174,6 +228,9 @@ export async function* streamAgent(
                 toolCallMessage,
                 ...toolResultMessages,
             ]
+
+            // Prune again after adding tool results to prevent explosion
+            initialState.messages = pruneMessageHistory(initialState.messages, 25)
         }
 
         const config = {

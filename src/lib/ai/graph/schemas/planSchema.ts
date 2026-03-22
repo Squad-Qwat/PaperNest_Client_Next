@@ -8,15 +8,17 @@ export const PlanStepSchema = z.object({
     id: z.string().describe('Unique step ID, e.g. "1", "2"'),
     description: z
         .string()
-        .describe('Clear description of what this step accomplishes'),
+        .max(200)
+        .describe('Clear description (max 200 chars) of what this step accomplishes'),
     tool: z
-        .string()
+        .enum(['read_document', 'apply_diff_edit', 'compile_latex', 'insert_content'])
         .optional()
-        .describe('Suggested tool name to use for this step'),
+        .describe('Suggested tool: read_document, apply_diff_edit, compile_latex, or insert_content'),
     acceptanceCriteria: z
         .string()
+        .max(150)
         .optional()
-        .describe('How to verify this step succeeded (used by reflector)'),
+        .describe('How to verify succeeded (max 150 chars)'),
     confidence: z
         .number()
         .min(0)

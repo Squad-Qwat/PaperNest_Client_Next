@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { executeEditorTool } from '../editorTools'
+import { executeEditorTool } from '../tools/functions'
 
 const createMockEditor = (initialText: string) => {
 	let docText = initialText

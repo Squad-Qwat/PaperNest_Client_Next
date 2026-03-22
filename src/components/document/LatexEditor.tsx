@@ -93,6 +93,70 @@ export function LatexEditor({
         initialContent
     })
 
+    const applyPendingMerge = useCallback((
+        merge: PendingMergeChange,
+        fallbackContent?: string
+    ): boolean => {
+        if (!view) return false
+
+        const currentDoc = view.state.doc.toString()
+        const isApplyDiffMerge = Array.isArray(merge.searchBlock) && Array.isArray(merge.replaceBlock)
+        let applied = false
+
+        if (isApplyDiffMerge) {
+            const searchBlock = merge.searchBlock ?? []
+            const replaceBlock = merge.replaceBlock ?? []
+
+            if (searchBlock.length === replaceBlock.length && searchBlock.length > 0) {
+                const ranges: Array<{ from: number; to: number; insert: string }> = []
+                let searchFrom = 0
+                let batchValid = true
+
+                for (let i = 0; i < searchBlock.length; i++) {
+                    const search = searchBlock[i]
+                    const replace = replaceBlock[i]
+
+                    if (typeof search !== 'string' || typeof replace !== 'string' || search.length === 0) {
+                        batchValid = false
+                        break
+                    }
+
+                    const firstIndex = currentDoc.indexOf(search, searchFrom)
+                    if (firstIndex === -1) {
+                        batchValid = false
+                        break
+                    }
+
+                    ranges.push({ from: firstIndex, to: firstIndex + search.length, insert: replace })
+                    searchFrom = firstIndex + search.length
+                }
+
+                if (batchValid) {
+                    ranges.sort((a, b) => b.from - a.from)
+                    view.dispatch({
+                        changes: ranges,
+                        scrollIntoView: false,
+                    })
+                    applied = true
+                }
+            }
+        }
+
+        // FALLBACK: If surgical replace failed or not applicable, try granular diffing
+        if (!applied && typeof fallbackContent === 'string') {
+            const changes = computeCodeMirrorChanges(currentDoc, fallbackContent)
+            if (changes.length > 0) {
+                view.dispatch({
+                    changes,
+                    scrollIntoView: false,
+                })
+                applied = true
+            }
+        }
+
+        return applied
+    }, [view])
+
     // Fetch files when documentId changes
     useEffect(() => {
         if (documentId) {
@@ -243,137 +307,37 @@ export function LatexEditor({
                         <MergePreview
                             original={activePendingMerge.original}
                             modified={activePendingMerge.modified}
-                            queuePosition={pendingMerges.length === 0 ? 0 : 1}
+                            queuePosition={pendingMerges.length > 0 ? pendingMerges.length - pendingMerges.indexOf(activePendingMerge) : 0}
                             queueTotal={pendingMerges.length}
                             onAccept={(content) => {
                                 const mergeToApply = activePendingMerge
                                 if (!mergeToApply) return
 
-                                if (view) {
-                                    const currentDoc = view.state.doc.toString();
-                                    let applied = false;
-                                    const isApplyDiffMerge = Array.isArray(mergeToApply.searchBlock) && Array.isArray(mergeToApply.replaceBlock)
-
-                                    // OPTIMIZATION: Surgical Replace (Best for Multi-user context)
-                                    // If the staged change has array-based search/replace blocks, apply them in reverse order.
-                                    if (isApplyDiffMerge) {
-                                        const searchBlock = mergeToApply.searchBlock ?? [];
-                                        const replaceBlock = mergeToApply.replaceBlock ?? [];
-                                        if (searchBlock.length === replaceBlock.length && searchBlock.length > 0) {
-                                            const ranges: Array<{ from: number; to: number; insert: string }> = [];
-                                            let batchValid = true;
-
-                                            for (let i = 0; i < searchBlock.length; i++) {
-                                                const search = searchBlock[i];
-                                                const replace = replaceBlock[i];
-                                                if (typeof search !== 'string' || typeof replace !== 'string' || search.length === 0) {
-                                                    batchValid = false;
-                                                    break;
-                                                }
-
-                                                const firstIndex = currentDoc.indexOf(search);
-                                                const duplicateIndex = firstIndex === -1 ? -1 : currentDoc.indexOf(search, firstIndex + 1);
-                                                if (firstIndex === -1 || duplicateIndex !== -1) {
-                                                    batchValid = false;
-                                                    break;
-                                                }
-
-                                                ranges.push({ from: firstIndex, to: firstIndex + search.length, insert: replace });
-                                            }
-
-                                            if (batchValid) {
-                                                ranges.sort((a, b) => b.from - a.from);
-                                                view.dispatch({
-                                                    changes: ranges,
-                                                    scrollIntoView: false
-                                                });
-                                                applied = true;
-                                            }
-                                        }
-                                    }
-
-                                    // FALLBACK: Granular Diffing
-                                    // If surgical replace wasn't possible or not applicable, use diffing to find minimal changes.
-                                    if (!applied && !isApplyDiffMerge) {
-                                        const changes = computeCodeMirrorChanges(currentDoc, content);
-                                        if (changes.length > 0) {
-                                            view.dispatch({
-                                                changes,
-                                                scrollIntoView: false
-                                            });
-                                            applied = true;
-                                        }
-                                    }
-
-                                    // For apply_diff_edit merges, never fallback to full diff because it can overwrite accepted merges.
-                                    if (!applied && isApplyDiffMerge) {
-                                        console.warn('Merge preview apply failed: staged apply_diff_edit no longer matches current document.');
-                                        return;
-                                    }
+                                const applied = applyPendingMerge(mergeToApply, content)
+                                if (!applied) {
+                                    console.warn('Merge preview apply failed: staged apply_diff_edit no longer matches current document.')
+                                    return
                                 }
-                                consumePendingMerge();
+
+                                consumePendingMerge()
                             }}
                             onAcceptAll={() => {
-                                // Accept ALL remaining merges in sequence
-                                let remaining = [...pendingMerges];
-                                while (remaining.length > 0) {
-                                    const merge = remaining[0];
-                                    if (view) {
-                                        const currentDoc = view.state.doc.toString();
-                                        let applied = false;
-                                        const isApplyDiffMerge = Array.isArray(merge.searchBlock) && Array.isArray(merge.replaceBlock);
+                                if (!view) return
 
-                                        if (isApplyDiffMerge) {
-                                            const searchBlock = merge.searchBlock ?? [];
-                                            const replaceBlock = merge.replaceBlock ?? [];
-                                            if (searchBlock.length === replaceBlock.length && searchBlock.length > 0) {
-                                                const ranges: Array<{ from: number; to: number; insert: string }> = [];
-                                                let batchValid = true;
+                                let appliedCount = 0
+                                for (let index = 0; index < pendingMerges.length; index++) {
+                                    const merge = pendingMerges[index]
+                                    const applied = applyPendingMerge(merge, merge.modified)
 
-                                                for (let i = 0; i < searchBlock.length; i++) {
-                                                    const search = searchBlock[i];
-                                                    const replace = replaceBlock[i];
-                                                    if (typeof search !== 'string' || typeof replace !== 'string' || search.length === 0) {
-                                                        batchValid = false;
-                                                        break;
-                                                    }
-
-                                                    const firstIndex = currentDoc.indexOf(search);
-                                                    const duplicateIndex = firstIndex === -1 ? -1 : currentDoc.indexOf(search, firstIndex + 1);
-                                                    if (firstIndex === -1 || duplicateIndex !== -1) {
-                                                        batchValid = false;
-                                                        break;
-                                                    }
-
-                                                    ranges.push({ from: firstIndex, to: firstIndex + search.length, insert: replace });
-                                                }
-
-                                                if (batchValid) {
-                                                    ranges.sort((a, b) => b.from - a.from);
-                                                    view.dispatch({
-                                                        changes: ranges,
-                                                        scrollIntoView: false
-                                                    });
-                                                    applied = true;
-                                                }
-                                            }
-                                        }
-
-                                        if (!applied && !isApplyDiffMerge) {
-                                            const changes = computeCodeMirrorChanges(currentDoc, merge.modified);
-                                            if (changes.length > 0) {
-                                                view.dispatch({
-                                                    changes,
-                                                    scrollIntoView: false
-                                                });
-                                                applied = true;
-                                            }
-                                        }
+                                    if (!applied) {
+                                        console.warn(`Accept All: Merge ${index + 1} failed - search text not found.`)
+                                        break
                                     }
-                                    remaining = remaining.slice(1);
+
+                                    appliedCount++
                                 }
-                                // Clear all pending merges
-                                setPendingMerges([]);
+
+                                setPendingMerges(prev => prev.slice(appliedCount))
                             }}
                             onDiscard={() => consumePendingMerge()}
                         />
