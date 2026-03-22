@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
 			documentId,
 			plan,
 			threadId: bodyThreadId, // Extract threadId from body
+			reasoningEnabled = false,
 			providerId,
 			modelId,
 		} = body
@@ -55,6 +56,7 @@ export async function POST(request: NextRequest) {
 						toolResults as ToolResult[] | undefined,
 						documentId,
 						plan,
+						reasoningEnabled,
 						providerId,
 						modelId
 					)) {

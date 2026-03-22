@@ -183,6 +183,18 @@ export const executorNode = async (state: AgentStateType) => {
         ? `tool_calls:${toolCalls.map((tc: any) => tc.name).join(',')}`
         : (responseText.slice(0, 500) || 'No model output generated')
 
+    const executorReasoning = state.reasoningEnabled
+        ? (() => {
+            if (hasToolCalls) {
+                return `### Executor\nExecuting step ${currentStep.id}: ${currentStep.description}. Selected tool(s): ${toolCalls.map((tc: any) => tc.name).join(', ')}.`
+            }
+            if (responseText.length > 0) {
+                return `### Executor\nStep ${currentStep.id} produced a direct answer without tool call.`
+            }
+            return `### Executor\nStep ${currentStep.id} produced no output, reflector will decide whether to continue or replan.`
+        })()
+        : ''
+
     // Mark the current step as 'active' in the plan update
     // ONE-WAY STATE MACHINE: Only 'pending' → 'active' transition allowed
     // This prevents status "bounce-back" (active → pending, completed → pending, etc)
@@ -218,5 +230,7 @@ export const executorNode = async (state: AgentStateType) => {
         iteration: (state.iteration || 0) + 1,
         lastExecutionOutcome,
         lastExecutionEvidence,
+        lastReasoningSummary: executorReasoning,
+        lastReasoningPhase: executorReasoning ? 'executor' : '',
     }
 }

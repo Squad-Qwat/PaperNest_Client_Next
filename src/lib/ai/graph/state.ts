@@ -108,6 +108,18 @@ export const AgentState = Annotation.Root({
         reducer: (_, newVal) => newVal ?? false,
         default: () => false,
     }),
+    reasoningEnabled: Annotation<boolean>({
+        reducer: (_, newVal) => newVal ?? false,
+        default: () => false,
+    }),
+    lastReasoningSummary: Annotation<string>({
+        reducer: (_, newVal) => newVal ?? '',
+        default: () => '',
+    }),
+    lastReasoningPhase: Annotation<string>({
+        reducer: (_, newVal) => newVal ?? '',
+        default: () => '',
+    }),
 
     // ===== EXECUTION TRACKING =====
     pastSteps: Annotation<Array<[string, string]>>({

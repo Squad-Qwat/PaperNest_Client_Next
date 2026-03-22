@@ -110,7 +110,7 @@ export const graph = graphBuilder.compile({ checkpointer })
 export type { AgentStateType, ToolResult }
 
 export interface StreamEvent {
-    type: 'content' | 'tool_calls' | 'tool_results' | 'done' | 'error' | 'plan_update'
+    type: 'content' | 'tool_calls' | 'tool_results' | 'done' | 'error' | 'plan_update' | 'reasoning'
     content?: string
     toolCalls?: { id: string; name: string; args: Record<string, unknown> }[]
     results?: ToolResult[]
@@ -118,6 +118,8 @@ export interface StreamEvent {
     hasMoreSteps?: boolean
     error?: string
     plan?: any[] // New event for plan updates
+    phase?: 'planner' | 'executor' | 'reflector'
+    duration?: number
 }
 
 /**
@@ -132,6 +134,7 @@ export async function* streamAgent(
     existingToolResults?: ToolResult[],
     documentId?: string,
     initialPlan?: any[],
+    reasoningEnabled: boolean = false,
     providerId?: string,
     modelId?: string
 ): AsyncGenerator<StreamEvent> {
@@ -185,6 +188,7 @@ export async function* streamAgent(
             documentId: documentId || '',
             isComplete: false, // Explicitly initialize
             goal: taskForGoal, // Preserve task for replan cycles
+            reasoningEnabled,
             providerId: providerId || 'google-genai',
             modelId: modelId || 'gemini-2.5-flash-lite',
         }
@@ -240,6 +244,7 @@ export async function* streamAgent(
 
         const contentParts: string[] = []
         let pendingToolCalls: { id: string; name: string; args: Record<string, unknown> }[] = []
+        const reasoningStartTime = Date.now()
 
         for await (const update of await graph.stream(initialState, config)) {
             const entries = Object.entries(update)
@@ -253,6 +258,16 @@ export async function* streamAgent(
                     console.log(`[Graph] Plan update: ${output.plan.length} steps`)
                     if (output.confidence !== undefined) {
                         console.log(`[Graph] Confidence Score: ${output.confidence}`)
+                    }
+                }
+
+                if (reasoningEnabled && output.lastReasoningSummary && output.lastReasoningSummary.trim()) {
+                    const phase = (output.lastReasoningPhase || nodeName) as 'planner' | 'executor' | 'reflector'
+                    yield {
+                        type: 'reasoning',
+                        phase,
+                        content: output.lastReasoningSummary,
+                        duration: Math.max(1, Math.ceil((Date.now() - reasoningStartTime) / 1000)),
                     }
                 }
 

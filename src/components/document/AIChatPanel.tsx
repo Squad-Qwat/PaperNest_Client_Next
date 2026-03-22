@@ -125,8 +125,7 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 	const [isLoading, setIsLoading] = useState(false)
 	const [model, setModel] = useState<string>(models[0].id)
 	const [modelSelectorOpen, setModelSelectorOpen] = useState(false)
-	const [useWebSearch, setUseWebSearch] = useState<boolean>(false)
-	const [useMicrophone, setUseMicrophone] = useState<boolean>(false)
+	const [reasoningEnabled, setReasoningEnabled] = useState<boolean>(false)
 	const [currentPlan, setCurrentPlan] = useState<any[]>([])
 
 	const threadIdRef = useRef<string>(`thread_${Date.now()}_${nanoid(6)}`)
@@ -243,6 +242,7 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 						toolResults: toolResultsForContinuation.length > 0 ? toolResultsForContinuation : undefined,
 						threadId: threadIdRef.current,
 						documentId,
+						reasoningEnabled,
 						plan: planToSend, // Only send if has pending/active steps
 						// Extract provider and model from model ID
 						providerId: model.split(':')[0],
@@ -395,6 +395,24 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 									case 'plan_update':
 										setCurrentPlan(data.plan || [])
 										break
+																case 'reasoning':
+																	setMessages((prev) =>
+																		prev.map((msg) => {
+																			if (msg.key !== assistantKey) return msg
+																			const existing = msg.reasoning?.content?.trim() || ''
+																			const incoming = typeof data.content === 'string' ? data.content.trim() : ''
+																			if (!incoming) return msg
+																			const combined = existing ? `${existing}\n\n${incoming}` : incoming
+																			return {
+																				...msg,
+																				reasoning: {
+																					content: combined,
+																					duration: typeof data.duration === 'number' ? data.duration : msg.reasoning?.duration,
+																				},
+																			}
+																		})
+																	)
+																	break
 									case 'stream_end':
 										if (data.hasMoreSteps === false || !hasToolCalls) shouldContinue = false
 										break
@@ -545,10 +563,8 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 							setModel={setModel}
 							modelSelectorOpen={modelSelectorOpen}
 							setModelSelectorOpen={setModelSelectorOpen}
-							useWebSearch={useWebSearch}
-							setUseWebSearch={setUseWebSearch}
-							useMicrophone={useMicrophone}
-							setUseMicrophone={setUseMicrophone}
+								reasoningEnabled={reasoningEnabled}
+								setReasoningEnabled={setReasoningEnabled}
 							selectedModelData={selectedModelData}
 						/>
 					</PromptInputProvider>
@@ -567,10 +583,8 @@ function AIChatInput({
 	setModel,
 	modelSelectorOpen,
 	setModelSelectorOpen,
-	useWebSearch,
-	setUseWebSearch,
-	useMicrophone,
-	setUseMicrophone,
+	reasoningEnabled,
+	setReasoningEnabled,
 	selectedModelData
 }: any) {
 	const controller = usePromptInputController();
@@ -600,8 +614,8 @@ function AIChatInput({
 				<PromptInputTools>
 					<Button
 						size="default"
-						onClick={() => setUseWebSearch(!useWebSearch)}
-						variant={useWebSearch ? "default" : "ghost"}
+						onClick={() => setReasoningEnabled(!reasoningEnabled)}
+						variant={reasoningEnabled ? "default" : "ghost"}
 						className="h-8 text-xs gap-1"
 					>
 						<Sparkles className="w-4 h-4" />

@@ -63,6 +63,10 @@ export const reflectorNode = async (state: AgentStateType) => {
             plan,
             isComplete: true,
             confidence: 0,
+            lastReasoningSummary: state.reasoningEnabled
+                ? '### Reflector\nNo active step found, ending execution safely.'
+                : '',
+            lastReasoningPhase: state.reasoningEnabled ? 'reflector' : '',
         }
     }
 
@@ -76,6 +80,10 @@ export const reflectorNode = async (state: AgentStateType) => {
             plan,
             isComplete: true, // Fail-safe exit
             confidence: 0,
+            lastReasoningSummary: state.reasoningEnabled
+                ? `### Reflector\nStep ${activeStep?.id || '?'} is invalid (missing description), marked as failed.`
+                : '',
+            lastReasoningPhase: state.reasoningEnabled ? 'reflector' : '',
         }
     }
 
@@ -186,8 +194,14 @@ export const reflectorNode = async (state: AgentStateType) => {
             replanAttempts,
             consecutiveNoExecutionCycles,
             isComplete: !needsReplanning && remainingAfterNoExec.length === 0,
+            lastReasoningSummary: state.reasoningEnabled
+                ? `### Reflector\nNo meaningful execution evidence for step ${activeStep?.id}. Soft-completed to avoid looping${shouldLightReplan ? ', requesting replan' : ''}.`
+                : '',
+            lastReasoningPhase: state.reasoningEnabled ? 'reflector' : '',
         }
     }
+
+    let reflectorReasoning = ''
 
     try {
         const response = await model.invoke([
@@ -206,6 +220,9 @@ export const reflectorNode = async (state: AgentStateType) => {
             replanAttempts += 1
             consecutiveNoExecutionCycles = 0
             console.log(`[Reflector] Step ${activeStep?.id}: active → REPLAN NEEDED`)
+            if (state.reasoningEnabled) {
+                reflectorReasoning = `### Reflector\nVerdict REPLAN for step ${activeStep.id}. Acceptance criteria not met; replanning with corrected strategy.`
+            }
         } else {
             // Step succeeded (COMPLETE or CONTINUE)
             if (activeIndex !== -1) {
@@ -221,6 +238,9 @@ export const reflectorNode = async (state: AgentStateType) => {
             needsReplanning = false
             confidence = 0.9
             consecutiveNoExecutionCycles = 0
+            if (state.reasoningEnabled) {
+                reflectorReasoning = `### Reflector\nVerdict ${verdict.startsWith('COMPLETE') ? 'COMPLETE' : 'CONTINUE'} for step ${activeStep.id}. Step accepted against current criteria.`
+            }
         }
     } catch (err) {
         // LLM error: mark step as failed to break infinite loop
@@ -234,6 +254,9 @@ export const reflectorNode = async (state: AgentStateType) => {
         confidence = 0.2
         replanAttempts += 1
         consecutiveNoExecutionCycles = 0
+        if (state.reasoningEnabled) {
+            reflectorReasoning = `### Reflector\nEvaluation failed due to model error, requesting replan.`
+        }
     }
 
     const remainingAfterReflection = plan.filter(
@@ -248,5 +271,7 @@ export const reflectorNode = async (state: AgentStateType) => {
         replanAttempts,
         consecutiveNoExecutionCycles,
         isComplete: !needsReplanning && remainingAfterReflection.length === 0,
+        lastReasoningSummary: reflectorReasoning,
+        lastReasoningPhase: reflectorReasoning ? 'reflector' : '',
     }
 }
