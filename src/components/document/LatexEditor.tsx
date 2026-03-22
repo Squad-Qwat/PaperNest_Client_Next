@@ -26,11 +26,34 @@ interface LatexEditorProps {
 }
 
 type PendingMergeChange = {
+    id?: string
+    createdAt?: number
+    operationType?: string
     original: string
     modified: string
     searchBlock?: string[]
     replaceBlock?: string[]
     description?: string
+}
+
+const MAX_PENDING_MERGES = 50
+
+const getMergeSignature = (data: PendingMergeChange): string => {
+    const search = Array.isArray(data.searchBlock) ? data.searchBlock.join('\u241f') : ''
+    const replace = Array.isArray(data.replaceBlock) ? data.replaceBlock.join('\u241f') : ''
+    return `${data.description || ''}\u241e${data.original}\u241e${data.modified}\u241e${search}\u241e${replace}`
+}
+
+const applyRangesToText = (
+    text: string,
+    ranges: Array<{ from: number; to: number; insert: string }>
+): string => {
+    let next = text
+    const sortedDesc = [...ranges].sort((a, b) => b.from - a.from)
+    for (const range of sortedDesc) {
+        next = next.slice(0, range.from) + range.insert + next.slice(range.to)
+    }
+    return next
 }
 
 export function LatexEditor({
@@ -52,13 +75,31 @@ export function LatexEditor({
     const [viewMode, setViewMode] = useState<'source' | 'visual'>('source')
     const [visualEditor, setVisualEditor] = useState<any>(null)
     const [pendingMerges, setPendingMerges] = useState<PendingMergeChange[]>([])
+    const [lastBatchSummary, setLastBatchSummary] = useState<{ applied: number; failed: number } | null>(null)
     const [files, setFiles] = useState<DocumentFile[]>([]);
     const containerRef = useRef<HTMLDivElement>(null)
     const activePendingMerge = pendingMerges[0] ?? null
 
     const enqueuePendingMerge = useCallback((data: PendingMergeChange | null) => {
         if (!data) return
-        setPendingMerges(prev => [...prev, data])
+
+        setPendingMerges(prev => {
+            if (prev.length >= MAX_PENDING_MERGES) {
+                console.warn(`[Merge Queue] Max queue size (${MAX_PENDING_MERGES}) reached. Ignoring new staged change.`)
+                return prev
+            }
+
+            const incomingSignature = getMergeSignature(data)
+            const hasDuplicate = prev.some(item => getMergeSignature(item) === incomingSignature)
+            if (hasDuplicate) {
+                console.warn('[Merge Queue] Duplicate staged change ignored.')
+                return prev
+            }
+
+            setLastBatchSummary(null)
+
+            return [...prev, data]
+        })
     }, [])
 
     const consumePendingMerge = useCallback(() => {
@@ -93,13 +134,60 @@ export function LatexEditor({
         initialContent
     })
 
+    const getRebasedPreview = useCallback((merge: PendingMergeChange): { modified: string; isRebased: boolean; reason?: string } => {
+        const currentDoc = view?.state.doc.toString()
+        if (!currentDoc) {
+            return { modified: merge.modified, isRebased: false, reason: 'editor_not_ready' }
+        }
+
+        const searchBlock = Array.isArray(merge.searchBlock) ? merge.searchBlock : []
+        const replaceBlock = Array.isArray(merge.replaceBlock) ? merge.replaceBlock : []
+        const hasAtomicBlocks = searchBlock.length > 0 && searchBlock.length === replaceBlock.length
+
+        if (!hasAtomicBlocks) {
+            return { modified: merge.modified, isRebased: false, reason: 'missing_anchors' }
+        }
+
+        const ranges: Array<{ from: number; to: number; insert: string }> = []
+        let searchFrom = 0
+
+        for (let i = 0; i < searchBlock.length; i++) {
+            const search = searchBlock[i]
+            const replace = replaceBlock[i]
+            if (typeof search !== 'string' || typeof replace !== 'string' || search.length === 0) {
+                return { modified: merge.modified, isRebased: false, reason: 'invalid_anchor' }
+            }
+
+            const index = currentDoc.indexOf(search, searchFrom)
+            if (index === -1) {
+                return { modified: merge.modified, isRebased: false, reason: 'anchor_not_found' }
+            }
+
+            ranges.push({ from: index, to: index + search.length, insert: replace })
+            searchFrom = index + search.length
+        }
+
+        return {
+            modified: applyRangesToText(currentDoc, ranges),
+            isRebased: true,
+            reason: undefined,
+        }
+    }, [view])
+
+    const activeMergePreview = useMemo(() => {
+        if (!activePendingMerge) return null
+        return getRebasedPreview(activePendingMerge)
+    }, [activePendingMerge, getRebasedPreview])
+
     const applyPendingMerge = useCallback((
         merge: PendingMergeChange,
-        fallbackContent?: string
+        fallbackContent?: string,
+        options?: { allowFallback?: boolean }
     ): boolean => {
         if (!view) return false
 
         const currentDoc = view.state.doc.toString()
+        const allowFallback = options?.allowFallback !== false
         const isApplyDiffMerge = Array.isArray(merge.searchBlock) && Array.isArray(merge.replaceBlock)
         let applied = false
 
@@ -143,7 +231,7 @@ export function LatexEditor({
         }
 
         // FALLBACK: If surgical replace failed or not applicable, try granular diffing
-        if (!applied && typeof fallbackContent === 'string') {
+        if (!applied && allowFallback && typeof fallbackContent === 'string') {
             const changes = computeCodeMirrorChanges(currentDoc, fallbackContent)
             if (changes.length > 0) {
                 view.dispatch({
@@ -306,40 +394,61 @@ export function LatexEditor({
                     {activePendingMerge && (
                         <MergePreview
                             original={activePendingMerge.original}
-                            modified={activePendingMerge.modified}
-                            queuePosition={pendingMerges.length > 0 ? pendingMerges.length - pendingMerges.indexOf(activePendingMerge) : 0}
+                            modified={activeMergePreview?.modified ?? activePendingMerge.modified}
+                            queuePosition={pendingMerges.length > 0 ? 1 : 0}
                             queueTotal={pendingMerges.length}
                             onAccept={(content) => {
                                 const mergeToApply = activePendingMerge
                                 if (!mergeToApply) return
 
-                                const applied = applyPendingMerge(mergeToApply, content)
-                                if (!applied) {
-                                    console.warn('Merge preview apply failed: staged apply_diff_edit no longer matches current document.')
+                                if (activeMergePreview?.isRebased !== true) {
+                                    console.warn('Accept This blocked: current queue item is stale and could reintroduce previously accepted content. Use Discard or Accept All (best-effort).')
                                     return
                                 }
 
+                                const applied = applyPendingMerge(mergeToApply, content, { allowFallback: activeMergePreview?.isRebased === true })
+                                if (!applied) {
+                                    console.warn('Merge preview apply failed: staged change no longer matches current document. Please review/discard this queue item.')
+                                    return
+                                }
+
+                                setLastBatchSummary(null)
                                 consumePendingMerge()
                             }}
                             onAcceptAll={() => {
                                 if (!view) return
 
+                                const queueSnapshot = [...pendingMerges]
                                 let appliedCount = 0
-                                for (let index = 0; index < pendingMerges.length; index++) {
-                                    const merge = pendingMerges[index]
-                                    const applied = applyPendingMerge(merge, merge.modified)
+                                const failedItems: PendingMergeChange[] = []
+                                for (let index = 0; index < queueSnapshot.length; index++) {
+                                    const merge = queueSnapshot[index]
+                                    const applied = applyPendingMerge(merge, undefined, { allowFallback: false })
 
                                     if (!applied) {
-                                        console.warn(`Accept All: Merge ${index + 1} failed - search text not found.`)
-                                        break
+                                        console.warn(`Accept All: Merge ${index + 1} failed - staged diff no longer matches current document. Keeping item in queue for manual review.`)
+                                        failedItems.push(merge)
+                                        continue
                                     }
 
                                     appliedCount++
                                 }
 
-                                setPendingMerges(prev => prev.slice(appliedCount))
+                                setPendingMerges(failedItems)
+                                setLastBatchSummary({
+                                    applied: appliedCount,
+                                    failed: failedItems.length,
+                                })
                             }}
-                            onDiscard={() => consumePendingMerge()}
+                            onDiscard={() => {
+                                setLastBatchSummary(null)
+                                consumePendingMerge()
+                            }}
+                            batchSummary={lastBatchSummary}
+                            rebaseStatus={{
+                                isRebased: activeMergePreview?.isRebased === true,
+                                reason: activeMergePreview?.reason,
+                            }}
                         />
                     )}
 

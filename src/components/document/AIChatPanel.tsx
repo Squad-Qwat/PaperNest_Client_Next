@@ -142,6 +142,11 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 		}
 	}
 
+	const makeToolCallSignature = (name: string, args: unknown): string => {
+		const serializedArgs = stringifyToolResult(args)
+		return `${name}:${serializedArgs}`
+	}
+
 	const handleClearChat = () => {
 		setMessages([])
 		setCurrentPlan([])
@@ -222,14 +227,18 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 			let currentStep = 0
 			let toolResultsForContinuation: any[] = []
 			let shouldContinue = true
+			const executedToolSignatures = new Set<string>()
 
 			while (shouldContinue && currentStep < MAX_STEPS) {
 				currentStep++
 
+				if (editorInstance?.state?.doc) {
+					docText = editorInstance.state.doc.toString()
+				}
+
 				// CRITICAL FIX: Don't send completed plan on new messages
 				// Let backend generate fresh plan for each new task
-				const hasUncompletedSteps = currentPlan && currentPlan.length > 0 
-					&& currentPlan.some((s: any) => s.status !== 'completed')
+				const hasUncompletedSteps = currentPlan?.some((s: any) => s.status !== 'completed') ?? false
 				const planToSend = hasUncompletedSteps ? currentPlan : undefined
 
 				const response = await fetch('/api/ai-stream', {
@@ -259,6 +268,7 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 
 				toolResultsForContinuation = []
 				let hasToolCalls = false
+				let backendHasMoreSteps: boolean | undefined
 
 				while (true) {
 					const { done, value } = await reader.read()
@@ -301,6 +311,19 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 									case 'tool_calls':
 										hasToolCalls = true
 										for (const toolCall of data.toolCalls) {
+											const toolSignature = makeToolCallSignature(toolCall.name, toolCall.args)
+											if (executedToolSignatures.has(toolSignature)) {
+												const duplicateMsg = `Skipped duplicate tool call: ${toolCall.name}`
+												console.warn(`[AI] ${duplicateMsg}`)
+												toolResultsForContinuation.push({
+													toolCallId: toolCall.id,
+													name: toolCall.name,
+													result: duplicateMsg,
+												})
+												continue
+											}
+											executedToolSignatures.add(toolSignature)
+
 											const newTool: ToolCall = {
 												id: toolCall.id,
 												name: toolCall.name,
@@ -413,15 +436,24 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 																		})
 																	)
 																	break
+																case 'done':
+																	backendHasMoreSteps = data.hasMoreSteps === true
+																	break
 									case 'stream_end':
-										if (data.hasMoreSteps === false || !hasToolCalls) shouldContinue = false
 										break
 								}
 							} catch (e) { /* parse error */ }
 						}
 					}
 				}
-				if (!hasToolCalls) shouldContinue = false
+
+											if (backendHasMoreSteps === false) {
+												shouldContinue = false
+											} else if (backendHasMoreSteps === true) {
+												shouldContinue = toolResultsForContinuation.length > 0
+											} else {
+												shouldContinue = hasToolCalls && toolResultsForContinuation.length > 0
+											}
 			}
 		} catch (error) {
 			if (error instanceof Error && error.name === 'AbortError') {

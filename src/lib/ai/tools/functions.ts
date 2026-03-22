@@ -20,6 +20,38 @@ type DiffMatch = {
 	replace: string
 }
 
+type AnchoredReplacePair = {
+	search: string
+	replace: string
+}
+
+const createStagedChangeId = (): string => `staged_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+
+const createAnchoredReplacePair = (
+	docText: string,
+	from: number,
+	to: number,
+	insert: string,
+	contextWindow = 120
+): AnchoredReplacePair | null => {
+	const safeFrom = Math.max(0, Math.min(from, docText.length))
+	const safeTo = Math.max(safeFrom, Math.min(to, docText.length))
+
+	const leftStart = Math.max(0, safeFrom - contextWindow)
+	const rightEnd = Math.min(docText.length, safeTo + contextWindow)
+
+	const leftContext = docText.slice(leftStart, safeFrom)
+	const target = docText.slice(safeFrom, safeTo)
+	const rightContext = docText.slice(safeTo, rightEnd)
+
+	const search = `${leftContext}${target}${rightContext}`
+	const replace = `${leftContext}${insert}${rightContext}`
+
+	if (!search || search.length === 0) return null
+
+	return { search, replace }
+}
+
 const parseApplyDiffPairs = (args: any): { pairs?: DiffPair[]; error?: string } => {
 	const { searchBlock, replaceBlock } = args || {}
 
@@ -337,10 +369,16 @@ export const executeEditorTool = async (
 					const original = doc.toString()
 					const prefix = doc.sliceString(0, fromPos)
 					const suffix = doc.sliceString(toPos)
+					const anchored = createAnchoredReplacePair(original, fromPos, toPos, newContent)
 					return {
 						type: 'staged_change',
+						id: createStagedChangeId(),
+						createdAt: Date.now(),
+						operationType: 'replace_lines',
 						original,
 						modified: prefix + newContent + suffix,
+						searchBlock: anchored ? [anchored.search] : undefined,
+						replaceBlock: anchored ? [anchored.replace] : undefined,
 						description: `Replace lines ${fromLine}-${toLine}`
 					}
 				}
@@ -431,6 +469,7 @@ export const executeEditorTool = async (
 				if (stage) {
 					const prefix = view.state.doc.sliceString(0, from)
 					const suffix = view.state.doc.sliceString(to)
+					const anchored = createAnchoredReplacePair(docText, from, to, content)
 					let insertionLabel = position || 'cursor'
 					if (typeof atLine === 'number') {
 						insertionLabel = `line ${atLine}`
@@ -441,8 +480,13 @@ export const executeEditorTool = async (
 					}
 					return {
 						type: 'staged_change',
+						id: createStagedChangeId(),
+						createdAt: Date.now(),
+						operationType: 'insert_content',
 						original: docText,
 						modified: prefix + content + suffix,
+						searchBlock: anchored ? [anchored.search] : undefined,
+						replaceBlock: anchored ? [anchored.replace] : undefined,
 						description: `Insert content at ${insertionLabel}`
 					}
 				}
@@ -477,6 +521,9 @@ export const executeEditorTool = async (
 					const isBatch = parsed.pairs.length > 1
 					return {
 						type: 'staged_change',
+						id: createStagedChangeId(),
+						createdAt: Date.now(),
+						operationType: 'apply_diff_edit',
 						original: docText,
 						modified,
 						searchBlock: parsed.pairs.map(pair => pair.search),

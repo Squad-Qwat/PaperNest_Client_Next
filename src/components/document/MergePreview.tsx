@@ -14,12 +14,14 @@ interface MergePreviewProps {
     modified: string
     queuePosition?: number
     queueTotal?: number
+    batchSummary?: { applied: number; failed: number } | null
+    rebaseStatus?: { isRebased: boolean; reason?: string }
     onAccept: (content: string) => void
     onAcceptAll?: () => void
     onDiscard: () => void
 }
 
-export function MergePreview({ original, modified, queuePosition = 0, queueTotal = 0, onAccept, onAcceptAll, onDiscard }: MergePreviewProps) {
+export function MergePreview({ original, modified, queuePosition = 0, queueTotal = 0, batchSummary = null, rebaseStatus, onAccept, onAcceptAll, onDiscard }: MergePreviewProps) {
     const containerRef = useRef<HTMLDivElement>(null)
     const mergeViewRef = useRef<MergeView | null>(null)
     const editorViewRef = useRef<EditorView | null>(null)
@@ -142,6 +144,21 @@ export function MergePreview({ original, modified, queuePosition = 0, queueTotal
                                 {queuePosition} of {queueTotal}
                             </span>
                         )}
+                        {batchSummary && (
+                            <span className="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded font-semibold">
+                                Applied {batchSummary.applied}, Failed {batchSummary.failed}
+                            </span>
+                        )}
+                        {rebaseStatus && !rebaseStatus.isRebased && (
+                            <span className="text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded font-semibold">
+                                Stale queue item
+                            </span>
+                        )}
+                        {rebaseStatus?.isRebased && (
+                            <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-semibold">
+                                Rebased
+                            </span>
+                        )}
                     </div>
 
                     <div className="flex bg-gray-200/50 p-0.5 rounded-md border border-gray-200">
@@ -178,6 +195,7 @@ export function MergePreview({ original, modified, queuePosition = 0, queueTotal
                     <Button
                         size="sm"
                         className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white gap-1.5"
+                        disabled={rebaseStatus?.isRebased === false}
                         onClick={() => onAccept(getCurrentMergedContent())}
                     >
                         <Check className="w-3.5 h-3.5" />
@@ -195,6 +213,12 @@ export function MergePreview({ original, modified, queuePosition = 0, queueTotal
                     )}
                 </div>
             </div>
+
+            {rebaseStatus && !rebaseStatus.isRebased && (
+                <div className="px-4 py-2 text-xs bg-rose-50 text-rose-700 border-b border-rose-100">
+                    Queue item ini stale terhadap dokumen terkini. Accept This dinonaktifkan untuk mencegah perubahan lama muncul lagi.
+                </div>
+            )}
 
             <div key={viewMode} ref={containerRef} className="flex-1 overflow-hidden cm-merge-container min-h-0" />
 
