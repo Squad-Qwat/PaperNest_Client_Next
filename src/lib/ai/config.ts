@@ -24,6 +24,7 @@ export const getAIConfig = (): AIConfig => {
 		temperature: Number(process.env.AI_TEMPERATURE) || 0.7,
 		maxTokens: Number(process.env.AI_MAX_TOKENS) || 8192,
 		streaming: true,
+		reasoningEnabled: false,
 	}
 }
 
@@ -39,6 +40,7 @@ export const createAIModel = (config?: Partial<AIConfig>): BaseChatModel => {
 		temperature: fullConfig.temperature,
 		maxTokens: fullConfig.maxTokens,
 		streaming: fullConfig.streaming,
+		reasoningEnabled: Boolean(fullConfig.reasoningEnabled),
 	})
 }
 

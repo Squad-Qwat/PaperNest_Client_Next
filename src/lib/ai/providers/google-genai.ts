@@ -6,6 +6,11 @@ export class GoogleGenAIProvider implements AIProvider {
 	id: AIProviderID = 'google-genai'
 	name = 'Google Gemini'
 
+	private supportsThinkingConfig(modelName: string): boolean {
+		const normalized = modelName.toLowerCase()
+		return normalized.includes('gemini-2.5') || normalized.includes('gemini-3')
+	}
+
 	createModel(config: AIProviderConfig): BaseChatModel {
 		const apiKey = process.env.GOOGLE_API_KEY
 
@@ -16,12 +21,23 @@ export class GoogleGenAIProvider implements AIProvider {
 		const modelName = config.model || 'gemini-2.5-flash-lite'
 		console.log(`[GoogleGenAI] Creating model: ${modelName}`)
 
+		const shouldApplyThinking = this.supportsThinkingConfig(modelName)
+		const thinkingBudget = config.reasoningEnabled ? 1024 : 128
+
 		return new ChatGoogleGenerativeAI({
 			apiKey,
 			model: modelName,
 			temperature: config.temperature,
 			maxOutputTokens: config.maxTokens,
 			streaming: config.streaming,
+			...(shouldApplyThinking
+				? {
+					thinkingConfig: {
+						includeThoughts: true,
+						thinkingBudget,
+					},
+				}
+				: {}),
 		})
 	}
 

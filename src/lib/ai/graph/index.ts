@@ -261,7 +261,7 @@ export async function* streamAgent(
                     }
                 }
 
-                if (reasoningEnabled && output.lastReasoningSummary && output.lastReasoningSummary.trim()) {
+                if (output.lastReasoningSummary && output.lastReasoningSummary.trim()) {
                     const phase = (output.lastReasoningPhase || nodeName) as 'planner' | 'executor' | 'reflector'
                     yield {
                         type: 'reasoning',

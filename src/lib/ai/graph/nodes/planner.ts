@@ -47,6 +47,7 @@ export const plannerNode = async (state: AgentStateType) => {
     const model = createAIModel({
         provider: state.providerId as any,
         model: state.modelId,
+        reasoningEnabled: state.reasoningEnabled,
     })
 
     // Extract task: use goal if replanning, otherwise extract from messages
@@ -125,11 +126,9 @@ export const plannerNode = async (state: AgentStateType) => {
             confidence: step.confidence ?? 0.9,
         }))
 
-        const plannerReasoning = state.reasoningEnabled
-            ? (typeof response.reasoning === 'string' && response.reasoning.trim().length > 0
-                ? `### Planner\n${response.reasoning.trim()}`
-                : `### Planner\nGenerated ${plan.length} step(s) to accomplish the task.`)
-            : ''
+        const plannerReasoning = typeof response.reasoning === 'string' && response.reasoning.trim().length > 0
+            ? `### Planner\n${response.reasoning.trim()}`
+            : `### Planner\nGenerated ${plan.length} step(s) to accomplish the task.`
 
         console.log(`[Planner] Generated ${plan.length} steps via LLM. Reasoning: ${response.reasoning || 'N/A'}`)
         console.log('[Planner] Plan details:', {
@@ -174,10 +173,8 @@ export const plannerNode = async (state: AgentStateType) => {
             needsReplanning: false,
             consecutiveNoExecutionCycles: 0,
             goal: taskMessage,
-            lastReasoningSummary: state.reasoningEnabled
-                ? '### Planner\nStructured plan generation failed, using a safe single-step fallback plan.'
-                : '',
-            lastReasoningPhase: state.reasoningEnabled ? 'planner' : '',
+            lastReasoningSummary: '### Planner\nStructured plan generation failed, using a safe single-step fallback plan.',
+            lastReasoningPhase: 'planner',
         }
     }
 }

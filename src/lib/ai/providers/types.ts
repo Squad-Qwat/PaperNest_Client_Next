@@ -7,6 +7,7 @@ export interface AIProviderConfig {
 	temperature: number
 	maxTokens: number
 	streaming: boolean
+	reasoningEnabled?: boolean
 }
 
 export interface AIProvider {
