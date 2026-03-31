@@ -53,7 +53,7 @@ export function ConfirmDialog({
 					<AlertDialogDescription>{message}</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel onClick={onClose}>{cancelText}</AlertDialogCancel>
+					<AlertDialogCancel>{cancelText}</AlertDialogCancel>
 					<AlertDialogAction
 						onClick={handleConfirm}
 						className={cn(

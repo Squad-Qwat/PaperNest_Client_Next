@@ -137,8 +137,7 @@ export function MergePreview({ original, modified, queuePosition = 0, queueTotal
             <div className="flex items-center justify-between px-4 py-2 border-b bg-gray-50 z-10 shrink-0">
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-gray-700">Review AI Suggestion</span>
-                        <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Merge Preview</span>
+                        <span className="text-[10px] bg-primary text-white px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">AI Merge Preview</span>
                         {queueTotal > 0 && (
                             <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold">
                                 {queuePosition} of {queueTotal}
@@ -194,7 +193,7 @@ export function MergePreview({ original, modified, queuePosition = 0, queueTotal
                     </Button>
                     <Button
                         size="sm"
-                        className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white gap-1.5"
+                        className="h-8 text-xs text-white gap-1.5"
                         disabled={rebaseStatus?.isRebased === false}
                         onClick={() => onAccept(getCurrentMergedContent())}
                     >

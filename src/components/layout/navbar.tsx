@@ -7,7 +7,14 @@ import { useAuthContext } from '@/context/AuthContext'
 import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { cn } from '@/lib/utils'
-import { Camera, Slash } from 'lucide-react'
+import { Slash, Bell, LogOut, User, Settings } from 'lucide-react'
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 interface NavbarProps {
 	mode?: 'workspace' | 'document'
@@ -64,7 +71,7 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 
 	return (
 		<>
-			<nav className='sticky top-0 z-40 bg-white border-b shadow-sm'>
+			<nav className='sticky top-0 z-40 bg-white border-b'>
 				<div className='mx-auto pt-3 px-4 sm:px-6 lg:px-8'>
 					<div className='flex items-center justify-between'>
 						{/* Logo/Brand & Workspace Switcher */}
@@ -105,44 +112,53 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 						</div>
 
 						{/* User Actions */}
-						<div className='hidden md:flex items-center gap-6'>
-							{/* Keluar Link */}
-							<button
-								onClick={() => setShowLogoutConfirm(true)}
-								className='text-sm text-gray-600 hover:text-gray-900 transition-colors'
-							>
-								Keluar
-							</button>
-
+						<div className='hidden md:flex items-center gap-3'>
 							{/* Notifications Button */}
 							<button
 								onClick={() => router.push('/notifications')}
-								className='p-1.5 text-gray-600 hover:text-gray-900 transition-colors'
+								className='p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors'
 								aria-label='Notifications'
+								title='Notifications'
 							>
-								<svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-									<path
-										strokeLinecap='round'
-										strokeLinejoin='round'
-										strokeWidth={2}
-										d='M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9'
-									/>
-								</svg>
+								<Bell className='w-5 h-5' />
 							</button>
 
-							{/* User Menu */}
-							<button
-								onClick={() => router.push('/profile')}
-								className='flex items-center gap-3 hover:opacity-80 transition-opacity'
-							>
-								<div className='text-right'>
-									<p className='text-sm font-medium text-gray-900'>{user.name}</p>
-									<p className='text-xs text-gray-500 capitalize'>{user.role}</p>
-								</div>
-								<div className='w-10 h-10 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center text-gray-700 font-medium border border-gray-300'>
-									{user.name.charAt(0).toUpperCase()}
-								</div>
-							</button>
+							{/* User Menu Dropdown */}
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<button
+										className='flex items-center gap-2 p-1.5 hover:bg-gray-100 rounded-lg transition-colors'
+										aria-label='User menu'
+									>
+										<div className='w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-white text-sm font-medium'>
+											{user.name.charAt(0).toUpperCase()}
+										</div>
+									</button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align='end' className='w-56'>
+									<div className='px-2 py-1.5'>
+										<p className='text-sm font-medium text-gray-900'>{user.name}</p>
+										<p className='text-xs text-gray-500 capitalize'>{user.role}</p>
+									</div>
+									<DropdownMenuSeparator />
+									<DropdownMenuItem onClick={() => router.push('/profile')} className='gap-2 cursor-pointer'>
+										<User className='w-4 h-4' />
+										<span>Profile</span>
+									</DropdownMenuItem>
+									<DropdownMenuItem onClick={() => router.push('/settings')} className='gap-2 cursor-pointer'>
+										<Settings className='w-4 h-4' />
+										<span>Settings</span>
+									</DropdownMenuItem>
+									<DropdownMenuSeparator />
+									<DropdownMenuItem
+										onClick={() => setShowLogoutConfirm(true)}
+										className='gap-2 cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50'
+									>
+										<LogOut className='w-4 h-4' />
+										<span>Logout</span>
+									</DropdownMenuItem>
+								</DropdownMenuContent>
+							</DropdownMenu>
 						</div>
 
 						{/* Mobile Menu Button */}

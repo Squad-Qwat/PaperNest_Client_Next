@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
+import Grainient from '@/components/Grainient';
+
 export default function LoginPage() {
 	const router = useRouter()
 	const { loginEmail, loading, error: authError, clearError } = useAuthContext()
@@ -46,18 +48,26 @@ export default function LoginPage() {
 	const displayError = localError || authError
 
 	return (
-		<div className='min-h-screen flex items-center justify-center p-4'>
-			<div className='w-full max-w-md'>
+		<div className='min-h-screen flex min-w-screen bg-background'>
+			{/* Left Side - Form Container */}
+			<div className='w-full lg:w-1/2 min-h-screen flex flex-col items-center justify-center py-8 px-4 sm:px-6 md:px-8 lg:px-10 relative'>
+				{/* Logo - Top Left */}
+				<div className='absolute top-6 left-6 lg:left-8'>
+					<h1 className='text-3xl font-bold text-primary'>PaperNest</h1>
+				</div>
 				{/* Login Card */}
-				<div className='p-8'>
+				<div className='w-full max-w-sm space-y-6'>
 					{/* Title */}
-					<h1 className='text-2xl font-bold text-gray-900 text-center mb-8'>
-						Log in to your account
-					</h1>
+					<div className='text-center'>
+						<h1 className='text-2xl font-bold text-gray-900 mb-2'>
+							Log in to your account
+						</h1>
+						<p className='text-sm text-gray-500'>Welcome back to PaperNest</p>
+					</div>
 
 					{/* Error Message */}
 					{displayError && (
-						<div className='mb-6 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm'>
+						<div className='mb-6 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm text-center'>
 							{displayError}
 						</div>
 					)}
@@ -104,17 +114,19 @@ export default function LoginPage() {
 					</div> */}
 
 					{/* Divider */}
-					<div className='relative mb-6'>
+					<div className='relative'>
 						<div className='absolute inset-0 flex items-center'>
 							<div className='w-full border-t border-gray-200'></div>
 						</div>
 						<div className='relative flex justify-center text-sm'>
-							<span className='px-4 bg-white text-gray-500'>Or Continue With Your Credentials</span>
+							<span className='px-4 bg-white text-gray-500'>
+								Or Continue With Your Credentials
+							</span>
 						</div>
 					</div>
 
 					{/* Login Form */}
-					<form onSubmit={handleSubmit} className='space-y-5'>
+					<form onSubmit={handleSubmit} className='space-y-6'>
 						{/* Email */}
 						<div className='space-y-2'>
 							<Label htmlFor='email' className='text-gray-900 font-normal'>
@@ -169,6 +181,42 @@ export default function LoginPage() {
 							Join PaperNest
 						</Link>
 					</div>
+				</div>
+			</div>
+			{/* Right Side - Gradient Background with Text */}
+			<div className='hidden lg:flex lg:w-1/2 min-h-screen relative'>
+				{/* Gradient Background */}
+				<div className='absolute inset-0 w-full h-full p-6'>
+					<Grainient
+						color1="#009689"
+						color2="#F5A623"
+						color3="#009689"
+						timeSpeed={0.25}
+						colorBalance={0}
+						warpStrength={1}
+						warpFrequency={5}
+						warpSpeed={2}
+						warpAmplitude={50}
+						blendAngle={0}
+						blendSoftness={0.05}
+						rotationAmount={500}
+						noiseScale={2}
+						grainAmount={0.1}
+						grainScale={2}
+						grainAnimated={false}
+						contrast={1.5}
+						gamma={1}
+						saturation={1}
+						centerX={0}
+						centerY={0}
+						zoom={0.8}
+					/>
+				</div>
+				{/* Text Overlay */}
+				<div className='absolute inset-0 flex flex-col items-center justify-center z-10 px-8'>
+					<p className='text-xl text-white text-center mt-4 max-w-sm italic' style={{ fontFamily: 'Times New Roman, Times, serif' }}>
+						"Organize your research like never before. Login to continue your work."
+					</p>
 				</div>
 			</div>
 		</div>
