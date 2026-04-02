@@ -3,7 +3,6 @@
 import React, { useEffect, useMemo, useRef } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import { BubbleMenu, FloatingMenu } from '@tiptap/react/menus'
-// ... rest of imports
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import Link from '@tiptap/extension-link'
@@ -24,7 +23,7 @@ import {
     Sigma,
     Quote
 } from 'lucide-react'
-import { MathLiveNode, MathLiveBlockNode } from './tiptap/MathLiveExtension'
+import { MathLiveNode, MathLiveBlockNode } from '../tiptap/MathLiveExtension'
 import {
     LaTeXFontSize,
     LaTeXFontStyle,
@@ -38,7 +37,7 @@ import {
     LaTeXProtectedBlock,
     LaTeXInlineCommand,
     LaTeXNewline
-} from './tiptap/LaTeXExtensions'
+} from '../tiptap/LaTeXExtensions'
 import { LaTeXConverter } from '@/lib/latex/LaTeXConverter'
 
 interface LatexVisualEditorProps {
@@ -59,7 +58,7 @@ export function LatexVisualEditor({
         const parts = LaTeXConverter.splitDocument(content);
         docParts.current = parts;
         return LaTeXConverter.toHTML(parts.body);
-    }, []); // Only on mount to prevent reset during typing
+    }, []);
 
     const isInternalUpdate = useRef(false);
     const syncTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -131,11 +130,8 @@ export function LatexVisualEditor({
     // Handle external content changes (e.g. from Source mode)
     useEffect(() => {
         if (!editor) return;
-
         const parts = LaTeXConverter.splitDocument(content);
-        // Update stored parts (preamble/postamble might have changed in Source Mode)
         docParts.current = parts;
-
         if (isInternalUpdate.current) {
             isInternalUpdate.current = false;
             return;

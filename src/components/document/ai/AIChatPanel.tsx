@@ -5,7 +5,7 @@ import { nanoid } from 'nanoid'
 import { CheckIcon, Sparkles } from 'lucide-react'
 
 import { executeEditorTool } from '@/lib/ai/tools/functions'
-import { AIChatHeader } from './ai/AIChatHeader'
+import { AIChatHeader } from './AIChatHeader'
 
 import {
 	Conversation,

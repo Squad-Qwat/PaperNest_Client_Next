@@ -2,17 +2,17 @@
 
 import { useParams, useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
-import AIAssistant from '@/components/document/AIAssistant'
+import AIAssistant from '@/components/document/ai/AIAssistant'
 import SidenavPanel from '@/components/document/SidenavPanel'
 import DynamicContentPanel from '@/components/document/DynamicContentPanel'
 // UI Components
-import DocumentEditor from '@/components/document/DocumentEditor'
-import DocumentHeader from '@/components/document/DocumentHeader'
+import DocumentEditor from '@/components/document/editor/DocumentEditor'
+import DocumentHeader from '@/components/document/editor/DocumentHeader'
 import { Room } from '@/hooks/liveblocks/room'
 import { useWorkspace } from '@/hooks/useWorkspace'
 import { DocumentService } from '@/lib/firebase/document-service'
 import { documentsService } from '@/lib/api/services/documents.service'
-import '@/components/document/EditorStyles.css'
+import '@/components/document/editor/EditorStyles.css'
 import ModalVersions from '@/components/document/ModalVersions'
 import { useAuthContext } from '@/context/AuthContext'
 

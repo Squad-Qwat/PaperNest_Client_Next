@@ -117,8 +117,7 @@ const DynamicContentPanel: React.FC<DynamicContentPanelProps> = ({
 
 			{/* Content */}
 			<div className='flex-1 flex flex-col overflow-hidden'>
-				{/* Header */}
-				<div className='flex items-center justify-between gap-2 border-b border-gray-100 p-3 flex-shrink-0'>
+				<div className='flex items-center justify-between gap-2 border-b border-gray-100 p-3 shrink-0'>
 					<h3 className='text-sm font-semibold text-gray-700 truncate'>
 						{panelLabels[activePanel] || 'Panel'}
 					</h3>

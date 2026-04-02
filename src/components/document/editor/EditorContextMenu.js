@@ -43,11 +43,9 @@ const EditorContextMenu = ({ editor, children }) => {
 	const handleContextMenuOpen = () => {
 		if (!editor) return
 		
-		// Check selection
 		const { from, to } = editor.state.selection
 		setHasSelection(from !== to)
 		
-		// Check if in table
 		setInTable(editor.isActive('tableCell') || editor.isActive('tableHeader'))
 	}
 
