@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.npmrc
+.agent
+.agents
+skills-lock.json
+backup
+.vector_cache
