@@ -158,15 +158,43 @@ export const LaTeXLayoutCommand = TiptapNode.create({
   renderHTML({ HTMLAttributes }) {
     const cmd = HTMLAttributes.cmd || 'cmd';
     const val = HTMLAttributes.val || '';
+    
+    // Custom styling for common layout commands
+    let style = 'color: var(--primary, #3b82f6); font-family: var(--font-mono); font-size: 0.8em;';
+    let label = `[${cmd}${val ? `: ${val}` : ''}]`;
+    
+    if (cmd === 'hrule') {
+      return [
+        'div', 
+        mergeAttributes(HTMLAttributes, { 
+          'data-type': 'latex-layout', 
+          'data-cmd': 'hrule',
+          style: 'border-bottom: 2px solid var(--border, #e5e7eb); margin: 1.5rem 0; width: 100%;' 
+        })
+      ];
+    }
+    
+    if (cmd === 'vspace') {
+      const height = val || '1rem';
+      return [
+        'div', 
+        mergeAttributes(HTMLAttributes, { 
+          'data-type': 'latex-layout', 
+          'data-cmd': 'vspace',
+          style: `height: ${height}; margin: 0; pointer-events: none; border-left: 2px dotted var(--primary-subtle, #bfdbfe);` 
+        })
+      ];
+    }
+    
     return [
       'span',
       mergeAttributes(HTMLAttributes, {
         'data-type': 'latex-layout',
         'data-cmd': cmd,
-        ...(val && { 'data-val': val })
+        ...(val && { 'data-val': val }),
+        style
       }),
-      // Display placeholder for visibility in editor
-      `[${cmd}${val ? `: ${val}` : ''}]`
+      label
     ];
   },
 });

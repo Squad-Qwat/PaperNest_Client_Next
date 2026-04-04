@@ -2,10 +2,10 @@
 
 import { useState, useRef } from 'react'
 import { nanoid } from 'nanoid'
-import { CheckIcon, GlobeIcon, MicIcon, Sparkles } from 'lucide-react'
+import { CheckIcon, Sparkles } from 'lucide-react'
 
-import { executeEditorTool } from '@/lib/ai/editorTools'
-import { AIChatHeader } from './ai/AIChatHeader'
+import { executeEditorTool } from '@/lib/ai/tools/functions'
+import { AIChatHeader } from './AIChatHeader'
 
 import {
 	Conversation,
@@ -89,9 +89,8 @@ interface ToolCall {
 }
 
 const models = [
-	{ id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', chef: 'Google', chefSlug: 'google', providers: ['google'] },
-	{ id: 'openai-gpt-4o', name: 'GPT-4o', chef: 'OpenAI', chefSlug: 'openai', providers: ['openai'] },
-	{ id: 'claude-3-sonnet', name: 'Claude 3.5 Sonnet', chef: 'Anthropic', chefSlug: 'anthropic', providers: ['anthropic'] },
+	{ id: 'google-genai:gemini-2.5-flash-lite', name: 'Neptune AI', chef: 'Google', chefSlug: 'google' },
+	{ id: 'google-genai:gemini-2.5-flash', name: 'Neptune AI Pro', chef: 'Google', chefSlug: 'google' },
 ]
 
 const suggestions = [
@@ -106,7 +105,13 @@ interface EditorFunctions {
 	editor?: any
 	getCurrentContent?: () => any
 	handleCompile?: () => Promise<void>
-	setPendingMerge?: (data: { original: string, modified: string, description?: string } | null) => void
+	setPendingMerge?: (data: {
+		original: string
+		modified: string
+		description?: string
+		searchBlock?: string[]
+		replaceBlock?: string[]
+	} | null) => void
 }
 
 interface AIChatPanelProps {
@@ -120,13 +125,27 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 	const [isLoading, setIsLoading] = useState(false)
 	const [model, setModel] = useState<string>(models[0].id)
 	const [modelSelectorOpen, setModelSelectorOpen] = useState(false)
-	const [useWebSearch, setUseWebSearch] = useState<boolean>(false)
-	const [useMicrophone, setUseMicrophone] = useState<boolean>(false)
+	const [reasoningEnabled, setReasoningEnabled] = useState<boolean>(false)
 	const [currentPlan, setCurrentPlan] = useState<any[]>([])
 
 	const threadIdRef = useRef<string>(`thread_${Date.now()}_${nanoid(6)}`)
 	const abortControllerRef = useRef<AbortController | null>(null)
 	const selectedModelData = models.find(m => m.id === model)
+
+	const stringifyToolResult = (value: unknown): string => {
+		if (typeof value === 'string') return value
+		if (value === null || value === undefined) return ''
+		try {
+			return JSON.stringify(value)
+		} catch {
+			return '[unserializable-value]'
+		}
+	}
+
+	const makeToolCallSignature = (name: string, args: unknown): string => {
+		const serializedArgs = stringifyToolResult(args)
+		return `${name}:${serializedArgs}`
+	}
 
 	const handleClearChat = () => {
 		setMessages([])
@@ -208,9 +227,19 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 			let currentStep = 0
 			let toolResultsForContinuation: any[] = []
 			let shouldContinue = true
+			const executedToolSignatures = new Set<string>()
 
 			while (shouldContinue && currentStep < MAX_STEPS) {
 				currentStep++
+
+				if (editorInstance?.state?.doc) {
+					docText = editorInstance.state.doc.toString()
+				}
+
+				// CRITICAL FIX: Don't send completed plan on new messages
+				// Let backend generate fresh plan for each new task
+				const hasUncompletedSteps = currentPlan?.some((s: any) => s.status !== 'completed') ?? false
+				const planToSend = hasUncompletedSteps ? currentPlan : undefined
 
 				const response = await fetch('/api/ai-stream', {
 					method: 'POST',
@@ -222,7 +251,11 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 						toolResults: toolResultsForContinuation.length > 0 ? toolResultsForContinuation : undefined,
 						threadId: threadIdRef.current,
 						documentId,
-						plan: currentPlan,
+						reasoningEnabled,
+						plan: planToSend, // Only send if has pending/active steps
+						// Extract provider and model from model ID
+						providerId: model.split(':')[0],
+						modelId: model.split(':')[1],
 					}),
 					signal: controller.signal
 				})
@@ -235,6 +268,7 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 
 				toolResultsForContinuation = []
 				let hasToolCalls = false
+				let backendHasMoreSteps: boolean | undefined
 
 				while (true) {
 					const { done, value } = await reader.read()
@@ -277,6 +311,19 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 									case 'tool_calls':
 										hasToolCalls = true
 										for (const toolCall of data.toolCalls) {
+											const toolSignature = makeToolCallSignature(toolCall.name, toolCall.args)
+											if (executedToolSignatures.has(toolSignature)) {
+												const duplicateMsg = `Skipped duplicate tool call: ${toolCall.name}`
+												console.warn(`[AI] ${duplicateMsg}`)
+												toolResultsForContinuation.push({
+													toolCallId: toolCall.id,
+													name: toolCall.name,
+													result: duplicateMsg,
+												})
+												continue
+											}
+											executedToolSignatures.add(toolSignature)
+
 											const newTool: ToolCall = {
 												id: toolCall.id,
 												name: toolCall.name,
@@ -302,7 +349,7 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 											try {
 												// Add staging flag for tools that modify the document
 												const toolArgs = { ...toolCall.args };
-												if (['insert_content', 'apply_diff_edit', 'format_latex'].includes(toolCall.name)) {
+												if (['insert_content', 'apply_diff_edit', 'replace_lines', 'format_latex'].includes(toolCall.name)) {
 													toolArgs.stage = true;
 												}
 
@@ -336,7 +383,11 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 														}
 													})
 												)
-												toolResultsForContinuation.push({ toolCallId: toolCall.id, name: toolCall.name, result })
+												toolResultsForContinuation.push({
+													toolCallId: toolCall.id,
+													name: toolCall.name,
+													result: stringifyToolResult(result)
+												})
 											} catch (e) {
 												const errMsg = e instanceof Error ? e.message : 'Tool error'
 												setMessages((prev) =>
@@ -367,15 +418,42 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 									case 'plan_update':
 										setCurrentPlan(data.plan || [])
 										break
+																case 'reasoning':
+																	setMessages((prev) =>
+																		prev.map((msg) => {
+																			if (msg.key !== assistantKey) return msg
+																			const existing = msg.reasoning?.content?.trim() || ''
+																			const incoming = typeof data.content === 'string' ? data.content.trim() : ''
+																			if (!incoming) return msg
+																			const combined = existing ? `${existing}\n\n${incoming}` : incoming
+																			return {
+																				...msg,
+																				reasoning: {
+																					content: combined,
+																					duration: typeof data.duration === 'number' ? data.duration : msg.reasoning?.duration,
+																				},
+																			}
+																		})
+																	)
+																	break
+																case 'done':
+																	backendHasMoreSteps = data.hasMoreSteps === true
+																	break
 									case 'stream_end':
-										if (data.hasMoreSteps === false || !hasToolCalls) shouldContinue = false
 										break
 								}
 							} catch (e) { /* parse error */ }
 						}
 					}
 				}
-				if (!hasToolCalls) shouldContinue = false
+
+											if (backendHasMoreSteps === false) {
+												shouldContinue = false
+											} else if (backendHasMoreSteps === true) {
+												shouldContinue = toolResultsForContinuation.length > 0
+											} else {
+												shouldContinue = hasToolCalls && toolResultsForContinuation.length > 0
+											}
 			}
 		} catch (error) {
 			if (error instanceof Error && error.name === 'AbortError') {
@@ -442,14 +520,19 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 											)}
 
 											<MessageContent className={message.from === 'assistant' ? 'w-full' : ''}>
-												{(version.parts || []).map((part) => {
+												{(version.parts || []).map((part, index) => {
+													const isFirstPart = index === 0
 													if (part.type === 'text') {
-														return <MessageResponse key={part.id}>{part.content || ''}</MessageResponse>
+														return (
+															<div key={part.id} className={isFirstPart ? 'my-2' : ''}>
+																<MessageResponse>{part.content || ''}</MessageResponse>
+															</div>
+														)
 													}
 													if (part.type === 'tool' && part.tool) {
 														const { tool } = part
 														return (
-															<div key={part.id} className='my-3 w-full'>
+															<div key={part.id} className={isFirstPart ? 'my-2 w-full' : 'w-full'}>
 																<Tool className="w-full">
 																	<ToolHeader title={tool.name} type="dynamic-tool" toolName={tool.name} state={mapStatusToShadcn(tool.status)} />
 																	<ToolContent className="w-full">
@@ -512,10 +595,8 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 							setModel={setModel}
 							modelSelectorOpen={modelSelectorOpen}
 							setModelSelectorOpen={setModelSelectorOpen}
-							useWebSearch={useWebSearch}
-							setUseWebSearch={setUseWebSearch}
-							useMicrophone={useMicrophone}
-							setUseMicrophone={setUseMicrophone}
+								reasoningEnabled={reasoningEnabled}
+								setReasoningEnabled={setReasoningEnabled}
 							selectedModelData={selectedModelData}
 						/>
 					</PromptInputProvider>
@@ -534,10 +615,8 @@ function AIChatInput({
 	setModel,
 	modelSelectorOpen,
 	setModelSelectorOpen,
-	useWebSearch,
-	setUseWebSearch,
-	useMicrophone,
-	setUseMicrophone,
+	reasoningEnabled,
+	setReasoningEnabled,
 	selectedModelData
 }: any) {
 	const controller = usePromptInputController();
@@ -566,21 +645,13 @@ function AIChatInput({
 			<PromptInputFooter>
 				<PromptInputTools>
 					<Button
-						size="icon"
-						onClick={() => setUseMicrophone(!useMicrophone)}
-						variant={useMicrophone ? "default" : "ghost"}
-						className="h-8 w-8"
-					>
-						<MicIcon className="w-4 h-4" />
-					</Button>
-					<Button
 						size="default"
-						onClick={() => setUseWebSearch(!useWebSearch)}
-						variant={useWebSearch ? "default" : "ghost"}
+						onClick={() => setReasoningEnabled(!reasoningEnabled)}
+						variant={reasoningEnabled ? "default" : "ghost"}
 						className="h-8 text-xs gap-1"
 					>
-						<GlobeIcon className="w-4 h-4" />
-						<span className="hidden sm:inline">Cari</span>
+						<Sparkles className="w-4 h-4" />
+						<span className="hidden sm:inline">Reasoning</span>
 					</Button>
 					<ModelSelector onOpenChange={setModelSelectorOpen} open={modelSelectorOpen}>
 						<ModelSelectorTrigger asChild>

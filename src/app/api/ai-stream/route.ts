@@ -23,6 +23,9 @@ export async function POST(request: NextRequest) {
 			documentId,
 			plan,
 			threadId: bodyThreadId, // Extract threadId from body
+			reasoningEnabled = false,
+			providerId,
+			modelId,
 		} = body
 
 		if (!message || typeof message !== 'string') {
@@ -52,7 +55,10 @@ export async function POST(request: NextRequest) {
 						conversationHistory,
 						toolResults as ToolResult[] | undefined,
 						documentId,
-						plan
+						plan,
+						reasoningEnabled,
+						providerId,
+						modelId
 					)) {
 						controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`))
 						await new Promise(resolve => setTimeout(resolve, 5))

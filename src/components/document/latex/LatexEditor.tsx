@@ -3,15 +3,14 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useLatexEditor } from '@/hooks/editor/use-latex-editor'
 import { laTeXService } from '@/lib/latex/LaTeXService'
-import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Loader2, Play } from 'lucide-react'
 import { undo as cmUndo, redo as cmRedo } from '@codemirror/commands'
 import { useOthers } from '@liveblocks/react/suspense'
 import { LatexVisualEditor } from './LatexVisualEditor'
-import { LaTeXConverter } from '@/lib/latex/LaTeXConverter'
-import { MergePreview } from './MergePreview'
+import { MergePreview } from '../mergeview/MergePreview'
 import { computeCodeMirrorChanges } from '@/lib/utils/diff'
+import { DocumentFile } from '@/lib/api/types/document.types'
+import { DocumentService } from '@/lib/firebase/document-service'
+import { FileText } from 'lucide-react'
 
 interface LatexEditorProps {
     documentId?: string | null;
@@ -21,6 +20,37 @@ interface LatexEditorProps {
     onEditorReady?: (functions: any) => void;
     onAutoSaveStateChange?: (isSaving: boolean, lastSavedAt: Date | null) => void;
     isPdfHidden?: boolean;
+}
+
+type PendingMergeChange = {
+    id?: string
+    createdAt?: number
+    operationType?: string
+    original: string
+    modified: string
+    searchBlock?: string[]
+    replaceBlock?: string[]
+    description?: string
+}
+
+const MAX_PENDING_MERGES = 50
+
+const getMergeSignature = (data: PendingMergeChange): string => {
+    const search = Array.isArray(data.searchBlock) ? data.searchBlock.join('\u241f') : ''
+    const replace = Array.isArray(data.replaceBlock) ? data.replaceBlock.join('\u241f') : ''
+    return `${data.description || ''}\u241e${data.original}\u241e${data.modified}\u241e${search}\u241e${replace}`
+}
+
+const applyRangesToText = (
+    text: string,
+    ranges: Array<{ from: number; to: number; insert: string }>
+): string => {
+    let next = text
+    const sortedDesc = [...ranges].sort((a, b) => b.from - a.from)
+    for (const range of sortedDesc) {
+        next = next.slice(0, range.from) + range.insert + next.slice(range.to)
+    }
+    return next
 }
 
 export function LatexEditor({
@@ -41,14 +71,37 @@ export function LatexEditor({
     const [isEditorPdfResizing, setIsEditorPdfResizing] = useState(false)
     const [viewMode, setViewMode] = useState<'source' | 'visual'>('source')
     const [visualEditor, setVisualEditor] = useState<any>(null)
-    const [pendingMerge, setPendingMerge] = useState<{
-        original: string,
-        modified: string,
-        searchBlock?: string,
-        replaceBlock?: string,
-        description?: string
-    } | null>(null);
+    const [pendingMerges, setPendingMerges] = useState<PendingMergeChange[]>([])
+    const [lastBatchSummary, setLastBatchSummary] = useState<{ applied: number; failed: number } | null>(null)
+    const [files, setFiles] = useState<DocumentFile[]>([]);
     const containerRef = useRef<HTMLDivElement>(null)
+    const activePendingMerge = pendingMerges[0] ?? null
+
+    const enqueuePendingMerge = useCallback((data: PendingMergeChange | null) => {
+        if (!data) return
+
+        setPendingMerges(prev => {
+            if (prev.length >= MAX_PENDING_MERGES) {
+                console.warn(`[Merge Queue] Max queue size (${MAX_PENDING_MERGES}) reached. Ignoring new staged change.`)
+                return prev
+            }
+
+            const incomingSignature = getMergeSignature(data)
+            const hasDuplicate = prev.some(item => getMergeSignature(item) === incomingSignature)
+            if (hasDuplicate) {
+                console.warn('[Merge Queue] Duplicate staged change ignored.')
+                return prev
+            }
+
+            setLastBatchSummary(null)
+
+            return [...prev, data]
+        })
+    }, [])
+
+    const consumePendingMerge = useCallback(() => {
+        setPendingMerges(prev => prev.slice(1))
+    }, [])
 
     const collaborators = useMemo(() => {
         return others.map((other) => {
@@ -77,6 +130,124 @@ export function LatexEditor({
         user,
         initialContent
     })
+
+    const getRebasedPreview = useCallback((merge: PendingMergeChange): { modified: string; isRebased: boolean; reason?: string } => {
+        const currentDoc = view?.state.doc.toString()
+        if (!currentDoc) {
+            return { modified: merge.modified, isRebased: false, reason: 'editor_not_ready' }
+        }
+
+        const searchBlock = Array.isArray(merge.searchBlock) ? merge.searchBlock : []
+        const replaceBlock = Array.isArray(merge.replaceBlock) ? merge.replaceBlock : []
+        const hasAtomicBlocks = searchBlock.length > 0 && searchBlock.length === replaceBlock.length
+
+        if (!hasAtomicBlocks) {
+            return { modified: merge.modified, isRebased: false, reason: 'missing_anchors' }
+        }
+
+        const ranges: Array<{ from: number; to: number; insert: string }> = []
+        let searchFrom = 0
+
+        for (let i = 0; i < searchBlock.length; i++) {
+            const search = searchBlock[i]
+            const replace = replaceBlock[i]
+            if (typeof search !== 'string' || typeof replace !== 'string' || search.length === 0) {
+                return { modified: merge.modified, isRebased: false, reason: 'invalid_anchor' }
+            }
+
+            const index = currentDoc.indexOf(search, searchFrom)
+            if (index === -1) {
+                return { modified: merge.modified, isRebased: false, reason: 'anchor_not_found' }
+            }
+
+            ranges.push({ from: index, to: index + search.length, insert: replace })
+            searchFrom = index + search.length
+        }
+
+        return {
+            modified: applyRangesToText(currentDoc, ranges),
+            isRebased: true,
+            reason: undefined,
+        }
+    }, [view])
+
+    const activeMergePreview = useMemo(() => {
+        if (!activePendingMerge) return null
+        return getRebasedPreview(activePendingMerge)
+    }, [activePendingMerge, getRebasedPreview])
+
+    const applyPendingMerge = useCallback((
+        merge: PendingMergeChange,
+        fallbackContent?: string,
+        options?: { allowFallback?: boolean }
+    ): boolean => {
+        if (!view) return false
+
+        const currentDoc = view.state.doc.toString()
+        const allowFallback = options?.allowFallback !== false
+        const isApplyDiffMerge = Array.isArray(merge.searchBlock) && Array.isArray(merge.replaceBlock)
+        let applied = false
+
+        if (isApplyDiffMerge) {
+            const searchBlock = merge.searchBlock ?? []
+            const replaceBlock = merge.replaceBlock ?? []
+
+            if (searchBlock.length === replaceBlock.length && searchBlock.length > 0) {
+                const ranges: Array<{ from: number; to: number; insert: string }> = []
+                let searchFrom = 0
+                let batchValid = true
+
+                for (let i = 0; i < searchBlock.length; i++) {
+                    const search = searchBlock[i]
+                    const replace = replaceBlock[i]
+
+                    if (typeof search !== 'string' || typeof replace !== 'string' || search.length === 0) {
+                        batchValid = false
+                        break
+                    }
+
+                    const firstIndex = currentDoc.indexOf(search, searchFrom)
+                    if (firstIndex === -1) {
+                        batchValid = false
+                        break
+                    }
+
+                    ranges.push({ from: firstIndex, to: firstIndex + search.length, insert: replace })
+                    searchFrom = firstIndex + search.length
+                }
+
+                if (batchValid) {
+                    ranges.sort((a, b) => b.from - a.from)
+                    view.dispatch({
+                        changes: ranges,
+                        scrollIntoView: false,
+                    })
+                    applied = true
+                }
+            }
+        }
+
+        // FALLBACK: If surgical replace failed or not applicable, try granular diffing
+        if (!applied && allowFallback && typeof fallbackContent === 'string') {
+            const changes = computeCodeMirrorChanges(currentDoc, fallbackContent)
+            if (changes.length > 0) {
+                view.dispatch({
+                    changes,
+                    scrollIntoView: false,
+                })
+                applied = true
+            }
+        }
+
+        return applied
+    }, [view])
+
+    // Fetch files when documentId changes
+    useEffect(() => {
+        if (documentId) {
+            DocumentService.getDocumentFiles(documentId).then(setFiles);
+        }
+    }, [documentId]);
 
     // Report editor functions back to parent
     useEffect(() => {
@@ -124,10 +295,10 @@ export function LatexEditor({
                         setViewMode('source');
                     }
                 },
-                setPendingMerge
+                setPendingMerge: enqueuePendingMerge
             })
         }
-    }, [view, onEditorReady, documentId, isCompiling, visibleCollaborators, hiddenCollaboratorsCount, viewMode, visualEditor, setPendingMerge])
+    }, [view, onEditorReady, documentId, isCompiling, visibleCollaborators, hiddenCollaboratorsCount, viewMode, visualEditor, enqueuePendingMerge])
 
     const handleCompile = async () => {
         if (!view) return
@@ -135,8 +306,16 @@ export function LatexEditor({
         setIsCompiling(true)
         try {
             // Use modified content if a merge is pending, otherwise use current editor content
-            const content = pendingMerge ? pendingMerge.modified : view.state.doc.toString()
-            const result = await laTeXService.compileSingleFile('main.tex', content)
+            const content = activePendingMerge ? activePendingMerge.modified : view.state.doc.toString()
+            
+            // Re-fetch files to ensure we have the latest list (in case of recent uploads)
+            let currentFiles = files;
+            if (documentId) {
+                currentFiles = await DocumentService.getDocumentFiles(documentId);
+                setFiles(currentFiles);
+            }
+
+            const result = await laTeXService.compileWithAssets('main.tex', content, currentFiles)
             setCompileResult(result)
 
             if (result.pdf) {
@@ -206,51 +385,71 @@ export function LatexEditor({
                 >
                     <div
                         ref={editorRef}
-                        className={`h-full w-full cm-editor-container ${viewMode !== 'source' || pendingMerge ? 'hidden' : ''}`}
+                        className={`h-full w-full cm-editor-container ${viewMode !== 'source' || activePendingMerge ? 'hidden' : ''}`}
                     />
 
-                    {pendingMerge && (
+                    {activePendingMerge && (
                         <MergePreview
-                            original={pendingMerge.original}
-                            modified={pendingMerge.modified}
+                            original={activePendingMerge.original}
+                            modified={activeMergePreview?.modified ?? activePendingMerge.modified}
+                            queuePosition={pendingMerges.length > 0 ? 1 : 0}
+                            queueTotal={pendingMerges.length}
                             onAccept={(content) => {
-                                if (view) {
-                                    const currentDoc = view.state.doc.toString();
-                                    let applied = false;
+                                const mergeToApply = activePendingMerge
+                                if (!mergeToApply) return
 
-                                    // OPTIMIZATION: Surgical Replace (Best for Multi-user context)
-                                    // If the staged change has a specific search/replace block, try to find it in the current document.
-                                    // This handles the case where other users have added/removed text in other parts of the document.
-                                    if (pendingMerge.searchBlock && pendingMerge.replaceBlock) {
-                                        const index = currentDoc.indexOf(pendingMerge.searchBlock);
-                                        if (index !== -1) {
-                                            view.dispatch({
-                                                changes: { from: index, to: index + pendingMerge.searchBlock.length, insert: pendingMerge.replaceBlock },
-                                                scrollIntoView: false
-                                            });
-                                            applied = true;
-                                        }
-                                    }
-
-                                    // FALLBACK: Granular Diffing
-                                    // If surgical replace wasn't possible or not applicable, use diffing to find minimal changes.
-                                    if (!applied) {
-                                        const changes = computeCodeMirrorChanges(currentDoc, content);
-                                        if (changes.length > 0) {
-                                            view.dispatch({
-                                                changes,
-                                                scrollIntoView: false
-                                            });
-                                        }
-                                    }
+                                if (activeMergePreview?.isRebased !== true) {
+                                    console.warn('Accept This blocked: current queue item is stale and could reintroduce previously accepted content. Use Discard or Accept All (best-effort).')
+                                    return
                                 }
-                                setPendingMerge(null);
+
+                                const applied = applyPendingMerge(mergeToApply, content, { allowFallback: activeMergePreview?.isRebased === true })
+                                if (!applied) {
+                                    console.warn('Merge preview apply failed: staged change no longer matches current document. Please review/discard this queue item.')
+                                    return
+                                }
+
+                                setLastBatchSummary(null)
+                                consumePendingMerge()
                             }}
-                            onDiscard={() => setPendingMerge(null)}
+                            onAcceptAll={() => {
+                                if (!view) return
+
+                                const queueSnapshot = [...pendingMerges]
+                                let appliedCount = 0
+                                const failedItems: PendingMergeChange[] = []
+                                for (let index = 0; index < queueSnapshot.length; index++) {
+                                    const merge = queueSnapshot[index]
+                                    const applied = applyPendingMerge(merge, undefined, { allowFallback: false })
+
+                                    if (!applied) {
+                                        console.warn(`Accept All: Merge ${index + 1} failed - staged diff no longer matches current document. Keeping item in queue for manual review.`)
+                                        failedItems.push(merge)
+                                        continue
+                                    }
+
+                                    appliedCount++
+                                }
+
+                                setPendingMerges(failedItems)
+                                setLastBatchSummary({
+                                    applied: appliedCount,
+                                    failed: failedItems.length,
+                                })
+                            }}
+                            onDiscard={() => {
+                                setLastBatchSummary(null)
+                                consumePendingMerge()
+                            }}
+                            batchSummary={lastBatchSummary}
+                            rebaseStatus={{
+                                isRebased: activeMergePreview?.isRebased === true,
+                                reason: activeMergePreview?.reason,
+                            }}
                         />
                     )}
 
-                    {viewMode === 'visual' && !pendingMerge && (
+                    {viewMode === 'visual' && !activePendingMerge && (
                         <LatexVisualEditor
                             content={view?.state.doc.toString() || initialContent || ''}
                             onEditorReady={setVisualEditor}
@@ -306,7 +505,7 @@ export function LatexEditor({
                         </div>
                     ) : (
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 p-4 text-center text-sm">
-                            <FileTextIcon className="w-10 h-10 mb-3 opacity-20" />
+                            <FileText className="w-10 h-10 mb-3 opacity-20"/>
                             <p className="font-medium">Ready to compile</p>
                             <p className="text-xs text-gray-500 mt-1">Press "Compile" to see preview</p>
                         </div>
@@ -342,102 +541,6 @@ export function LatexEditor({
                     </pre>
                 </div>
             )}
-
-            <style jsx global>{`
-                .cm-editor-container .cm-editor {
-                    height: 100%;
-                    outline: none !important;
-                    background: #ffffff;
-                }
-                .cm-editor-container .cm-scroller {
-                    font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', monospace !important;
-                    font-size: 13px !important;
-                    padding: 16px 0 !important;
-                    line-height: 1.5 !important;
-                }
-                .cm-editor-container .cm-gutters {
-                    background-color: #fafbfc !important;
-                    border-right: 1px solid #e5e7eb !important;
-                    color: #9ca3af !important;
-                    font-size: 12px;
-                }
-                .cm-editor-container .cm-activeLine {
-                    background-color: #f0f7ff !important;
-                }
-                .cm-editor-container .cm-activeLineGutter {
-                    background-color: #eff6ff !important;
-                    color: #3b82f6 !important;
-                }
-                .cm-editor-container .cm-line {
-                    padding-left: 4px;
-                }
-                .cm-editor-container .cm-editor .cm-selectionBackground {
-                    background-color: rgba(59, 130, 246, 0.30) !important;
-                }
-                .cm-editor-container .cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground {
-                    background-color: rgba(37, 99, 235, 0.34) !important;
-                }
-                .cm-editor-container .cm-content ::selection,
-                .cm-editor-container .cm-line::selection,
-                .cm-editor-container .cm-content::selection {
-                    background-color: rgba(59, 130, 246, 0.30) !important;
-                }
-                .cm-editor-container .cm-ySelection {
-                    border-radius: 2px;
-                    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
-                }
-                .cm-editor-container .cm-yLineSelection {
-                    box-shadow: none;
-                }
-                .cm-editor-container .cm-ySelectionCaret {
-                    border-left-width: 2px !important;
-                    border-right: 0 !important;
-                    margin-left: -1px;
-                    margin-right: 0;
-                }
-                .cm-editor-container .cm-ySelectionCaretDot {
-                    width: 0.5rem !important;
-                    height: 0.5rem !important;
-                    top: -0.26rem !important;
-                    left: -0.26rem !important;
-                    box-shadow: 0 0 0 2px #ffffff;
-                }
-                .cm-editor-container .cm-ySelectionInfo {
-                    top: -1.45em !important;
-                    left: 2px !important;
-                    font-size: 10px !important;
-                    font-family: ui-sans-serif, system-ui, sans-serif !important;
-                    font-weight: 600 !important;
-                    letter-spacing: 0.01em;
-                    border-radius: 9999px;
-                    padding: 2px 8px !important;
-                    opacity: 0.95 !important;
-                    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
-                }
-            `}</style>
         </div>
-    )
-}
-
-function FileTextIcon({ className }: { className?: string }) {
-    return (
-        <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className={className}
-        >
-            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-            <polyline points="14 2 14 8 20 8" />
-            <line x1="16" y1="13" x2="8" y2="13" />
-            <line x1="16" y1="17" x2="8" y2="17" />
-            <line x1="10" y1="9" x2="8" y2="9" />
-        </svg>
     )
 }

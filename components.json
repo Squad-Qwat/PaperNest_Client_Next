@@ -23,6 +23,7 @@
     "@ss-components": "https://shadcnstudio.com/r/components/{name}.json",
     "@ss-blocks": "https://shadcnstudio.com/r/blocks/{name}.json",
     "@ss-themes": "https://shadcnstudio.com/r/themes/{name}.json",
-    "@ai-elements": "https://ai-sdk.dev/elements/api/registry/{name}.json"
+    "@ai-elements": "https://ai-sdk.dev/elements/api/registry/{name}.json",
+    "@react-bits": "https://reactbits.dev/r/{name}.json"
   }
 }

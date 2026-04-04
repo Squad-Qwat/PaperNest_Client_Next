@@ -1,8 +1,8 @@
 import { ChevronLeft, GitCommit, History, MessageSquare, RefreshCw, Share2, X } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
-import { CommitModal } from '@/components/document/CommitModal'
-import LatexToolbar from '@/components/document/LatexToolbar'
+import { CommitModal } from '@/components/document/mergeview/CommitModal'
+import LatexToolbar from '@/components/document/latex/LatexToolbar'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -28,6 +28,7 @@ const DocumentHeader = ({
 	user,
 	workspaceId,
 	documentId,
+
 	// Editor props
 	editor,
 	insertTable,
@@ -44,7 +45,6 @@ const DocumentHeader = ({
 	hiddenCollaboratorsCount,
 	debugContentExtraction,
 }) => {
-	const [isSyncing, setIsSyncing] = useState(false)
 	const [showCommitModal, setShowCommitModal] = useState(false)
 	const { canCommit, commitBlockReason } = useDocumentReviews(documentId)
 

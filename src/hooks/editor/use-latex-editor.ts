@@ -3,10 +3,12 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { EditorState, Extension } from '@codemirror/state'
-import { EditorView, keymap, drawSelection, highlightActiveLine, dropCursor,
-    rectangularSelection, crosshairCursor, lineNumbers, highlightActiveLineGutter, ViewUpdate } from '@codemirror/view'
+import {
+    EditorView, keymap, drawSelection, highlightActiveLine, dropCursor,
+    rectangularSelection, crosshairCursor, lineNumbers, highlightActiveLineGutter, ViewUpdate
+} from '@codemirror/view'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
-import { indentOnInput, syntaxHighlighting, defaultHighlightStyle, bracketMatching, foldGutter, foldKeymap } from '@codemirror/language'
+import { indentOnInput, syntaxHighlighting, bracketMatching, foldGutter, foldKeymap } from '@codemirror/language'
 import { searchKeymap, highlightSelectionMatches } from '@codemirror/search'
 import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete'
 import { lintKeymap } from '@codemirror/lint'
@@ -15,6 +17,7 @@ import { yCollab } from 'y-codemirror.next'
 
 import { useLatexCollaboration } from './use-latex-collaboration'
 import { DocumentService } from '@/lib/firebase/document-service'
+import { paperNestThemeExtension } from '@/lib/editor/latex-theme'
 
 interface UseLatexEditorOptions {
     documentId?: string | null;
@@ -69,7 +72,7 @@ export function useLatexEditor({
         if (!editorRef.current || (enabled && (!collaborationReady || !hasSyncedOnce))) return
 
         const yText = yDoc ? yDoc.getText('latex') : null
-        
+
         // If Yjs is ready and empty, but we have initial content, seed it
         if (yText?.length === 0 && initialContent && initialContent !== 'Start writing here...') {
             yText.insert(0, initialContent)
@@ -87,7 +90,7 @@ export function useLatexEditor({
             dropCursor(),
             EditorState.allowMultipleSelections.of(true),
             indentOnInput(),
-            syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+            ...paperNestThemeExtension,
             bracketMatching(),
             closeBrackets(),
             autocompletion(),

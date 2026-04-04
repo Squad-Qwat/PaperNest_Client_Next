@@ -18,6 +18,13 @@ import type {
 	RegisterDto,
 } from '@/lib/api/types/auth.types'
 import type { User } from '@/lib/api/types/user.types'
+import { auth } from '@/lib/firebase/config'
+import {
+	GoogleAuthProvider,
+	GithubAuthProvider,
+	signInWithPopup,
+	signInWithEmailAndPassword,
+} from 'firebase/auth'
 import { getErrorMessage } from '@/lib/api/utils/error-handler'
 
 interface AuthContextType {
@@ -30,6 +37,9 @@ interface AuthContextType {
 	register: (data: RegisterDto) => Promise<AuthResponse>
 	login: (data: LoginDto) => Promise<void>
 	loginEmail: (data: LoginEmailDto) => Promise<void>
+	onboardingData: any | null
+	signInWithSocial: (providerName: 'google' | 'github') => Promise<void>
+	completeOnboarding: (data: { username: string; role: string }) => Promise<void>
 	logout: () => Promise<void>
 	forgotPassword: (data: PasswordResetDto) => Promise<void>
 	refreshUser: () => Promise<void>
@@ -39,7 +49,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 // Public routes that don't require authentication
-const PUBLIC_ROUTES = ['/login', '/register', '/forgot-password']
+const PUBLIC_ROUTES = ['/login', '/register', '/forgot-password', '/auth/onboarding']
 
 interface AuthProviderProps {
 	children: React.ReactNode
@@ -47,6 +57,7 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
 	const [user, setUser] = useState<User | null>(null)
+	const [onboardingData, setOnboardingData] = useState<any | null>(null)
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
 	const router = useRouter()
@@ -61,7 +72,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 				if (accessToken) {
 					apiClient.setAuthToken(accessToken)
 					const currentUser = await authService.getCurrentUser()
-					setUser(currentUser)
+					setUser(currentUser || null)
 				}
 			} catch (err) {
 				console.error('[AuthContext] Failed to initialize auth:', err)
@@ -119,7 +130,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 				apiClient.setAuthToken(accessToken)
 			}
 
-			setUser(response.user)
+			setUser(response.user || null)
 			return response
 		} catch (err) {
 			const message = getErrorMessage(err)
@@ -141,7 +152,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 				apiClient.setAuthToken(accessToken)
 			}
 
-			setUser(response.user)
+			setUser(response.user || null)
 			router.push('/')
 		} catch (err) {
 			const message = getErrorMessage(err)
@@ -152,27 +163,112 @@ export function AuthProvider({ children }: AuthProviderProps) {
 		}
 	}
 
-	// Login with email/password
+	// Login with email/password (via Firebase)
 	const loginEmail = async (data: LoginEmailDto) => {
 		try {
 			setLoading(true)
 			setError(null)
-			const response = await authService.loginEmail(data)
+
+			// 1. Firebase Login
+			const result = await signInWithEmailAndPassword(
+				auth,
+				data.email,
+				data.password
+			)
+			const idToken = await result.user.getIdToken()
+
+			// 2. PaperNest Backend Login
+			const response = await authService.login({ firebaseToken: idToken })
 
 			const accessToken = response.token || response.accessToken
-			console.log('[AuthContext] LoginEmail response received:', {
-				hasUser: !!response.user,
-				hasToken: !!accessToken,
-			})
-
-			// Ensure token is set in apiClient
 			if (accessToken) {
 				apiClient.setAuthToken(accessToken)
-				console.log('[AuthContext] Token explicitly set in apiClient after email login')
 			}
 
-			setUser(response.user)
-			router.push('/') // Redirect to home after login
+			setUser(response.user || null)
+			router.push('/')
+		} catch (err) {
+			const message = getErrorMessage(err)
+			setError(message)
+			throw err
+		} finally {
+			setLoading(false)
+		}
+	}
+
+	// Login with social provider (Google, GitHub, etc.)
+	const signInWithSocial = async (providerName: 'google' | 'github') => {
+		try {
+			setLoading(true)
+			setError(null)
+
+			let provider
+			if (providerName === 'google') {
+				provider = new GoogleAuthProvider()
+			} else if (providerName === 'github') {
+				provider = new GithubAuthProvider()
+			} else {
+				throw new Error('Unsupported social provider')
+			}
+
+			// 1. Firebase Login Popup
+			const result = await signInWithPopup(auth, provider)
+			const idToken = await result.user.getIdToken()
+
+			// 2. PaperNest Backend Login
+			const response = await authService.loginSocial({ firebaseToken: idToken })
+
+			// 3. Check if this is a new user that needs onboarding
+			if (response.isNewUser) {
+				console.log('[AuthContext] New user detected, redirecting to onboarding')
+				setOnboardingData({
+					token: idToken,
+					firebaseData: response.firebaseData,
+				})
+				router.push('/auth/onboarding')
+				return
+			}
+
+			const accessToken = response.token || response.accessToken
+			if (accessToken) {
+				apiClient.setAuthToken(accessToken)
+			}
+
+			setUser(response.user || null)
+			router.push('/')
+		} catch (err) {
+			const message = getErrorMessage(err)
+			setError(message)
+			throw err
+		} finally {
+			setLoading(false)
+		}
+	}
+
+	// Complete onboarding for social login
+	const completeOnboarding = async (data: { username: string; role: string }) => {
+		try {
+			if (!onboardingData?.token) {
+				throw new Error('No authentication token found for onboarding')
+			}
+
+			setLoading(true)
+			setError(null)
+
+			const response = await authService.completeSocialRegistration({
+				firebaseToken: onboardingData.token,
+				username: data.username,
+				role: data.role,
+			})
+
+			const accessToken = response.token || response.accessToken
+			if (accessToken) {
+				apiClient.setAuthToken(accessToken)
+			}
+
+			setUser(response.user || null)
+			setOnboardingData(null)
+			router.push('/')
 		} catch (err) {
 			const message = getErrorMessage(err)
 			setError(message)
@@ -220,7 +316,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 			setLoading(true)
 			setError(null)
 			const currentUser = await authService.getCurrentUser()
-			setUser(currentUser)
+			setUser(currentUser || null)
 		} catch (err) {
 			const message = getErrorMessage(err)
 			setError(message)
@@ -243,6 +339,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 		register,
 		login,
 		loginEmail,
+		onboardingData,
+		signInWithSocial,
+		completeOnboarding,
 		logout,
 		forgotPassword,
 		refreshUser,

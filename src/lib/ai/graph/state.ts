@@ -18,6 +18,12 @@ export interface ToolResult {
     success: boolean
 }
 
+export type ExecutionOutcome =
+    | 'executed_tool'
+    | 'executed_text_only'
+    | 'no_execution'
+    | 'execution_error'
+
 /**
  * Plan step definition for Plan-and-Execute
  */
@@ -30,10 +36,11 @@ export interface PlanStep {
     result?: string
     // Smart Planning Fields
     confidence?: number
-    acceptanceCriteria?: string
+    acceptanceCriteria?: string  // How to verify this step succeeded (used by reflector)
     dependencies?: number[]
     suggestedTools?: string[]
 }
+
 
 /**
  * Agent State Annotation
@@ -90,8 +97,8 @@ export const AgentState = Annotation.Root({
 
     // ===== META-COGNITION STATE =====
     confidence: Annotation<number>({
-        reducer: (_, newVal) => newVal ?? 1.0,
-        default: () => 1.0,
+        reducer: (_, newVal) => newVal ?? 1,
+        default: () => 1,
     }),
     progress: Annotation<number>({
         reducer: (_, newVal) => newVal ?? 0,
@@ -100,6 +107,18 @@ export const AgentState = Annotation.Root({
     needsReplanning: Annotation<boolean>({
         reducer: (_, newVal) => newVal ?? false,
         default: () => false,
+    }),
+    reasoningEnabled: Annotation<boolean>({
+        reducer: (_, newVal) => newVal ?? false,
+        default: () => false,
+    }),
+    lastReasoningSummary: Annotation<string>({
+        reducer: (_, newVal) => newVal ?? '',
+        default: () => '',
+    }),
+    lastReasoningPhase: Annotation<string>({
+        reducer: (_, newVal) => newVal ?? '',
+        default: () => '',
     }),
 
     // ===== EXECUTION TRACKING =====
@@ -125,6 +144,22 @@ export const AgentState = Annotation.Root({
         reducer: (_, newVal) => newVal ?? [],
         default: () => [],
     }),
+    lastExecutionOutcome: Annotation<ExecutionOutcome>({
+        reducer: (_, newVal) => newVal ?? 'no_execution',
+        default: () => 'no_execution',
+    }),
+    lastExecutionEvidence: Annotation<string>({
+        reducer: (_, newVal) => newVal ?? '',
+        default: () => '',
+    }),
+    consecutiveNoExecutionCycles: Annotation<number>({
+        reducer: (_, newVal) => newVal ?? 0,
+        default: () => 0,
+    }),
+    replanAttempts: Annotation<number>({
+        reducer: (_, newVal) => newVal ?? 0,
+        default: () => 0,
+    }),
 
     // ===== ERROR HANDLING =====
     retryCount: Annotation<number>({
@@ -144,6 +179,16 @@ export const AgentState = Annotation.Root({
     taskSummary: Annotation<string>({
         reducer: (_, newVal) => newVal ?? '',
         default: () => '',
+    }),
+
+    // ===== PROVIDER CONFIG =====
+    providerId: Annotation<string>({
+        reducer: (_, newVal) => newVal ?? 'google-genai',
+        default: () => 'google-genai',
+    }),
+    modelId: Annotation<string>({
+        reducer: (_, newVal) => newVal ?? 'gemini-2.5-flash-lite',
+        default: () => 'gemini-2.5-flash-lite',
     }),
 })
 

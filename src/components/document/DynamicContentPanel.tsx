@@ -17,6 +17,7 @@ interface DynamicContentPanelProps {
 	onNavigateToSection?: (heading: string, position: number) => void
 	editorView?: any
 	getCurrentContent?: () => string
+	documentId?: string | null
 }
 
 const DynamicContentPanel: React.FC<DynamicContentPanelProps> = ({
@@ -29,6 +30,7 @@ const DynamicContentPanel: React.FC<DynamicContentPanelProps> = ({
 	onNavigateToSection,
 	editorView,
 	getCurrentContent,
+	documentId,
 }) => {
 	const [width, setWidth] = useState(320) // Default width 320px
 	const [isResizing, setIsResizing] = useState(false)
@@ -76,7 +78,7 @@ const DynamicContentPanel: React.FC<DynamicContentPanelProps> = ({
 	const renderContent = () => {
 		switch (activePanel) {
 			case 'panel1':
-				return <PanelContent1 />
+				return <PanelContent1 documentId={documentId} editorView={editorView} />
 			case 'panel2':
 				return (
 					<PanelContent2
@@ -115,8 +117,7 @@ const DynamicContentPanel: React.FC<DynamicContentPanelProps> = ({
 
 			{/* Content */}
 			<div className='flex-1 flex flex-col overflow-hidden'>
-				{/* Header */}
-				<div className='flex items-center justify-between gap-2 border-b border-gray-100 p-3 flex-shrink-0'>
+				<div className='flex items-center justify-between gap-2 border-b border-gray-100 p-3 shrink-0'>
 					<h3 className='text-sm font-semibold text-gray-700 truncate'>
 						{panelLabels[activePanel] || 'Panel'}
 					</h3>

@@ -15,7 +15,7 @@ import {
 	QueryConstraint,
 } from 'firebase/firestore'
 import { firestore } from '@/lib/firebase/config'
-import { Document } from '@/lib/api/types/document.types'
+import { Document, DocumentFile } from '@/lib/api/types/document.types'
 
 // Types untuk Document operations
 export interface CreateDocumentData {
@@ -293,6 +293,65 @@ export class DocumentService {
 		} catch (error) {
 			console.error('❌ Error checking document access:', error)
 			return false
+		}
+	}
+
+	/**
+	 * Get all files attached to a document
+	 */
+	static async getDocumentFiles(docId: string): Promise<DocumentFile[]> {
+		try {
+			const filesRef = collection(firestore, this.COLLECTION_NAME, docId, 'files')
+			const q = query(filesRef, orderBy('createdAt', 'desc'))
+			const querySnapshot = await getDocs(q)
+
+			return querySnapshot.docs.map((doc) => ({
+				fileId: doc.id,
+				...(doc.data() as any),
+				createdAt: doc.data().createdAt?.toDate() || new Date(doc.data().createdAt),
+			})) as DocumentFile[]
+		} catch (error) {
+			console.error('❌ Error fetching document files:', error)
+			throw new Error('Failed to fetch document files')
+		}
+	}
+
+	/**
+	 * Add a file record to a document
+	 */
+	static async addDocumentFile(
+		docId: string,
+		fileData: Omit<DocumentFile, 'fileId'>
+	): Promise<DocumentFile> {
+		try {
+			const filesRef = collection(firestore, this.COLLECTION_NAME, docId, 'files')
+			const newFile = {
+				...fileData,
+				createdAt: serverTimestamp(),
+			}
+
+			const docRef = await addDoc(filesRef, newFile)
+			return {
+				fileId: docRef.id,
+				...fileData,
+				createdAt: new Date(),
+			}
+		} catch (error) {
+			console.error('❌ Error adding document file:', error)
+			throw new Error('Failed to add document file')
+		}
+	}
+
+	/**
+	 * Delete a file record from a document
+	 */
+	static async deleteDocumentFile(docId: string, fileId: string): Promise<void> {
+		try {
+			const fileRef = doc(firestore, this.COLLECTION_NAME, docId, 'files', fileId)
+			await deleteDoc(fileRef)
+		} catch (error) {
+			console.error('❌ Error deleting document file:', error)
+			throw new Error('Failed to delete document file')
 		}
 	}
 

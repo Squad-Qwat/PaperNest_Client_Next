@@ -200,7 +200,7 @@ export default function LatexToolbar({
                                 size="sm" 
                                 onClick={handleCompile}
                                 disabled={isCompiling}
-                                className="h-8 bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 active:scale-95 flex items-center gap-2 px-3"
+                                className="h-8 transition-all duration-200 active:scale-95 flex items-center gap-2 px-3"
                             >
                                 {isCompiling ? (
                                     <Loader2 className="w-3.5 h-3.5 animate-spin" />

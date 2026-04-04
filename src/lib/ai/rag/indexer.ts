@@ -3,9 +3,9 @@ import { Document } from "@langchain/core/documents"
 import { loadVectorStore, saveVectorStore } from "./vectorStore"
 
 /**
- * Interface representing a document from Tiptap or Papernest
+ * Interface representing a document from CodeMirror or Papernest
  */
-export interface TiptapDocument {
+export interface EditorDocument {
 	id: string
 	content: string
 	title?: string
@@ -15,7 +15,7 @@ export interface TiptapDocument {
  * Indexes a document into the local Vector Store.
  * Replaces the existing index for this document.
  */
-export const indexDocument = async (doc: TiptapDocument): Promise<number> => {
+export const indexDocument = async (doc: EditorDocument): Promise<number> => {
 	// 1. Text Splitting (Chunking)
 	const textSplitter = new RecursiveCharacterTextSplitter({
 		chunkSize: 1000,

@@ -2,9 +2,39 @@
  * LangGraph Routing Functions - Advanced Architecture
  *
  * Controls flow between Planner, Executor, Tools, and Reflector
+ * 
+ * ====== ONE-WAY STATE MACHINE (Simple & Powerful) ======
+ * 
+ * Step Status Transitions (STRICT & IRREVERSIBLE):
+ * 
+ * 1. pending → active (Executor only)
+ *    - Only Executor can start a step
+ *    - Only pending steps can transition to active
+ *    - Once active, cannot go back to pending
+ * 
+ * 2. active → completed (Reflector only, on success)
+ *    - Reflector evaluates LLM verdict (COMPLETE/CONTINUE)
+ *    - If success: active → completed (FINAL)
+ *    - Cannot revert: completed steps never reopen
+ * 
+ * 3. active → failed (Reflector or Executor, on error)
+ *    - Reflector: LLM error or detected failure
+ *    - Executor: Step validation failed
+ *    - If failed: triggers END (don't retry individual steps)
+ * 
+ * Replan Strategy:
+ * - If REPLAN needed: Planner generates FRESH plan
+ * - Fresh plan: all steps start as pending (no carry-over from failed plan)
+ * - Max 3 replan attempts (then END to prevent infinite loop)
+ * 
+ * Benefits:
+ * - Crystal clear: no status "bounce-back"
+ * - No ambiguous multi-state scenarios
+ * - Easy to debug: log shows exact transition at each node
+ * - Prevents loops: once completed/failed, never re-execute
  */
 
-import { isAIMessage, AIMessage } from '@langchain/core/messages'
+import { AIMessage } from '@langchain/core/messages'
 import { AgentStateType } from './state'
 
 /**
@@ -33,23 +63,33 @@ export function routeAfterPlanner(state: AgentStateType): RouteType {
 
 /**
  * routeAfterExecutor: Check for tool calls
+ * 
+ * FIXED: Route to TOOLS instead of END to ensure reflector is called
+ * Flow: EXECUTOR → TOOLS → REFLECTOR ensures proper step evaluation
  */
 export function routeAfterExecutor(state: AgentStateType): RouteType {
     const lastMessage = state.messages.at(-1)
 
     // Check for tool calls
-    if (lastMessage && isAIMessage(lastMessage)) {
-        const aiMessage = lastMessage as AIMessage
-        const toolCalls = aiMessage.tool_calls ?? []
+    if (lastMessage instanceof AIMessage) {
+        const toolCalls = lastMessage.tool_calls ?? []
+
+        console.log('[Router] routeAfterExecutor: lastMessage has tool_calls:', {
+            messageType: lastMessage._getType?.() ?? 'unknown',
+            toolCallCount: toolCalls.length,
+            toolNames: toolCalls.map((tc: any) => tc.name),
+        })
 
         if (toolCalls.length > 0) {
-            // End graph execution so client can process tool calls
-            return ROUTES.END
+            // Route to ToolNode for execution, then to Reflector for evaluation
+            console.log('[Router] Routing to TOOLS for execution')
+            return ROUTES.TOOLS
         }
     }
 
-    // No tool calls means step failed or skipped? 
-    // For now, treat as completion of step logic (e.g. just talking)
+    // No tool calls means step completed via LLM text only
+    // Proceed to reflection/evaluation
+    console.log('[Router] No tool calls, routing to REFLECTOR directly')
     return ROUTES.REFLECTOR
 }
 
@@ -66,10 +106,11 @@ export function routeAfterTools(state: AgentStateType): RouteType {
  * routeAfterReflector: Decide next move
  * Priority order:
  * 1. Iteration limit exceeded -> End (safety)
- * 2. Low confidence + needs replanning -> Planner
- * 3. Task complete -> End
- * 4. More steps in plan -> Executor
- * 5. No more steps -> End
+ * 2. Failed status in plan -> End (cannot recover)
+ * 3. Low confidence + needs replanning -> Planner (max 3 replans)
+ * 4. Task complete -> End
+ * 5. More steps in plan -> Executor
+ * 6. No more steps -> End
  */
 export function routeAfterReflector(state: AgentStateType): RouteType {
     // Safety: Check iteration limit first
@@ -78,9 +119,28 @@ export function routeAfterReflector(state: AgentStateType): RouteType {
         return ROUTES.END
     }
 
-    // Low confidence should trigger replanning
+    const replanAttempts = state.replanAttempts ?? 0
+    if (replanAttempts >= 3) {
+        console.warn('[Router] Max persistent replan attempts (3) reached, ending to prevent infinite loop')
+        return ROUTES.END
+    }
+
+    const consecutiveNoExecutionCycles = state.consecutiveNoExecutionCycles ?? 0
+    if (consecutiveNoExecutionCycles >= 3) {
+        console.warn('[Router] Too many consecutive no-execution cycles (3), ending to prevent blind loop')
+        return ROUTES.END
+    }
+
+    // Check for failed steps (invalid plans that can't be recovered)
+    const hasFailedSteps = state.plan.some(s => s.status === 'failed')
+    if (hasFailedSteps) {
+        console.warn('[Router] Plan contains failed steps, cannot recover, ending')
+        return ROUTES.END
+    }
+
+    // Low confidence should trigger replanning (but with limit)
     if (state.needsReplanning || (state.confidence < 0.3 && !state.isComplete)) {
-        console.log(`[Router] Replanning triggered (confidence: ${state.confidence}, needsReplanning: ${state.needsReplanning})`)
+        console.log(`[Router] Replanning triggered (confidence: ${state.confidence}, needsReplanning: ${state.needsReplanning}, replanAttempts: ${replanAttempts})`)
         return ROUTES.PLANNER
     }
 
@@ -90,14 +150,32 @@ export function routeAfterReflector(state: AgentStateType): RouteType {
         return ROUTES.END
     }
 
-    // Check if more steps remain in plan (queue model)
-    if (state.plan.length > 0) {
-        console.log(`[Router] ${state.plan.length} steps remaining, continuing execution`)
+    // Check if more steps remain in plan (by status, not total length)
+    const pendingSteps = state.plan.filter((s) => s.status === 'pending' || s.status === 'active')
+    if (pendingSteps.length > 0) {
+        console.log(`[Router] ${pendingSteps.length} step(s) remaining (pending/active), continuing execution`)
+        console.log('[Router] Remaining steps:', {
+            steps: pendingSteps.map(s => ({
+                id: s.id,
+                tool: s.tool,
+                status: s.status,
+                description: s.description?.substring(0, 40),
+            })),
+        })
         return ROUTES.EXECUTOR
     }
 
     // No more steps in plan = done
     console.log('[Router] No more steps in plan, ending')
+    console.log('[Router] Final plan state:', {
+        steps: state.plan.map(s => ({
+            id: s.id,
+            tool: s.tool,
+            status: s.status,
+        })),
+        totalCompleted: state.plan.filter(s => s.status === 'completed').length,
+        totalFailed: state.plan.filter(s => s.status === 'failed').length,
+    })
     return ROUTES.END
 }
 

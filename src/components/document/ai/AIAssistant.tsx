@@ -50,14 +50,14 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 
 		const handleUpdate = () => {
 			if (indexingTimeoutRef.current) clearTimeout(indexingTimeoutRef.current)
-			
+
 			// Debounce 5 seconds without typing before indexing
 			indexingTimeoutRef.current = setTimeout(async () => {
 				try {
 					const content = cmView.state.doc.toString()
 					// Only index if there is substantial text
 					if (!content || content.length < 50) return
-					
+
 					// Find the title (for LaTeX, we can look for \title{...})
 					let title = 'Untitled'
 					const titleMatch = content.match(/\\title\{([^}]+)\}/)
@@ -129,7 +129,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 	return (
 		<div
 			className='bg-white border-l border-gray-200 shadow-lg flex shrink-0 relative overflow-hidden'
-			style={{ 
+			style={{
 				width: `${width}px`,
 				height: '100%', // Full height of parent container
 				position: 'sticky',
@@ -140,9 +140,8 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 		>
 			{/* Resize Handle */}
 			<div
-				className={`absolute left-0 top-0 h-full w-1 cursor-ew-resize hover:bg-blue-500 transition-colors z-10 ${
-					isResizing ? 'bg-blue-500' : 'bg-transparent hover:bg-blue-300'
-				}`}
+				className={`absolute left-0 top-0 h-full w-1 cursor-ew-resize hover:bg-blue-500 transition-colors z-10 ${isResizing ? 'bg-blue-500' : 'bg-transparent hover:bg-blue-300'
+					}`}
 				onMouseDown={handleMouseDown}
 			>
 				<div className='absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-8 rounded-full bg-gray-300 opacity-0 hover:opacity-100 transition-opacity' />

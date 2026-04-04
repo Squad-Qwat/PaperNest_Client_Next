@@ -5,8 +5,8 @@ import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Navbar } from '@/components/layout/navbar'
 import { ReviewCard } from '@/components/review/ReviewCard'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
 	Select,
 	SelectContent,
@@ -101,7 +101,7 @@ export default function ReviewsPage() {
 	}
 
 	return (
-		<div className='min-h-screen bg-gray-50'>
+		<div className='min-h-screen bg-white'>
 			<Navbar mode='workspace' />
 			<main className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
 				<div className='mb-8'>
@@ -113,9 +113,9 @@ export default function ReviewsPage() {
 				</div>
 
 				{/* Filters Row */}
-				<div className='flex flex-wrap gap-4 mb-8'>
+				<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8'>
 					{/* Document Filter */}
-					<div className='w-[200px]'>
+					<div>
 						<Select value={docFilter} onValueChange={setDocFilter}>
 							<SelectTrigger className='bg-white'>
 								<SelectValue placeholder='Semua Dokumen' />
@@ -132,7 +132,7 @@ export default function ReviewsPage() {
 					</div>
 
 					{/* Search */}
-					<div className='flex-1 relative'>
+					<div className='lg:col-span-2 relative'>
 						<Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400' />
 						<Input
 							placeholder='Cari review...'
@@ -143,7 +143,7 @@ export default function ReviewsPage() {
 					</div>
 
 					{/* Status Filter */}
-					<div className='w-[180px]'>
+					<div>
 						<Select value={statusFilter} onValueChange={setStatusFilter}>
 							<SelectTrigger className='bg-white'>
 								<SelectValue placeholder='Semua Status' />
@@ -159,7 +159,7 @@ export default function ReviewsPage() {
 					</div>
 
 					{/* Sort */}
-					<div className='w-[180px]'>
+					<div>
 						<Select value={sortOrder} onValueChange={setSortOrder}>
 							<SelectTrigger className='bg-white'>
 								<SelectValue placeholder='Sort Order' />
@@ -179,10 +179,27 @@ export default function ReviewsPage() {
 
 				{/* Reviews List */}
 				{loading ? (
-					<div className='text-center py-20 text-gray-500'>Loading reviews...</div>
+					<div className='grid gap-4'>
+						{[...Array(5)].map((_, i) => (
+							<Skeleton key={i} className='h-24 rounded-lg' />
+						))}
+					</div>
 				) : filteredReviews.length === 0 ? (
-					<div className='text-center py-12 text-gray-500 bg-white rounded-lg border border-dashed border-gray-300'>
-						No reviews found matching your filters.
+					<div className='text-center py-16 bg-white rounded-lg border border-dashed border-gray-300'>
+						<div className='inline-flex items-center justify-center h-12 w-12 rounded-full bg-gray-100 mb-4'>
+							<svg className='h-6 w-6 text-gray-400' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+								<path
+									strokeLinecap='round'
+									strokeLinejoin='round'
+									strokeWidth={2}
+									d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
+								/>
+							</svg>
+						</div>
+						<p className='text-gray-600 font-medium mb-1'>No reviews found</p>
+						<p className='text-gray-500 text-sm'>
+							Try adjusting your search or filter criteria
+						</p>
 					</div>
 				) : (
 					<div className='grid gap-4'>

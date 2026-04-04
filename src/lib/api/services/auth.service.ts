@@ -26,7 +26,7 @@ class AuthService {
 		const response = await apiClient.post<AuthResponse>(API_ENDPOINTS.auth.register, data)
 
 		const accessToken = response.token || response.accessToken
-		if (accessToken) {
+		if (accessToken && response.refreshToken) {
 			apiClient.setAuthToken(accessToken)
 			this.saveTokens(accessToken, response.refreshToken)
 		}
@@ -41,7 +41,7 @@ class AuthService {
 		const response = await apiClient.post<AuthResponse>(API_ENDPOINTS.auth.login, data)
 
 		const accessToken = response.token || response.accessToken
-		if (accessToken) {
+		if (accessToken && response.refreshToken) {
 			apiClient.setAuthToken(accessToken)
 			this.saveTokens(accessToken, response.refreshToken)
 		}
@@ -50,13 +50,13 @@ class AuthService {
 	}
 
 	/**
-	 * Login with email and password
+	 * Login with Social Auth (Google, GitHub, etc.)
 	 */
-	async loginEmail(data: LoginEmailDto): Promise<AuthResponse> {
-		const response = await apiClient.post<AuthResponse>(API_ENDPOINTS.auth.loginEmail, data)
+	async loginSocial(data: { firebaseToken: string }): Promise<AuthResponse> {
+		const response = await apiClient.post<AuthResponse>('/auth/social', data)
 
 		const accessToken = response.token || response.accessToken
-		if (accessToken) {
+		if (accessToken && response.refreshToken) {
 			apiClient.setAuthToken(accessToken)
 			this.saveTokens(accessToken, response.refreshToken)
 		}
@@ -179,6 +179,25 @@ class AuthService {
 	getRefreshToken(): string | null {
 		if (typeof window === 'undefined') return null
 		return localStorage.getItem('refreshToken')
+	}
+
+	/**
+	 * Complete social registration (Onboarding)
+	 */
+	async completeSocialRegistration(data: {
+		firebaseToken: string
+		username: string
+		role: string
+	}): Promise<AuthResponse> {
+		const response = await apiClient.post<AuthResponse>('/auth/social/complete', data)
+
+		const accessToken = response.token || response.accessToken
+		if (accessToken && response.refreshToken) {
+			apiClient.setAuthToken(accessToken)
+			this.saveTokens(accessToken, response.refreshToken)
+		}
+
+		return response
 	}
 }
 

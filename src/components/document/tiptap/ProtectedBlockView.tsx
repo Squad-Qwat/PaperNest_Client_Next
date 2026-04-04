@@ -29,16 +29,17 @@ export function ProtectedBlockView({ node, updateAttributes, selected }: NodeVie
 
   return (
     <NodeViewWrapper
-      className="latex-protected-block"
+      className="latex-protected-block group"
       data-type="latex-protected"
       data-block-type={blockType}
       style={{
-        border: validation.valid ? '1px dashed #93c5fd' : '1px solid #ef4444',
-        background: validation.valid ? '#eff6ff' : '#fef2f2',
-        borderRadius: '6px',
-        padding: '10px',
-        margin: '10px 0',
-        boxShadow: selected ? '0 0 0 1px rgba(59,130,246,0.35)' : 'none',
+        border: validation.valid ? '1px dashed var(--primary-subtle, #93c5fd)' : '1px solid var(--danger, #ef4444)',
+        background: validation.valid ? 'var(--info-subtle, #eff6ff)' : 'var(--danger-subtle, #fef2f2)',
+        borderRadius: 'var(--radius-md, 6px)',
+        padding: '12px',
+        margin: '16px 0',
+        boxShadow: selected ? '0 0 0 2px var(--primary, rgba(59,130,246,0.35))' : 'var(--shadow-sm)',
+        transition: 'all 0.2s ease-in-out',
       }}
     >
       <div
@@ -46,15 +47,19 @@ export function ProtectedBlockView({ node, updateAttributes, selected }: NodeVie
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: '6px',
-          fontSize: '11px',
-          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-          color: '#1f2937',
+          marginBottom: '10px',
+          fontSize: '10px',
+          fontFamily: 'var(--font-mono)',
+          color: 'var(--foreground)',
+          opacity: 0.8,
         }}
       >
-        <strong style={{ textTransform: 'uppercase', letterSpacing: '0.04em' }}>{blockType}</strong>
-        <span style={{ color: validation.valid ? '#1d4ed8' : '#dc2626' }}>
-          {validation.valid ? 'Valid' : validation.error}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <strong style={{ textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--primary)' }}>{blockType}</strong>
+          <span style={{ height: '4px', width: '4px', borderRadius: '50%', background: validation.valid ? 'var(--success, #10b981)' : 'var(--danger, #ef4444)' }} />
+        </div>
+        <span style={{ fontWeight: 600, color: validation.valid ? 'var(--success-subtle-foreground)' : 'var(--danger-subtle-foreground)' }}>
+          {validation.valid ? 'MODIFIED' : validation.error}
         </span>
       </div>
 
@@ -62,19 +67,21 @@ export function ProtectedBlockView({ node, updateAttributes, selected }: NodeVie
         value={draftLatex}
         onChange={handleChange}
         spellCheck={false}
+        className="no-scrollbar"
         style={{
           width: '100%',
           minHeight: '180px',
           resize: 'vertical',
-          border: validation.valid ? '1px solid #bfdbfe' : '1px solid #fca5a5',
-          borderRadius: '4px',
-          padding: '8px',
-          background: '#ffffff',
-          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-sm, 4px)',
+          padding: '12px',
+          background: 'var(--background)',
+          fontFamily: 'var(--font-mono)',
           fontSize: '12px',
-          lineHeight: 1.45,
-          color: '#111827',
+          lineHeight: 1.6,
+          color: 'var(--foreground)',
           outline: 'none',
+          boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)',
         }}
       />
 

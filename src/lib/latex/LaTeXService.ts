@@ -3,6 +3,9 @@ import { PdfTeXEngine } from './engines/PdfTeXEngine';
 import { XeTeXEngine } from './engines/XeTeXEngine';
 import { DvipdfmxEngine } from './engines/DvipdfmxEngine';
 import type { BaseEngine, CompileResult } from './engines/BaseEngine';
+import { DocumentFile } from '../api/types/document.types';
+import { apiClient } from '../api/clients/api-client';
+import { API_CONFIG } from '../api/config';
 
 type EngineType = 'pdftex' | 'xetex';
 
@@ -50,6 +53,10 @@ export class LaTeXService {
 	}
 
 	async compileSingleFile(fileName: string, content: string): Promise<CompileResult> {
+		return this.compileWithAssets(fileName, content, []);
+	}
+
+	async compileWithAssets(mainFileName: string, content: string, assets: DocumentFile[]): Promise<CompileResult> {
 		const engine = this.getCurrentEngine();
 
 		if (!engine.isReady()) {
@@ -58,15 +65,61 @@ export class LaTeXService {
 		engine.setTexliveEndpoint(this.texliveEndpoint);
 
 		try {
-			// Write the single file to MemFS
-			engine.writeMemFSFile(`/work/${fileName}`, content);
-			engine.setEngineMainFile(fileName);
+			// 1. Write Assets to MemFS
+			console.log(`[LaTeXService] Writing ${assets.length} assets to MemFS...`);
+			for (const asset of assets) {
+				try {
+					const proxyUrl = `${API_CONFIG.baseURL}/upload/download?url=${encodeURIComponent(asset.url)}`;
+					console.log(`[LaTeXService] Fetching asset via proxy: ${asset.name} from ${proxyUrl}`);
 
-			let result = await engine.compile(fileName, []);
+					const response = await fetch(proxyUrl, {
+						mode: 'cors',
+						headers: apiClient.getHeaders() as any
+					});
+
+					if (!response.ok) {
+						throw new Error(`Proxy error! status: ${response.status}`);
+					}
+
+					const buffer = await response.arrayBuffer();
+					console.log(`[LaTeXService] Asset ${asset.name} loaded, size: ${buffer.byteLength} bytes`);
+					const uint8Array = new Uint8Array(buffer);
+
+					// Ensure directory exists if filename contains path
+					if (asset.name.includes('/')) {
+						const parts = asset.name.split('/');
+						parts.pop(); // Remove filename
+						let currentPath = '/work';
+						for (const part of parts) {
+							currentPath += `/${part}`;
+							try {
+								engine.makeMemFSFolder(currentPath);
+							} catch (e) {
+								// Folder might already exist
+							}
+						}
+					}
+
+					const memPath = `/work/${asset.name}`;
+					engine.writeMemFSFile(memPath, uint8Array);
+					console.log(`[LaTeXService] Asset ${asset.name} written to ${memPath}`);
+				} catch (assetError: any) {
+					console.error(`[LaTeXService] CRITICAL: Failed to load asset ${asset.name}:`, assetError);
+					// Throwing here prevents compilation with missing assets which leads to confusing LaTeX errors
+					throw new Error(`Failed to load asset "${asset.name}": ${assetError.message}. Please check if the file is accessible.`);
+				}
+			}
+
+			// 2. Write Main file
+			engine.writeMemFSFile(`/work/${mainFileName}`, content);
+			engine.setEngineMainFile(mainFileName);
+
+			// 3. Compile
+			let result = await engine.compile(mainFileName, []);
 
 			// Handle XDV if using XeTeX
 			if (result.status === 0 && !result.pdf && (result as any).xdv) {
-				result = await this.processDviToPdf((result as any).xdv, fileName, result.log);
+				result = await this.processDviToPdf((result as any).xdv, mainFileName, result.log);
 			}
 
 			return result;
