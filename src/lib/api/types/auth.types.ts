@@ -35,10 +35,18 @@ export interface LoginEmailDto {
  * Authentication response from backend
  */
 export interface AuthResponse {
-	user: User
-	token: string // JWT access token
-	refreshToken: string
+	user?: User
+	token?: string // JWT access token
+	refreshToken?: string
 	firebaseToken?: string // Custom Firebase token (for Firebase Auth)
+
+	isNewUser?: boolean
+	firebaseData?: {
+		uid: string
+		email: string
+		name: string
+		picture?: string
+	}
 
 	// Deprecated: kept for backwards compatibility
 	accessToken?: string

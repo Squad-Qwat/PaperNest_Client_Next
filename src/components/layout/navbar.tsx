@@ -42,15 +42,15 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 	// Document-specific menu items
 	const documentMenuItems = documentId
 		? [
-				{
-					name: 'Citations',
-					href: `/${workspaceId}/documents/${documentId}/citations`,
-				},
-				{
-					name: 'Reviews',
-					href: `/${workspaceId}/documents/${documentId}/reviews`,
-				},
-			]
+			{
+				name: 'Citations',
+				href: `/${workspaceId}/documents/${documentId}/citations`,
+			},
+			{
+				name: 'Reviews',
+				href: `/${workspaceId}/documents/${documentId}/reviews`,
+			},
+		]
 		: []
 
 	const menuItems = mode === 'document' ? documentMenuItems : workspaceMenuItems
@@ -259,7 +259,7 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 				title='Confirm Logout'
 				message='Are you sure you want to logout?'
 				confirmText='Logout'
-				variant='warning'
+				variant='danger'
 			/>
 		</>
 	)
