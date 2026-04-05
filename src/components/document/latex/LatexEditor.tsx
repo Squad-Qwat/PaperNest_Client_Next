@@ -11,6 +11,7 @@ import { computeCodeMirrorChanges } from '@/lib/utils/diff'
 import { DocumentFile } from '@/lib/api/types/document.types'
 import { DocumentService } from '@/lib/firebase/document-service'
 import { FileText } from 'lucide-react'
+import { useDocumentFiles } from '@/lib/api/hooks/use-document-files'
 
 interface LatexEditorProps {
     documentId?: string | null;
@@ -73,7 +74,7 @@ export function LatexEditor({
     const [visualEditor, setVisualEditor] = useState<any>(null)
     const [pendingMerges, setPendingMerges] = useState<PendingMergeChange[]>([])
     const [lastBatchSummary, setLastBatchSummary] = useState<{ applied: number; failed: number } | null>(null)
-    const [files, setFiles] = useState<DocumentFile[]>([]);
+    const { data: files = [], refetch: refetchFiles } = useDocumentFiles(documentId)
     const containerRef = useRef<HTMLDivElement>(null)
     const activePendingMerge = pendingMerges[0] ?? null
 
@@ -123,6 +124,7 @@ export function LatexEditor({
     const {
         editorRef,
         view,
+        isReady,
         isSaving,
         collaborationReady
     } = useLatexEditor({
@@ -169,7 +171,7 @@ export function LatexEditor({
             isRebased: true,
             reason: undefined,
         }
-    }, [view])
+    }, [view, isReady])
 
     const activeMergePreview = useMemo(() => {
         if (!activePendingMerge) return null
@@ -240,14 +242,9 @@ export function LatexEditor({
         }
 
         return applied
-    }, [view])
+    }, [view, isReady])
 
-    // Fetch files when documentId changes
-    useEffect(() => {
-        if (documentId) {
-            DocumentService.getDocumentFiles(documentId).then(setFiles);
-        }
-    }, [documentId]);
+    // Files are now fetched by useDocumentFiles hook based on documentId.
 
     // Report editor functions back to parent
     useEffect(() => {
@@ -298,7 +295,7 @@ export function LatexEditor({
                 setPendingMerge: enqueuePendingMerge
             })
         }
-    }, [view, onEditorReady, documentId, isCompiling, visibleCollaborators, hiddenCollaboratorsCount, viewMode, visualEditor, enqueuePendingMerge])
+    }, [view, isReady, onEditorReady, documentId, isCompiling, visibleCollaborators, hiddenCollaboratorsCount, viewMode, visualEditor, enqueuePendingMerge])
 
     const handleCompile = async () => {
         if (!view) return
@@ -311,8 +308,8 @@ export function LatexEditor({
             // Re-fetch files to ensure we have the latest list (in case of recent uploads)
             let currentFiles = files;
             if (documentId) {
-                currentFiles = await DocumentService.getDocumentFiles(documentId);
-                setFiles(currentFiles);
+                const refreshed = await refetchFiles();
+                if (refreshed.data) currentFiles = refreshed.data;
             }
 
             const result = await laTeXService.compileWithAssets('main.tex', content, currentFiles)

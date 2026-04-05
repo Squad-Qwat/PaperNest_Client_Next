@@ -7,6 +7,8 @@ import { DocumentFile } from '@/lib/api/types/document.types'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/use-toast'
 import { apiClient } from '@/lib/api/clients/api-client'
+import { useDocumentFiles, useAddDocumentFile, DOCUMENT_FILE_KEYS } from '@/lib/api/hooks/use-document-files'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface FilesPanelProps {
 	documentId?: string | null
@@ -14,27 +16,11 @@ interface FilesPanelProps {
 }
 
 const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, editorView }) => {
-	const [files, setFiles] = useState<DocumentFile[]>([])
-	const [isLoading, setIsLoading] = useState(false)
+	const { data: files = [], isLoading, refetch } = useDocumentFiles(documentId)
+	const addDocumentFile = useAddDocumentFile()
+	const queryClient = useQueryClient()
 	const [isUploading, setIsUploading] = useState(false)
 	const { toast } = useToast()
-
-	const fetchFiles = useCallback(async () => {
-		if (!documentId) return
-		setIsLoading(true)
-		try {
-			const fetchedFiles = await DocumentService.getDocumentFiles(documentId)
-			setFiles(fetchedFiles)
-		} catch (error) {
-			console.error('Error fetching files:', error)
-		} finally {
-			setIsLoading(false)
-		}
-	}, [documentId])
-
-	useEffect(() => {
-		fetchFiles()
-	}, [fetchFiles])
 
 	const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
 		const file = event.target.files?.[0]
@@ -60,14 +46,17 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, editorView }) => {
 
 			if (!uploadResponse.ok) throw new Error('Failed to upload to storage')
 
-			// 3. Save metadata to Firestore
-			await DocumentService.addDocumentFile(documentId, {
-				name: file.name,
-				type: file.type,
-				url: publicUrl,
-				r2Key: key,
-				size: file.size,
-				createdAt: new Date()
+			// 3. Save metadata to Firestore using mutation
+			await addDocumentFile.mutateAsync({
+				documentId: documentId,
+				file: {
+					name: file.name,
+					type: file.type,
+					url: publicUrl,
+					r2Key: key,
+					size: file.size,
+					createdAt: new Date() as any // bypass strict typing for now if needed
+				}
 			})
 
 			toast({
@@ -75,7 +64,6 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, editorView }) => {
 				description: 'File uploaded successfully',
 			})
 
-			fetchFiles()
 		} catch (error: any) {
 			console.error('Upload error:', error)
 			toast({
@@ -97,8 +85,8 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, editorView }) => {
 			// Call backend to delete from R2 and Firestore
 			await apiClient.delete(`/upload/file/${documentId}/${fileId}`);
 			
-			// Update local state
-			setFiles(prev => prev.filter(f => f.fileId !== fileId))
+			// Invalidate cache instead of mutating local state directly
+			queryClient.invalidateQueries({ queryKey: DOCUMENT_FILE_KEYS.detail(documentId) })
 			
 			toast({
 				title: 'Deleted',

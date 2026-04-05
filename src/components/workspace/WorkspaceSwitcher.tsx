@@ -8,7 +8,7 @@
 import { useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuthContext } from '@/context/AuthContext'
-import { useWorkspaces } from '@/hooks/useWorkspaces'
+import { useWorkspaces } from '@/lib/api/hooks/use-workspaces'
 import { CreateWorkspaceModal } from './CreateWorkspaceModal'
 import {
 	DropdownMenu,
@@ -29,7 +29,8 @@ export function WorkspaceSwitcher({ currentWorkspaceId }: WorkspaceSwitcherProps
 	const router = useRouter()
 	const pathname = usePathname()
 	const { user } = useAuthContext()
-	const { workspaces, loading, refetch } = useWorkspaces()
+	const { data: workspacesResponse, isLoading: loading, refetch } = useWorkspaces()
+	const workspaces = workspacesResponse?.workspaces || []
 	const [showCreateModal, setShowCreateModal] = useState(false)
 
 	const currentWorkspace = workspaces.find((w) => w.workspaceId === currentWorkspaceId)

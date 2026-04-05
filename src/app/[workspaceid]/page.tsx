@@ -14,9 +14,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
 import { WorkspaceSettingsModal } from '@/components/workspace/WorkspaceSettingsModal'
 import { useAuthContext } from '@/context/AuthContext'
-import { useDocuments } from '@/hooks/useDocuments'
-import { useWorkspace } from '@/hooks/useWorkspace'
-import { documentsService } from '@/lib/api/services/documents.service'
+import { useWorkspaceDocuments, useCreateDocument, useDeleteDocument } from '@/lib/api/hooks/use-documents'
+import { useWorkspace } from '@/lib/api/hooks/use-workspaces'
 import { format, id } from '@/lib/date'
 
 export default function WorkspacePage() {
@@ -25,16 +24,20 @@ export default function WorkspacePage() {
 	const { user } = useAuthContext()
 	const workspaceId = params.workspaceid as string
 	const {
-		workspace,
-		loading: workspaceLoading,
-		error: workspaceError,
-		refetch: refetchWorkspace,
+		data: workspace,
+		isLoading: workspaceLoading,
+		error: workspaceErrorObj,
 	} = useWorkspace(workspaceId)
+	const workspaceError = workspaceErrorObj ? (workspaceErrorObj as Error).message : null
+
 	const {
-		documents,
-		loading: documentsLoading,
-		refetch: refetchDocuments,
-	} = useDocuments(workspaceId)
+		data: documentsResponse,
+		isLoading: documentsLoading,
+	} = useWorkspaceDocuments(workspaceId)
+	const documents = documentsResponse?.documents || []
+
+	const { mutateAsync: createDocMutate, isPending: isCreating } = useCreateDocument()
+	const { mutateAsync: deleteDocMutate, isPending: isDeleting } = useDeleteDocument()
 
 	const [searchQuery, setSearchQuery] = useState('')
 	const [showCreateModal, setShowCreateModal] = useState(false)
@@ -45,8 +48,6 @@ export default function WorkspacePage() {
 		description: '',
 	})
 	const [formErrors, setFormErrors] = useState<Record<string, string>>({})
-	const [isCreating, setIsCreating] = useState(false)
-	const [isDeleting, setIsDeleting] = useState(false)
 
 	const filteredDocuments = useMemo(() => {
 		if (!searchQuery) return documents
@@ -73,38 +74,30 @@ export default function WorkspacePage() {
 
 		if (!workspaceId) return
 
-		setIsCreating(true)
 		try {
-			// Backend doesn't accept description field, only title
-			await documentsService.create(workspaceId, {
-				title: newDoc.title.trim(),
+			await createDocMutate({
+				workspaceId,
+				data: { title: newDoc.title.trim() }
 			})
 
 			setNewDoc({ title: '', description: '' })
 			setFormErrors({})
 			setShowCreateModal(false)
-			await refetchDocuments()
 		} catch (err) {
 			console.error('Error creating document:', err)
 			setFormErrors({ submit: err instanceof Error ? err.message : 'Failed to create document' })
-		} finally {
-			setIsCreating(false)
 		}
 	}
 
 	const handleDeleteDocument = async (docId: string) => {
 		if (!workspaceId) return
 
-		setIsDeleting(true)
 		try {
-			await documentsService.delete(workspaceId, docId)
+			await deleteDocMutate({ workspaceId, documentId: docId })
 			setDeleteConfirm(null)
-			await refetchDocuments()
 		} catch (err) {
 			console.error('Error deleting document:', err)
 			alert(err instanceof Error ? err.message : 'Failed to delete document')
-		} finally {
-			setIsDeleting(false)
 		}
 	}
 
@@ -350,10 +343,6 @@ export default function WorkspacePage() {
 					isOpen={showSettingsModal}
 					onClose={() => setShowSettingsModal(false)}
 					workspace={workspace}
-					onSuccess={async () => {
-						// Refetch workspace data after update
-						await refetchWorkspace()
-					}}
 				/>
 			)}
 		</div>

@@ -4,7 +4,9 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthContext } from '@/context/AuthContext'
 import { motion, AnimatePresence } from 'motion/react'
-import { workspacesService } from '@/lib/api/services/workspaces.service'
+import { useCompleteSocialRegistration } from '@/lib/api/hooks/use-auth'
+import { useCreateWorkspace, useJoinWorkspace } from '@/lib/api/hooks/use-workspaces'
+import { getErrorMessage } from '@/lib/api/utils/error-handler'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -24,7 +26,15 @@ const workspaceIcons = ['📚', '🎓', '📖', '✍️', '🔬', '💼', '📊'
 
 export default function OnboardingPage() {
 	const router = useRouter()
-	const { onboardingData, completeOnboarding, loading, error: authError, clearError } = useAuthContext()
+	const { onboardingData, setOnboardingData, error: authError } = useAuthContext()
+	
+	const { mutateAsync: completeSocial, isPending: isCompletePending } = useCompleteSocialRegistration({
+		clearOnboardingData: () => setOnboardingData(null)
+	})
+	const { mutateAsync: createWorkspace, isPending: isCreatePending } = useCreateWorkspace()
+	const { mutateAsync: joinWorkspace, isPending: isJoinPending } = useJoinWorkspace()
+
+	const loading = isCompletePending || isCreatePending || isJoinPending
 	
 	const [currentStep, setCurrentStep] = useState(1)
 	const [direction, setDirection] = useState(0)
@@ -100,25 +110,27 @@ export default function OnboardingPage() {
 	const handleSubmit = async () => {
 		try {
 			// 1. Create User via Backend Onboarding
-			await completeOnboarding({
+			await completeSocial({
+				firebaseToken: onboardingData.token,
 				username: formData.username,
 				role: formData.role,
 			})
 
 			// 2. Create or Join Workspace
 			if (formData.workspaceMode === 'create') {
-				await workspacesService.create({
+				await createWorkspace({
 					title: formData.workspaceTitle,
 					description: formData.workspaceDescription || undefined,
 					icon: formData.workspaceIcon,
 				})
 			} else {
-				await workspacesService.joinByWorkspaceId(formData.invitationCode)
+				await joinWorkspace(formData.invitationCode)
 			}
 
 			router.push('/')
 		} catch (err) {
 			console.error('Onboarding flow failed:', err)
+			setErrors({ submit: getErrorMessage(err) })
 		}
 	}
 
@@ -321,6 +333,11 @@ export default function OnboardingPage() {
 					{authError && (
 						<div className='p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-xs'>
 							{authError}
+						</div>
+					)}
+					{errors.submit && (
+						<div className='p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-xs'>
+							{errors.submit}
 						</div>
 					)}
 

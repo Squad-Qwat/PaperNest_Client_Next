@@ -9,7 +9,7 @@ import DynamicContentPanel from '@/components/document/DynamicContentPanel'
 import DocumentEditor from '@/components/document/editor/DocumentEditor'
 import DocumentHeader from '@/components/document/editor/DocumentHeader'
 import { Room } from '@/hooks/liveblocks/room'
-import { useWorkspace } from '@/hooks/useWorkspace'
+import { useWorkspace } from '@/lib/api/hooks/use-workspaces'
 import { DocumentService } from '@/lib/firebase/document-service'
 import { documentsService } from '@/lib/api/services/documents.service'
 import '@/components/document/editor/EditorStyles.css'
@@ -43,7 +43,8 @@ export default function DocumentPage() {
 	const { user, loading } = useAuthContext()
 
 	// Check workspace access first
-	const { workspace, loading: workspaceLoading, error: workspaceError } = useWorkspace(workspaceId)
+	const { data: workspace, isLoading: workspaceLoading, error: workspaceErrorObj } = useWorkspace(workspaceId)
+	const workspaceError = workspaceErrorObj ? workspaceErrorObj.message : null
 
 	// Redirect if no workspace access
 	useEffect(() => {
@@ -132,7 +133,7 @@ export default function DocumentPage() {
 			// Force update editor content for CodeMirror
 			const editor = editorFunctions.editor
 			const newContent = newDoc.savedContent || newDoc.content
-			
+
 			editor.dispatch({
 				changes: {
 					from: 0,
@@ -221,7 +222,7 @@ export default function DocumentPage() {
 					operationType: 'create-checkpoint',
 					payload: {
 						message: 'Auto-save checkpoint',
-						userId: user.uid,
+						userId: user.userId,
 					},
 				},
 			]
@@ -268,7 +269,7 @@ export default function DocumentPage() {
 	const onEditorReady = useCallback((functions) => {
 		setEditorFunctions(functions)
 	}, [])
-	
+
 	// Callback untuk update auto-save state dari DocumentEditor
 	const onAutoSaveStateChange = useCallback((saving, savedAt) => {
 		setIsAutoSaving(saving)
@@ -297,7 +298,7 @@ export default function DocumentPage() {
 		if (!editorFunctions?.editor) return
 
 		const editor = editorFunctions.editor
-		
+
 		// Navigate to position and scroll into view
 		editor.dispatch({
 			selection: { anchor: position },
@@ -392,7 +393,7 @@ export default function DocumentPage() {
 				visualEditor={editorFunctions?.visualEditor}
 				debugContentExtraction={editorFunctions?.debugContentExtraction}
 			/>
-			
+
 			{/* Main content area - flex container with independent scroll regions */}
 			<Room documentId={documentId}>
 				<div className='flex flex-1 overflow-hidden'>
@@ -441,10 +442,10 @@ export default function DocumentPage() {
 					<AIAssistant
 						editor={editorFunctions}
 						aiAssistantOpen={aiAssistantOpen}
-						toggleAiAssistant={toggleAiAssistant}					documentId={documentId}
-					onResizeStart={handleResizeStart}
-					onResizeEnd={handleResizeEnd}
-				/>
+						toggleAiAssistant={toggleAiAssistant} documentId={documentId}
+						onResizeStart={handleResizeStart}
+						onResizeEnd={handleResizeEnd}
+					/>
 					{/* Version History Panel - Side Panel */}
 					<ModalVersions
 						isOpen={modalVersionsOpen}

@@ -9,7 +9,14 @@ import { Modal } from '@/components/ui/modal'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useToast } from '@/components/ui/use-toast'
 import { useAuthContext } from '@/context/AuthContext'
-import { useDocumentReviews, useDocumentVersions } from '@/hooks/useDocumentVersions'
+import {
+	useDocumentVersions,
+	useDocumentReviews,
+	useRevertVersion,
+	useCreateReview,
+} from '@/lib/api/hooks/use-documents'
+import type { Version } from '@/lib/api/types/document.types'
+import type { Review } from '@/lib/api/types/review.types'
 import { format, id } from '@/lib/date'
 
 interface ModalVersionsProps {
@@ -34,11 +41,28 @@ export default function ModalVersions({
 	const documentId = propDocumentId || (params?.documentid as string)
 
 	const { user } = useAuthContext()
-	const { versions, loading: versionsLoading, rollbackVersion } = useDocumentVersions(documentId)
-	const { reviews, requestReview } = useDocumentReviews(documentId)
+
+	const { data: versionsResponse, isLoading: versionsLoading } = useDocumentVersions(documentId)
+	// Handle robust response parsing if response is different format
+	let versions: Version[] = []
+	if (versionsResponse && Array.isArray((versionsResponse as any).versions)) {
+		versions = (versionsResponse as any).versions
+	} else if (Array.isArray(versionsResponse)) {
+		versions = versionsResponse as Version[]
+	}
+
+	const { data: reviewsResponse } = useDocumentReviews(documentId)
+	let reviews: Review[] = []
+	if (reviewsResponse && Array.isArray((reviewsResponse as any).reviews)) {
+		reviews = (reviewsResponse as any).reviews
+	} else if (Array.isArray(reviewsResponse)) {
+		reviews = reviewsResponse as Review[]
+	}
+
+	const { mutateAsync: revertVersionMutate, isPending: isRollingBack } = useRevertVersion()
+	const { mutateAsync: requestReviewMutate } = useCreateReview()
 
 	const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null)
-	const [isRollingBack, setIsRollingBack] = useState(false)
 	const [showReviewModal, setShowReviewModal] = useState(false)
 
 	const { toast } = useToast()
@@ -96,8 +120,7 @@ export default function ModalVersions({
 		if (!selectedVersion) return
 
 		try {
-			setIsRollingBack(true)
-			await rollbackVersion(selectedVersion.versionNumber)
+			await revertVersionMutate({ documentId, versionNumber: selectedVersion.versionNumber })
 			if (onVersionRestored) {
 				onVersionRestored()
 			}
@@ -114,8 +137,6 @@ export default function ModalVersions({
 				description: error.message || 'Terjadi kesalahan saat memulihkan versi.',
 				variant: 'destructive',
 			})
-		} finally {
-			setIsRollingBack(false)
 		}
 	}
 
@@ -286,7 +307,11 @@ export default function ModalVersions({
 				onSubmit={async (data) => {
 					if (!selectedVersion) return
 					try {
-						await requestReview(selectedVersion.id, data.lecturerId, data.message)
+						await requestReviewMutate({
+							documentId,
+							documentBodyId: selectedVersion.id,
+							data: { lecturerUserId: data.lecturerId, message: data.message },
+						})
 						toast({
 							title: 'Permintaan Terkirim',
 							description: 'Permintaan review Anda telah dikirim ke dosen.',

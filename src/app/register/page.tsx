@@ -6,7 +6,9 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'motion/react'
 import { useAuthContext } from '@/context/AuthContext'
-import { workspacesService } from '@/lib/api/services/workspaces.service'
+import { useRegister, useSignInWithSocial } from '@/lib/api/hooks/use-auth'
+import { useCreateWorkspace, useJoinWorkspace } from '@/lib/api/hooks/use-workspaces'
+import { getErrorMessage } from '@/lib/api/utils/error-handler'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -43,7 +45,15 @@ const workspaceIcons = ['📚', '🎓', '📖', '✍️', '🔬', '💼', '📊'
 
 export default function RegisterPage() {
 	const router = useRouter()
-	const { register, loading, error: authError, clearError } = useAuthContext()
+	const { setOnboardingData, error: authError } = useAuthContext()
+
+	const { mutateAsync: registerUser, isPending: isRegisterPending } = useRegister()
+	const { mutateAsync: createWorkspace, isPending: isCreatePending } = useCreateWorkspace()
+	const { mutateAsync: joinWorkspace, isPending: isJoinPending } = useJoinWorkspace()
+	const { mutateAsync: socialMutate, isPending: isSocialPending } = useSignInWithSocial({ setOnboardingData })
+
+	const loading = isRegisterPending || isCreatePending || isJoinPending || isSocialPending
+
 	const [currentStep, setCurrentStep] = useState(1)
 	const [direction, setDirection] = useState(0)
 	const [formData, setFormData] = useState<StepData>({
@@ -79,7 +89,6 @@ export default function RegisterPage() {
 	const updateFormData = (field: keyof StepData, value: string) => {
 		setFormData((prev) => ({ ...prev, [field]: value }))
 		setErrors((prev) => ({ ...prev, [field]: '' }))
-		clearError()
 
 		// Update password strength
 		if (field === 'password') {
@@ -202,8 +211,9 @@ export default function RegisterPage() {
 	}
 
 	const handleSubmit = async () => {
+		setErrors({})
 		try {
-			const registerResult = await register({
+			await registerUser({
 				email: formData.email,
 				password: formData.password,
 				name: formData.name,
@@ -213,25 +223,30 @@ export default function RegisterPage() {
 
 			// Only create workspace if in create mode
 			if (formData.workspaceMode === 'create') {
-				await workspacesService.create({
+				await createWorkspace({
 					title: formData.workspaceTitle,
 					description: formData.workspaceDescription || undefined,
 					icon: formData.workspaceIcon,
 				})
 			} else {
 				// Join workspace with workspace ID
-				await workspacesService.joinByWorkspaceId(formData.invitationCode)
+				await joinWorkspace(formData.invitationCode)
 			}
 
 			router.push('/')
 		} catch (error) {
 			console.error('Registration failed:', error)
-			setErrors({ submit: error instanceof Error ? error.message : 'Registration failed' })
+			setErrors({ submit: getErrorMessage(error) })
 		}
 	}
 
-	const handleSocialSignup = (provider: string) => {
-		alert(`${provider} signup coming soon!`)
+	const handleSocialSignup = async (provider: 'google' | 'github') => {
+		setErrors({})
+		try {
+			await socialMutate(provider)
+		} catch (error) {
+			setErrors({ submit: getErrorMessage(error) })
+		}
 	}
 
 	// Password strength color
@@ -320,7 +335,7 @@ export default function RegisterPage() {
 										<Button
 											type='button'
 											variant='outline'
-											onClick={() => handleSocialSignup('Google')}
+											onClick={() => handleSocialSignup('google')}
 											disabled={loading}
 										>
 											<FcGoogle />

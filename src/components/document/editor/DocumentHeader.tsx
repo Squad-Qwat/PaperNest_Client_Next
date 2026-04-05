@@ -6,9 +6,8 @@ import LatexToolbar from '@/components/document/latex/LatexToolbar'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { useDocumentReviews } from '@/hooks/useDocumentVersions'
+import { useDocumentReviews } from '@/lib/api/hooks/use-documents'
 import { documentsService } from '@/lib/api/services/documents.service'
-
 const DocumentHeader = ({
 	title,
 	setTitle,
@@ -44,9 +43,16 @@ const DocumentHeader = ({
 	visibleCollaborators,
 	hiddenCollaboratorsCount,
 	debugContentExtraction,
-}) => {
+}: any) => {
 	const [showCommitModal, setShowCommitModal] = useState(false)
-	const { canCommit, commitBlockReason } = useDocumentReviews(documentId)
+	const { data: reviewsResponse } = useDocumentReviews(documentId)
+	
+	// Safely determine pending reviews
+	const reviews = Array.isArray(reviewsResponse) ? reviewsResponse : (reviewsResponse as any)?.reviews || [];
+	const pendingReview = reviews.find((r: any) => r.status === 'PENDING' || r.status === 'pending')
+	
+	const canCommit = !pendingReview
+	const commitBlockReason = pendingReview ? 'Waiting for pending review' : null
 
 	return (
 		<header className='bg-white border-b border-gray-200 sticky top-0 z-[1001] transition-all duration-300'>
@@ -358,7 +364,7 @@ const DocumentHeader = ({
 							{visibleCollaborators && visibleCollaborators.length > 0 && (
 								<div className="flex items-center gap-1.5 pr-2 mr-1 border-r border-gray-200">
 									<div className="flex -space-x-3">
-										{visibleCollaborators.map((collaborator) => (
+										{visibleCollaborators.map((collaborator: any) => (
 											<Avatar
 												key={collaborator.id}
 												className="h-8 w-8 border-2 border-white shadow-sm"

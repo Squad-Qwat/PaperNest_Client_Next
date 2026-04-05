@@ -4,6 +4,8 @@ import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthContext } from '@/context/AuthContext'
+import { useLoginEmail, useSignInWithSocial } from '@/lib/api/hooks/use-auth'
+import { getErrorMessage } from '@/lib/api/utils/error-handler'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,15 +16,20 @@ import { FaGithub } from 'react-icons/fa'
 
 export default function LoginPage() {
 	const router = useRouter()
-	const { signInWithSocial, loginEmail, loading, error: authError, clearError } = useAuthContext()
+	const { setOnboardingData } = useAuthContext()
+	
+	const { mutateAsync: loginEmailMutate, isPending: isEmailPending } = useLoginEmail()
+	const { mutateAsync: socialMutate, isPending: isSocialPending } = useSignInWithSocial({ setOnboardingData })
+	
 	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
 	const [localError, setLocalError] = useState('')
 
+	const loading = isEmailPending || isSocialPending
+
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault()
 		setLocalError('')
-		clearError()
 
 		// Validation
 		if (!email || !password) {
@@ -36,22 +43,22 @@ export default function LoginPage() {
 		}
 
 		try {
-			await loginEmail({ email, password })
-			router.push('/')
+			await loginEmailMutate({ email, password })
 		} catch (err) {
-			// Error already set in authError by context
+			setLocalError(getErrorMessage(err))
 		}
 	}
 
 	const handleSocialLogin = async (provider: 'google' | 'github') => {
+		setLocalError('')
 		try {
-			await signInWithSocial(provider)
+			await socialMutate(provider)
 		} catch (err) {
-			// Error handled in context
+			setLocalError(getErrorMessage(err))
 		}
 	}
 
-	const displayError = localError || authError
+	const displayError = localError
 
 	return (
 		<div className='min-h-screen flex min-w-screen bg-background'>

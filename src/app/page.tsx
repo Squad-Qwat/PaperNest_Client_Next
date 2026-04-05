@@ -3,14 +3,15 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthContext } from '@/context/AuthContext'
-import { useWorkspaces } from '@/hooks/useWorkspaces'
+import { useWorkspaces } from '@/lib/api/hooks/use-workspaces'
 import { CreateWorkspaceModal } from '@/components/workspace/CreateWorkspaceModal'
 import { Button } from '@/components/ui/button'
 
 export default function Page() {
 	const router = useRouter()
 	const { user, loading: authLoading } = useAuthContext()
-	const { workspaces, loading: workspacesLoading, refetch } = useWorkspaces()
+	const { data: workspacesResponse, isLoading: workspacesLoading, refetch } = useWorkspaces()
+	const workspaces = workspacesResponse?.workspaces || []
 	const [showCreateModal, setShowCreateModal] = useState(false)
 
 	useEffect(() => {

@@ -8,6 +8,7 @@
 import { usePathname, useRouter } from 'next/navigation'
 import type React from 'react'
 import { createContext, useContext, useEffect, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api/clients/api-client'
 import { authService } from '@/lib/api/services/auth.service'
 import type {
@@ -33,17 +34,8 @@ interface AuthContextType {
 	error: string | null
 	isAuthenticated: boolean
 
-	// Actions
-	register: (data: RegisterDto) => Promise<AuthResponse>
-	login: (data: LoginDto) => Promise<void>
-	loginEmail: (data: LoginEmailDto) => Promise<void>
 	onboardingData: any | null
-	signInWithSocial: (providerName: 'google' | 'github') => Promise<void>
-	completeOnboarding: (data: { username: string; role: string }) => Promise<void>
-	logout: () => Promise<void>
-	forgotPassword: (data: PasswordResetDto) => Promise<void>
-	refreshUser: () => Promise<void>
-	clearError: () => void
+	setOnboardingData: (data: any) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -56,34 +48,35 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-	const [user, setUser] = useState<User | null>(null)
+	const queryClient = useQueryClient()
 	const [onboardingData, setOnboardingData] = useState<any | null>(null)
-	const [loading, setLoading] = useState(true)
-	const [error, setError] = useState<string | null>(null)
-	const router = useRouter()
-	const pathname = usePathname()
-
-	// Initialize auth on mount
-	useEffect(() => {
-		const initAuth = async () => {
+	
+	const { data: user = null, isLoading: isQueryLoading, refetch: refetchUser } = useQuery({
+		queryKey: ['currentUser'],
+		queryFn: async () => {
 			try {
 				const { accessToken } = authService.initializeAuth()
-
 				if (accessToken) {
 					apiClient.setAuthToken(accessToken)
 					const currentUser = await authService.getCurrentUser()
-					setUser(currentUser || null)
+					return currentUser || null
 				}
+				return null
 			} catch (err) {
 				console.error('[AuthContext] Failed to initialize auth:', err)
 				authService.logout()
-			} finally {
-				setLoading(false)
+				return null
 			}
-		}
+		},
+		staleTime: 5 * 60 * 1000,
+		retry: false,
+	})
 
-		initAuth()
-	}, [])
+	const router = useRouter()
+	const pathname = usePathname()
+
+	// Compute final loading state
+	const isAppLoading = isQueryLoading
 
 	// Auto-refresh token before expiry (every 50 minutes if token expires in 60 minutes)
 	useEffect(() => {
@@ -98,7 +91,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 					}
 				} catch (err) {
 					console.error('Failed to refresh token:', err)
-					await logout()
+					await authService.logout()
+					queryClient.setQueryData(['currentUser'], null)
+					router.push('/login')
 				}
 			},
 			50 * 60 * 1000
@@ -109,7 +104,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
 	// Redirect logic based on auth state
 	useEffect(() => {
-		if (loading) return
+		if (isAppLoading) return
 
 		const isPublicRoute = PUBLIC_ROUTES.includes(pathname)
 
@@ -117,235 +112,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
 		if (!user && !isPublicRoute) {
 			router.push('/login')
 		}
-	}, [user, loading, pathname, router])
-
-	const register = async (data: RegisterDto) => {
-		try {
-			setLoading(true)
-			setError(null)
-			const response = await authService.register(data)
-
-			const accessToken = response.token || response.accessToken
-			if (accessToken) {
-				apiClient.setAuthToken(accessToken)
-			}
-
-			setUser(response.user || null)
-			return response
-		} catch (err) {
-			const message = getErrorMessage(err)
-			setError(message)
-			throw err
-		} finally {
-			setLoading(false)
-		}
-	}
-
-	const login = async (data: LoginDto) => {
-		try {
-			setLoading(true)
-			setError(null)
-			const response = await authService.login(data)
-
-			const accessToken = response.token || response.accessToken
-			if (accessToken) {
-				apiClient.setAuthToken(accessToken)
-			}
-
-			setUser(response.user || null)
-			router.push('/')
-		} catch (err) {
-			const message = getErrorMessage(err)
-			setError(message)
-			throw err
-		} finally {
-			setLoading(false)
-		}
-	}
-
-	// Login with email/password (via Firebase)
-	const loginEmail = async (data: LoginEmailDto) => {
-		try {
-			setLoading(true)
-			setError(null)
-
-			// 1. Firebase Login
-			const result = await signInWithEmailAndPassword(
-				auth,
-				data.email,
-				data.password
-			)
-			const idToken = await result.user.getIdToken()
-
-			// 2. PaperNest Backend Login
-			const response = await authService.login({ firebaseToken: idToken })
-
-			const accessToken = response.token || response.accessToken
-			if (accessToken) {
-				apiClient.setAuthToken(accessToken)
-			}
-
-			setUser(response.user || null)
-			router.push('/')
-		} catch (err) {
-			const message = getErrorMessage(err)
-			setError(message)
-			throw err
-		} finally {
-			setLoading(false)
-		}
-	}
-
-	// Login with social provider (Google, GitHub, etc.)
-	const signInWithSocial = async (providerName: 'google' | 'github') => {
-		try {
-			setLoading(true)
-			setError(null)
-
-			let provider
-			if (providerName === 'google') {
-				provider = new GoogleAuthProvider()
-			} else if (providerName === 'github') {
-				provider = new GithubAuthProvider()
-			} else {
-				throw new Error('Unsupported social provider')
-			}
-
-			// 1. Firebase Login Popup
-			const result = await signInWithPopup(auth, provider)
-			const idToken = await result.user.getIdToken()
-
-			// 2. PaperNest Backend Login
-			const response = await authService.loginSocial({ firebaseToken: idToken })
-
-			// 3. Check if this is a new user that needs onboarding
-			if (response.isNewUser) {
-				console.log('[AuthContext] New user detected, redirecting to onboarding')
-				setOnboardingData({
-					token: idToken,
-					firebaseData: response.firebaseData,
-				})
-				router.push('/auth/onboarding')
-				return
-			}
-
-			const accessToken = response.token || response.accessToken
-			if (accessToken) {
-				apiClient.setAuthToken(accessToken)
-			}
-
-			setUser(response.user || null)
-			router.push('/')
-		} catch (err) {
-			const message = getErrorMessage(err)
-			setError(message)
-			throw err
-		} finally {
-			setLoading(false)
-		}
-	}
-
-	// Complete onboarding for social login
-	const completeOnboarding = async (data: { username: string; role: string }) => {
-		try {
-			if (!onboardingData?.token) {
-				throw new Error('No authentication token found for onboarding')
-			}
-
-			setLoading(true)
-			setError(null)
-
-			const response = await authService.completeSocialRegistration({
-				firebaseToken: onboardingData.token,
-				username: data.username,
-				role: data.role,
-			})
-
-			const accessToken = response.token || response.accessToken
-			if (accessToken) {
-				apiClient.setAuthToken(accessToken)
-			}
-
-			setUser(response.user || null)
-			setOnboardingData(null)
-			router.push('/')
-		} catch (err) {
-			const message = getErrorMessage(err)
-			setError(message)
-			throw err
-		} finally {
-			setLoading(false)
-		}
-	}
-
-	// Logout
-	const logout = async () => {
-		try {
-			setLoading(true)
-			setError(null)
-			await authService.logout()
-			setUser(null)
-			router.push('/login')
-		} catch (err) {
-			const message = getErrorMessage(err)
-			setError(message)
-			throw err
-		} finally {
-			setLoading(false)
-		}
-	}
-
-	// Forgot password
-	const forgotPassword = async (data: PasswordResetDto) => {
-		try {
-			setLoading(true)
-			setError(null)
-			await authService.forgotPassword(data)
-		} catch (err) {
-			const message = getErrorMessage(err)
-			setError(message)
-			throw err
-		} finally {
-			setLoading(false)
-		}
-	}
-
-	// Refresh user data
-	const refreshUser = async () => {
-		try {
-			setLoading(true)
-			setError(null)
-			const currentUser = await authService.getCurrentUser()
-			setUser(currentUser || null)
-		} catch (err) {
-			const message = getErrorMessage(err)
-			setError(message)
-			throw err
-		} finally {
-			setLoading(false)
-		}
-	}
-
-	// Clear error
-	const clearError = () => {
-		setError(null)
-	}
+	}, [user, isAppLoading, pathname, router])
 
 	const value: AuthContextType = {
 		user,
-		loading,
-		error,
+		loading: isAppLoading,
+		error: null,
 		isAuthenticated: !!user,
-		register,
-		login,
-		loginEmail,
 		onboardingData,
-		signInWithSocial,
-		completeOnboarding,
-		logout,
-		forgotPassword,
-		refreshUser,
-		clearError,
+		setOnboardingData,
 	}
 
 	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
