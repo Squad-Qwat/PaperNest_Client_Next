@@ -246,6 +246,30 @@ export function LatexEditor({
 
     // Files are now fetched by useDocumentFiles hook based on documentId.
 
+    const handleInsertSnippet = useCallback((snippet: string, selectionOffset: number = 0) => {
+        if (!view) return
+
+        const selection = view.state.selection.main
+        const text = view.state.doc.toString()
+        const selectedText = text.slice(selection.from, selection.to)
+
+        let insertText = snippet.replace('$SELECTION$', selectedText)
+
+        view.dispatch({
+            changes: {
+                from: selection.from,
+                to: selection.to,
+                insert: insertText
+            },
+            selection: {
+                anchor: selection.from + selectionOffset + (selectedText ? selectedText.length : 0)
+            },
+            scrollIntoView: true
+        })
+
+        view.focus()
+    }, [view])
+
     // Report editor functions back to parent
     useEffect(() => {
         if (view && onEditorReady) {
@@ -255,20 +279,12 @@ export function LatexEditor({
                 editor: view,
                 undo: () => cmUndo(view),
                 redo: () => cmRedo(view),
-                canUndo: true, // CM manages this internally, but we enable the button
+                canUndo: true, 
                 canRedo: true,
                 insertTable: () => {
-                    const selection = view.state.selection.main
-                    view.dispatch({
-                        changes: {
-                            from: selection.from,
-                            to: selection.to,
-                            insert: "\\begin{tabular}{|l|l|}\n\\hline\n  $SELECTION$ &  \\\\\n\\hline\n\\end{tabular}"
-                        },
-                        selection: { anchor: selection.from + 16 }
-                    })
-                    view.focus()
+                    handleInsertSnippet("\\begin{tabular}{|l|l|}\n\\hline\n  $SELECTION$ &  \\\\\n\\hline\n\\end{tabular}", 16)
                 },
+                insertSnippet: handleInsertSnippet,
                 handleCompile,
                 isCompiling,
                 compileResult,

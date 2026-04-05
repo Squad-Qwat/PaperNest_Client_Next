@@ -114,6 +114,7 @@ export default function OnboardingPage() {
 				firebaseToken: onboardingData.token,
 				username: formData.username,
 				role: formData.role,
+				email: onboardingData.firebaseData.email,
 			})
 
 			// 2. Create or Join Workspace

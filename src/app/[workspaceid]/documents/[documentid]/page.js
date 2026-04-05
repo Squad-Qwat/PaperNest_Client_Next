@@ -231,7 +231,7 @@ export default function DocumentPage() {
         {
           operationType: "update-metadata",
           payload: {
-            title: title,
+            title: title || "Untitled Document",
             defaultFont: defaultFontFamily,
             defaultFontSize: defaultFontSize,
             paperSize: paperSize,
@@ -403,7 +403,8 @@ export default function DocumentPage() {
           workspaceId={workspaceId}
           workspace={workspace}
           documentId={documentId}
-          editor={editorFunctions?.editor}
+          onInsertSnippet={editorFunctions?.insertSnippet}
+          getCurrentContent={editorFunctions?.getCurrentContent}
           insertTable={editorFunctions?.insertTable}
           undo={editorFunctions?.undo}
           redo={editorFunctions?.redo}

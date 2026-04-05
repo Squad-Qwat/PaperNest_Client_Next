@@ -32,7 +32,8 @@ const DocumentHeader = ({
 	documentId,
 
 	// Editor props
-	editor,
+	onInsertSnippet,
+	getCurrentContent,
 	insertTable,
 	undo,
 	redo,
@@ -477,8 +478,7 @@ const DocumentHeader = ({
 					try {
 						// We also need content usually, but the API doc says content string.
 						// If editor content is available, pass it.
-						// `editor` prop is available. `editor.getHTML()` or `JSON`.
-						const content = editor ? editor.state.doc.toString() : ''
+						const content = getCurrentContent ? getCurrentContent() : ''
 						await documentsService.createVersion(documentId, {
 							message: data.message,
 							content: content,
@@ -496,7 +496,7 @@ const DocumentHeader = ({
 
 			{/* Editor Toolbar - sticky di bawah header */}
 			<LatexToolbar
-				editor={editor}
+				onInsertSnippet={onInsertSnippet}
 				insertTable={insertTable}
 				undo={undo}
 				redo={redo}

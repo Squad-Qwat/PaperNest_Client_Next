@@ -43,7 +43,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 // Public routes that don't require authentication
-const PUBLIC_ROUTES = ['/login', '/register', '/forgot-password', '/auth/onboarding']
+const PUBLIC_ROUTES = ['/login', '/register', '/forgot-password', '/auth/onboarding', '/auth/verify-email']
 
 interface AuthProviderProps {
 	children: React.ReactNode

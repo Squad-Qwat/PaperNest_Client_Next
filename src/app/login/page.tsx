@@ -9,23 +9,38 @@ import { getErrorMessage } from '@/lib/api/utils/error-handler'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog"
 
 import Grainient from '@/components/visuals/Grainient/Grainient';
 import { FcGoogle } from 'react-icons/fc'
 import { FaGithub } from 'react-icons/fa'
+import { Link2 } from 'lucide-react'
 
 export default function LoginPage() {
 	const router = useRouter()
 	const { setOnboardingData } = useAuth()
-	
+
 	const { mutateAsync: loginEmailMutate, isPending: isEmailPending } = useLoginEmail()
-	const { mutateAsync: socialMutate, isPending: isSocialPending } = useSignInWithSocial({ setOnboardingData })
-	
+	const { 
+		mutateAsync: socialMutate, 
+		isPending: isSocialPending, 
+		linkingSession, 
+		linkMutation, 
+		resetLinking 
+	} = useSignInWithSocial({ setOnboardingData })
+
 	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
 	const [localError, setLocalError] = useState('')
 
-	const loading = isEmailPending || isSocialPending
+	const isLinking = linkMutation.isPending
+	const loading = isEmailPending || isSocialPending || isLinking
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault()
@@ -51,9 +66,17 @@ export default function LoginPage() {
 
 	const handleSocialLogin = async (provider: 'google' | 'github') => {
 		setLocalError('')
+		resetLinking()
 		try {
 			await socialMutate(provider)
-		} catch (err) {
+		} catch (err: any) {
+			if (err.message === 'ACCOUNT_EXISTS_CONFLICT') {
+				return // Handled by linkingSession UI
+			}
+			if (err.message === 'PASSWORD_CONFLICT') {
+				setLocalError('Email ini sudah terdaftar menggunakan password. Silakan login menggunakan form email & password.')
+				return
+			}
 			setLocalError(getErrorMessage(err))
 		}
 	}
@@ -61,13 +84,14 @@ export default function LoginPage() {
 	const displayError = localError
 
 	return (
-		<div className='min-h-screen flex min-w-screen bg-background'>
+		<div className='min-h-screen flex min-w-screen bg-background relative'>
+			{/* Logo - Global Fixed Responsive */}
+			<div className='fixed top-6 left-0 right-0 flex justify-center lg:top-8 lg:left-10 lg:right-auto lg:justify-start z-50'>
+				<h1 className='text-2xl lg:text-3xl font-bold text-primary'>PaperNest</h1>
+			</div>
+
 			{/* Left Side - Form Container */}
 			<div className='w-full lg:w-1/2 min-h-screen flex flex-col items-center justify-center py-8 px-4 sm:px-6 md:px-8 lg:px-10 relative'>
-				{/* Logo - Top Left */}
-				<div className='absolute top-6 left-6 lg:left-8'>
-					<h1 className='text-3xl font-bold text-primary'>PaperNest</h1>
-				</div>
 				{/* Login Card */}
 				<div className='w-full max-w-sm space-y-6'>
 					{/* Title */}
@@ -80,10 +104,48 @@ export default function LoginPage() {
 
 					{/* Error Message */}
 					{displayError && (
-						<div className='mb-6 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm text-center'>
+						<div className='mb-6 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm text-center font-medium'>
 							{displayError}
 						</div>
 					)}
+
+					{/* Linking Modal */}
+					<Dialog open={!!linkingSession} onOpenChange={(open) => !open && resetLinking()}>
+						<DialogContent className='sm:max-w-md'>
+							<DialogHeader>
+								<div className='flex justify-center mb-4'>
+									<div className='p-3 rounded-full bg-primary/10 text-primary'>
+										<Link2 className='w-6 h-6' />
+									</div>
+								</div>
+								<DialogTitle className='text-center text-lg font-semibold'>
+									Hubungkan Akun Anda
+								</DialogTitle>
+								<DialogDescription className='text-center text-sm'>
+									Email <strong>{linkingSession?.email}</strong> sudah terdaftar melalui 
+									<span className='capitalize font-medium'> {linkingSession?.targetMethod.split('.')[0]}</span>. 
+									Hubungkan dengan {linkingSession?.providerName} untuk akses ke akun yang sama.
+								</DialogDescription>
+							</DialogHeader>
+							<div className='grid gap-2 mt-4'>
+								<Button 
+									className='w-full'
+									onClick={() => linkMutation.mutate()}
+									disabled={isLinking}
+								>
+									{isLinking ? 'Sedang Menghubungkan...' : `Hubungkan Sekarang`}
+								</Button>
+								<Button 
+									variant='outline' 
+									className='w-full'
+									onClick={resetLinking}
+									disabled={isLinking}
+								>
+									Batal
+								</Button>
+							</div>
+						</DialogContent>
+					</Dialog>
 
 					{/* Social Sign Up */}
 					<div className='grid gap-3'>
@@ -94,7 +156,7 @@ export default function LoginPage() {
 							disabled={loading}
 						>
 							<FcGoogle />
-							Login using Google
+							Continue with Google
 						</Button>
 						<Button
 							type='button'
@@ -103,7 +165,7 @@ export default function LoginPage() {
 							disabled={loading}
 						>
 							<FaGithub />
-							Login using GitHub
+							Continue with GitHub
 						</Button>
 					</div>
 
