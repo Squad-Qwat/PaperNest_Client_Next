@@ -62,9 +62,21 @@ export function getErrorMessage(error: unknown): string {
 
 	// If there are validation errors, return the first one
 	if (parsed.errors) {
-		const firstError = Object.values(parsed.errors)[0]
-		if (firstError && firstError.length > 0) {
-			return firstError[0]
+		// Handle array of objects (our backend format)
+		if (Array.isArray(parsed.errors)) {
+			const firstError = parsed.errors[0]
+			if (firstError && firstError.message) {
+				return firstError.field ? `${firstError.field}: ${firstError.message}` : firstError.message
+			}
+		}
+
+		// Handle record of string arrays (standard format)
+		const errorValues = Object.values(parsed.errors)
+		if (errorValues.length > 0) {
+			const firstErrorList = errorValues[0]
+			if (Array.isArray(firstErrorList) && firstErrorList.length > 0) {
+				return firstErrorList[0]
+			}
 		}
 	}
 

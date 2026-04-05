@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/tooltip"
 
 interface LatexToolbarProps {
-    editor: any; // CodeMirror EditorView
+    onInsertSnippet?: (snippet: string, offset?: number) => void;
     visualEditor?: any; // Tiptap editor
     viewMode?: 'source' | 'visual';
     toggleViewMode?: () => void;
@@ -41,7 +41,7 @@ interface LatexToolbarProps {
 }
 
 export default function LatexToolbar({
-    editor,
+    onInsertSnippet,
     visualEditor,
     viewMode = 'source',
     toggleViewMode,
@@ -56,27 +56,9 @@ export default function LatexToolbar({
 
     const insertSnippet = (snippet: string, selectionOffset: number = 0) => {
         if (viewMode === 'source') {
-            if (!editor) return
-
-            const selection = editor.state.selection.main
-            const text = editor.state.doc.toString()
-            const selectedText = text.slice(selection.from, selection.to)
-
-            let insertText = snippet.replace('$SELECTION$', selectedText)
-
-            editor.dispatch({
-                changes: {
-                    from: selection.from,
-                    to: selection.to,
-                    insert: insertText
-                },
-                selection: {
-                    anchor: selection.from + selectionOffset + (selectedText ? selectedText.length : 0)
-                },
-                scrollIntoView: true
-            })
-
-            editor.focus()
+            if (onInsertSnippet) {
+                onInsertSnippet(snippet, selectionOffset)
+            }
         } else if (visualEditor) {
             // Very basic Tiptap snippet insertion - could be improved with custom commands
             // For now, we mainly rely on Tiptap's built-in formatting for the toolbar
