@@ -16,7 +16,7 @@ import {
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
-import { useAuthContext } from "@/context/AuthContext"
+import { useAuth } from "@/context/AuthContext"
 import { useWorkspace } from "@/lib/api/hooks/use-workspaces"
 import { WorkspaceSettingsModal } from "@/components/workspace/WorkspaceSettingsModal"
 import { CreateDocumentModal } from "@/components/document/CreateDocumentModal"
@@ -36,7 +36,7 @@ import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher"
 import { Search } from "lucide-react"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user } = useAuthContext()
+  const { user } = useAuth()
   const params = useParams()
   const workspaceId = params.workspaceid as string
   const { data: workspace } = useWorkspace(workspaceId)

@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useAuthContext } from '@/context/AuthContext'
+import { useAuth } from '@/context/AuthContext'
 import { useLoginEmail, useSignInWithSocial } from '@/lib/api/hooks/use-auth'
 import { getErrorMessage } from '@/lib/api/utils/error-handler'
 import { Button } from '@/components/ui/button'
@@ -16,7 +16,7 @@ import { FaGithub } from 'react-icons/fa'
 
 export default function LoginPage() {
 	const router = useRouter()
-	const { setOnboardingData } = useAuthContext()
+	const { setOnboardingData } = useAuth()
 	
 	const { mutateAsync: loginEmailMutate, isPending: isEmailPending } = useLoginEmail()
 	const { mutateAsync: socialMutate, isPending: isSocialPending } = useSignInWithSocial({ setOnboardingData })
