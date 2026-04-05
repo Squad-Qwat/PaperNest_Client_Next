@@ -52,7 +52,7 @@ class AuthService {
 	/**
 	 * Login with Social Auth (Google, GitHub, etc.)
 	 */
-	async loginSocial(data: { firebaseToken: string }): Promise<AuthResponse> {
+	async loginSocial(data: { firebaseToken: string; accessToken?: string }): Promise<AuthResponse> {
 		const response = await apiClient.post<AuthResponse>('/auth/social', data)
 
 		const accessToken = response.token || response.accessToken
@@ -188,6 +188,7 @@ class AuthService {
 		firebaseToken: string
 		username: string
 		role: string
+		email?: string
 	}): Promise<AuthResponse> {
 		const response = await apiClient.post<AuthResponse>('/auth/social/complete', data)
 
