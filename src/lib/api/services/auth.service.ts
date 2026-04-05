@@ -15,15 +15,40 @@ import type {
 	PasswordResetDto,
 	UpdateEmailDto,
 	VerifyTokenDto,
+	CheckEmailResponse,
 } from '../types/auth.types'
 import type { User } from '../types/user.types'
 
 class AuthService {
 	/**
-	 * Register new user
+	 * Check email availability
+	 */
+	async checkEmail(email: string): Promise<CheckEmailResponse> {
+		return apiClient.post<CheckEmailResponse>('/auth/check-email', { email })
+	}
+
+	/**
+	 * Register new user (Tiered Registration)
 	 */
 	async register(data: RegisterDto): Promise<AuthResponse> {
 		const response = await apiClient.post<AuthResponse>(API_ENDPOINTS.auth.register, data)
+
+		// Access tokens only exist if verification was NOT required (e.g. some config)
+		// but in our tiered flow, we usually wait for finalizeRegistration
+		const accessToken = response.token || response.accessToken
+		if (accessToken && response.refreshToken) {
+			apiClient.setAuthToken(accessToken)
+			this.saveTokens(accessToken, response.refreshToken)
+		}
+
+		return response
+	}
+
+	/**
+	 * Finalize registration after email verification
+	 */
+	async finalizeRegistration(data: { firebaseToken: string }): Promise<AuthResponse> {
+		const response = await apiClient.post<AuthResponse>('/auth/register/finalize', data)
 
 		const accessToken = response.token || response.accessToken
 		if (accessToken && response.refreshToken) {

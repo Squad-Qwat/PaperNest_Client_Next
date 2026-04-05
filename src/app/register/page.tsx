@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'motion/react'
 import { useAuth } from '@/context/AuthContext'
-import { useRegister, useSignInWithSocial } from '@/lib/api/hooks/use-auth'
+import { useRegister, useCheckEmail, useSignInWithSocial } from '@/lib/api/hooks/use-auth'
 import { useCreateWorkspace, useJoinWorkspace } from '@/lib/api/hooks/use-workspaces'
 import { getErrorMessage } from '@/lib/api/utils/error-handler'
 import { Button } from '@/components/ui/button'
@@ -49,11 +49,12 @@ export default function RegisterPage() {
 	const { setOnboardingData, error: authError } = useAuth()
 
 	const { mutateAsync: registerUser, isPending: isRegisterPending } = useRegister()
+	const { mutateAsync: verifyEmail, isPending: checkingEmail } = useCheckEmail()
 	const { mutateAsync: createWorkspace, isPending: isCreatePending } = useCreateWorkspace()
 	const { mutateAsync: joinWorkspace, isPending: isJoinPending } = useJoinWorkspace()
 	const { mutateAsync: socialMutate, isPending: isSocialPending } = useSignInWithSocial({ setOnboardingData })
 
-	const loading = isRegisterPending || isCreatePending || isJoinPending || isSocialPending
+	const loading = isRegisterPending || isCreatePending || isJoinPending || isSocialPending || checkingEmail
 
 	const [currentStep, setCurrentStep] = useState(1)
 	const [direction, setDirection] = useState(0)
@@ -176,12 +177,25 @@ export default function RegisterPage() {
 	}
 
 	// Handle next step
-	const handleNext = () => {
+	const handleNext = async () => {
 		let isValid = false
 
 		switch (currentStep) {
 			case 1:
 				isValid = validateStep1()
+				if (isValid) {
+					// Check email availability early
+					try {
+						const result = await verifyEmail(formData.email)
+						if (!result.available) {
+							setErrors({ email: 'This email is already registered. Please use another one or log in.' })
+							isValid = false
+						}
+					} catch (err) {
+						setErrors({ email: 'Failed to verify email. Please try again.' })
+						isValid = false
+					}
+				}
 				break
 			case 2:
 				isValid = validateStep2()
@@ -197,6 +211,7 @@ export default function RegisterPage() {
 		if (isValid && currentStep < totalSteps) {
 			setDirection(1)
 			setCurrentStep(currentStep + 1)
+			setErrors({})
 		} else if (isValid && currentStep === totalSteps) {
 			handleSubmit()
 		}
@@ -220,21 +235,14 @@ export default function RegisterPage() {
 				name: formData.name,
 				username: formData.username,
 				role: formData.role,
-			})
-
-			// Only create workspace if in create mode
-			if (formData.workspaceMode === 'create') {
-				await createWorkspace({
+				workspaceData: {
 					title: formData.workspaceTitle,
 					description: formData.workspaceDescription || undefined,
 					icon: formData.workspaceIcon,
-				})
-			} else {
-				// Join workspace with workspace ID
-				await joinWorkspace(formData.invitationCode)
-			}
-
-			router.push('/')
+					mode: formData.workspaceMode,
+					invitationCode: formData.invitationCode,
+				}
+			})
 		} catch (error) {
 			console.error('Registration failed:', error)
 			setErrors({ submit: getErrorMessage(error) })
@@ -292,13 +300,14 @@ export default function RegisterPage() {
 	}
 
 	return (
-		<div className='min-h-screen flex min-w-screen bg-background'>
+		<div className='min-h-screen flex min-w-screen bg-background relative'>
+			{/* Logo - Global Fixed Responsive */}
+			<div className='fixed top-6 left-0 right-0 flex justify-center lg:top-8 lg:left-10 lg:right-auto lg:justify-start z-50'>
+				<h1 className='text-2xl lg:text-3xl font-bold text-primary'>PaperNest</h1>
+			</div>
+
 			{/* Left Side - Form Container */}
 			<div className='w-full lg:w-1/2 min-h-screen flex flex-col items-center justify-center py-8 px-4 sm:px-6 md:px-8 lg:px-10 relative'>
-				{/* Logo - Top Left */}
-				<div className='absolute top-8 left-8 lg:left-10'>
-					<h1 className='text-3xl font-bold text-primary'>PaperNest</h1>
-				</div>
 				{/* Registration Card */}
 				<div className='w-full max-w-sm space-y-6 overflow-hidden'>
 					{/* Error Message */}
@@ -340,7 +349,7 @@ export default function RegisterPage() {
 											disabled={loading}
 										>
 											<FcGoogle />
-											Login using Google
+											Continue with Google
 										</Button>
 										<Button
 											type='button'
@@ -349,7 +358,7 @@ export default function RegisterPage() {
 											disabled={loading}
 										>
 											<FaGithub />
-											Login using GitHub
+											Continue with GitHub
 										</Button>
 									</div>
 
@@ -649,14 +658,16 @@ export default function RegisterPage() {
 						<Button
 							type='button'
 							onClick={handleNext}
-							disabled={loading}
+							disabled={loading || checkingEmail}
 							className={`${currentStep === 1 ? 'w-full' : 'flex-1'}`}
 						>
 							{loading
 								? 'Creating account...'
-								: currentStep === totalSteps
-									? 'Finish ✓'
-									: 'Continue →'}
+								: checkingEmail
+									? 'Checking email...'
+									: currentStep === totalSteps
+										? 'Finish ✓'
+										: 'Continue →'}
 						</Button>
 					</div>
 

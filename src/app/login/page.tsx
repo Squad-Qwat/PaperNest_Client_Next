@@ -84,13 +84,14 @@ export default function LoginPage() {
 	const displayError = localError
 
 	return (
-		<div className='min-h-screen flex min-w-screen bg-background'>
+		<div className='min-h-screen flex min-w-screen bg-background relative'>
+			{/* Logo - Global Fixed Responsive */}
+			<div className='fixed top-6 left-0 right-0 flex justify-center lg:top-8 lg:left-10 lg:right-auto lg:justify-start z-50'>
+				<h1 className='text-2xl lg:text-3xl font-bold text-primary'>PaperNest</h1>
+			</div>
+
 			{/* Left Side - Form Container */}
 			<div className='w-full lg:w-1/2 min-h-screen flex flex-col items-center justify-center py-8 px-4 sm:px-6 md:px-8 lg:px-10 relative'>
-				{/* Logo - Top Left */}
-				<div className='absolute top-6 left-6 lg:left-8'>
-					<h1 className='text-3xl font-bold text-primary'>PaperNest</h1>
-				</div>
 				{/* Login Card */}
 				<div className='w-full max-w-sm space-y-6'>
 					{/* Title */}
@@ -155,7 +156,7 @@ export default function LoginPage() {
 							disabled={loading}
 						>
 							<FcGoogle />
-							Login using Google
+							Continue with Google
 						</Button>
 						<Button
 							type='button'
@@ -164,7 +165,7 @@ export default function LoginPage() {
 							disabled={loading}
 						>
 							<FaGithub />
-							Login using GitHub
+							Continue with GitHub
 						</Button>
 					</div>
 

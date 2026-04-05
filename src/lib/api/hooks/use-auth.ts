@@ -4,13 +4,17 @@ import { useRouter } from 'next/navigation'
 import { authService } from '../services/auth.service'
 import { apiClient } from '../clients/api-client'
 import { getErrorMessage } from '../utils/error-handler'
-import type { LoginDto, RegisterDto, LoginEmailDto, PasswordResetDto } from '../types/auth.types'
+import type { LoginDto, RegisterDto, LoginEmailDto, PasswordResetDto, CheckEmailResponse } from '../types/auth.types'
 import { auth } from '../../firebase/config'
 import {
 	signInWithPopup,
 	signInWithEmailAndPassword,
 	fetchSignInMethodsForEmail,
 	linkWithCredential,
+	onAuthStateChanged,
+	reload,
+	signInWithCustomToken,
+	sendEmailVerification,
 } from 'firebase/auth'
 import { getAuthProvider, type SocialProviderName } from '../../firebase/auth-providers'
 
@@ -51,13 +55,62 @@ export function useLogin() {
 	})
 }
 
+export function useCheckEmail() {
+	return useMutation({
+		mutationFn: (email: string) => authService.checkEmail(email),
+	})
+}
+
 export function useRegister() {
 	const queryClient = useQueryClient()
+	const router = useRouter()
 
 	return useMutation({
 		mutationFn: (data: RegisterDto) => authService.register(data),
+		onSuccess: async (response) => {
+			if (response.isVerificationRequired && response.firebaseToken) {
+				// Sign in with the custom token so auth.currentUser is populated
+				const result = await signInWithCustomToken(auth, response.firebaseToken)
+				
+				// Trigger native Firebase email verification from the client
+				await sendEmailVerification(result.user, {
+					url: `${window.location.origin}/login`,
+				})
+				
+				router.push('/auth/verify-email')
+				return
+			}
+			handleAuthSuccess(queryClient, response)
+			router.push('/')
+		},
+	})
+}
+
+/**
+ * Hook to finalize registration after clicking verification link
+ */
+export function useVerifyCompletion() {
+	const queryClient = useQueryClient()
+	const router = useRouter()
+
+	return useMutation({
+		mutationFn: async () => {
+			const user = auth.currentUser
+			if (!user) throw new Error('NO_USER_FOUND')
+
+			// Force reload to get fresh emailVerified status
+			await reload(user)
+
+			if (!user.emailVerified) {
+				throw new Error('EMAIL_NOT_VERIFIED')
+			}
+
+			const idToken = await user.getIdToken(true)
+			return authService.finalizeRegistration({ firebaseToken: idToken })
+		},
 		onSuccess: (response) => {
 			handleAuthSuccess(queryClient, response)
+			router.push('/')
 		},
 	})
 }
@@ -73,6 +126,10 @@ export function useLoginEmail() {
 			return authService.login({ firebaseToken: idToken })
 		},
 		onSuccess: (response) => {
+			if (response.isVerificationRequired) {
+				router.push('/auth/verify-email')
+				return
+			}
 			handleAuthSuccess(queryClient, response)
 			router.push('/')
 		},
