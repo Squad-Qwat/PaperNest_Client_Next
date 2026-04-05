@@ -6,7 +6,7 @@ import { FaGithub } from "react-icons/fa";
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'motion/react'
-import { useAuthContext } from '@/context/AuthContext'
+import { useAuth } from '@/context/AuthContext'
 import { useRegister, useSignInWithSocial } from '@/lib/api/hooks/use-auth'
 import { useCreateWorkspace, useJoinWorkspace } from '@/lib/api/hooks/use-workspaces'
 import { getErrorMessage } from '@/lib/api/utils/error-handler'
@@ -46,7 +46,7 @@ const workspaceIcons = ['📚', '🎓', '📖', '✍️', '🔬', '💼', '📊'
 
 export default function RegisterPage() {
 	const router = useRouter()
-	const { setOnboardingData, error: authError } = useAuthContext()
+	const { setOnboardingData, error: authError } = useAuth()
 
 	const { mutateAsync: registerUser, isPending: isRegisterPending } = useRegister()
 	const { mutateAsync: createWorkspace, isPending: isCreatePending } = useCreateWorkspace()

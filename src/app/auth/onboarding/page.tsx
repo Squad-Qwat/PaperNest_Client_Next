@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuthContext } from '@/context/AuthContext'
+import { useAuth } from '@/context/AuthContext'
 import { motion, AnimatePresence } from 'motion/react'
 import { useCompleteSocialRegistration } from '@/lib/api/hooks/use-auth'
 import { useCreateWorkspace, useJoinWorkspace } from '@/lib/api/hooks/use-workspaces'
@@ -26,7 +26,7 @@ const workspaceIcons = ['📚', '🎓', '📖', '✍️', '🔬', '💼', '📊'
 
 export default function OnboardingPage() {
 	const router = useRouter()
-	const { onboardingData, setOnboardingData, error: authError } = useAuthContext()
+	const { onboardingData, setOnboardingData, error: authError } = useAuth()
 	
 	const { mutateAsync: completeSocial, isPending: isCompletePending } = useCompleteSocialRegistration({
 		clearOnboardingData: () => setOnboardingData(null)

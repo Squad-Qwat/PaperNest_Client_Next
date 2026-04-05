@@ -9,13 +9,13 @@ import { ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
-import { useAuthContext } from '@/context/AuthContext'
+import { useAuth } from '@/context/AuthContext'
 import { documentsService } from '@/lib/api/services/documents.service'
 
 export default function ReviewDetailPage() {
 	const params = useParams()
 	const { reviewId } = params
-	const { loading: authLoading } = useAuthContext()
+	const { loading: authLoading } = useAuth()
 	const [review, setReview] = useState<any | null>(null) // using any to map easier to UI for now, or use Review type
 	const [loading, setLoading] = useState(true)
 

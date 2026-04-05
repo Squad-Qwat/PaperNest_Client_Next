@@ -14,7 +14,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select'
-import { useAuthContext } from '@/context/AuthContext'
+import { useAuth } from '@/context/AuthContext'
 import { documentsService } from '@/lib/api/services/documents.service'
 import type { Document } from '@/lib/api/types/document.types'
 import type { Review } from '@/lib/api/types/review.types'
@@ -23,7 +23,7 @@ import { format, id } from '@/lib/date'
 export default function ReviewsPage() {
 	const params = useParams()
 	const router = useRouter()
-	const { user } = useAuthContext()
+	const { user } = useAuth()
 	const workspaceId = params.workspaceid as string
 
 	const [reviews, setReviews] = useState<Review[]>([])

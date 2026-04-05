@@ -15,7 +15,7 @@ import { DocumentService } from "@/lib/firebase/document-service"
 import { documentsService } from "@/lib/api/services/documents.service"
 import "@/components/document/editor/EditorStyles.css"
 import ModalVersions from "@/components/document/ModalVersions"
-import { useAuthContext } from "@/context/AuthContext"
+import { useAuth } from "@/context/AuthContext"
 import { DocumentEditorSkeleton } from "@/components/document/editor/DocumentEditorSkeleton"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { DesktopOnlyGuard } from "@/components/layout/DesktopOnlyGuard"
@@ -44,7 +44,7 @@ export default function DocumentPage() {
   const [editorFunctions, setEditorFunctions] = useState(null)
   const [isPdfHidden, setIsPdfHidden] = useState(false)
   const [activeUsersInRoom, setActiveUsersInRoom] = useState(0)
-  const { user, loading } = useAuthContext()
+  const { user, loading } = useAuth()
   const isMobile = useIsMobile()
 
   // Check workspace access first

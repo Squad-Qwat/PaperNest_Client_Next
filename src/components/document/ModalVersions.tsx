@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { toast } from 'sonner'
-import { useAuthContext } from '@/context/AuthContext'
+import { useAuth } from '@/context/AuthContext'
 import {
 	useDocumentVersions,
 	useDocumentReviews,
@@ -40,7 +40,7 @@ export default function ModalVersions({
 	// Actually, let's trust the prop if passed, but if not, use param.
 	const documentId = propDocumentId || (params?.documentid as string)
 
-	const { user } = useAuthContext()
+	const { user } = useAuth()
 
 	const { data: versionsResponse, isLoading: versionsLoading } = useDocumentVersions(documentId)
 	// Handle robust response parsing if response is different format

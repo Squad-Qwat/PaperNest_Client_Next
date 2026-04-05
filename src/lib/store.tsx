@@ -13,21 +13,18 @@
  */
 
 import React from 'react'
-import { AuthProvider } from '@/context/AuthProvider'
 import { WorkspaceProvider } from '@/context/WorkspaceProvider'
 
 /**
  * Root application provider that wraps all context providers
- * Order matters: AuthProvider should be outermost as other providers may depend on auth
+ * AuthProvider is now at the layout level, so we only wrap with WorkspaceProvider here
  */
 export function AppProvider({ children }: { children: React.ReactNode }) {
 	return (
-		<AuthProvider>
-			<WorkspaceProvider>{children}</WorkspaceProvider>
-		</AuthProvider>
+		<WorkspaceProvider>{children}</WorkspaceProvider>
 	)
 }
 
 // Re-export hooks for convenience
-export { useAuth } from '@/context/AuthProvider'
+export { useAuth } from '@/context/AuthContext'
 export { useWorkspaceContext } from '@/context/WorkspaceProvider'

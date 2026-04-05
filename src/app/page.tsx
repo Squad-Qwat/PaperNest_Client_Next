@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuthContext } from '@/context/AuthContext'
+import { useAuth } from '@/context/AuthContext'
 import { useWorkspaces } from '@/lib/api/hooks/use-workspaces'
 import { CreateWorkspaceModal } from '@/components/workspace/CreateWorkspaceModal'
 import { Button } from '@/components/ui/button'
@@ -11,7 +11,7 @@ import { DashboardSkeleton } from '@/components/layout/DashboardSkeleton'
 
 export default function Page() {
 	const router = useRouter()
-	const { user, loading: authLoading } = useAuthContext()
+	const { user, loading: authLoading } = useAuth()
 	const { data: workspacesResponse, isLoading: workspacesLoading, refetch } = useWorkspaces()
 	const workspaces = workspacesResponse?.workspaces || []
 	const [showCreateModal, setShowCreateModal] = useState(false)

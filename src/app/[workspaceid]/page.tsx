@@ -27,7 +27,7 @@ import { Modal, ModalFooter } from '@/components/ui/modal'
 import { SearchInput } from '@/components/ui/search-input'
 import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useAuthContext } from '@/context/AuthContext'
+import { useAuth } from '@/context/AuthContext'
 import { useWorkspaceDocuments, useCreateDocument, useDeleteDocument } from '@/lib/api/hooks/use-documents'
 import { useWorkspace } from '@/lib/api/hooks/use-workspaces'
 import { format, id } from '@/lib/date'
@@ -37,7 +37,7 @@ import { DashboardSkeleton } from '@/components/layout/DashboardSkeleton'
 export default function WorkspacePage() {
 	const params = useParams()
 	const router = useRouter()
-	const { user } = useAuthContext()
+	const { user } = useAuth()
 	const workspaceId = params.workspaceid as string
 	const {
 		data: workspace,
