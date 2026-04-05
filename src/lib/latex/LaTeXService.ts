@@ -12,6 +12,7 @@ type EngineType = 'pdftex' | 'xetex';
 export class LaTeXService {
 	private engines: Map<EngineType | 'dvipdfmx', BaseEngine> = new Map();
 	private currentEngineType: EngineType = 'pdftex';
+	private compilerMode: 'client' | 'server' = 'server'; // Defaulting to server as per user request
 	private statusListeners: Set<() => void> = new Set();
 	private texliveEndpoint = 'https://texlive.texlyre.org'; // Default endpoint from reference
 
@@ -46,6 +47,15 @@ export class LaTeXService {
 		await this.initialize(engineType);
 	}
 
+	setCompilerMode(mode: 'client' | 'server'): void {
+		this.compilerMode = mode;
+		this.notifyStatusChange();
+	}
+
+	getCompilerMode(): 'client' | 'server' {
+		return this.compilerMode;
+	}
+
 	getCurrentEngine(): BaseEngine {
 		const engine = this.engines.get(this.currentEngineType);
 		if (!engine) throw new Error(`Engine ${this.currentEngineType} not found`);
@@ -57,6 +67,10 @@ export class LaTeXService {
 	}
 
 	async compileWithAssets(mainFileName: string, content: string, assets: DocumentFile[]): Promise<CompileResult> {
+		if (this.compilerMode === 'server') {
+			return this.compileOnServer(mainFileName, content, assets);
+		}
+
 		const engine = this.getCurrentEngine();
 
 		if (!engine.isReady()) {
@@ -150,6 +164,62 @@ export class LaTeXService {
 			status: result.status,
 			log: result.status === 0 ? originalLog : `${originalLog}\n\nDvipdfmx error:\n${result.log}`,
 		};
+	}
+
+	/**
+	 * Sends the LaTeX source and asset info to the backend for server-side compilation with Tectonic.
+	 */
+	private async compileOnServer(mainFileName: string, content: string, assets: DocumentFile[]): Promise<CompileResult> {
+		try {
+			console.log(`[LaTeXService] Compiling on server: ${mainFileName}`);
+			
+			const response = await fetch(`${API_CONFIG.baseURL}/latex/compile`, {
+				method: 'POST',
+				headers: {
+					...apiClient.getHeaders(),
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					content,
+					mainFileName,
+					assets: assets.map(a => ({
+						name: a.name,
+						url: a.url
+					}))
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json();
+				return {
+					log: errorData.log || errorData.error || 'Unknown server error',
+					status: errorData.status || response.status,
+					pdf: undefined
+				};
+			}
+
+			const data = await response.json();
+			
+			// If PDF exists, convert base64 to Uint8Array
+			let pdfArrayBuffer: Uint8Array | undefined;
+			if (data.pdf) {
+				const binaryString = window.atob(data.pdf);
+				const bytes = new Uint8Array(binaryString.length);
+				for (let i = 0; i < binaryString.length; i++) {
+					bytes[i] = binaryString.charCodeAt(i);
+				}
+				pdfArrayBuffer = bytes;
+			}
+
+			return {
+				pdf: pdfArrayBuffer,
+				log: data.log,
+				status: data.status
+			};
+		} catch (error: any) {
+			console.error('[LaTeXService] Server compilation failed:', error);
+			throw new Error(`Failed to compile on server: ${error.message}`);
+		}
 	}
 
 	addStatusListener(listener: () => void): () => void {
