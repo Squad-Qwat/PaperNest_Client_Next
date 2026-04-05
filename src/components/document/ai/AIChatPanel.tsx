@@ -11,7 +11,7 @@ import {
 	Conversation,
 	ConversationContent,
 	ConversationScrollButton,
-} from '@/components/ai-elements/conversation'
+} from '@/components/ui/ai-elements/conversation'
 import {
 	Message,
 	MessageBranch,
@@ -22,7 +22,7 @@ import {
 	MessageBranchSelector,
 	MessageContent,
 	MessageResponse,
-} from '@/components/ai-elements/message'
+} from '@/components/ui/ai-elements/message'
 import {
 	ModelSelector,
 	ModelSelectorContent,
@@ -34,7 +34,7 @@ import {
 	ModelSelectorLogo,
 	ModelSelectorName,
 	ModelSelectorTrigger,
-} from '@/components/ai-elements/model-selector'
+} from '@/components/ui/ai-elements/model-selector'
 import {
 	PromptInput,
 	PromptInputBody,
@@ -46,11 +46,11 @@ import {
 	PromptInputTextarea,
 	PromptInputTools,
 	usePromptInputController,
-} from '@/components/ai-elements/prompt-input'
-import { Suggestion, Suggestions } from '@/components/ai-elements/suggestion'
-import { Reasoning, ReasoningContent, ReasoningTrigger } from '@/components/ai-elements/reasoning'
-import { Sources, Source, SourcesContent, SourcesTrigger } from '@/components/ai-elements/sources'
-import { Tool, ToolHeader, ToolContent, ToolInput, ToolOutput } from '@/components/ai-elements/tool'
+} from '@/components/ui/ai-elements/prompt-input'
+import { Suggestion, Suggestions } from '@/components/ui/ai-elements/suggestion'
+import { Reasoning, ReasoningContent, ReasoningTrigger } from '@/components/ui/ai-elements/reasoning'
+import { Sources, Source, SourcesContent, SourcesTrigger } from '@/components/ui/ai-elements/sources'
+import { Tool, ToolHeader, ToolContent, ToolInput, ToolOutput } from '@/components/ui/ai-elements/tool'
 import { Button } from '@/components/ui/button'
 import type { UIMessage } from 'ai'
 
@@ -696,3 +696,4 @@ function AIChatInput({
 }
 
 export default AIChatPanel
+

@@ -2,10 +2,14 @@
 
 import React, { useState } from 'react'
 import { FcGoogle } from "react-icons/fc";
+import { FaGithub } from "react-icons/fa";
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { motion, AnimatePresence } from 'motion/react'
 import { useAuthContext } from '@/context/AuthContext'
-import { workspacesService } from '@/lib/api/services/workspaces.service'
+import { useRegister, useSignInWithSocial } from '@/lib/api/hooks/use-auth'
+import { useCreateWorkspace, useJoinWorkspace } from '@/lib/api/hooks/use-workspaces'
+import { getErrorMessage } from '@/lib/api/utils/error-handler'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -21,7 +25,7 @@ import {
 } from '@/components/ui/select'
 import type { UserRole } from '@/lib/api/types/user.types'
 
-import Grainient from '@/components/Grainient';
+import Grainient from '@/components/visuals/Grainient/Grainient';
 
 
 type StepData = {
@@ -42,8 +46,17 @@ const workspaceIcons = ['📚', '🎓', '📖', '✍️', '🔬', '💼', '📊'
 
 export default function RegisterPage() {
 	const router = useRouter()
-	const { register, loading, error: authError, clearError } = useAuthContext()
+	const { setOnboardingData, error: authError } = useAuthContext()
+
+	const { mutateAsync: registerUser, isPending: isRegisterPending } = useRegister()
+	const { mutateAsync: createWorkspace, isPending: isCreatePending } = useCreateWorkspace()
+	const { mutateAsync: joinWorkspace, isPending: isJoinPending } = useJoinWorkspace()
+	const { mutateAsync: socialMutate, isPending: isSocialPending } = useSignInWithSocial({ setOnboardingData })
+
+	const loading = isRegisterPending || isCreatePending || isJoinPending || isSocialPending
+
 	const [currentStep, setCurrentStep] = useState(1)
+	const [direction, setDirection] = useState(0)
 	const [formData, setFormData] = useState<StepData>({
 		email: '',
 		password: '',
@@ -77,7 +90,6 @@ export default function RegisterPage() {
 	const updateFormData = (field: keyof StepData, value: string) => {
 		setFormData((prev) => ({ ...prev, [field]: value }))
 		setErrors((prev) => ({ ...prev, [field]: '' }))
-		clearError()
 
 		// Update password strength
 		if (field === 'password') {
@@ -183,6 +195,7 @@ export default function RegisterPage() {
 		}
 
 		if (isValid && currentStep < totalSteps) {
+			setDirection(1)
 			setCurrentStep(currentStep + 1)
 		} else if (isValid && currentStep === totalSteps) {
 			handleSubmit()
@@ -192,14 +205,16 @@ export default function RegisterPage() {
 	// Handle back step
 	const handleBack = () => {
 		if (currentStep > 1) {
+			setDirection(-1)
 			setCurrentStep(currentStep - 1)
 			setErrors({})
 		}
 	}
 
 	const handleSubmit = async () => {
+		setErrors({})
 		try {
-			const registerResult = await register({
+			await registerUser({
 				email: formData.email,
 				password: formData.password,
 				name: formData.name,
@@ -209,25 +224,30 @@ export default function RegisterPage() {
 
 			// Only create workspace if in create mode
 			if (formData.workspaceMode === 'create') {
-				await workspacesService.create({
+				await createWorkspace({
 					title: formData.workspaceTitle,
 					description: formData.workspaceDescription || undefined,
 					icon: formData.workspaceIcon,
 				})
 			} else {
 				// Join workspace with workspace ID
-				await workspacesService.joinByWorkspaceId(formData.invitationCode)
+				await joinWorkspace(formData.invitationCode)
 			}
 
 			router.push('/')
 		} catch (error) {
 			console.error('Registration failed:', error)
-			setErrors({ submit: error instanceof Error ? error.message : 'Registration failed' })
+			setErrors({ submit: getErrorMessage(error) })
 		}
 	}
 
-	const handleSocialSignup = (provider: string) => {
-		alert(`${provider} signup coming soon!`)
+	const handleSocialSignup = async (provider: 'google' | 'github') => {
+		setErrors({})
+		try {
+			await socialMutate(provider)
+		} catch (error) {
+			setErrors({ submit: getErrorMessage(error) })
+		}
 	}
 
 	// Password strength color
@@ -245,6 +265,32 @@ export default function RegisterPage() {
 
 	const displayError = authError || errors.submit
 
+	const variants: any = {
+		initial: (direction: number) => ({
+			x: direction > 0 ? 20 : -20,
+			opacity: 0,
+			filter: 'blur(4px)',
+		}),
+		animate: {
+			x: 0,
+			opacity: 1,
+			filter: 'blur(0px)',
+			transition: {
+				duration: 0.4,
+				ease: [0.23, 1, 0.32, 1],
+			},
+		},
+		exit: (direction: number) => ({
+			x: direction > 0 ? -20 : 20,
+			opacity: 0,
+			filter: 'blur(4px)',
+			transition: {
+				duration: 0.3,
+				ease: 'easeInOut',
+			},
+		}),
+	}
+
 	return (
 		<div className='min-h-screen flex min-w-screen bg-background'>
 			{/* Left Side - Form Container */}
@@ -254,7 +300,7 @@ export default function RegisterPage() {
 					<h1 className='text-3xl font-bold text-primary'>PaperNest</h1>
 				</div>
 				{/* Registration Card */}
-				<div className='w-full max-w-sm space-y-6'>
+				<div className='w-full max-w-sm space-y-6 overflow-hidden'>
 					{/* Error Message */}
 					{displayError && (
 						<div className='mb-6 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm text-center'>
@@ -262,309 +308,330 @@ export default function RegisterPage() {
 						</div>
 					)}
 
-					{/* Step 1: Email */}
-					{currentStep === 1 && (
-						<div className='space-y-6'>
-							{/* Title */}
-							<div className='text-center'>
-								<h1 className='text-2xl font-bold text-gray-900 mb-2'>
-									Create your account
-								</h1>
-								<p className='text-sm text-gray-500'>
-									Step {currentStep} of {totalSteps} - Account
-								</p>
-							</div>
-
-							{/* Social Sign Up */}
-							<div className='grid gap-3'>
-								<Button
-									type='button'
-									variant='outline'
-									onClick={() => handleSocialSignup('Google')}
-									disabled={loading}
-								>
-									<FcGoogle />
-									Login using Google
-								</Button>
-							</div>
-
-							{/* Divider */}
-							<div className='relative'>
-								<div className='absolute inset-0 flex items-center'>
-									<div className='w-full border-t border-gray-200'></div>
-								</div>
-								<div className='relative flex justify-center text-sm'>
-									<span className='px-4 bg-white text-gray-500'>
-										Or Continue With Your Credentials
-									</span>
-								</div>
-							</div>
-
-							{/* Email Input */}
-							<div className='space-y-2'>
-								<Label htmlFor='email' className='text-gray-900 font-normal'>
-									Email
-								</Label>
-								<Input
-									id='email'
-									type='email'
-									value={formData.email}
-									onChange={(e) => updateFormData('email', e.target.value)}
-									placeholder='Enter your email'
-								/>
-								{errors.email && <p className='text-sm text-red-600'>{errors.email}</p>}
-							</div>
-						</div>
-					)}
-
-					{/* Step 2: Password */}
-					{currentStep === 2 && (
-						<div className='space-y-6'>
-							{/* Title */}
-							<div className='text-center'>
-								<h1 className='text-2xl font-bold text-gray-900 mb-2'>Create a new password</h1>
-								<p className='text-sm text-gray-500'>
-									Step {currentStep} of {totalSteps} - Password
-								</p>
-							</div>
-
-							<div className='space-y-2'>
-								<Label htmlFor='password' className='text-gray-900 font-normal'>
-									Password
-								</Label>
-								<Input
-									id='password'
-									type='password'
-									value={formData.password}
-									onChange={(e) => updateFormData('password', e.target.value)}
-									placeholder='Password'
-								/>
-								{errors.password && <p className='text-sm text-red-600'>{errors.password}</p>}
-
-								{/* Password Strength Indicator */}
-								{formData.password && (
-									<div className='flex items-center gap-2 text-xs'>
-										<svg className='w-4 h-4 text-green-500' fill='currentColor' viewBox='0 0 20 20'>
-											<path
-												fillRule='evenodd'
-												d='M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z'
-												clipRule='evenodd'
-											/>
-										</svg>
-										<span className='text-gray-600'>At least 8 characters</span>
+					<AnimatePresence mode='wait' custom={direction}>
+						<motion.div
+							key={currentStep}
+							custom={direction}
+							variants={variants}
+							initial='initial'
+							animate='animate'
+							exit='exit'
+							className='w-full'
+						>
+							{/* Step 1: Email */}
+							{currentStep === 1 && (
+								<div className='space-y-6'>
+									{/* Title */}
+									<div className='text-center'>
+										<h1 className='text-2xl font-bold text-gray-900 mb-2'>
+											Create your account
+										</h1>
+										<p className='text-sm text-gray-500'>
+											Step {currentStep} of {totalSteps} - Account
+										</p>
 									</div>
-								)}
-							</div>
 
-							<div className='space-y-2'>
-								<Label htmlFor='confirmPassword' className='text-gray-900 font-normal'>
-									Confirm Password
-								</Label>
-								<Input
-									id='confirmPassword'
-									type='password'
-									value={formData.confirmPassword}
-									onChange={(e) => updateFormData('confirmPassword', e.target.value)}
-									placeholder='Confirm your password'
-								/>
-								{errors.confirmPassword && (
-									<p className='text-sm text-red-600'>{errors.confirmPassword}</p>
-								)}
-							</div>
-						</div>
-					)}
+									{/* Social Sign Up */}
+									<div className='grid gap-3'>
+										<Button
+											type='button'
+											variant='outline'
+											onClick={() => handleSocialSignup('google')}
+											disabled={loading}
+										>
+											<FcGoogle />
+											Login using Google
+										</Button>
+										<Button
+											type='button'
+											variant='outline'
+											onClick={() => handleSocialSignup('github')}
+											disabled={loading}
+										>
+											<FaGithub />
+											Login using GitHub
+										</Button>
+									</div>
 
-					{/* Step 3: User Details */}
-					{currentStep === 3 && (
-						<div className='space-y-6'>
-							{/* Title */}
-							<div className='text-center'>
-								<h1 className='text-2xl font-bold text-gray-900 mb-2'>Your credentials</h1>
-								<p className='text-sm text-gray-500'>
-									Step {currentStep} of {totalSteps} - User Details
-								</p>
-							</div>
-
-							<div className='space-y-2'>
-								<Label htmlFor='name' className='text-gray-900 font-normal'>
-									Full Name
-								</Label>
-								<Input
-									id='name'
-									type='text'
-									value={formData.name}
-									onChange={(e) => updateFormData('name', e.target.value)}
-									placeholder='John Doe'
-								/>
-								{errors.name && <p className='text-sm text-red-600'>{errors.name}</p>}
-							</div>
-
-							<div className='space-y-2'>
-								<Label htmlFor='username' className='text-gray-900 font-normal'>
-									Username
-								</Label>
-								<Input
-									id='username'
-									type='text'
-									value={formData.username}
-									onChange={(e) => updateFormData('username', e.target.value)}
-									placeholder='Create your username'
-								/>
-								{errors.username && <p className='text-sm text-red-600'>{errors.username}</p>}
-							</div>
-
-							<div className='space-y-2'>
-								<Label className='text-gray-900 font-normal'>Select role</Label>
-								<div className=''>
-									<Select
-										value={formData.role}
-										onValueChange={(value) => updateFormData('role', value as UserRole)}
-									>
-										<SelectTrigger className='w-full'>
-											<SelectValue placeholder='Select a role' />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectItem value='Student'>Student</SelectItem>
-											<SelectItem value='Lecturer'>Lecturer</SelectItem>
-										</SelectContent>
-									</Select>
-								</div>
-							</div>
-						</div>
-					)}
-
-					{/* Step 4: Workspace */}
-					{currentStep === 4 && (
-						<div className='space-y-6'>
-							{/* Title */}
-							<div className='text-center'>
-								<h1 className='text-2xl font-bold text-gray-900 mb-2'>
-									{formData.workspaceMode === 'create'
-										? 'Create Your Workspace'
-										: 'Join a Workspace'}
-								</h1>
-								<p className='text-sm text-gray-500'>
-									Step {currentStep} of {totalSteps} - Workspace Setup
-								</p>
-							</div>
-
-							{/* Workspace Mode Radio */}
-							<RadioGroup
-								className='w-full grid grid-cols-2 gap-3'
-								value={formData.workspaceMode}
-								onValueChange={(value) => updateFormData('workspaceMode', value)}
-							>
-								<div className='border-input has-data-[state=checked]:bg-teal-500 has-data-[state=checked]:text-white relative flex flex-col gap-2 border p-4 rounded-lg outline-none has-data-[state=checked]:z-10 transition-all'>
-									<div className='group flex flex-col gap-2'>
-										<div className='flex items-center gap-2'>
-											<RadioGroupItem
-												id='mode-create'
-												value='create'
-												aria-label='create-workspace'
-												className='text-primary bg-white data-[state=checked]:bg-white data-[state=checked]:border-white data-[state=checked]:[&_svg]:fill-teal-500 after:absolute after:inset-0'
-											/>
-											<Label className='font-semibold cursor-pointer' htmlFor='mode-create'>
-												Create New
-											</Label>
+									{/* Divider */}
+									<div className='relative'>
+										<div className='absolute inset-0 flex items-center'>
+											<div className='w-full border-t border-gray-200'></div>
 										</div>
-										<p className='text-xs opacity-80 pl-6'>Start your own workspace</p>
-									</div>
-								</div>
-								<div className='border-input has-data-[state=checked]:bg-teal-500 has-data-[state=checked]:text-white relative flex flex-col gap-2 border p-4 rounded-lg outline-none has-data-[state=checked]:z-10 transition-all'>
-									<div className='group flex flex-col gap-2'>
-										<div className='flex items-center gap-2'>
-											<RadioGroupItem
-												id='mode-join'
-												value='join'
-												aria-label='join-workspace'
-												className='text-primary bg-white data-[state=checked]:bg-white data-[state=checked]:border-white data-[state=checked]:[&_svg]:fill-teal-500 after:absolute after:inset-0'
-											/>
-											<Label className='font-semibold cursor-pointer' htmlFor='mode-join'>
-												Join Existing
-											</Label>
+										<div className='relative flex justify-center text-sm'>
+											<span className='px-4 bg-white text-gray-500'>
+												Or Continue With Your Credentials
+											</span>
 										</div>
-										<p className='text-xs opacity-80 pl-6'>Use an invitation code</p>
 									</div>
-								</div>
-							</RadioGroup>
 
-							{/* Create Workspace Form */}
-							{formData.workspaceMode === 'create' && (
-								<>
+									{/* Email Input */}
 									<div className='space-y-2'>
-										<Label className='text-gray-900 font-normal'>Workspace Icon</Label>
-										<div className='grid grid-cols-5 gap-2'>
-											{workspaceIcons.map((icon) => (
-												<button
-													key={icon}
-													type='button'
-													onClick={() => updateFormData('workspaceIcon', icon)}
-													className={`p-3 text-2xl border rounded-lg transition-all hover:scale-105 ${formData.workspaceIcon === icon
-															? 'bg-teal-500 border-teal-400'
-															: 'bg-white border-gray-200 hover:border-gray-300'
-														}`}
-												>
-													{icon}
-												</button>
-											))}
-										</div>
-									</div>
-
-									<div className='space-y-2'>
-										<Label htmlFor='workspaceTitle' className='text-gray-900 font-normal'>
-											Workspace Title <span className='text-red-500'>*</span>
+										<Label htmlFor='email' className='text-gray-900 font-normal'>
+											Email
 										</Label>
 										<Input
-											id='workspaceTitle'
-											type='text'
-											value={formData.workspaceTitle}
-											onChange={(e) => updateFormData('workspaceTitle', e.target.value)}
-											placeholder='My Research Workspace'
+											id='email'
+											type='email'
+											value={formData.email}
+											onChange={(e) => updateFormData('email', e.target.value)}
+											placeholder='Enter your email'
 										/>
-										{errors.workspaceTitle && (
-											<p className='text-sm text-red-600'>{errors.workspaceTitle}</p>
+										{errors.email && <p className='text-sm text-red-600'>{errors.email}</p>}
+									</div>
+								</div>
+							)}
+
+							{/* Step 2: Password */}
+							{currentStep === 2 && (
+								<div className='space-y-6'>
+									{/* Title */}
+									<div className='text-center'>
+										<h1 className='text-2xl font-bold text-gray-900 mb-2'>Create a new password</h1>
+										<p className='text-sm text-gray-500'>
+											Step {currentStep} of {totalSteps} - Password
+										</p>
+									</div>
+
+									<div className='space-y-2'>
+										<Label htmlFor='password' className='text-gray-900 font-normal'>
+											Password
+										</Label>
+										<Input
+											id='password'
+											type='password'
+											value={formData.password}
+											onChange={(e) => updateFormData('password', e.target.value)}
+											placeholder='Password'
+										/>
+										{errors.password && <p className='text-sm text-red-600'>{errors.password}</p>}
+
+										{/* Password Strength Indicator */}
+										{formData.password && (
+											<div className='flex items-center gap-2 text-xs'>
+												<svg className='w-4 h-4 text-green-500' fill='currentColor' viewBox='0 0 20 20'>
+													<path
+														fillRule='evenodd'
+														d='M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z'
+														clipRule='evenodd'
+													/>
+												</svg>
+												<span className='text-gray-600'>At least 8 characters</span>
+											</div>
 										)}
 									</div>
 
 									<div className='space-y-2'>
-										<Label htmlFor='workspaceDescription' className='text-gray-900 font-normal'>
-											Workspace Description (Optional)
+										<Label htmlFor='confirmPassword' className='text-gray-900 font-normal'>
+											Confirm Password
 										</Label>
-										<Textarea
-											id='workspaceDescription'
-											value={formData.workspaceDescription}
-											onChange={(e) => updateFormData('workspaceDescription', e.target.value)}
-											placeholder='A workspace for my research papers and projects'
-											rows={3}
-											className='resize-none'
+										<Input
+											id='confirmPassword'
+											type='password'
+											value={formData.confirmPassword}
+											onChange={(e) => updateFormData('confirmPassword', e.target.value)}
+											placeholder='Confirm your password'
 										/>
+										{errors.confirmPassword && (
+											<p className='text-sm text-red-600'>{errors.confirmPassword}</p>
+										)}
 									</div>
-								</>
-							)}
-
-							{/* Join Workspace Form */}
-							{formData.workspaceMode === 'join' && (
-								<div className='space-y-2'>
-									<Label htmlFor='invitationCode' className='text-gray-900 font-normal'>
-										Invitation Code <span className='text-red-500'>*</span>
-									</Label>
-									<Input
-										id='invitationCode'
-										type='text'
-										value={formData.invitationCode}
-										onChange={(e) => updateFormData('invitationCode', e.target.value)}
-										placeholder='Enter your invitation code'
-									/>
-									{errors.invitationCode && (
-										<p className='text-sm text-red-600'>{errors.invitationCode}</p>
-									)}
-									<p className='text-xs text-gray-500'>
-										Ask your workspace owner for an invitation code to join their workspace.
-									</p>
 								</div>
 							)}
-						</div>
-					)}
+
+							{/* Step 3: User Details */}
+							{currentStep === 3 && (
+								<div className='space-y-6'>
+									{/* Title */}
+									<div className='text-center'>
+										<h1 className='text-2xl font-bold text-gray-900 mb-2'>Your credentials</h1>
+										<p className='text-sm text-gray-500'>
+											Step {currentStep} of {totalSteps} - User Details
+										</p>
+									</div>
+
+									<div className='space-y-2'>
+										<Label htmlFor='name' className='text-gray-900 font-normal'>
+											Full Name
+										</Label>
+										<Input
+											id='name'
+											type='text'
+											value={formData.name}
+											onChange={(e) => updateFormData('name', e.target.value)}
+											placeholder='John Doe'
+										/>
+										{errors.name && <p className='text-sm text-red-600'>{errors.name}</p>}
+									</div>
+
+									<div className='space-y-2'>
+										<Label htmlFor='username' className='text-gray-900 font-normal'>
+											Username
+										</Label>
+										<Input
+											id='username'
+											type='text'
+											value={formData.username}
+											onChange={(e) => updateFormData('username', e.target.value)}
+											placeholder='Create your username'
+										/>
+										{errors.username && <p className='text-sm text-red-600'>{errors.username}</p>}
+									</div>
+
+									<div className='space-y-2'>
+										<Label className='text-gray-900 font-normal'>Select role</Label>
+										<div className=''>
+											<Select
+												value={formData.role}
+												onValueChange={(value) => updateFormData('role', value as UserRole)}
+											>
+												<SelectTrigger className='w-full'>
+													<SelectValue placeholder='Select a role' />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value='Student'>Student</SelectItem>
+													<SelectItem value='Lecturer'>Lecturer</SelectItem>
+												</SelectContent>
+											</Select>
+										</div>
+									</div>
+								</div>
+							)}
+
+							{/* Step 4: Workspace */}
+							{currentStep === 4 && (
+								<div className='space-y-6'>
+									{/* Title */}
+									<div className='text-center'>
+										<h1 className='text-2xl font-bold text-gray-900 mb-2'>
+											{formData.workspaceMode === 'create'
+												? 'Create Your Workspace'
+												: 'Join a Workspace'}
+										</h1>
+										<p className='text-sm text-gray-500'>
+											Step {currentStep} of {totalSteps} - Workspace Setup
+										</p>
+									</div>
+
+									{/* Workspace Mode Radio */}
+									<RadioGroup
+										className='w-full grid grid-cols-2 gap-3'
+										value={formData.workspaceMode}
+										onValueChange={(value) => updateFormData('workspaceMode', value as 'create' | 'join')}
+									>
+										<div className='border-input has-data-[state=checked]:bg-teal-500 has-data-[state=checked]:text-white relative flex flex-col gap-2 border p-4 rounded-lg outline-none has-data-[state=checked]:z-10 transition-all'>
+											<div className='group flex flex-col gap-2'>
+												<div className='flex items-center gap-2'>
+													<RadioGroupItem
+														id='mode-create'
+														value='create'
+														aria-label='create-workspace'
+														className='text-primary bg-white data-[state=checked]:bg-white data-[state=checked]:border-white data-[state=checked]:[&_svg]:fill-teal-500 after:absolute after:inset-0'
+													/>
+													<Label className='font-semibold cursor-pointer' htmlFor='mode-create'>
+														Create New
+													</Label>
+												</div>
+												<p className='text-xs opacity-80 pl-6'>Start your own workspace</p>
+											</div>
+										</div>
+										<div className='border-input has-data-[state=checked]:bg-teal-500 has-data-[state=checked]:text-white relative flex flex-col gap-2 border p-4 rounded-lg outline-none has-data-[state=checked]:z-10 transition-all'>
+											<div className='group flex flex-col gap-2'>
+												<div className='flex items-center gap-2'>
+													<RadioGroupItem
+														id='mode-join'
+														value='join'
+														aria-label='join-workspace'
+														className='text-primary bg-white data-[state=checked]:bg-white data-[state=checked]:border-white data-[state=checked]:[&_svg]:fill-teal-500 after:absolute after:inset-0'
+													/>
+													<Label className='font-semibold cursor-pointer' htmlFor='mode-join'>
+														Join Existing
+													</Label>
+												</div>
+												<p className='text-xs opacity-80 pl-6'>Use an invitation code</p>
+											</div>
+										</div>
+									</RadioGroup>
+
+									{/* Create Workspace Form */}
+									{formData.workspaceMode === 'create' && (
+										<>
+											<div className='space-y-2'>
+												<Label className='text-gray-900 font-normal'>Workspace Icon</Label>
+												<div className='grid grid-cols-5 gap-2'>
+													{workspaceIcons.map((icon) => (
+														<button
+															key={icon}
+															type='button'
+															onClick={() => updateFormData('workspaceIcon', icon)}
+															className={`p-3 text-2xl border rounded-lg transition-all hover:scale-105 ${formData.workspaceIcon === icon
+																? 'bg-teal-500 border-teal-400'
+																: 'bg-white border-gray-200 hover:border-gray-300'
+																}`}
+														>
+															{icon}
+														</button>
+													))}
+												</div>
+											</div>
+
+											<div className='space-y-2'>
+												<Label htmlFor='workspaceTitle' className='text-gray-900 font-normal'>
+													Workspace Title <span className='text-red-500'>*</span>
+												</Label>
+												<Input
+													id='workspaceTitle'
+													type='text'
+													value={formData.workspaceTitle}
+													onChange={(e) => updateFormData('workspaceTitle', e.target.value)}
+													placeholder='My Research Workspace'
+												/>
+												{errors.workspaceTitle && (
+													<p className='text-sm text-red-600'>{errors.workspaceTitle}</p>
+												)}
+											</div>
+
+											<div className='space-y-2'>
+												<Label htmlFor='workspaceDescription' className='text-gray-900 font-normal'>
+													Workspace Description (Optional)
+												</Label>
+												<Textarea
+													id='workspaceDescription'
+													value={formData.workspaceDescription}
+													onChange={(e) => updateFormData('workspaceDescription', e.target.value)}
+													placeholder='A workspace for my research papers and projects'
+													rows={3}
+													className='resize-none'
+												/>
+											</div>
+										</>
+									)}
+
+									{/* Join Workspace Form */}
+									{formData.workspaceMode === 'join' && (
+										<div className='space-y-2'>
+											<Label htmlFor='invitationCode' className='text-gray-900 font-normal'>
+												Invitation Code <span className='text-red-500'>*</span>
+											</Label>
+											<Input
+												id='invitationCode'
+												type='text'
+												value={formData.invitationCode}
+												onChange={(e) => updateFormData('invitationCode', e.target.value)}
+												placeholder='Enter your invitation code'
+											/>
+											{errors.invitationCode && (
+												<p className='text-sm text-red-600'>{errors.invitationCode}</p>
+											)}
+											<p className='text-xs text-gray-500'>
+												Ask your workspace owner for an invitation code to join their workspace.
+											</p>
+										</div>
+									)}
+								</div>
+							)}
+						</motion.div>
+					</AnimatePresence>
 
 					{/* Navigation Buttons */}
 					<div className='flex items-center gap-3 mt-8'>
@@ -646,3 +713,4 @@ export default function RegisterPage() {
 		</div>
 	)
 }
+

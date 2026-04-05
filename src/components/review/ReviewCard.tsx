@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { useToast } from '@/components/ui/use-toast'
+import { toast } from 'sonner'
 import { documentsService } from '@/lib/api/services/documents.service'
 import CreateReviewModal from './CreateReviewModal'
 import { ReviewStatusBadge } from './ReviewStatusBadge'
@@ -41,7 +41,7 @@ export function ReviewCard({
 	onReviewUpdate,
 }: ReviewCardProps) {
 	const router = useRouter()
-	const { toast } = useToast()
+	// const { toast } = useToast()
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 	const [isModalOpen, setIsModalOpen] = useState(false)
 
@@ -65,10 +65,8 @@ export function ReviewCard({
 				newStatus = 'revision_required'
 			}
 
-			toast({
-				title: 'Review Updated',
+			toast.success('Review Updated', {
 				description: `Review status changed to ${data.status}`,
-				variant: 'default',
 			})
 
 			if (onReviewUpdate) {
@@ -81,10 +79,8 @@ export function ReviewCard({
 			if (error?.errors) {
 				console.error('Validation errors:', error.errors)
 			}
-			toast({
-				title: 'Validation Error',
+			toast.error('Validation Error', {
 				description: error.errors ? JSON.stringify(error.errors) : (error.message || 'Failed to update review status'),
-				variant: 'destructive',
 			})
 		} finally {
 			setIsUpdating(false)

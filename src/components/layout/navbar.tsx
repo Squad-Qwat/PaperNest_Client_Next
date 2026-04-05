@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter, useParams } from 'next/navigation'
 import { useAuthContext } from '@/context/AuthContext'
+import { useLogout } from '@/lib/api/hooks/use-auth'
 import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { cn } from '@/lib/utils'
@@ -25,7 +26,8 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 	const pathname = usePathname()
 	const router = useRouter()
 	const params = useParams()
-	const { user, logout } = useAuthContext()
+	const { user } = useAuthContext()
+	const { mutate: logout } = useLogout()
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 	const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 
@@ -42,22 +44,21 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 	// Document-specific menu items
 	const documentMenuItems = documentId
 		? [
-				{
-					name: 'Citations',
-					href: `/${workspaceId}/documents/${documentId}/citations`,
-				},
-				{
-					name: 'Reviews',
-					href: `/${workspaceId}/documents/${documentId}/reviews`,
-				},
-			]
+			{
+				name: 'Citations',
+				href: `/${workspaceId}/documents/${documentId}/citations`,
+			},
+			{
+				name: 'Reviews',
+				href: `/${workspaceId}/documents/${documentId}/reviews`,
+			},
+		]
 		: []
 
 	const menuItems = mode === 'document' ? documentMenuItems : workspaceMenuItems
 
-	const handleLogout = async () => {
-		await logout()
-		router.push('/login')
+	const handleLogout = () => {
+		logout()
 	}
 
 	const isActive = (href: string) => {
@@ -84,7 +85,7 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 									>
 										<span>PaperNest</span>
 									</Link>
-									<span className='px-2 py-0.5 bg-teal-600 text-white text-xs font-medium rounded'>
+									<span className='px-2 py-0.5 bg-primary text-white text-xs font-medium rounded'>
 										Hobby
 									</span>
 								</div>
@@ -101,7 +102,7 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 										className={cn(
 											'relative px-1 py-2 text-sm font-normal transition-colors',
 											isActive(item.href)
-												? 'text-gray-900 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-teal-600'
+												? 'text-gray-900 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary'
 												: 'text-gray-600 hover:text-gray-900'
 										)}
 									>
@@ -130,7 +131,7 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 										className='flex items-center gap-2 p-1.5 hover:bg-gray-100 rounded-lg transition-colors'
 										aria-label='User menu'
 									>
-										<div className='w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-white text-sm font-medium'>
+										<div className='w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-sm font-medium'>
 											{user.name.charAt(0).toUpperCase()}
 										</div>
 									</button>
@@ -259,7 +260,7 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 				title='Confirm Logout'
 				message='Are you sure you want to logout?'
 				confirmText='Logout'
-				variant='warning'
+				variant='danger'
 			/>
 		</>
 	)

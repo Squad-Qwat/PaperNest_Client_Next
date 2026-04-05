@@ -7,9 +7,10 @@ import { getDocumentRoomId } from '@/lib/liveblocks/config'
 type RoomProps = {
 	readonly documentId: string
 	readonly children: ReactNode
+	readonly fallback?: ReactNode
 }
 
-export function Room({ documentId, children }: RoomProps) {
+export function Room({ documentId, children, fallback }: RoomProps) {
 	const roomId = getDocumentRoomId(documentId)
 
 	const authEndpoint = useCallback(async (room?: string) => {
@@ -38,7 +39,7 @@ export function Room({ documentId, children }: RoomProps) {
 	return (
 		<LiveblocksProvider authEndpoint={authEndpoint}>
 			<RoomProvider id={roomId}>
-				<ClientSideSuspense fallback={<div>Loading…</div>}>{children}</ClientSideSuspense>
+				<ClientSideSuspense fallback={fallback || <div>Loading…</div>}>{children}</ClientSideSuspense>
 			</RoomProvider>
 		</LiveblocksProvider>
 	)

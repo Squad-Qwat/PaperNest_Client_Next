@@ -58,7 +58,7 @@ export function ConfirmDialog({
 						onClick={handleConfirm}
 						className={cn(
 							variant === 'danger' &&
-								'bg-destructive text-destructive-foreground hover:bg-destructive/90'
+							'bg-red-600 text-white hover:bg-red-700'
 						)}
 					>
 						{confirmText}

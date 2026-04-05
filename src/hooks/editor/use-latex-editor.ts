@@ -16,8 +16,8 @@ import { latex } from 'codemirror-lang-latex'
 import { yCollab } from 'y-codemirror.next'
 
 import { useLatexCollaboration } from './use-latex-collaboration'
-import { DocumentService } from '@/lib/firebase/document-service'
 import { paperNestThemeExtension } from '@/lib/editor/latex-theme'
+import { useBatchUpdateDocument } from '@/lib/api/hooks/use-documents'
 
 interface UseLatexEditorOptions {
     documentId?: string | null;
@@ -35,9 +35,11 @@ export function useLatexEditor({
     autoSaveInterval = 2000
 }: UseLatexEditorOptions = {}) {
     const editorRef = useRef<HTMLDivElement>(null)
-    const [view, setView] = useState<EditorView | null>(null)
+    const viewRef = useRef<EditorView | null>(null)
+    const [isReady, setIsReady] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
     const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
+    const { mutateAsync: batchUpdate } = useBatchUpdateDocument()
 
     const {
         yDoc,
@@ -58,7 +60,15 @@ export function useLatexEditor({
                 const content = update.state.doc.toString()
                 setIsSaving(true)
                 try {
-                    await DocumentService.updateDocument(documentId, { savedContent: content })
+                    await batchUpdate({
+                        documentId,
+                        request: {
+                            operations: [{
+                                operationType: 'save-content',
+                                payload: { content }
+                            }]
+                        }
+                    })
                 } catch (err) {
                     console.error('Auto-save failed:', err)
                 } finally {
@@ -126,17 +136,21 @@ export function useLatexEditor({
             parent: editorRef.current
         })
 
-        setView(newView)
+        viewRef.current = newView
+        setIsReady(true)
 
         return () => {
             newView.destroy()
+            viewRef.current = null
+            setIsReady(false)
             if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
         }
     }, [collaborationReady, hasSyncedOnce, enabled]) // Removed initialContent from dependencies
 
     return {
         editorRef,
-        view,
+        view: viewRef.current,
+        isReady,
         isSaving,
         collaborationReady
     }

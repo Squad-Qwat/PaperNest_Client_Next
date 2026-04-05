@@ -39,6 +39,25 @@ export function parseError(error: unknown): ErrorResponse {
  * Get user-friendly error message
  */
 export function getErrorMessage(error: unknown): string {
+	// Handle Firebase/Auth specific error codes
+	const errorCode = (error as any)?.code
+	if (errorCode) {
+		switch (errorCode) {
+			case 'auth/popup-closed-by-user':
+				return 'Proses login dibatalkan karena jendela ditutup. Silakan coba lagi.'
+			case 'auth/network-request-failed':
+				return 'Gagal menghubungi server. Periksa koneksi internet Anda.'
+			case 'auth/user-disabled':
+				return 'Akun Anda telah dinonaktifkan. Silakan hubungi dukungan.'
+			case 'auth/invalid-credential':
+				return 'Email atau kata sandi salah. Silakan periksa kembali.'
+			case 'auth/too-many-requests':
+				return 'Terlalu banyak percobaan login. Silakan coba lagi nanti.'
+			case 'auth/operation-not-allowed':
+				return 'Metode login ini belum diaktifkan. Silakan hubungi admin.'
+		}
+	}
+
 	const parsed = parseError(error)
 
 	// If there are validation errors, return the first one

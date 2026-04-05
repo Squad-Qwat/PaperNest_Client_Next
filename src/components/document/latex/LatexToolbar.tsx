@@ -1,14 +1,14 @@
 'use client'
 
 import React from 'react'
-import { 
-    Bold, 
-    Italic, 
-    Underline, 
-    Type, 
-    List, 
-    ListOrdered, 
-    Undo, 
+import {
+    Bold,
+    Italic,
+    Underline,
+    Type,
+    List,
+    ListOrdered,
+    Undo,
     Redo,
     Heading1,
     Heading2,
@@ -53,17 +53,17 @@ export default function LatexToolbar({
     handleCompile,
     isCompiling
 }: LatexToolbarProps) {
-    
+
     const insertSnippet = (snippet: string, selectionOffset: number = 0) => {
         if (viewMode === 'source') {
             if (!editor) return
-            
+
             const selection = editor.state.selection.main
             const text = editor.state.doc.toString()
             const selectedText = text.slice(selection.from, selection.to)
-            
+
             let insertText = snippet.replace('$SELECTION$', selectedText)
-            
+
             editor.dispatch({
                 changes: {
                     from: selection.from,
@@ -75,7 +75,7 @@ export default function LatexToolbar({
                 },
                 scrollIntoView: true
             })
-            
+
             editor.focus()
         } else if (visualEditor) {
             // Very basic Tiptap snippet insertion - could be improved with custom commands
@@ -195,9 +195,9 @@ export default function LatexToolbar({
                                 </Button>
                             </div>
 
-                            <Button 
-                                variant="default" 
-                                size="sm" 
+                            <Button
+                                variant="default"
+                                size="sm"
                                 onClick={handleCompile}
                                 disabled={isCompiling}
                                 className="h-8 transition-all duration-200 active:scale-95 flex items-center gap-2 px-3"

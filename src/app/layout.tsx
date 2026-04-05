@@ -1,10 +1,11 @@
 import type { Metadata } from 'next'
 import { IBM_Plex_Mono, IBM_Plex_Sans } from 'next/font/google'
 import '@/app/css/globals.css'
-import { Toaster } from '@/components/ui/toaster'
+import { Toaster } from '@/components/ui/sonner'
 import { AuthProvider } from '@/context/AuthContext'
 import { AppProvider } from '@/lib/store'
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { QueryProvider } from '@/components/providers/query-provider'
 
 const ibmPlexSans = IBM_Plex_Sans({
 	variable: '--font-ibmPlex-sans',
@@ -34,12 +35,14 @@ export default function RootLayout({
 				className={`${ibmPlexSans.variable} ${ibmPlexMono.variable} antialiased`}
 				suppressHydrationWarning
 			>
-				<AuthProvider>
-					<TooltipProvider>
-						<AppProvider>{children}</AppProvider>
-					</TooltipProvider>
-					<Toaster />
-				</AuthProvider>
+				<QueryProvider>
+					<AuthProvider>
+						<TooltipProvider>
+							<AppProvider>{children}</AppProvider>
+						</TooltipProvider>
+						<Toaster position="bottom-right" richColors closeButton />
+					</AuthProvider>
+				</QueryProvider>
 			</body>
 		</html>
 	)

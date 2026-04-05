@@ -7,9 +7,16 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { useToast } from '@/components/ui/use-toast'
+import { toast } from 'sonner'
 import { useAuthContext } from '@/context/AuthContext'
-import { useDocumentReviews, useDocumentVersions } from '@/hooks/useDocumentVersions'
+import {
+	useDocumentVersions,
+	useDocumentReviews,
+	useRevertVersion,
+	useCreateReview,
+} from '@/lib/api/hooks/use-documents'
+import type { Version } from '@/lib/api/types/document.types'
+import type { Review } from '@/lib/api/types/review.types'
 import { format, id } from '@/lib/date'
 
 interface ModalVersionsProps {
@@ -34,14 +41,31 @@ export default function ModalVersions({
 	const documentId = propDocumentId || (params?.documentid as string)
 
 	const { user } = useAuthContext()
-	const { versions, loading: versionsLoading, rollbackVersion } = useDocumentVersions(documentId)
-	const { reviews, requestReview } = useDocumentReviews(documentId)
+
+	const { data: versionsResponse, isLoading: versionsLoading } = useDocumentVersions(documentId)
+	// Handle robust response parsing if response is different format
+	let versions: Version[] = []
+	if (versionsResponse && Array.isArray((versionsResponse as any).versions)) {
+		versions = (versionsResponse as any).versions
+	} else if (Array.isArray(versionsResponse)) {
+		versions = versionsResponse as Version[]
+	}
+
+	const { data: reviewsResponse } = useDocumentReviews(documentId)
+	let reviews: Review[] = []
+	if (reviewsResponse && Array.isArray((reviewsResponse as any).reviews)) {
+		reviews = (reviewsResponse as any).reviews
+	} else if (Array.isArray(reviewsResponse)) {
+		reviews = reviewsResponse as Review[]
+	}
+
+	const { mutateAsync: revertVersionMutate, isPending: isRollingBack } = useRevertVersion()
+	const { mutateAsync: requestReviewMutate } = useCreateReview()
 
 	const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null)
-	const [isRollingBack, setIsRollingBack] = useState(false)
 	const [showReviewModal, setShowReviewModal] = useState(false)
 
-	const { toast } = useToast()
+	// const { toast } = useToast()
 
 	// Set initial selected version to latest when data loads
 	React.useEffect(() => {
@@ -96,26 +120,19 @@ export default function ModalVersions({
 		if (!selectedVersion) return
 
 		try {
-			setIsRollingBack(true)
-			await rollbackVersion(selectedVersion.versionNumber)
+			await revertVersionMutate({ documentId, versionNumber: selectedVersion.versionNumber })
 			if (onVersionRestored) {
 				onVersionRestored()
 			}
 			onClose() // Close modal on success
-			toast({
-				title: 'Versi dipulihkan',
+			toast.success('Versi dipulihkan', {
 				description: 'Dokumen telah dikembalikan ke versi yang dipilih.',
-				variant: 'default',
 			})
 		} catch (error: any) {
 			console.error('Rollback failed:', error)
-			toast({
-				title: 'Gagal memulihkan versi',
+			toast.error('Gagal memulihkan versi', {
 				description: error.message || 'Terjadi kesalahan saat memulihkan versi.',
-				variant: 'destructive',
 			})
-		} finally {
-			setIsRollingBack(false)
 		}
 	}
 
@@ -286,9 +303,12 @@ export default function ModalVersions({
 				onSubmit={async (data) => {
 					if (!selectedVersion) return
 					try {
-						await requestReview(selectedVersion.id, data.lecturerId, data.message)
-						toast({
-							title: 'Permintaan Terkirim',
+						await requestReviewMutate({
+							documentId,
+							documentBodyId: selectedVersion.id,
+							data: { lecturerUserId: data.lecturerId, message: data.message },
+						})
+						toast.success('Permintaan Terkirim', {
 							description: 'Permintaan review Anda telah dikirim ke dosen.',
 						})
 						setShowReviewModal(false)
