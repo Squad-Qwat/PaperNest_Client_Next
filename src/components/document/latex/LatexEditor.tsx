@@ -71,6 +71,7 @@ export function LatexEditor({
     const [editorPdfSplitWidth, setEditorPdfSplitWidth] = useState(55) // Editor width as percentage
     const [isEditorPdfResizing, setIsEditorPdfResizing] = useState(false)
     const [viewMode, setViewMode] = useState<'source' | 'visual'>('source')
+    const [compilerMode, setCompilerMode] = useState<'client' | 'server'>(laTeXService.getCompilerMode())
     const [visualEditor, setVisualEditor] = useState<any>(null)
     const [pendingMerges, setPendingMerges] = useState<PendingMergeChange[]>([])
     const [lastBatchSummary, setLastBatchSummary] = useState<{ applied: number; failed: number } | null>(null)
@@ -270,6 +271,14 @@ export function LatexEditor({
         view.focus()
     }, [view])
 
+    // Sync compiler mode with service
+    useEffect(() => {
+        const unsubscribe = laTeXService.addStatusListener(() => {
+            setCompilerMode(laTeXService.getCompilerMode())
+        })
+        return unsubscribe
+    }, [])
+
     // Report editor functions back to parent
     useEffect(() => {
         if (view && onEditorReady) {
@@ -299,10 +308,15 @@ export function LatexEditor({
                         setViewMode('source');
                     }
                 },
+                setCompilerMode: (mode: 'client' | 'server') => {
+                    laTeXService.setCompilerMode(mode);
+                    setCompilerMode(mode);
+                },
+                compilerMode,
                 setPendingMerge: enqueuePendingMerge
             })
         }
-    }, [view, isReady, onEditorReady, documentId, isCompiling, visibleCollaborators, hiddenCollaboratorsCount, viewMode, visualEditor, enqueuePendingMerge])
+    }, [view, isReady, onEditorReady, documentId, isCompiling, visibleCollaborators, hiddenCollaboratorsCount, viewMode, visualEditor, enqueuePendingMerge, compilerMode])
 
     const handleCompile = async () => {
         if (!view) return

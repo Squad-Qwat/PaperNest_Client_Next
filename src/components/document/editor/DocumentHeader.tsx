@@ -47,6 +47,8 @@ const DocumentHeader = ({
 	visibleCollaborators,
 	hiddenCollaboratorsCount,
 	debugContentExtraction,
+	compilerMode,
+	onCompilerModeChange,
 }: any) => {
 	const [showCommitModal, setShowCommitModal] = useState(false)
 	const { data: reviewsResponse } = useDocumentReviews(documentId)
@@ -507,6 +509,8 @@ const DocumentHeader = ({
 				viewMode={viewMode}
 				toggleViewMode={toggleViewMode}
 				visualEditor={visualEditor}
+				compilerMode={compilerMode}
+				onCompilerModeChange={onCompilerModeChange}
 			/>
 		</header>
 	)

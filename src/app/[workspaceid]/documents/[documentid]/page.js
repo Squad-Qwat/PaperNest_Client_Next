@@ -417,6 +417,8 @@ export default function DocumentPage() {
           viewMode={editorFunctions?.viewMode}
           toggleViewMode={editorFunctions?.toggleViewMode}
           visualEditor={editorFunctions?.visualEditor}
+          compilerMode={editorFunctions?.compilerMode}
+          onCompilerModeChange={editorFunctions?.setCompilerMode}
           debugContentExtraction={editorFunctions?.debugContentExtraction}
         />
 

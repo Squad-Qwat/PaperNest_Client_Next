@@ -38,6 +38,8 @@ interface LatexToolbarProps {
     insertTable?: () => void;
     handleCompile?: () => void;
     isCompiling?: boolean;
+    compilerMode?: 'client' | 'server';
+    onCompilerModeChange?: (mode: 'client' | 'server') => void;
 }
 
 export default function LatexToolbar({
@@ -51,7 +53,9 @@ export default function LatexToolbar({
     canRedo,
     insertTable,
     handleCompile,
-    isCompiling
+    isCompiling,
+    compilerMode,
+    onCompilerModeChange
 }: LatexToolbarProps) {
 
     const insertSnippet = (snippet: string, selectionOffset: number = 0) => {
@@ -175,6 +179,40 @@ export default function LatexToolbar({
                                 >
                                     Visual
                                 </Button>
+                            </div>
+
+                            {/* Compiler Mode Toggle */}
+                            <div className="flex items-center bg-gray-100 rounded-md p-1">
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant={compilerMode === 'server' ? 'secondary' : 'ghost'}
+                                            size="sm"
+                                            className={`h-7 px-3 text-[10px] uppercase font-bold tracking-wider ${compilerMode === 'server' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                            onClick={() => onCompilerModeChange?.('server')}
+                                        >
+                                            Server
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="bottom" className="text-[10px] font-bold uppercase tracking-widest bg-gray-900 border-gray-800">
+                                        Use Tectonic (Faster, Cloud)
+                                    </TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant={compilerMode === 'client' ? 'secondary' : 'ghost'}
+                                            size="sm"
+                                            className={`h-7 px-3 text-[10px] uppercase font-bold tracking-wider ${compilerMode === 'client' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                            onClick={() => onCompilerModeChange?.('client')}
+                                        >
+                                            Client
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="bottom" className="text-[10px] font-bold uppercase tracking-widest bg-gray-900 border-gray-800">
+                                        Use WASM (Local processing)
+                                    </TooltipContent>
+                                </Tooltip>
                             </div>
 
                             <Button
