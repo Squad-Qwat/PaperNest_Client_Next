@@ -8,6 +8,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useDocumentReviews } from '@/lib/api/hooks/use-documents'
 import { documentsService } from '@/lib/api/services/documents.service'
+import { SidebarTrigger } from '@/components/ui/sidebar'
+import { Separator } from '@/components/ui/separator'
 const DocumentHeader = ({
 	title,
 	setTitle,
@@ -26,6 +28,7 @@ const DocumentHeader = ({
 	setPaperSizeSubmenuOpen,
 	user,
 	workspaceId,
+	workspace,
 	documentId,
 
 	// Editor props
@@ -46,11 +49,11 @@ const DocumentHeader = ({
 }: any) => {
 	const [showCommitModal, setShowCommitModal] = useState(false)
 	const { data: reviewsResponse } = useDocumentReviews(documentId)
-	
+
 	// Safely determine pending reviews
 	const reviews = Array.isArray(reviewsResponse) ? reviewsResponse : (reviewsResponse as any)?.reviews || [];
 	const pendingReview = reviews.find((r: any) => r.status === 'PENDING' || r.status === 'pending')
-	
+
 	const canCommit = !pendingReview
 	const commitBlockReason = pendingReview ? 'Waiting for pending review' : null
 
@@ -58,9 +61,13 @@ const DocumentHeader = ({
 		<header className='bg-white border-b border-gray-200 sticky top-0 z-[1001] transition-all duration-300'>
 			<div className='px-4 py-2'>
 				<div className='flex items-center justify-between'>
-					<div className='flex items-center gap-4'>
-						<Link href={`/${workspaceId}`} className='p-2 rounded-full hover:bg-gray-100'>
-							<ChevronLeft className='h-5 w-5 text-gray-600' />
+					<div className='flex items-center gap-2'>
+						<Link
+							href={`/${workspaceId}`}
+							className='p-2 hover:bg-gray-100 rounded-lg transition-colors group'
+							title='Back to Workspace'
+						>
+							<ChevronLeft className='h-5 w-5 text-gray-500 group-hover:text-primary transition-colors' />
 						</Link>
 						<div className='flex flex-col'>
 							<input
@@ -345,7 +352,7 @@ const DocumentHeader = ({
 
 					<div className='flex items-center gap-3'>
 						<div className='flex items-center gap-2'>
-														{(isAutoSaving || lastSavedAt) && (
+							{(isAutoSaving || lastSavedAt) && (
 								<div className='flex items-center gap-1.5 text-xs text-gray-500'>
 									{isAutoSaving ? (
 										<>
@@ -448,15 +455,15 @@ const DocumentHeader = ({
 						<div className='ml-2 flex items-center gap-2'>
 							{user?.avatar
 								? <img
-										src={user.avatar}
-										alt={user.name || 'User'}
-										className='h-8 w-8 rounded-full'
-									/>
+									src={user.avatar}
+									alt={user.name || 'User'}
+									className='h-8 w-8 rounded-full'
+								/>
 								: <div className='h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center'>
-										<span className='text-white text-sm font-medium'>
-											{user?.name?.charAt(0) || 'U'}
-										</span>
-									</div>}
+									<span className='text-white text-sm font-medium'>
+										{user?.name?.charAt(0) || 'U'}
+									</span>
+								</div>}
 						</div>
 					</div>
 				</div>

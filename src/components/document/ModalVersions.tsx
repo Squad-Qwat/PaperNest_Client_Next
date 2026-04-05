@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { useToast } from '@/components/ui/use-toast'
+import { toast } from 'sonner'
 import { useAuthContext } from '@/context/AuthContext'
 import {
 	useDocumentVersions,
@@ -65,7 +65,7 @@ export default function ModalVersions({
 	const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null)
 	const [showReviewModal, setShowReviewModal] = useState(false)
 
-	const { toast } = useToast()
+	// const { toast } = useToast()
 
 	// Set initial selected version to latest when data loads
 	React.useEffect(() => {
@@ -125,17 +125,13 @@ export default function ModalVersions({
 				onVersionRestored()
 			}
 			onClose() // Close modal on success
-			toast({
-				title: 'Versi dipulihkan',
+			toast.success('Versi dipulihkan', {
 				description: 'Dokumen telah dikembalikan ke versi yang dipilih.',
-				variant: 'default',
 			})
 		} catch (error: any) {
 			console.error('Rollback failed:', error)
-			toast({
-				title: 'Gagal memulihkan versi',
+			toast.error('Gagal memulihkan versi', {
 				description: error.message || 'Terjadi kesalahan saat memulihkan versi.',
-				variant: 'destructive',
 			})
 		}
 	}
@@ -312,8 +308,7 @@ export default function ModalVersions({
 							documentBodyId: selectedVersion.id,
 							data: { lecturerUserId: data.lecturerId, message: data.message },
 						})
-						toast({
-							title: 'Permintaan Terkirim',
+						toast.success('Permintaan Terkirim', {
 							description: 'Permintaan review Anda telah dikirim ke dosen.',
 						})
 						setShowReviewModal(false)

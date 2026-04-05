@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { IBM_Plex_Mono, IBM_Plex_Sans } from 'next/font/google'
 import '@/app/css/globals.css'
-import { Toaster } from '@/components/ui/toaster'
+import { Toaster } from '@/components/ui/sonner'
 import { AuthProvider } from '@/context/AuthContext'
 import { AppProvider } from '@/lib/store'
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -40,7 +40,7 @@ export default function RootLayout({
 						<TooltipProvider>
 							<AppProvider>{children}</AppProvider>
 						</TooltipProvider>
-						<Toaster />
+						<Toaster position="bottom-right" richColors closeButton />
 					</AuthProvider>
 				</QueryProvider>
 			</body>

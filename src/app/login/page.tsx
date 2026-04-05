@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
-import Grainient from '@/components/Grainient';
+import Grainient from '@/components/visuals/Grainient/Grainient';
 import { FcGoogle } from 'react-icons/fc'
 import { FaGithub } from 'react-icons/fa'
 
@@ -216,3 +216,4 @@ export default function LoginPage() {
 		</div>
 	)
 }
+

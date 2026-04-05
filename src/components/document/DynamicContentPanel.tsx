@@ -107,9 +107,8 @@ const DynamicContentPanel: React.FC<DynamicContentPanelProps> = ({
 		>
 			{/* Resize Handle - right edge */}
 			<div
-				className={`absolute right-0 top-0 h-full w-1 cursor-ew-resize hover:bg-blue-500 transition-colors z-10 ${
-					isResizing ? 'bg-blue-500' : 'bg-transparent hover:bg-blue-300'
-				}`}
+				className={`absolute right-0 top-0 h-full w-1 cursor-ew-resize hover:bg-blue-500 transition-colors z-10 ${isResizing ? 'bg-blue-500' : 'bg-transparent hover:bg-blue-300'
+					}`}
 				onMouseDown={handleMouseDown}
 			>
 				<div className='absolute right-1/2 top-1/2 translate-x-1/2 -translate-y-1/2 w-1 h-8 rounded-full bg-gray-300 opacity-0 hover:opacity-100 transition-opacity' />

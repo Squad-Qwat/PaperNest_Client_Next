@@ -85,7 +85,7 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 									>
 										<span>PaperNest</span>
 									</Link>
-									<span className='px-2 py-0.5 bg-teal-600 text-white text-xs font-medium rounded'>
+									<span className='px-2 py-0.5 bg-primary text-white text-xs font-medium rounded'>
 										Hobby
 									</span>
 								</div>
@@ -102,7 +102,7 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 										className={cn(
 											'relative px-1 py-2 text-sm font-normal transition-colors',
 											isActive(item.href)
-												? 'text-gray-900 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-teal-600'
+												? 'text-gray-900 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary'
 												: 'text-gray-600 hover:text-gray-900'
 										)}
 									>
@@ -131,7 +131,7 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 										className='flex items-center gap-2 p-1.5 hover:bg-gray-100 rounded-lg transition-colors'
 										aria-label='User menu'
 									>
-										<div className='w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-white text-sm font-medium'>
+										<div className='w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-sm font-medium'>
 											{user.name.charAt(0).toUpperCase()}
 										</div>
 									</button>

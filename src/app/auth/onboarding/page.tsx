@@ -19,7 +19,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select'
-import Grainient from '@/components/Grainient'
+import Grainient from '@/components/visuals/Grainient/Grainient'
 import type { UserRole } from '@/lib/api/types/user.types'
 
 const workspaceIcons = ['📚', '🎓', '📖', '✍️', '🔬', '💼', '📊', '🎯', '🌟', '💡']
@@ -376,3 +376,4 @@ export default function OnboardingPage() {
 		</div>
 	)
 }
+

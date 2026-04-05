@@ -252,15 +252,6 @@ export function LatexEditor({
             onEditorReady({
                 getCurrentContent: () => view.state.doc.toString(),
                 getCurrentHTML: () => view.state.doc.toString(),
-                saveCurrentContent: async () => {
-                    // This is usually handled by the hook's auto-save, 
-                    // but we expose it for manual saves
-                    if (documentId) {
-                        const content = view.state.doc.toString()
-                        const { DocumentService } = await import('@/lib/firebase/document-service')
-                        await DocumentService.updateDocument(documentId, { savedContent: content })
-                    }
-                },
                 editor: view,
                 undo: () => cmUndo(view),
                 redo: () => cmRedo(view),

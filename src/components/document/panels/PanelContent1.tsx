@@ -5,7 +5,7 @@ import { FileText, Upload, Trash2, Loader2, FileCode, FileImage, FileBox, Extern
 import { DocumentService } from '@/lib/firebase/document-service'
 import { DocumentFile } from '@/lib/api/types/document.types'
 import { Button } from '@/components/ui/button'
-import { useToast } from '@/components/ui/use-toast'
+import { toast } from 'sonner'
 import { apiClient } from '@/lib/api/clients/api-client'
 import { useDocumentFiles, useAddDocumentFile, DOCUMENT_FILE_KEYS } from '@/lib/api/hooks/use-document-files'
 import { useQueryClient } from '@tanstack/react-query'
@@ -20,7 +20,7 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, editorView }) => {
 	const addDocumentFile = useAddDocumentFile()
 	const queryClient = useQueryClient()
 	const [isUploading, setIsUploading] = useState(false)
-	const { toast } = useToast()
+	// const { toast } = useToast()
 
 	const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
 		const file = event.target.files?.[0]
@@ -59,18 +59,11 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, editorView }) => {
 				}
 			})
 
-			toast({
-				title: 'Success',
-				description: 'File uploaded successfully',
-			})
+			toast.success('File uploaded successfully')
 
 		} catch (error: any) {
 			console.error('Upload error:', error)
-			toast({
-				title: 'Error',
-				description: error.message || 'Failed to upload file',
-				variant: 'destructive'
-			})
+			toast.error(error.message || 'Failed to upload file')
 		} finally {
 			setIsUploading(false)
 			// Reset input
@@ -88,17 +81,10 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, editorView }) => {
 			// Invalidate cache instead of mutating local state directly
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_FILE_KEYS.detail(documentId) })
 			
-			toast({
-				title: 'Deleted',
-				description: 'File removed from cloud storage and document',
-			})
+			toast.success('File removed from cloud storage and document')
 		} catch (error: any) {
 			console.error('Delete error:', error)
-			toast({
-				title: 'Error',
-				description: error.message || 'Failed to delete file',
-				variant: 'destructive'
-			})
+			toast.error(error.message || 'Failed to delete file')
 		}
 	}
 
@@ -119,10 +105,7 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, editorView }) => {
 
 	const handleInsertToEditor = (file: DocumentFile) => {
 		if (!editorView) {
-			toast({
-				title: 'Wait',
-				description: 'Editor not ready yet',
-			})
+			toast.warning('Editor not ready yet')
 			return
 		}
 
@@ -145,10 +128,7 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, editorView }) => {
 			selection: { anchor: from + command.length }
 		})
 
-		toast({
-			title: 'Inserted',
-			description: `LaTeX command for ${file.name} added to editor`,
-		})
+		toast.success(`LaTeX command for ${file.name} added to editor`)
 	}
 
 	return (

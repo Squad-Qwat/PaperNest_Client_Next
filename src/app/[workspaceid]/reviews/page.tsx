@@ -3,7 +3,7 @@
 import { Search } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Navbar } from '@/components/layout/navbar'
+import { Navbar } from '@/components/layout/Navbar'
 import { ReviewCard } from '@/components/review/ReviewCard'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'

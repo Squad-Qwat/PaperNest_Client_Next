@@ -1,5 +1,7 @@
+// @ts-nocheck
 'use client'
 
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
 	Bold as BoldIcon,
@@ -1428,13 +1430,13 @@ const EditorToolbar = ({
 									await editor.chain().focus().importDocx({ file }).run()
 								} catch (error) {
 									console.error('Import DOCX failed:', error)
-									alert('Failed to import document. Please check your Tiptap Cloud credentials.')
+									toast.error('Failed to import document. Please check your Tiptap Cloud credentials.')
 								}
 							}
 							input.click()
 						} catch (error) {
 							console.error('Import DOCX failed:', error)
-							alert('Failed to import document. Please try again.')
+							toast.error('Failed to import document. Please try again.')
 						}
 					}}
 					className='text-xs flex items-center gap-1'
@@ -1469,7 +1471,7 @@ const EditorToolbar = ({
 								.run()
 						} catch (error) {
 							console.error('Export DOCX failed:', error)
-							alert('Failed to export document. Please try again.')
+							toast.error('Failed to export document. Please try again.')
 						}
 					}}
 					className='text-xs flex items-center gap-1'

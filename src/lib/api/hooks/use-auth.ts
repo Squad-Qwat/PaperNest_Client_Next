@@ -32,14 +32,14 @@ export function useCurrentUser() {
 		queryKey: AUTH_KEYS.user,
 		queryFn: () => authService.getCurrentUser(),
 		retry: false,
-		staleTime: 5 * 60 * 1000, 
+		staleTime: 5 * 60 * 1000,
 	})
 }
 
 export function useLogin() {
 	const queryClient = useQueryClient()
 	const router = useRouter()
-	
+
 	return useMutation({
 		mutationFn: (data: LoginDto) => authService.login(data),
 		onSuccess: (response) => {
@@ -51,7 +51,7 @@ export function useLogin() {
 
 export function useRegister() {
 	const queryClient = useQueryClient()
-	
+
 	return useMutation({
 		mutationFn: (data: RegisterDto) => authService.register(data),
 		onSuccess: (response) => {
@@ -63,7 +63,7 @@ export function useRegister() {
 export function useLoginEmail() {
 	const queryClient = useQueryClient()
 	const router = useRouter()
-	
+
 	return useMutation({
 		mutationFn: async (data: LoginEmailDto) => {
 			const result = await signInWithEmailAndPassword(auth, data.email, data.password)
@@ -80,10 +80,17 @@ export function useLoginEmail() {
 export function useSignInWithSocial({ setOnboardingData }: { setOnboardingData?: (data: any) => void } = {}) {
 	const queryClient = useQueryClient()
 	const router = useRouter()
-	
+
 	return useMutation({
 		mutationFn: async (providerName: 'google' | 'github') => {
 			const provider = providerName === 'google' ? new GoogleAuthProvider() : new GithubAuthProvider()
+
+			if (provider instanceof GoogleAuthProvider) {
+				provider.setCustomParameters({
+					prompt: 'select_account'
+				});
+			}
+
 			const result = await signInWithPopup(auth, provider)
 			const idToken = await result.user.getIdToken()
 			const response = await authService.loginSocial({ firebaseToken: idToken })
@@ -100,7 +107,7 @@ export function useSignInWithSocial({ setOnboardingData }: { setOnboardingData?:
 				router.push('/auth/onboarding')
 				return
 			}
-			
+
 			handleAuthSuccess(queryClient, response)
 			router.push('/')
 		},
@@ -110,9 +117,9 @@ export function useSignInWithSocial({ setOnboardingData }: { setOnboardingData?:
 export function useCompleteSocialRegistration({ clearOnboardingData }: { clearOnboardingData?: () => void } = {}) {
 	const queryClient = useQueryClient()
 	const router = useRouter()
-	
+
 	return useMutation({
-		mutationFn: (data: { firebaseToken: string; username: string; role: string }) => 
+		mutationFn: (data: { firebaseToken: string; username: string; role: string }) =>
 			authService.completeSocialRegistration(data),
 		onSuccess: (response) => {
 			handleAuthSuccess(queryClient, response)
@@ -124,9 +131,13 @@ export function useCompleteSocialRegistration({ clearOnboardingData }: { clearOn
 export function useLogout() {
 	const queryClient = useQueryClient()
 	const router = useRouter()
-	
+
 	return useMutation({
-		mutationFn: () => authService.logout(),
+		mutationFn: async () => {
+			const { signOut } = await import('firebase/auth')
+			await signOut(auth)
+			return authService.logout()
+		},
 		onSettled: () => {
 			apiClient.removeAuthToken()
 			queryClient.setQueryData(AUTH_KEYS.user, null)

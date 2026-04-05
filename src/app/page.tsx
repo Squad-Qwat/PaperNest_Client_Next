@@ -6,6 +6,8 @@ import { useAuthContext } from '@/context/AuthContext'
 import { useWorkspaces } from '@/lib/api/hooks/use-workspaces'
 import { CreateWorkspaceModal } from '@/components/workspace/CreateWorkspaceModal'
 import { Button } from '@/components/ui/button'
+import { SplashLoader } from '@/components/layout/SplashLoader'
+import { DashboardSkeleton } from '@/components/layout/DashboardSkeleton'
 
 export default function Page() {
 	const router = useRouter()
@@ -15,12 +17,7 @@ export default function Page() {
 	const [showCreateModal, setShowCreateModal] = useState(false)
 
 	useEffect(() => {
-		if (authLoading) {
-			return
-		}
-
-		if (!user) {
-			router.push('/login')
+		if (authLoading || !user) {
 			return
 		}
 
@@ -33,28 +30,34 @@ export default function Page() {
 		await refetch()
 	}
 
-	// Show loading state
-	if (authLoading || workspacesLoading) {
-		return (
-			<div className='min-h-screen bg-gray-950 flex items-center justify-center'>
-				<div className='text-center'>
-					<div className='animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4'></div>
-					<p className='text-gray-400'>{authLoading ? 'Loading...' : 'Loading workspaces...'}</p>
-				</div>
-			</div>
-		)
+	// Step 1: Initial Auth Check
+	if (authLoading) {
+		return <SplashLoader />
 	}
 
-	// Show create workspace prompt if no workspaces exist
+	// Step 2: User is authenticated, checking/loading workspaces
+	if (workspacesLoading) {
+		return <DashboardSkeleton />
+	}
+
+	// Step 3: Authenticated but no workspaces yet
 	if (user && workspaces.length === 0) {
 		return (
-			<div className='min-h-screen bg-gray-950 flex items-center justify-center'>
-				<div className='text-center max-w-md px-4'>
-					<h1 className='text-2xl font-bold text-white mb-4'>Welcome to PaperNest!</h1>
-					<p className='text-gray-400 mb-6'>
+			<div className='min-h-screen bg-gray-50 flex items-center justify-center'>
+				<div className='text-center max-w-sm px-6 py-12 bg-white rounded-3xl border border-gray-100 shadow-sm'>
+					<div className='w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6'>
+						<span className='text-2xl font-bold text-primary'>PN</span>
+					</div>
+					<h1 className='text-2xl font-bold text-gray-900 mb-3 tracking-tight'>Welcome to PaperNest!</h1>
+					<p className='text-gray-500 mb-8 text-sm leading-relaxed'>
 						You don't have any workspaces yet. Create your first workspace to get started.
 					</p>
-					<Button onClick={() => setShowCreateModal(true)}>Create Workspace</Button>
+					<Button 
+						onClick={() => setShowCreateModal(true)}
+						className="w-full py-6 text-base font-semibold rounded-2xl"
+					>
+						Create Workspace
+					</Button>
 
 					<CreateWorkspaceModal
 						isOpen={showCreateModal}
@@ -66,12 +69,6 @@ export default function Page() {
 		)
 	}
 
-	return (
-		<div className='min-h-screen bg-gray-950 flex items-center justify-center'>
-			<div className='text-center'>
-				<div className='animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4'></div>
-				<p className='text-gray-400'>Redirecting...</p>
-			</div>
-		</div>
-	)
+	// Final transition state
+	return <DashboardSkeleton />
 }

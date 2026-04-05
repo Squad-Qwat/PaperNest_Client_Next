@@ -25,6 +25,7 @@ import {
 	GithubAuthProvider,
 	signInWithPopup,
 	signInWithEmailAndPassword,
+	signOut,
 } from 'firebase/auth'
 import { getErrorMessage } from '@/lib/api/utils/error-handler'
 
@@ -36,6 +37,7 @@ interface AuthContextType {
 
 	onboardingData: any | null
 	setOnboardingData: (data: any) => void
+	logout: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -101,6 +103,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
 		return () => clearInterval(refreshInterval)
 	}, [user])
+	
+	const logout = async () => {
+		try {
+			// Sign out from Firebase
+			const { signOut } = await import('firebase/auth')
+			await signOut(auth)
+
+			await authService.logout()
+			queryClient.setQueryData(['currentUser'], null)
+			queryClient.clear()
+			router.push('/login')
+		} catch (err) {
+			console.error('[AuthContext] Failed to logout:', err)
+			// Still clear local state as a safety measure
+			queryClient.setQueryData(['currentUser'], null)
+			router.push('/login')
+		}
+	}
 
 	// Redirect logic based on auth state
 	useEffect(() => {
@@ -112,6 +132,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 		if (!user && !isPublicRoute) {
 			router.push('/login')
 		}
+
+		// If authenticated and trying to access login/register
+		if (user && (pathname === '/login' || pathname === '/register')) {
+			router.push('/')
+		}
 	}, [user, isAppLoading, pathname, router])
 
 	const value: AuthContextType = {
@@ -121,6 +146,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 		isAuthenticated: !!user,
 		onboardingData,
 		setOnboardingData,
+		logout,
 	}
 
 	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

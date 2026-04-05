@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { FcGoogle } from "react-icons/fc";
+import { FaGithub } from "react-icons/fa";
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'motion/react'
@@ -24,7 +25,7 @@ import {
 } from '@/components/ui/select'
 import type { UserRole } from '@/lib/api/types/user.types'
 
-import Grainient from '@/components/Grainient';
+import Grainient from '@/components/visuals/Grainient/Grainient';
 
 
 type StepData = {
@@ -340,6 +341,15 @@ export default function RegisterPage() {
 										>
 											<FcGoogle />
 											Login using Google
+										</Button>
+										<Button
+											type='button'
+											variant='outline'
+											onClick={() => handleSocialSignup('github')}
+											disabled={loading}
+										>
+											<FaGithub />
+											Login using GitHub
 										</Button>
 									</div>
 
@@ -703,3 +713,4 @@ export default function RegisterPage() {
 		</div>
 	)
 }
+
