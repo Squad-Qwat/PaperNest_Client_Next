@@ -71,12 +71,12 @@ export function useRegister() {
 			if (response.isVerificationRequired && response.firebaseToken) {
 				// Sign in with the custom token so auth.currentUser is populated
 				const result = await signInWithCustomToken(auth, response.firebaseToken)
-				
+
 				// Trigger native Firebase email verification from the client
 				await sendEmailVerification(result.user, {
 					url: `${window.location.origin}/login`,
 				})
-				
+
 				router.push('/auth/verify-email')
 				return
 			}
