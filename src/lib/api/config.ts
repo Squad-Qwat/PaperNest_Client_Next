@@ -4,7 +4,10 @@
  */
 
 export const API_CONFIG = {
-	baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
+	// On client side, we use the local /api proxy. On the server side, we can safely hit the API directly.
+	baseURL: typeof window !== 'undefined'
+		? '/api'
+		: (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'),
 	timeout: 10000, // 10 seconds
 	retryAttempts: 3,
 	headers: {
