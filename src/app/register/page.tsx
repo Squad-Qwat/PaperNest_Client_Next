@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { FcGoogle } from "react-icons/fc";
-import { FaGithub } from "react-icons/fa";
+import { FaGithub, FaMicrosoft } from "react-icons/fa";
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'motion/react'
@@ -26,6 +26,7 @@ import {
 import type { UserRole } from '@/lib/api/types/user.types'
 
 import Grainient from '@/components/visuals/Grainient/Grainient';
+import { MicrosoftIconIcon } from '@/components/icons/logos-microsoft-icon';
 
 
 type StepData = {
@@ -249,7 +250,7 @@ export default function RegisterPage() {
 		}
 	}
 
-	const handleSocialSignup = async (provider: 'google' | 'github') => {
+	const handleSocialSignup = async (provider: 'google' | 'github' | 'microsoft') => {
 		setErrors({})
 		try {
 			await socialMutate(provider)
@@ -359,6 +360,15 @@ export default function RegisterPage() {
 										>
 											<FaGithub />
 											Continue with GitHub
+										</Button>
+										<Button
+											type='button'
+											variant='outline'
+											onClick={() => handleSocialSignup('microsoft')}
+											disabled={loading}
+										>
+											<MicrosoftIconIcon />
+											Continue with Microsoft
 										</Button>
 									</div>
 

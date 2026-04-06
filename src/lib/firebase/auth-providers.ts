@@ -1,10 +1,11 @@
 import { 
   GoogleAuthProvider, 
   GithubAuthProvider, 
+  OAuthProvider,
   type AuthProvider 
 } from 'firebase/auth';
 
-export type SocialProviderName = 'google' | 'github';
+export type SocialProviderName = 'google' | 'github' | 'microsoft';
 
 export interface AuthProviderConfig {
   id: string;
@@ -56,6 +57,16 @@ export const AUTH_PROVIDERS: Record<SocialProviderName | string, AuthProviderCon
       return p;
     },
     getCredentialFromError: (error) => GithubAuthProvider.credentialFromError(error),
+  },
+  microsoft: {
+    id: 'microsoft.com',
+    name: 'Microsoft',
+    create: () => {
+      const p = new OAuthProvider('microsoft.com');
+      return p;
+    },
+    getCredentialFromError: (error) => OAuthProvider.credentialFromError(error),
+    getAccessToken: (result) => OAuthProvider.credentialFromResult(result)?.accessToken || undefined,
   }
 };
 

@@ -19,20 +19,21 @@ import {
 
 import Grainient from '@/components/visuals/Grainient/Grainient';
 import { FcGoogle } from 'react-icons/fc'
-import { FaGithub } from 'react-icons/fa'
+import { FaGithub, FaMicrosoft } from 'react-icons/fa'
 import { Link2 } from 'lucide-react'
+import { MicrosoftIconIcon } from '@/components/icons/logos-microsoft-icon'
 
 export default function LoginPage() {
 	const router = useRouter()
 	const { setOnboardingData } = useAuth()
 
 	const { mutateAsync: loginEmailMutate, isPending: isEmailPending } = useLoginEmail()
-	const { 
-		mutateAsync: socialMutate, 
-		isPending: isSocialPending, 
-		linkingSession, 
-		linkMutation, 
-		resetLinking 
+	const {
+		mutateAsync: socialMutate,
+		isPending: isSocialPending,
+		linkingSession,
+		linkMutation,
+		resetLinking
 	} = useSignInWithSocial({ setOnboardingData })
 
 	const [email, setEmail] = useState('')
@@ -64,7 +65,7 @@ export default function LoginPage() {
 		}
 	}
 
-	const handleSocialLogin = async (provider: 'google' | 'github') => {
+	const handleSocialLogin = async (provider: 'google' | 'github' | 'microsoft') => {
 		setLocalError('')
 		resetLinking()
 		try {
@@ -122,21 +123,21 @@ export default function LoginPage() {
 									Hubungkan Akun Anda
 								</DialogTitle>
 								<DialogDescription className='text-center text-sm'>
-									Email <strong>{linkingSession?.email}</strong> sudah terdaftar melalui 
-									<span className='capitalize font-medium'> {linkingSession?.targetMethod.split('.')[0]}</span>. 
+									Email <strong>{linkingSession?.email}</strong> sudah terdaftar melalui
+									<span className='capitalize font-medium'> {linkingSession?.targetMethod.split('.')[0]}</span>.
 									Hubungkan dengan {linkingSession?.providerName} untuk akses ke akun yang sama.
 								</DialogDescription>
 							</DialogHeader>
 							<div className='grid gap-2 mt-4'>
-								<Button 
+								<Button
 									className='w-full'
 									onClick={() => linkMutation.mutate()}
 									disabled={isLinking}
 								>
 									{isLinking ? 'Sedang Menghubungkan...' : `Hubungkan Sekarang`}
 								</Button>
-								<Button 
-									variant='outline' 
+								<Button
+									variant='outline'
 									className='w-full'
 									onClick={resetLinking}
 									disabled={isLinking}
@@ -166,6 +167,15 @@ export default function LoginPage() {
 						>
 							<FaGithub />
 							Continue with GitHub
+						</Button>
+						<Button
+							type='button'
+							variant='outline'
+							onClick={() => handleSocialLogin('microsoft')}
+							disabled={loading}
+						>
+							<MicrosoftIconIcon />
+							Continue with Microsoft
 						</Button>
 					</div>
 
