@@ -29,6 +29,7 @@ export class HttpClient {
 		this.timeout = timeout
 		this.defaultHeaders = {
 			'Content-Type': 'application/json',
+			'ngrok-skip-browser-warning': 'true',
 		}
 	}
 

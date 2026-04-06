@@ -52,7 +52,7 @@ export default function Page() {
 					<p className='text-gray-500 mb-8 text-sm leading-relaxed'>
 						You don't have any workspaces yet. Create your first workspace to get started.
 					</p>
-					<Button 
+					<Button
 						onClick={() => setShowCreateModal(true)}
 						className="w-full py-6 text-base font-semibold rounded-2xl"
 					>
