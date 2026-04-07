@@ -89,6 +89,8 @@ interface ToolCall {
 }
 
 const models = [
+	{ id: 'google-genai:gemma-4-31b-it', name: 'Nereus AI', chef: 'Google', chefSlug: 'google' },
+	{ id: 'google-genai:gemini-3.1-flash-lite-preview', name: 'Neptune AI (New)', chef: 'Google', chefSlug: 'google' },
 	{ id: 'google-genai:gemini-2.5-flash-lite', name: 'Neptune AI', chef: 'Google', chefSlug: 'google' },
 	{ id: 'google-genai:gemini-2.5-flash', name: 'Neptune AI Pro', chef: 'Google', chefSlug: 'google' },
 ]
@@ -129,6 +131,10 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 	const [currentPlan, setCurrentPlan] = useState<any[]>([])
 
 	const threadIdRef = useRef<string>(`thread_${Date.now()}_${nanoid(6)}`)
+	// CRITICAL: useRef for plan so async while-loop always reads the latest value.
+	// useState is stale inside async closures — setCurrentPlan() updates won't be
+	// visible to the while loop that captured currentPlan at function start.
+	const currentPlanRef = useRef<any[]>([])
 	const abortControllerRef = useRef<AbortController | null>(null)
 	const selectedModelData = models.find(m => m.id === model)
 
@@ -150,6 +156,7 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 	const handleClearChat = () => {
 		setMessages([])
 		setCurrentPlan([])
+		currentPlanRef.current = [] // Sync ref with cleared state
 		threadIdRef.current = `thread_${Date.now()}_${nanoid(6)}`
 	}
 
@@ -218,9 +225,11 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 					.join('\n'),
 			}))
 
-			let docText = ''
+			// VIRTUAL DOCUMENT: Track the document state locally during the thinking loop.
+			// This prevents the AI from seeing the 'old' editor text when it has pending staged changes.
+			let workingDocText = ''
 			if (editorInstance?.state?.doc) {
-				docText = editorInstance.state.doc.toString()
+				workingDocText = editorInstance.state.doc.toString()
 			}
 
 			const MAX_STEPS = 20
@@ -228,25 +237,33 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 			let toolResultsForContinuation: any[] = []
 			let shouldContinue = true
 			const executedToolSignatures = new Set<string>()
+			const toolRetryCount = new Map<string, number>() // Track repetitions of the same tool/args
 
 			while (shouldContinue && currentStep < MAX_STEPS) {
 				currentStep++
 
-				if (editorInstance?.state?.doc) {
-					docText = editorInstance.state.doc.toString()
-				}
+				// Read plan from ref (always fresh, unlike useState which is stale in closures)
+				const latestPlan = currentPlanRef.current
+				const hasUncompletedSteps = latestPlan?.some((s: any) => s.status !== 'completed') ?? false
+				const planToSend = hasUncompletedSteps ? latestPlan : undefined
 
-				// CRITICAL FIX: Don't send completed plan on new messages
-				// Let backend generate fresh plan for each new task
-				const hasUncompletedSteps = currentPlan?.some((s: any) => s.status !== 'completed') ?? false
-				const planToSend = hasUncompletedSteps ? currentPlan : undefined
+				// CRITICAL: Bypass Next.js proxy for SSE streaming.
+				// Next.js rewrites buffer the response and break SSE connections.
+				// We must call the backend directly.
+				const backendBase = process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'http://localhost:3000/api'
+				
+				// SAFETY: Add timeout to prevent hanging connections
+				const timeoutSignal = AbortSignal.timeout(60000) // 1 minute limit per request
+				const combinedSignal = AbortSignal.any([controller.signal, timeoutSignal])
 
-				const response = await fetch('/api/ai-stream', {
+				console.log(`[AI] Starting request loop iteration ${currentStep}/${MAX_STEPS}...`)
+
+				const response = await fetch(`${backendBase}/ai/stream`, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({
 						message: userInput,
-						documentContent: docText,
+						documentContent: workingDocText,
 						conversationHistory,
 						toolResults: toolResultsForContinuation.length > 0 ? toolResultsForContinuation : undefined,
 						threadId: threadIdRef.current,
@@ -257,7 +274,7 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 						providerId: model.split(':')[0],
 						modelId: model.split(':')[1],
 					}),
-					signal: controller.signal
+					signal: combinedSignal
 				})
 
 				if (!response.ok) throw new Error(`AI request failed: ${response.statusText}`)
@@ -312,17 +329,24 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 										hasToolCalls = true
 										for (const toolCall of data.toolCalls) {
 											const toolSignature = makeToolCallSignature(toolCall.name, toolCall.args)
-											if (executedToolSignatures.has(toolSignature)) {
-												const duplicateMsg = `Skipped duplicate tool call: ${toolCall.name}`
-												console.warn(`[AI] ${duplicateMsg}`)
+											
+											// SAFETY: Prevent infinite loop of the exact same tool call (max 3 retries)
+											const retryCount = (toolRetryCount.get(toolSignature) || 0) + 1
+											toolRetryCount.set(toolSignature, retryCount)
+											
+											if (retryCount > 3) {
+												const stopMsg = `SAFETY BREAK: Tool loop detected for ${toolCall.name}. Stopping to prevent overflow.`
+												console.error(`[AI] ${stopMsg}`)
 												toolResultsForContinuation.push({
 													toolCallId: toolCall.id,
 													name: toolCall.name,
-													result: duplicateMsg,
+													result: stopMsg,
+													success: false
 												})
+												shouldContinue = false
 												continue
 											}
-											executedToolSignatures.add(toolSignature)
+
 
 											const newTool: ToolCall = {
 												id: toolCall.id,
@@ -360,6 +384,10 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 													if (editor?.setPendingMerge) {
 														editor.setPendingMerge(result);
 													}
+													// SYNC: Update our virtual working document so the AI sees its own change in the next iteration
+													if (result.modified) {
+														workingDocText = result.modified;
+													}
 												}
 
 												setMessages((prev) =>
@@ -383,10 +411,16 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 														}
 													})
 												)
+												// REPORTING: If it's a staged change, send a clean success signal instead of the raw object.
+												// This helps the Reflector understand that the edit is 'done' in the preview.
+												const feedbackResult = (result && typeof result === 'object' && result.type === 'staged_change')
+													? `SUCCESS: Document edit staged/previewed. ${result.searchBlock?.[0]?.length ?? 0} characters modified. User will need to Accept/Reject to make it permanent.`
+													: stringifyToolResult(result);
+
 												toolResultsForContinuation.push({
 													toolCallId: toolCall.id,
 													name: toolCall.name,
-													result: stringifyToolResult(result)
+													result: feedbackResult
 												})
 											} catch (e) {
 												const errMsg = e instanceof Error ? e.message : 'Tool error'
@@ -417,15 +451,30 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 										break
 									case 'plan_update':
 										setCurrentPlan(data.plan || [])
+										currentPlanRef.current = data.plan || [] // Sync ref (stale closure fix)
 										break
 																case 'reasoning':
 																	setMessages((prev) =>
 																		prev.map((msg) => {
 																			if (msg.key !== assistantKey) return msg
-																			const existing = msg.reasoning?.content?.trim() || ''
+																			
+																			const existing = msg.reasoning?.content || ''
 																			const incoming = typeof data.content === 'string' ? data.content.trim() : ''
 																			if (!incoming) return msg
-																			const combined = existing ? `${existing}\n\n${incoming}` : incoming
+																			
+																			// SAFETY: Deduplicate reasoning lines
+																			// If the incoming text block (or primary part of it) already exists, skip it.
+																			// This prevents the "Step 1, Step 1, Step 1" spam in looping execution.
+																			const existingLines = new Set(existing.split('\n').map(l => l.trim()))
+																			const incomingLines = incoming.split('\n')
+																			
+																			const filteredIncoming = incomingLines
+																				.filter((line: string) => line.trim() && !existingLines.has(line.trim()))
+																				.join('\n')
+																			
+																			if (!filteredIncoming) return msg
+																			
+																			const combined = existing ? `${existing}\n\n${filteredIncoming}` : filteredIncoming
 																			return {
 																				...msg,
 																				reasoning: {
@@ -447,13 +496,9 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 					}
 				}
 
-											if (backendHasMoreSteps === false) {
-												shouldContinue = false
-											} else if (backendHasMoreSteps === true) {
-												shouldContinue = toolResultsForContinuation.length > 0
-											} else {
-												shouldContinue = hasToolCalls && toolResultsForContinuation.length > 0
-											}
+											// LOGIC: Only continue if the backend says more steps are needed AND we actually did something (tool results)
+											const hadToolActivity = hasToolCalls && toolResultsForContinuation.length > 0
+											shouldContinue = backendHasMoreSteps !== false && hadToolActivity
 			}
 		} catch (error) {
 			if (error instanceof Error && error.name === 'AbortError') {
