@@ -43,53 +43,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 	const [isResizing, setIsResizing] = useState(false)
 	const indexingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-	// Sync document to vector store when updated
-	useEffect(() => {
-		const cmView = editor?.editor
-		if (!cmView || !documentId) return
 
-		const handleUpdate = () => {
-			if (indexingTimeoutRef.current) clearTimeout(indexingTimeoutRef.current)
-
-			// Debounce 5 seconds without typing before indexing
-			indexingTimeoutRef.current = setTimeout(async () => {
-				try {
-					const content = cmView.state.doc.toString()
-					// Only index if there is substantial text
-					if (!content || content.length < 50) return
-
-					// Find the title (for LaTeX, we can look for \title{...})
-					let title = 'Untitled'
-					const titleMatch = content.match(/\\title\{([^}]+)\}/)
-					if (titleMatch) {
-						title = titleMatch[1]
-					}
-
-					await fetch('/api/ai-rag-index', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({
-							documentId,
-							content,
-							title,
-						}),
-					})
-				} catch (err) {
-					console.error('[AI] Failed to index document:', err)
-				}
-			}, 5000)
-		}
-
-		// Since we can't easily add a listener to an existing view without reconfiguring
-		// we'll use an interval or a more direct approach if the parent can provide a callback
-		// For now, let's use a simple interval to check for changes if the view is available
-		const interval = setInterval(handleUpdate, 10000) // Check every 10s
-
-		return () => {
-			clearInterval(interval)
-			if (indexingTimeoutRef.current) clearTimeout(indexingTimeoutRef.current)
-		}
-	}, [editor?.editor, documentId])
 
 	const handleMouseDown = useCallback(
 		(e: React.MouseEvent) => {
