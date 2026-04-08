@@ -16,7 +16,7 @@ import type { User } from '../types/user.types'
 
 class AuthService {
 	async checkEmail(email: string): Promise<CheckEmailResponse> {
-		return apiClient.post<CheckEmailResponse>('/auth/check-email', { email })
+		return apiClient.post<CheckEmailResponse>(API_ENDPOINTS.auth.checkEmail, { email })
 	}
 
 	async register(data: RegisterDto): Promise<AuthResponse> {
@@ -25,8 +25,19 @@ class AuthService {
 		return response
 	}
 
-	async finalizeRegistration(data: { firebaseToken: string }): Promise<AuthResponse> {
-		const response = await apiClient.post<AuthResponse>('/auth/register/finalize', data)
+	async finalizeRegistration(
+		data: { firebaseToken: string },
+		token?: string
+	): Promise<AuthResponse> {
+		const headers = token ? { Authorization: `Bearer ${token}` } : undefined
+		const response = await apiClient.request<AuthResponse>(
+			API_ENDPOINTS.auth.finalizeRegistration,
+			{
+				method: 'POST',
+				body: JSON.stringify(data),
+				headers,
+			}
+		)
 		this.handleAuthResponse(response)
 		return response
 	}
@@ -82,6 +93,23 @@ class AuthService {
 
 	async forgotPassword(data: PasswordResetDto): Promise<void> {
 		await apiClient.post<void>(API_ENDPOINTS.auth.passwordReset, data)
+	}
+
+	async sendOTP(token?: string): Promise<void> {
+		const headers = token ? { Authorization: `Bearer ${token}` } : undefined
+		await apiClient.request(API_ENDPOINTS.auth.otpSend, {
+			method: 'POST',
+			headers,
+		})
+	}
+
+	async verifyOTP(otp: string, token?: string): Promise<void> {
+		const headers = token ? { Authorization: `Bearer ${token}` } : undefined
+		await apiClient.request(API_ENDPOINTS.auth.otpVerify, {
+			method: 'POST',
+			body: JSON.stringify({ otp }),
+			headers,
+		})
 	}
 
 	initializeAuth(): string | null {

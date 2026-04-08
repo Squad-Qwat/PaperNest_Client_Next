@@ -1,4 +1,6 @@
+import { BrainCircuit, CheckIcon, Zap } from 'lucide-react'
 import type { ComponentProps, ReactNode } from 'react'
+import { memo, useCallback } from 'react'
 import {
 	Command,
 	CommandDialog,
@@ -11,6 +13,7 @@ import {
 	CommandShortcut,
 } from '@/components/ui/command'
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { AI_MODELS } from '@/lib/ai/constants'
 import { cn } from '@/lib/utils'
 
 export type ModelSelectorProps = ComponentProps<typeof Dialog>
@@ -172,3 +175,80 @@ export type ModelSelectorNameProps = ComponentProps<'span'>
 export const ModelSelectorName = ({ className, ...props }: ModelSelectorNameProps) => (
 	<span className={cn('flex-1 truncate text-left', className)} {...props} />
 )
+
+export interface SharedModelSelectorContentProps {
+	model: string
+	setModel: (id: string) => void
+	agentId: string
+	setAgentId: (id: string) => void
+	onSelect?: (id: string) => void
+}
+
+const ModelItem = memo(
+	({
+		m,
+		selectedModel,
+		onSelect,
+	}: {
+		m: (typeof AI_MODELS)[0]
+		selectedModel: string
+		onSelect: (id: string) => void
+	}) => {
+		const handleSelect = useCallback(() => onSelect(m.id), [onSelect, m.id])
+		return (
+			<ModelSelectorItem key={m.id} onSelect={handleSelect} value={m.id}>
+				<ModelSelectorLogo provider={m.chef as any} />
+				<ModelSelectorName>{m.name}</ModelSelectorName>
+				{selectedModel === m.id ? (
+					<CheckIcon className='ml-auto size-3' />
+				) : (
+					<div className='ml-auto size-3' />
+				)}
+			</ModelSelectorItem>
+		)
+	}
+)
+ModelItem.displayName = 'ModelItem'
+
+export const SharedModelSelectorContent = ({
+	model,
+	setModel,
+	agentId,
+	setAgentId,
+	onSelect,
+}: SharedModelSelectorContentProps) => {
+	const handleModelSelect = useCallback(
+		(id: string) => {
+			setModel(id)
+			onSelect?.(id)
+		},
+		[setModel, onSelect]
+	)
+
+	return (
+		<ModelSelectorContent>
+			<ModelSelectorInput placeholder='Search models...' />
+			<ModelSelectorList>
+				<ModelSelectorEmpty>Model/mode not found.</ModelSelectorEmpty>
+				<ModelSelectorGroup heading='Agent Mode'>
+					<ModelSelectorItem onSelect={() => setAgentId('manual_graph')} value='manual_graph'>
+						<BrainCircuit className='mr-2 h-3.5 w-3.5 text-blue-500' />
+						<ModelSelectorName>High Agentic</ModelSelectorName>
+						{agentId === 'manual_graph' && <CheckIcon className='ml-auto size-3' />}
+					</ModelSelectorItem>
+					<ModelSelectorItem onSelect={() => setAgentId('deep_agent')} value='deep_agent'>
+						<Zap className='mr-2 h-3.5 w-3.5 text-amber-500' />
+						<ModelSelectorName>Medium</ModelSelectorName>
+						{agentId === 'deep_agent' && <CheckIcon className='ml-auto size-3' />}
+					</ModelSelectorItem>
+				</ModelSelectorGroup>
+				<ModelSelectorSeparator />
+				<ModelSelectorGroup heading='Available Models'>
+					{AI_MODELS.map((m) => (
+						<ModelItem key={m.id} m={m} onSelect={handleModelSelect} selectedModel={model} />
+					))}
+				</ModelSelectorGroup>
+			</ModelSelectorList>
+		</ModelSelectorContent>
+	)
+}

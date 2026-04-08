@@ -12,7 +12,7 @@ import { useAuth } from '@/context/AuthContext'
 import { useDocumentReviews } from '@/lib/api/hooks/use-documents'
 import { useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
 import { documentsService } from '@/lib/api/services/documents.service'
-import { CitationsManager } from '@/components/document/CitationsManager'
+import { CitationsManager, type Citation } from '@/components/document/CitationsManager'
 import { getInitials } from '@/lib/utils'
 
 interface DocumentHeaderProps {
@@ -43,7 +43,7 @@ interface DocumentHeaderProps {
 	viewMode: 'source' | 'visual'
 	toggleViewMode: () => void
 	visualEditor: any
-	editor?: any
+	// editor?: any
 	visibleCollaborators: any[]
 	hiddenCollaboratorsCount: number
 	compilerMode: 'client' | 'server' | 'server_pdflatex'
@@ -53,6 +53,7 @@ interface DocumentHeaderProps {
 	user?: any
 	workspace?: any
 	debugContentExtraction?: any
+	onInsertCitation?: (text: string) => void
 }
 
 const DocumentHeader = ({
@@ -85,7 +86,7 @@ const DocumentHeader = ({
 	viewMode,
 	toggleViewMode,
 	visualEditor,
-	editor,
+	// editor,
 	visibleCollaborators,
 	hiddenCollaboratorsCount,
 	compilerMode,
@@ -93,13 +94,14 @@ const DocumentHeader = ({
 	aiAssistantOpen,
 	toggleAiAssistant,
 	workspace,
+	onInsertCitation,
 }: DocumentHeaderProps) => {
 	const router = useRouter()
 	const { user } = useAuth()
 	const [showCommitModal, setShowCommitModal] = useState(false)
-	const [isCitationModalOpen, setIsCitationModalOpen] = useState(false);
+	const [isCitationModalOpen, setIsCitationModalOpen] = useState(false)
 	const { data: reviewsResponse } = useDocumentReviews(documentId)
-
+	const [citations, setCitations] = useState<Citation[]>([])
 	const { data: membersResponse } = useWorkspaceMembers(workspaceId)
 
 	// Safely determine pending reviews
@@ -111,16 +113,34 @@ const DocumentHeader = ({
 	const canCommit = !pendingReview
 	const commitBlockReason = pendingReview ? 'Waiting for pending review' : null
 
-	// Find a lecturer to assign the review to
-	const members = membersResponse?.members || []
-	const lecturerMember = members.find((m: any) => m.user?.role === 'Lecturer')
-	const actualLecturerId = lecturerMember?.user?.userId || workspace?.ownerId
-
+	/* 
 	const insertCitationAtCursor = (cit: any) => {
 		if (!editor) return
 		editor.chain().focus().insertContent(`(${cit.author}, ${cit.year})`).run()
 		setIsCitationModalOpen(false)
-	} 
+	}  
+
+	const insertCitationAtCursor = (cit: any) => {
+		if (!editor) return
+
+		setIsCitationModalOpen(false)
+
+		const authorText = Array.isArray(cit.authors) ? cit.authors.filter(Boolean).join('; ') : cit.author ?? ''
+
+		setTimeout(() => {editor.chain().focus().insertContent(`(${authorText}, ${cit.year})`).run()}, 50)
+	}
+	*/
+
+	const insertCitationAtCursor = (cit: Citation) => {
+		const authorText = cit.authors.filter(Boolean).join('; ')
+		setIsCitationModalOpen(false)
+		onInsertCitation?.(`(${authorText}, ${cit.year})`)
+	}
+
+	// Find a lecturer to assign the review to
+	const members = membersResponse?.members || []
+	const lecturerMember = members.find((m: any) => m.user?.role === 'Lecturer')
+	const actualLecturerId = lecturerMember?.user?.userId || workspace?.ownerId
 
 	return (
 		<header className='bg-white border-b border-gray-200 sticky top-0 z-[1001] transition-all duration-300'>
@@ -633,9 +653,18 @@ const DocumentHeader = ({
 			<CitationsManager 
 				isOpen={isCitationModalOpen}
 				onClose={() => setIsCitationModalOpen(false)}
+				citations={citations}
+				onCitationsChange={setCitations}
 				initialView='list'
 				onInsert={insertCitationAtCursor}
 			/>
+			
+			{/* <CitationsManager 
+				isOpen={isCitationModalOpen}
+				onClose={() => setIsCitationModalOpen(false)}
+				initialView='list'
+				onInsert={insertCitationAtCursor}
+			/> */}
 
 			{/* Editor Toolbar - sticky di bawah header */}
 			<LatexToolbar

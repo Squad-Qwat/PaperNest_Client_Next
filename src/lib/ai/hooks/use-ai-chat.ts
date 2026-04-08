@@ -6,12 +6,15 @@ import { executeEditorTool } from '../tools/functions'
 import type { AIStreamPayload } from '../types/chat'
 import { parseSSEStream } from './use-ai-stream'
 
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
 interface UseAIChatOptions {
-	editor: any
+	editor?: any
 	documentId?: string
+	workspaceId?: string
 }
 
-export function useAIChat({ editor, documentId }: UseAIChatOptions) {
+export function useAIChat({ editor, documentId, workspaceId }: UseAIChatOptions) {
 	const store = useAIChatStore()
 	const abortControllerRef = useRef<AbortController | null>(null)
 
@@ -34,25 +37,30 @@ export function useAIChat({ editor, documentId }: UseAIChatOptions) {
 	 * Main entry point to send a message to the AI
 	 */
 	const sendMessage = useCallback(
-		async (text: string) => {
-			if (!text.trim() || store.isStreaming) return
+		async (text: string, files?: any[]) => {
+			if (!text.trim() && (!files || files.length === 0)) return
+			if (store.isStreaming) return
 
-			// 1. Cleanup previous request if any
 			stop()
 
 			const controller = new AbortController()
-			// Increased timeout for backend-executed tools (Semantic Scholar can take >60s)
 			const timeoutSignal = AbortSignal.timeout(180000)
 			const combinedSignal = AbortSignal.any([controller.signal, timeoutSignal])
 			abortControllerRef.current = controller
 
-			// 2. Setup initial state
 			const assistantKey = nanoid()
-			store.addUserMessage(text)
+
+			const attachments = files?.map((f) => ({
+				id: f.id || nanoid(),
+				filename: f.filename,
+				mediaType: f.mediaType,
+				url: f.url,
+			}))
+
+			store.addUserMessage(text, attachments)
 			store.initAssistantMessage(assistantKey)
 			store.setStreaming(true)
 
-			// Get initial document state
 			workingDocTextRef.current = editor?.getCurrentContent?.() ?? ''
 
 			try {
@@ -62,14 +70,11 @@ export function useAIChat({ editor, documentId }: UseAIChatOptions) {
 				let shouldContinue = true
 				const toolRetryCount = new Map<string, number>()
 
-				// --- Think-Execute-Reflect Loop ---
 				while (shouldContinue && currentStep < MAX_STEPS) {
 					currentStep++
 
-					// Get the freshest state from the store to avoid stale closures in the async loop
 					const currentState = useAIChatStore.getState()
 
-					// Prepare conversation history for the AI context
 					const conversationHistory = currentState.messages.slice(-10).map((msg) => ({
 						role: msg.from,
 						content: msg.versions[msg.activeVersionIndex].parts
@@ -88,11 +93,13 @@ export function useAIChat({ editor, documentId }: UseAIChatOptions) {
 							toolResultsForContinuation.length > 0 ? toolResultsForContinuation : undefined,
 						threadId: currentState.threadId,
 						documentId,
+						workspaceId,
 						reasoningEnabled: currentState.reasoningEnabled,
 						agentId: currentState.agentId,
 						plan: currentState.currentPlan.length > 0 ? currentState.currentPlan : undefined,
 						providerId,
 						modelId,
+						files: currentStep === 1 ? attachments : undefined,
 					}
 
 					const stream = await aiService.streamChat(payload, combinedSignal)
@@ -105,9 +112,22 @@ export function useAIChat({ editor, documentId }: UseAIChatOptions) {
 					// Consume the stream via async generator
 					for await (const event of parseSSEStream(stream)) {
 						switch (event.type) {
-							case 'content':
-								store.appendContent(assistantKey, event.content)
+							case 'content': {
+								const fullContent = event.content
+								if (fullContent.length > 2) {
+									let typedLength = 0
+									const chunkSize = 2
+									while (typedLength < fullContent.length) {
+										const chunk = fullContent.slice(typedLength, typedLength + chunkSize)
+										store.appendContent(assistantKey, chunk)
+										typedLength += chunkSize
+										await delay(12)
+									}
+								} else {
+									store.appendContent(assistantKey, fullContent)
+								}
 								break
+							}
 
 							case 'tool_calls':
 								hasToolCallsInThisIteration = true
@@ -134,8 +154,12 @@ export function useAIChat({ editor, documentId }: UseAIChatOptions) {
 										continue
 									}
 
-									// Backend-executed tools: show loading state, wait for tool_results event
-									const BACKEND_TOOLS = new Set(['search_semantic_scholar', 'search_attached_pdfs'])
+									const BACKEND_TOOLS = new Set([
+										'search_semantic_scholar',
+										'search_attached_pdfs',
+										'search_workspace_documents',
+										'read_workspace_document_by_id',
+									])
 									if (BACKEND_TOOLS.has(toolData.name)) {
 										store.addToolPart(assistantKey, {
 											id: toolData.id,
@@ -261,7 +285,7 @@ export function useAIChat({ editor, documentId }: UseAIChatOptions) {
 				abortControllerRef.current = null
 			}
 		},
-		[editor, documentId, store, stop]
+		[editor, documentId, store, stop, workspaceId]
 	)
 
 	return {

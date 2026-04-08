@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { workspacesService } from '../services/workspaces.service'
 import type {
 	CreateWorkspaceDto,
-	InviteMemberDto,
 	UpdateMemberRoleDto,
 	UpdateWorkspaceDto,
 } from '../types/workspace.types'
@@ -26,7 +25,7 @@ export function useWorkspace(workspaceId: string) {
 	return useQuery({
 		queryKey: WORKSPACE_KEYS.detail(workspaceId),
 		queryFn: () => workspacesService.getById(workspaceId),
-		enabled: !!workspaceId,
+		enabled: !!workspaceId && workspaceId !== 'undefined',
 	})
 }
 
@@ -77,29 +76,31 @@ export function useDeleteWorkspace() {
 	})
 }
 
-export function useJoinWorkspace() {
+export function useSendInvitations() {
+	return useMutation({
+		mutationFn: ({
+			workspaceId,
+			data,
+		}: {
+			workspaceId: string
+			data: { emails: string[]; role: string }
+		}) => workspacesService.sendInvitations(workspaceId, data),
+	})
+}
+
+export function useAcceptInvitation() {
 	const queryClient = useQueryClient()
 
 	return useMutation({
-		mutationFn: (workspaceId: string) => workspacesService.joinByWorkspaceId(workspaceId),
+		mutationFn: (token: string) => workspacesService.acceptInvitation(token),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: WORKSPACE_KEYS.all })
 		},
 	})
 }
 
-// Member Management Mutations
-export function useInviteMember() {
-	const queryClient = useQueryClient()
-
-	return useMutation({
-		mutationFn: ({ workspaceId, data }: { workspaceId: string; data: InviteMemberDto }) =>
-			workspacesService.inviteMember(workspaceId, data),
-		onSuccess: (_, variables) => {
-			queryClient.invalidateQueries({ queryKey: WORKSPACE_KEYS.members(variables.workspaceId) })
-		},
-	})
-}
+// Alias for onboarding page
+export const useJoinWorkspace = useAcceptInvitation
 
 export function useUpdateMemberRole() {
 	const queryClient = useQueryClient()

@@ -9,10 +9,12 @@ import { ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useDocumentFiles } from '@/lib/api/hooks/use-document-files'
 import {
 	useDocumentReviews,
 	useDocumentVersions,
+	useDocumentWithRoomState,
 	useRevertVersion,
 } from '@/lib/api/hooks/use-documents'
 import type { Version } from '@/lib/api/types/document.types'
@@ -31,11 +33,16 @@ export default function VersionDetailPage() {
 	const [pdfUrl, setPdfUrl] = useState<string | null>(null)
 	const [isCompiling, setIsCompiling] = useState(false)
 	const [compileError, setCompileError] = useState<string | null>(null)
+	const [showConfirm, setShowConfirm] = useState(false)
 
 	const { data: versionsResponse, isLoading: versionsLoading } = useDocumentVersions(documentId)
+	const { data: documentWithRoomData, refetch: refetchRoomState } =
+		useDocumentWithRoomState(documentId)
 	const { data: reviewsResponse } = useDocumentReviews(documentId)
 	const { data: files = [] } = useDocumentFiles(documentId)
 	const { mutateAsync: revertVersion, isPending: isReverting } = useRevertVersion()
+
+	const activeUsers = documentWithRoomData?.room?.activeUsers || 0
 
 	const versions = Array.isArray(versionsResponse)
 		? (versionsResponse as Version[])
@@ -91,6 +98,20 @@ export default function VersionDetailPage() {
 
 	const handleRestore = async () => {
 		if (!version) return
+
+		// Refresh room state to get latest active users count
+		const { data: latestRoomData } = await refetchRoomState()
+		const currentActiveUsers = latestRoomData?.room?.activeUsers || 0
+
+		if (currentActiveUsers > 0) {
+			toast.error('Tidak Dapat Melakukan Pemulihan', {
+				description:
+					'Masih terdapat pengguna aktif di dalam editor. Harap pastikan semua pengguna telah keluar dari room sebelum melakukan pemulihan.',
+				duration: 5000,
+			})
+			return
+		}
+
 		try {
 			await revertVersion({ documentId, versionNumber: version.versionNumber })
 			toast.success('Versi berhasil dipulihkan')
@@ -151,7 +172,15 @@ export default function VersionDetailPage() {
 								</Button>
 							</Link>
 						)}
-						<Button size='sm' className='gap-2' onClick={handleRestore} disabled={isReverting}>
+						<Button
+							size='sm'
+							className='gap-2'
+							onClick={async () => {
+								await refetchRoomState()
+								setShowConfirm(true)
+							}}
+							disabled={isReverting}
+						>
 							<RotateCcw className='w-4 h-4' />
 							<span className='hidden sm:inline'>
 								{isReverting ? 'Memulihkan...' : 'Pulihkan Versi Ini'}
@@ -284,6 +313,21 @@ export default function VersionDetailPage() {
 					</Card>
 				</div>
 			</main>
+
+			<ConfirmDialog
+				isOpen={showConfirm}
+				onClose={() => setShowConfirm(false)}
+				onConfirm={activeUsers > 0 ? () => {} : handleRestore}
+				title={activeUsers > 0 ? 'Editor Sedang Digunakan' : 'Konfirmasi Pemulihan'}
+				message={
+					activeUsers > 0
+						? `Terdapat ${activeUsers} pengguna yang sedang aktif di room editor. Untuk menjaga integritas data, semua pengguna harus keluar dari room editor sebelum pemulihan dapat dilakukan.`
+						: 'Apakah Anda yakin ingin memulihkan dokumen ini ke versi yang dipilih? Tindakan ini akan menghapus semua versi yang dibuat setelah versi ini.'
+				}
+				confirmText={activeUsers > 0 ? 'Mengerti' : 'Ya, Pulihkan'}
+				cancelText={activeUsers > 0 ? undefined : 'Batal'}
+				variant={activeUsers > 0 ? 'info' : 'warning'}
+			/>
 		</div>
 	)
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { BrainCircuit, Cpu } from 'lucide-react'
+import { BrainCircuit, Zap } from 'lucide-react'
 import type React from 'react'
 import {
 	Select,
@@ -28,13 +28,13 @@ export const AgentSelector: React.FC = () => {
 					<SelectItem value='manual_graph'>
 						<div className='flex items-center gap-2'>
 							<BrainCircuit className='h-3.5 w-3.5 text-blue-500' />
-							<span>Graph Agent</span>
+							<span>High Agentic</span>
 						</div>
 					</SelectItem>
 					<SelectItem value='deep_agent'>
 						<div className='flex items-center gap-2'>
-							<Cpu className='h-3.5 w-3.5 text-purple-500' />
-							<span>Medium Agent</span>
+							<Zap className='h-3.5 w-3.5 text-amber-500' />
+							<span>Medium</span>
 						</div>
 					</SelectItem>
 				</SelectContent>

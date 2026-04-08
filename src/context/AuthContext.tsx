@@ -1,8 +1,8 @@
 'use client'
 
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { usePathname, useRouter } from 'next/navigation'
-import { createContext, useContext, useEffect, useState } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { createContext, Suspense, useContext, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { AUTH_KEYS } from '@/lib/api/hooks/use-auth'
 import { authService } from '@/lib/api/services/auth.service'
@@ -29,12 +29,22 @@ const PUBLIC_ROUTES = [
 	'/auth/verify-email',
 ]
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+function AuthProviderInner({ children }: { children: React.ReactNode }) {
 	const queryClient = useQueryClient()
 	const [onboardingData, setOnboardingData] = useState<any | null>(null)
-	const { isAuthenticated, clearAuth, _hasHydrated } = useAuthStore()
+	const { isAuthenticated, clearAuth, _hasHydrated, isInitializing, setInitializing } =
+		useAuthStore()
 	const router = useRouter()
 	const pathname = usePathname()
+	const searchParams = useSearchParams()
+	const callbackUrl = searchParams.get('callbackUrl')
+
+	useEffect(() => {
+		const unsubscribe = auth.onAuthStateChanged(() => {
+			setInitializing(false)
+		})
+		return () => unsubscribe()
+	}, [setInitializing])
 
 	const { data: user = null, isLoading } = useQuery({
 		queryKey: AUTH_KEYS.user,
@@ -48,7 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 				return null
 			}
 		},
-		enabled: _hasHydrated && isAuthenticated,
+		enabled: _hasHydrated && isAuthenticated && !isInitializing,
 		staleTime: 5 * 60 * 1000,
 		retry: false,
 	})
@@ -59,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			await signOut(auth)
 			await authService.logout()
 			queryClient.clear()
-			toast.success('Anda telah keluar.')
+			toast.success('You have been logged out.')
 			router.push('/login')
 		} catch {
 			clearAuth()
@@ -68,20 +78,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 	}
 
 	useEffect(() => {
-		if (!_hasHydrated || isLoading) return
+		if (!_hasHydrated || isLoading || isInitializing) return
 
-		const isPublicRoute = PUBLIC_ROUTES.includes(pathname)
+		const isPublicRoute =
+			PUBLIC_ROUTES.includes(pathname) || pathname.startsWith('/invitations/accept/')
+		const firebaseUser = auth.currentUser
+
+		if (pathname === '/auth/verify-email') {
+			if (isAuthenticated || firebaseUser?.emailVerified) {
+				router.push('/')
+				return
+			}
+			if (!firebaseUser) {
+				router.push('/login')
+				return
+			}
+		}
 
 		if (!isAuthenticated && !isPublicRoute) {
 			router.push('/login')
 		}
 
 		if (isAuthenticated && (pathname === '/login' || pathname === '/register')) {
-			router.push('/')
+			router.push(callbackUrl || '/')
 		}
-	}, [_hasHydrated, isAuthenticated, isLoading, pathname, router])
+	}, [_hasHydrated, isAuthenticated, isLoading, isInitializing, pathname, router, callbackUrl])
 
-	const isInitialLoading = !_hasHydrated || (isAuthenticated && isLoading)
+	const isInitialLoading = !_hasHydrated || isInitializing || (isAuthenticated && isLoading)
 
 	return (
 		<AuthContext.Provider
@@ -96,6 +119,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		>
 			{children}
 		</AuthContext.Provider>
+	)
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+	return (
+		<Suspense fallback={null}>
+			<AuthProviderInner>{children}</AuthProviderInner>
+		</Suspense>
 	)
 }
 

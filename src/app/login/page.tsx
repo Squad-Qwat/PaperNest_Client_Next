@@ -8,7 +8,6 @@ import type React from 'react'
 import { useState } from 'react'
 import { FaGithub } from 'react-icons/fa'
 import { FcGoogle } from 'react-icons/fc'
-import { TurnstileWidget } from '@/components/auth/TurnstileWidget'
 import { MicrosoftIconIcon } from '@/components/icons/logos-microsoft-icon'
 import { Button } from '@/components/ui/button'
 import {
@@ -24,6 +23,7 @@ import Grainient from '@/components/visuals/Grainient/Grainient'
 import { useAuth } from '@/context/AuthContext'
 import { useLoginEmail, useSignInWithSocial } from '@/lib/api/hooks/use-auth'
 import { getErrorMessage } from '@/lib/api/utils/error-handler'
+import { TurnstileWidget } from '@/components/auth/TurnstileWidget'
 
 // implemntasi dari auth firebase
 export default function LoginPage() {
@@ -65,7 +65,7 @@ export default function LoginPage() {
 		if (!turnstileToken) {
 			setLocalError('Please complete the captcha verification')
 			return
-		}
+		} 
 
 		try {
 			await loginEmailMutate({ email, password, turnstileToken })

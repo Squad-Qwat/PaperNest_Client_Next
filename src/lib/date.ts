@@ -23,8 +23,28 @@ export const id = {
 	days: ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'],
 }
 
+// Simple locale support for English (en)
+export const en = {
+	code: 'en',
+	months: [
+		'January',
+		'February',
+		'March',
+		'April',
+		'May',
+		'June',
+		'July',
+		'August',
+		'September',
+		'October',
+		'November',
+		'December',
+	],
+	days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+}
+
 interface FormatOptions {
-	locale?: typeof id
+	locale?: typeof id | typeof en
 }
 
 /**
@@ -77,7 +97,7 @@ export function format(
 		return '-'
 	}
 
-	const locale = options?.locale || id
+	const locale = options?.locale || en
 
 	const day = d.getDate()
 	const monthIndex = d.getMonth()

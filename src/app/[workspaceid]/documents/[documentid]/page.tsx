@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import AIAssistant from '@/components/document/ai/AIAssistant'
 import DynamicContentPanel from '@/components/document/DynamicContentPanel'
-// UI Components
 import DocumentEditor from '@/components/document/editor/DocumentEditor'
 import DocumentHeader from '@/components/document/editor/DocumentHeader'
 import SidenavPanel from '@/components/document/SidenavPanel'
@@ -13,6 +12,7 @@ import { Room } from '@/hooks/liveblocks/room'
 import { useBatchUpdateDocument, useDocumentWithRoomState } from '@/lib/api/hooks/use-documents'
 import { useWorkspace } from '@/lib/api/hooks/use-workspaces'
 import '@/components/document/editor/EditorStyles.css'
+import { Suspense } from 'react'
 import { DocumentEditorSkeleton } from '@/components/document/editor/DocumentEditorSkeleton'
 import { DesktopOnlyGuard } from '@/components/layout/DesktopOnlyGuard'
 import { useAuth } from '@/context/AuthContext'
@@ -21,7 +21,7 @@ import type { BatchOperation, OperationType } from '@/lib/api/types/batchOperati
 import { User } from '@liveblocks/node'
 
 
-export default function DocumentPage() {
+function DocumentPageContent() {
 	const router = useRouter()
 	const params = useParams()
 	const workspaceId = params.workspaceid as string
@@ -293,10 +293,11 @@ export default function DocumentPage() {
 					viewMode={editorFunctions?.viewMode}
 					toggleViewMode={editorFunctions?.toggleViewMode}
 					visualEditor={editorFunctions?.visualEditor}
-					editor={editorFunctions?.editor}
+					// editor={editorFunctions?.editor}
 					compilerMode={editorFunctions?.compilerMode}
 					onCompilerModeChange={editorFunctions?.setCompilerMode}
-					debugContentExtraction={editorFunctions?.debugContentExtraction}
+					debugContentExtraction={editorFunctions?.debugContentExtraction}  // Kenapa panggil ini ketika 'const DocumentHeader' nggak pernah minta ini sama sekali?
+					onInsertCitation={handleInsertTextAtCursor}
 				/>
 
 				<Room documentId={documentId} fallback={<DocumentEditorSkeleton />}>
@@ -338,5 +339,13 @@ export default function DocumentPage() {
 				</Room>
 			</div>
 		</div>
+	)
+}
+
+export default function DocumentPage() {
+	return (
+		<Suspense fallback={<DocumentEditorSkeleton />}>
+			<DocumentPageContent />
+		</Suspense>
 	)
 }

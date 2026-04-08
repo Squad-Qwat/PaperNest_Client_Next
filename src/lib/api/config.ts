@@ -14,6 +14,7 @@ export const API_CONFIG = {
 export const API_ENDPOINTS = {
 	auth: {
 		register: '/auth/register',
+		finalizeRegistration: '/auth/register/finalize',
 		login: '/auth/login',
 		loginEmail: '/auth/login/email',
 		refresh: '/auth/refresh',
@@ -22,6 +23,9 @@ export const API_ENDPOINTS = {
 		deleteAccount: '/auth/account',
 		updateEmail: '/auth/email',
 		passwordReset: '/auth/password/reset',
+		checkEmail: '/auth/check-email',
+		otpSend: '/auth/otp/send',
+		otpVerify: '/auth/otp/verify',
 	},
 	users: {
 		base: '/users',
@@ -31,13 +35,16 @@ export const API_ENDPOINTS = {
 	workspaces: {
 		base: '/workspaces',
 		byId: (workspaceId: string) => `/workspaces/${workspaceId}`,
-		join: (workspaceId: string) => `/workspaces/${workspaceId}/join`,
+		invitations: (workspaceId: string) => `/workspaces/${workspaceId}/invitations`,
 		members: (workspaceId: string) => `/workspaces/${workspaceId}/members`,
 		member: (workspaceId: string, userWorkspaceId: string) =>
 			`/workspaces/${workspaceId}/members/${userWorkspaceId}`,
+		join: (workspaceId: string) => `/workspaces/${workspaceId}/join`,
 	},
 	invitations: {
 		base: '/invitations',
+		details: (token: string) => `/workspaces/invitations/${token}`,
+		accept: (token: string) => `/workspaces/invitations/${token}/accept`,
 		byId: (userWorkspaceId: string) => `/invitations/${userWorkspaceId}`,
 	},
 	documents: {

@@ -69,6 +69,7 @@ export interface Version {
 	versionNumber: number
 	content: any
 	message?: string
+	isCurrentVersion?: boolean
 	createdAt: string
 	createdBy: string
 	userId?: string

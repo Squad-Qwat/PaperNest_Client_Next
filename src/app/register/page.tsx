@@ -1,10 +1,11 @@
 'use client'
 
+import { CheckIcon, EyeIcon, EyeOffIcon, XIcon } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { FaGithub } from 'react-icons/fa'
 import { FcGoogle } from 'react-icons/fc'
 import { TurnstileWidget } from '@/components/auth/TurnstileWidget'
@@ -12,7 +13,6 @@ import { MicrosoftIconIcon } from '@/components/icons/logos-microsoft-icon'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
 	Select,
 	SelectContent,
@@ -24,9 +24,10 @@ import { Textarea } from '@/components/ui/textarea'
 import Grainient from '@/components/visuals/Grainient/Grainient'
 import { useAuth } from '@/context/AuthContext'
 import { useCheckEmail, useRegister, useSignInWithSocial } from '@/lib/api/hooks/use-auth'
-import { useCreateWorkspace, useJoinWorkspace } from '@/lib/api/hooks/use-workspaces'
+import { useCreateWorkspace } from '@/lib/api/hooks/use-workspaces'
 import type { UserRole } from '@/lib/api/types/user.types'
 import { getErrorMessage } from '@/lib/api/utils/error-handler'
+import { cn } from '@/lib/utils'
 
 type StepData = {
 	email: string
@@ -35,11 +36,9 @@ type StepData = {
 	name: string
 	username: string
 	role: UserRole
-	workspaceMode: 'create' | 'join'
 	workspaceIcon: string
 	workspaceTitle: string
 	workspaceDescription: string
-	invitationCode: string
 }
 
 const workspaceIcons = ['📚', '🎓', '📖', '✍️', '🔬', '💼', '📊', '🎯', '🌟', '💡']
@@ -51,13 +50,11 @@ export default function RegisterPage() {
 	const { mutateAsync: registerUser, isPending: isRegisterPending } = useRegister()
 	const { mutateAsync: verifyEmail, isPending: checkingEmail } = useCheckEmail()
 	const { mutateAsync: _createWorkspace, isPending: isCreatePending } = useCreateWorkspace()
-	const { mutateAsync: _joinWorkspace, isPending: isJoinPending } = useJoinWorkspace()
 	const { mutateAsync: socialMutate, isPending: isSocialPending } = useSignInWithSocial({
 		setOnboardingData,
 	})
 
-	const loading =
-		isRegisterPending || isCreatePending || isJoinPending || isSocialPending || checkingEmail
+	const loading = isRegisterPending || isCreatePending || isSocialPending || checkingEmail
 
 	const [currentStep, setCurrentStep] = useState(1)
 	const [direction, setDirection] = useState(0)
@@ -68,38 +65,59 @@ export default function RegisterPage() {
 		name: '',
 		username: '',
 		role: 'Student',
-		workspaceMode: 'create',
 		workspaceIcon: '📚',
 		workspaceTitle: '',
 		workspaceDescription: '',
-		invitationCode: '',
 	})
 	const [errors, setErrors] = useState<Record<string, string>>({})
-	const [passwordStrength, setPasswordStrength] = useState(0)
+	const [isVisible, setIsVisible] = useState(false)
+	const [isConfirmVisible, setIsConfirmVisible] = useState(false)
 	const [turnstileToken, setTurnstileToken] = useState('')
+
+	const requirements = [
+		{ regex: /.{8,}/, text: 'At least 8 characters' },
+		{ regex: /[a-z]/, text: 'At least 1 lowercase letter' },
+		{ regex: /[A-Z]/, text: 'At least 1 uppercase letter' },
+		{ regex: /[0-9]/, text: 'At least 1 number' },
+		{
+			regex: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/,
+			text: 'At least 1 special character',
+		},
+	]
+
+	const strength = useMemo(() => {
+		return requirements.map((req) => ({
+			met: req.regex.test(formData.password),
+			text: req.text,
+		}))
+	}, [formData.password])
+
+	const strengthScore = useMemo(() => {
+		return strength.filter((req) => req.met).length
+	}, [strength])
+
+	const getStrengthColor = (score: number) => {
+		if (score === 0) return 'bg-border'
+		if (score <= 1) return 'bg-destructive'
+		if (score <= 2) return 'bg-orange-500'
+		if (score <= 3) return 'bg-amber-500'
+		if (score === 4) return 'bg-yellow-400'
+		return 'bg-green-500'
+	}
+
+	const getStrengthText = (score: number) => {
+		if (score === 0) return 'Enter a password'
+		if (score <= 2) return 'Weak password'
+		if (score <= 3) return 'Medium password'
+		if (score === 4) return 'Strong password'
+		return 'Very strong password'
+	}
 
 	const totalSteps = 4
 
-	// Calculate password strength
-	const calculatePasswordStrength = (password: string): number => {
-		let strength = 0
-		if (password.length >= 8) strength += 25
-		if (password.length >= 12) strength += 25
-		if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength += 25
-		if (/[0-9]/.test(password)) strength += 15
-		if (/[^a-zA-Z0-9]/.test(password)) strength += 10
-		return Math.min(strength, 100)
-	}
-
-	// Update form data
 	const updateFormData = (field: keyof StepData, value: string) => {
 		setFormData((prev) => ({ ...prev, [field]: value }))
 		setErrors((prev) => ({ ...prev, [field]: '' }))
-
-		// Update password strength
-		if (field === 'password') {
-			setPasswordStrength(calculatePasswordStrength(value))
-		}
 	}
 
 	// Step 1: Email validation
@@ -122,8 +140,8 @@ export default function RegisterPage() {
 
 		if (!formData.password) {
 			newErrors.password = 'Password is required'
-		} else if (formData.password.length < 8) {
-			newErrors.password = 'Password must be at least 8 characters'
+		} else if (strengthScore < 5) {
+			newErrors.password = 'Please meet all password requirements'
 		}
 
 		if (!formData.confirmPassword) {
@@ -162,18 +180,10 @@ export default function RegisterPage() {
 	const validateStep4 = (): boolean => {
 		const newErrors: Record<string, string> = {}
 
-		if (formData.workspaceMode === 'create') {
-			if (!formData.workspaceTitle) {
-				newErrors.workspaceTitle = 'Workspace title is required'
-			} else if (formData.workspaceTitle.length < 3) {
-				newErrors.workspaceTitle = 'Workspace title must be at least 3 characters'
-			}
-		} else if (formData.workspaceMode === 'join') {
-			if (!formData.invitationCode) {
-				newErrors.invitationCode = 'Invitation code is required'
-			} else if (formData.invitationCode.length < 3) {
-				newErrors.invitationCode = 'Invalid invitation code'
-			}
+		if (!formData.workspaceTitle) {
+			newErrors.workspaceTitle = 'Workspace title is required'
+		} else if (formData.workspaceTitle.length < 3) {
+			newErrors.workspaceTitle = 'Workspace title must be at least 3 characters'
 		}
 
 		setErrors(newErrors)
@@ -187,11 +197,11 @@ export default function RegisterPage() {
 		switch (currentStep) {
 			case 1:
 				isValid = validateStep1()
-				if (isValid) {
+				if (isValid) { 
 					if (!turnstileToken) {
 						setErrors({ email: 'Please complete the captcha verification' })
 						isValid = false
-					} else {
+					} else { 
 						// Check email availability early
 						try {
 							const result = await verifyEmail(formData.email)
@@ -251,8 +261,7 @@ export default function RegisterPage() {
 					title: formData.workspaceTitle,
 					description: formData.workspaceDescription || undefined,
 					icon: formData.workspaceIcon,
-					mode: formData.workspaceMode,
-					invitationCode: formData.invitationCode,
+					mode: 'create',
 				},
 			})
 		} catch (error) {
@@ -265,26 +274,13 @@ export default function RegisterPage() {
 		if (!turnstileToken) {
 			setErrors({ submit: 'Please complete the captcha verification first' })
 			return
-		}
+		} 
 		setErrors({})
 		try {
 			await socialMutate({ providerName: provider, turnstileToken })
 		} catch (error) {
 			setErrors({ submit: getErrorMessage(error) })
 		}
-	}
-
-	// Password strength color
-	const _getPasswordStrengthColor = () => {
-		if (passwordStrength < 40) return 'bg-red-500'
-		if (passwordStrength < 70) return 'bg-yellow-500'
-		return 'bg-green-500'
-	}
-
-	const _getPasswordStrengthText = () => {
-		if (passwordStrength < 40) return 'Weak'
-		if (passwordStrength < 70) return 'Medium'
-		return 'Strong'
 	}
 
 	const displayError = errors.submit
@@ -430,7 +426,6 @@ export default function RegisterPage() {
 							{/* Step 2: Password */}
 							{currentStep === 2 && (
 								<div className='space-y-6'>
-									{/* Title */}
 									<div className='text-center'>
 										<h1 className='text-2xl font-bold text-gray-900 mb-2'>Create a new password</h1>
 										<p className='text-sm text-gray-500'>
@@ -439,48 +434,96 @@ export default function RegisterPage() {
 									</div>
 
 									<div className='space-y-2'>
-										<Label htmlFor='password' className='text-gray-900 font-normal'>
-											Password
-										</Label>
-										<Input
-											id='password'
-											type='password'
-											value={formData.password}
-											onChange={(e) => updateFormData('password', e.target.value)}
-											placeholder='Password'
-										/>
-										{errors.password && <p className='text-sm text-red-600'>{errors.password}</p>}
+										<Label htmlFor='password'>Password</Label>
+										<div className='relative'>
+											<Input
+												id='password'
+												type={isVisible ? 'text' : 'password'}
+												value={formData.password}
+												onChange={(e) => updateFormData('password', e.target.value)}
+												placeholder='Password'
+												className='pr-9'
+											/>
+											<Button
+												variant='ghost'
+												size='icon'
+												type='button'
+												onClick={() => setIsVisible(!isVisible)}
+												className='text-muted-foreground focus-visible:ring-ring/50 absolute inset-y-0 right-0 rounded-l-none hover:bg-transparent'
+											>
+												{isVisible ? (
+													<EyeOffIcon className='size-4' />
+												) : (
+													<EyeIcon className='size-4' />
+												)}
+											</Button>
+										</div>
 
-										{/* Password Strength Indicator */}
-										{formData.password && (
-											<div className='flex items-center gap-2 text-xs'>
-												<svg
-													className='w-4 h-4 text-green-500'
-													fill='currentColor'
-													viewBox='0 0 20 20'
-												>
-													<path
-														fillRule='evenodd'
-														d='M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z'
-														clipRule='evenodd'
-													/>
-												</svg>
-												<span className='text-gray-600'>At least 8 characters</span>
-											</div>
-										)}
+										<div className='flex h-1 w-full gap-1 mt-3'>
+											{[0, 1, 2, 3, 4].map((idx) => (
+												<span
+													key={idx}
+													className={cn(
+														'h-full flex-1 rounded-full transition-all duration-500 ease-out',
+														idx < strengthScore ? getStrengthColor(strengthScore) : 'bg-border'
+													)}
+												/>
+											))}
+										</div>
+
+										<p className='text-foreground text-sm font-medium pt-1'>
+											{getStrengthText(strengthScore)}. Must contain:
+										</p>
+
+										<ul className='space-y-1.5'>
+											{strength.map((req) => (
+												<li key={req.text} className='flex items-center gap-2'>
+													{req.met ? (
+														<CheckIcon className='size-4 text-green-600 dark:text-green-400' />
+													) : (
+														<XIcon className='text-muted-foreground size-4' />
+													)}
+													<span
+														className={cn(
+															'text-xs',
+															req.met
+																? 'text-green-600 dark:text-green-400'
+																: 'text-muted-foreground'
+														)}
+													>
+														{req.text}
+													</span>
+												</li>
+											))}
+										</ul>
+										{errors.password && <p className='text-sm text-red-600'>{errors.password}</p>}
 									</div>
 
 									<div className='space-y-2'>
-										<Label htmlFor='confirmPassword' className='text-gray-900 font-normal'>
-											Confirm Password
-										</Label>
-										<Input
-											id='confirmPassword'
-											type='password'
-											value={formData.confirmPassword}
-											onChange={(e) => updateFormData('confirmPassword', e.target.value)}
-											placeholder='Confirm your password'
-										/>
+										<Label htmlFor='confirmPassword'>Confirm Password</Label>
+										<div className='relative'>
+											<Input
+												id='confirmPassword'
+												type={isConfirmVisible ? 'text' : 'password'}
+												value={formData.confirmPassword}
+												onChange={(e) => updateFormData('confirmPassword', e.target.value)}
+												placeholder='Confirm your password'
+												className='pr-9'
+											/>
+											<Button
+												variant='ghost'
+												size='icon'
+												type='button'
+												onClick={() => setIsConfirmVisible(!isConfirmVisible)}
+												className='text-muted-foreground focus-visible:ring-ring/50 absolute inset-y-0 right-0 rounded-l-none hover:bg-transparent'
+											>
+												{isConfirmVisible ? (
+													<EyeOffIcon className='size-4' />
+												) : (
+													<EyeIcon className='size-4' />
+												)}
+											</Button>
+										</div>
 										{errors.confirmPassword && (
 											<p className='text-sm text-red-600'>{errors.confirmPassword}</p>
 										)}
@@ -552,134 +595,64 @@ export default function RegisterPage() {
 								<div className='space-y-6'>
 									{/* Title */}
 									<div className='text-center'>
-										<h1 className='text-2xl font-bold text-gray-900 mb-2'>
-											{formData.workspaceMode === 'create'
-												? 'Create Your Workspace'
-												: 'Join a Workspace'}
-										</h1>
+										<h1 className='text-2xl font-bold text-gray-900 mb-2'>Create Your Workspace</h1>
 										<p className='text-sm text-gray-500'>
 											Step {currentStep} of {totalSteps} - Workspace Setup
 										</p>
 									</div>
 
-									{/* Workspace Mode Radio */}
-									<RadioGroup
-										className='w-full grid grid-cols-2 gap-3'
-										value={formData.workspaceMode}
-										onValueChange={(value) =>
-											updateFormData('workspaceMode', value as 'create' | 'join')
-										}
-									>
-										<div className='border-input has-data-[state=checked]:bg-teal-500 has-data-[state=checked]:text-white relative flex flex-col gap-2 border p-4 rounded-lg outline-none has-data-[state=checked]:z-10 transition-all'>
-											<div className='group flex flex-col gap-2'>
-												<div className='flex items-center gap-2'>
-													<RadioGroupItem
-														id='mode-create'
-														value='create'
-														aria-label='create-workspace'
-														className='text-primary bg-white data-[state=checked]:bg-white data-[state=checked]:border-white data-[state=checked]:[&_svg]:fill-teal-500 after:absolute after:inset-0'
-													/>
-													<Label className='font-semibold cursor-pointer' htmlFor='mode-create'>
-														Create New
-													</Label>
-												</div>
-												<p className='text-xs opacity-80 pl-6'>Start your own workspace</p>
-											</div>
-										</div>
-										<div className='border-input has-data-[state=checked]:bg-teal-500 has-data-[state=checked]:text-white relative flex flex-col gap-2 border p-4 rounded-lg outline-none has-data-[state=checked]:z-10 transition-all'>
-											<div className='group flex flex-col gap-2'>
-												<div className='flex items-center gap-2'>
-													<RadioGroupItem
-														id='mode-join'
-														value='join'
-														aria-label='join-workspace'
-														className='text-primary bg-white data-[state=checked]:bg-white data-[state=checked]:border-white data-[state=checked]:[&_svg]:fill-teal-500 after:absolute after:inset-0'
-													/>
-													<Label className='font-semibold cursor-pointer' htmlFor='mode-join'>
-														Join Existing
-													</Label>
-												</div>
-												<p className='text-xs opacity-80 pl-6'>Use an invitation code</p>
-											</div>
-										</div>
-									</RadioGroup>
-
 									{/* Create Workspace Form */}
-									{formData.workspaceMode === 'create' && (
-										<>
-											<div className='space-y-2'>
-												<Label className='text-gray-900 font-normal'>Workspace Icon</Label>
-												<div className='grid grid-cols-5 gap-2'>
-													{workspaceIcons.map((icon) => (
-														<button
-															key={icon}
-															type='button'
-															onClick={() => updateFormData('workspaceIcon', icon)}
-															className={`p-3 text-2xl border rounded-lg transition-all hover:scale-105 ${
-																formData.workspaceIcon === icon
-																	? 'bg-teal-500 border-teal-400'
-																	: 'bg-white border-gray-200 hover:border-gray-300'
-															}`}
-														>
-															{icon}
-														</button>
-													))}
-												</div>
-											</div>
-
-											<div className='space-y-2'>
-												<Label htmlFor='workspaceTitle' className='text-gray-900 font-normal'>
-													Workspace Title <span className='text-red-500'>*</span>
-												</Label>
-												<Input
-													id='workspaceTitle'
-													type='text'
-													value={formData.workspaceTitle}
-													onChange={(e) => updateFormData('workspaceTitle', e.target.value)}
-													placeholder='My Research Workspace'
-												/>
-												{errors.workspaceTitle && (
-													<p className='text-sm text-red-600'>{errors.workspaceTitle}</p>
-												)}
-											</div>
-
-											<div className='space-y-2'>
-												<Label htmlFor='workspaceDescription' className='text-gray-900 font-normal'>
-													Workspace Description (Optional)
-												</Label>
-												<Textarea
-													id='workspaceDescription'
-													value={formData.workspaceDescription}
-													onChange={(e) => updateFormData('workspaceDescription', e.target.value)}
-													placeholder='A workspace for my research papers and projects'
-													rows={3}
-													className='resize-none'
-												/>
-											</div>
-										</>
-									)}
-
-									{/* Join Workspace Form */}
-									{formData.workspaceMode === 'join' && (
+									<div className='space-y-6'>
 										<div className='space-y-2'>
-											<Label htmlFor='invitationCode' className='text-gray-900 font-normal'>
-												Invitation Code <span className='text-red-500'>*</span>
+											<Label className='text-gray-900 font-normal'>Workspace Icon</Label>
+											<div className='grid grid-cols-5 gap-2'>
+												{workspaceIcons.map((icon) => (
+													<button
+														key={icon}
+														type='button'
+														onClick={() => updateFormData('workspaceIcon', icon)}
+														className={`p-3 text-2xl border rounded-lg transition-all hover:scale-105 ${
+															formData.workspaceIcon === icon
+																? 'bg-teal-500 border-teal-400'
+																: 'bg-white border-gray-200 hover:border-gray-300'
+														}`}
+													>
+														{icon}
+													</button>
+												))}
+											</div>
+										</div>
+
+										<div className='space-y-2'>
+											<Label htmlFor='workspaceTitle' className='text-gray-900 font-normal'>
+												Workspace Title <span className='text-red-500'>*</span>
 											</Label>
 											<Input
-												id='invitationCode'
+												id='workspaceTitle'
 												type='text'
-												value={formData.invitationCode}
-												onChange={(e) => updateFormData('invitationCode', e.target.value)}
-												placeholder='Enter your invitation code'
+												value={formData.workspaceTitle}
+												onChange={(e) => updateFormData('workspaceTitle', e.target.value)}
+												placeholder='My Research Workspace'
 											/>
-											{errors.invitationCode && (
-												<p className='text-sm text-red-600'>{errors.invitationCode}</p>
+											{errors.workspaceTitle && (
+												<p className='text-sm text-red-600'>{errors.workspaceTitle}</p>
 											)}
-											<p className='text-xs text-gray-500'>
-												Ask your workspace owner for an invitation code to join their workspace.
-											</p>
 										</div>
-									)}
+
+										<div className='space-y-2'>
+											<Label htmlFor='workspaceDescription' className='text-gray-900 font-normal'>
+												Workspace Description (Optional)
+											</Label>
+											<Textarea
+												id='workspaceDescription'
+												value={formData.workspaceDescription}
+												onChange={(e) => updateFormData('workspaceDescription', e.target.value)}
+												placeholder='A workspace for my research papers and projects'
+												rows={3}
+												className='resize-none'
+											/>
+										</div>
+									</div>
 								</div>
 							)}
 						</motion.div>
