@@ -4,12 +4,13 @@ import {
 	IconBook,
 	IconFileDescription,
 	IconHelp,
+	IconInbox,
 	IconMessage2,
 	IconQuote,
 	IconSettings,
 	IconUserPlus,
 } from '@tabler/icons-react'
-import { useParams } from 'next/navigation'
+import { useParams, usePathname } from 'next/navigation'
 import * as React from 'react'
 import { CreateDocumentModal } from '@/components/document/CreateDocumentModal'
 import { SidebarSkeleton } from '@/components/layout/DashboardSkeleton'
@@ -20,11 +21,14 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from '@/compone
 import { InviteMembersModal } from '@/components/workspace/InviteMembersModal'
 import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher'
 import { useAuth } from '@/context/AuthContext'
+import { useNotifications } from '@/context/NotificationContext'
 import { useWorkspace, useWorkspaces } from '@/lib/api/hooks/use-workspaces'
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const { user, loading: authLoading } = useAuth()
+	const { unreadCount } = useNotifications()
 	const params = useParams()
+	const pathname = usePathname()
 	const workspaceId = params.workspaceid as string
 	const { data: workspace, isLoading: workspaceLoading } = useWorkspace(workspaceId)
 	const { isLoading: workspacesLoading } = useWorkspaces()
@@ -36,7 +40,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	}
 
 	const isOwner = user?.userId === workspace?.ownerId
-
 	const data = {
 		user: {
 			name: user?.name || user?.email?.split('@')[0] || 'User',
@@ -48,17 +51,25 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 				title: 'Documents',
 				url: `/${workspaceId}`,
 				icon: IconFileDescription,
-				isActive: true,
+				isActive: pathname === `/${workspaceId}`,
+			},
+			{
+				title: 'Inbox',
+				url: `/${workspaceId}/inbox`,
+				icon: IconInbox,
+				badge: unreadCount > 0 ? unreadCount : undefined,
 			},
 			{
 				title: 'Reviews',
 				url: `/${workspaceId}/reviews`,
 				icon: IconMessage2,
+				isActive: pathname === `/${workspaceId}/reviews`,
 			},
 			{
 				title: 'Citations',
 				url: `/${workspaceId}/citations`,
 				icon: IconQuote,
+				isActive: pathname === `/${workspaceId}/citations`,
 			},
 		],
 		navSecondary: [
@@ -81,6 +92,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 				title: 'Guide',
 				url: '/guide',
 				icon: IconBook,
+				isActive: pathname === '/guide',
 			},
 			{
 				title: 'Help',

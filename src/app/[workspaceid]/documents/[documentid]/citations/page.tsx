@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/store' 
 import { DocumentService } from '@/lib/firebase/document-service'
@@ -23,7 +23,10 @@ import { SearchInput } from '@/components/ui/search-input'
 	import { Input } from '@/components/ui/input'  
 */
 import { Loader2, Plus, Quote, FileInput, Copy, Check } from 'lucide-react'
-import { CitationsManager, type Citation } from '@/components/document/CitationsManager'
+import { CitationsManager } from '@/components/document/CitationsManager'
+import { toManagerCitation, type ManagerCitation, toDbCitation } from '@/lib/utils/citationBridge';
+import { useCitations, useCreateCitation, useUpdateCitation, useDeleteCitation } from '@/lib/api/hooks/use-citations'; // custom hook
+import { toast } from 'sonner'
 
 /* 
 	interface Citation {
@@ -42,7 +45,7 @@ export default function CitationPage() {
 	const { user: currentUser } = useAuth()
 
 	const [document, setDocument] = useState<any | null>(null)
-	const [citations, setCitations] = useState<Citation[]>([])
+	const [citations, setCitations] = useState<ManagerCitation[]>([]) // Citation
 	const [isLoading, setIsLoading] = useState(true)
 	const [searchQuery, setSearchQuery] = useState('')
 	const [isAddModalOpen, setIsAddModalOpen] = useState(false)
@@ -58,6 +61,18 @@ export default function CitationPage() {
 
 	const workspaceId = params.workspaceid as string
 	const documentId = params.documentid as string
+
+	const { data: responseData} = useCitations(documentId);
+	const { mutateAsync: createCitation } = useCreateCitation()
+	const { mutateAsync: updateCitation } = useUpdateCitation()
+	const { mutateAsync: deleteCitation } = useDeleteCitation()
+
+	// ── Derive ManagerCitation list from API response ─────────────────────────
+	// This list is display-only; mutations go through the API hooks above.
+	// const citations: ManagerCitation[] = useMemo(() => {
+	// 	const raw = (responseData as any)?.data?.citations ?? (responseData as any)?.citations ?? []
+	// 	return raw.map((dbCit: any, idx: number) => toManagerCitation(dbCit, idx + 1))
+	// }, [responseData])
 
 	useEffect(() => {
 		const fetchDocumentData = async () => {
@@ -121,8 +136,59 @@ export default function CitationPage() {
 		} 
 	*/
 
-	// Persists the full updated list back to Firestore, same pattern as the old handleAddCitation.
-	const handleCitationsChange = async (updated: Citation[]) => {
+	// ── onSave: fired by CitationsManager on add / edit / delete ─────────────
+	// Translates ManagerCitation → DbCitation and calls the shared API.
+	// TanStack Query cache invalidation means the workspace citations page
+	// will automatically re-fetch and show the same data.
+	const handleSave = useCallback(
+		async (action: 'add' | 'edit' | 'delete', cit: ManagerCitation) => {
+		try {
+			if (action === 'add') {
+			const payload = toDbCitation(cit, workspaceId, documentId)
+			await createCitation({ ...payload, workspaceId, documentId })
+			toast.success('Referensi berhasil ditambahkan')
+			} else if (action === 'edit') {
+			const payload = toDbCitation(cit, workspaceId, documentId)
+			await updateCitation({ citationId: cit.id, documentId, data: payload as any })
+			toast.success('Referensi berhasil diperbarui')
+			} else if (action === 'delete') {
+			await deleteCitation({ citationId: cit.id, documentId })
+			toast.success('Referensi berhasil dihapus')
+			}
+		} catch (err) {
+			console.error(`Citation ${action} failed:`, err)
+			toast.error('Gagal menyimpan perubahan referensi')
+		}
+		},
+		[workspaceId, documentId, createCitation, updateCitation, deleteCitation]
+	)
+
+	// ── onCitationsChange: local optimistic update for instant UI feedback ────
+	// The real source of truth is the API; this just prevents flicker while
+	// the mutation + query invalidation completes.
+	// const [localCitations, setLocalCitations] = useState<ManagerCitation[]>([])
+	// useEffect(() => { setLocalCitations(citations) }, [citations])
+	
+	const createCitationMutation = useCreateCitation();
+
+	const handleSaveNewSource = async (newManagerCitation: ManagerCitation) => {
+	// Convert into database layout right before firing the request
+	const dbPayload = toDbCitation(newManagerCitation, workspaceId, documentId);
+	
+	try {
+		await createCitationMutation.mutateAsync({
+		documentId,
+		...dbPayload,
+		workspaceId
+		});
+		toast.success("Source saved successfully!");
+	} catch (error) {
+		toast.error("Failed to sync source.");
+	}
+	};
+
+	// Persists the full updated list back to Firestore, same pattern as the old handleAddCitation. Citation
+	const handleCitationsChange = async (updated: ManagerCitation[]) => {
 		setCitations(updated)
 		if (!document) return
 		try {
@@ -137,8 +203,8 @@ export default function CitationPage() {
 		}
 	}
 
-	// NEW: Function to return to the editor and signal an insertion
-	const handleInsertToEditor = (cit: Citation) => {
+	// NEW: Function to return to the editor and signal an insertion (Citation)
+	const handleInsertToEditor = (cit: ManagerCitation) => {
 		const authorText = cit.authors.filter(Boolean).join('; ')
 		const citationText = `(${authorText}, ${cit.year})`
 		// We use a query parameter to tell the editor page to insert this text
@@ -146,13 +212,21 @@ export default function CitationPage() {
 		router.push(`/${workspaceId}/documents/${documentId}?insertCitation=${encodeURIComponent(citationText)}`)
 	}
 
-	const copyToClipboard = (cit: Citation) => {
+	// Citation
+	const copyToClipboard = (cit: ManagerCitation) => {
 		const authorText = cit.authors.filter(Boolean).join('; ')
 		const text = `(${authorText}, ${cit.year})`
 		navigator.clipboard.writeText(text)
 		setCopiedId(cit.id)
 		setTimeout(() => setCopiedId(null), 2000)
 	}
+
+	const managerCitations: ManagerCitation[] = useMemo(() => {
+		if (!responseData?.data?.citations) return [];
+		return responseData.data.citations.map((dbCit, idx) => 
+		  toManagerCitation(dbCit, idx + 1)
+		);
+	  }, [responseData]);
 
 	if (isLoading) return (
 		<div className="min-h-screen bg-gray-950 flex items-center justify-center">
@@ -263,6 +337,7 @@ export default function CitationPage() {
 				onCitationsChange={handleCitationsChange}
 				initialView='add'
 				onInsert={handleInsertToEditor}
+				onSave={handleSave}
 			/>
 		</div>
 	)

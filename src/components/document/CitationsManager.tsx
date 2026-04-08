@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Plus, Trash2, Quote, FileInput, ChevronLeft, Pencil } from "lucide-react";
+import { ManagerCitationType, ManagerCitation } from '@/lib/utils/citationBridge';
 
-// Types
+/* 
+-> Types
 export type CitationType =
   | 'article'       // Journal Article
   | 'conference'    // Conference Paper
@@ -15,10 +17,10 @@ export type CitationType =
   | 'script'        // Fresh Graduate's Script
   | 'book'          // Book
   | 'website';      // Website
-  // | 'report'
-  // | 'blog'
+  -> | 'report'
+  -> | 'blog'
 
-// Citation in itself
+-> Citation in itself
 export interface Citation {
   id: string;
   index: number;           // auto-managed sequential index
@@ -37,6 +39,7 @@ export interface Citation {
   url?: string;
   doi?: string;
 }
+*/
 
 type View = 'list' | 'add' | 'edit';
 
@@ -55,7 +58,7 @@ interface FieldVisibility
   doi: boolean;
 }
 
-function getFields(type: CitationType): FieldVisibility 
+function getFields(type: ManagerCitationType): FieldVisibility // type: CitationType
 {
   switch (type) 
   {
@@ -83,8 +86,8 @@ function getFields(type: CitationType): FieldVisibility
   }
 }
 
-// Empty form state 
-const emptyCit = (): Omit<Citation, 'id' | 'index'> => ({
+// Empty form state (Citation)
+const emptyCit = (): Omit<ManagerCitation, 'id' | 'index'> => ({
   type: 'article',
   sourceTitle: '',
   authors: [''],
@@ -101,8 +104,8 @@ const emptyCit = (): Omit<Citation, 'id' | 'index'> => ({
   doi: '',
 });
 
-// Shared form fields component
-export interface FormData extends Omit<Citation, 'id' | 'index'> {}
+// Shared form fields component (Citation)
+export interface FormData extends Omit<ManagerCitation, 'id' | 'index'> {}
 
 interface CitationFormProps 
 {
@@ -198,7 +201,7 @@ function CitationForm({ data, onChange }: CitationFormProps)
             <select
               className="w-full h-9 rounded-md border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-400/20"
               value={data.type}
-              onChange={e => set({ type: e.target.value as CitationType })}
+              onChange={e => set({ type: e.target.value as ManagerCitationType /* CitationType */ })}
             >
               <optgroup label="Scientific">
                 <option value="article">Journal Article</option>
@@ -359,16 +362,21 @@ function CitationForm({ data, onChange }: CitationFormProps)
 interface CitationsManagerContentProps {
   view: View;
   setView: (v: View) => void;
-  citations: Citation[];
+  // citations: Citation[];
+  citations: ManagerCitation[];
   newCit: FormData;
   setNewCit: (d: FormData) => void;
-  editingCit: Citation | null;
-  setEditingCit: (c: Citation | null) => void;
+  // editingCit: Citation | null;
+  editingCit: ManagerCitation | null;
+  // setEditingCit: (c: Citation | null) => void;
+  setEditingCit: (c: ManagerCitation | null) => void;
   handleAdd: () => void;
   handleDelete: (id: string) => void;
-  handleEditOpen: (cit: Citation) => void;
+  // handleEditOpen: (cit: Citation) => void;
+  handleEditOpen: (cit: ManagerCitation) => void;
   handleEditSave: () => void;
-  onInsert?: (cit: Citation) => void;
+  // onInsert?: (cit: Citation) => void;
+  onInsert?: (cit: ManagerCitation) => void;
   // inline mode: hides the Dialog chrome titles (handled by the page itself)
   inline?: boolean;
 }
@@ -478,40 +486,52 @@ function CitationsManagerContent({
 // Shared logic hook
 
 function useCitationsManagerLogic(
-  citations: Citation[],
-  onCitationsChange: (c: Citation[]) => void,
+  // citations: Citation[],
+  citations: ManagerCitation[],
+  // onCitationsChange: (c: Citation[]) => void,
+  onCitationsChange: (c: ManagerCitation[]) => void,
   isOpen: boolean,
   initialView: View,
+  onSave?: (action: 'add' | 'edit' | 'delete', cit: ManagerCitation) => void,
 ) {
   const [view, setView] = useState<View>(initialView);
   const [newCit, setNewCit] = useState<FormData>(emptyCit());
-  const [editingCit, setEditingCit] = useState<Citation | null>(null);
+  const [editingCit, setEditingCit] = useState<ManagerCitation | null>(null); // Citation
  
   React.useEffect(() => {
     if (isOpen) setView('list');
   }, [isOpen]);
  
-  const reindex = (list: Citation[]): Citation[] => list.map((c, i) => ({ ...c, index: i + 1 }));
+  // const reindex = (list: Citation[]): Citation[] => list.map((c, i) => ({ ...c, index: i + 1 }));
+  const reindex = (list: ManagerCitation[]): ManagerCitation[] => list.map((c, i) => ({ ...c, index: i + 1 }));
  
   const handleAdd = () => {
     if (!newCit.sourceTitle.trim() || !newCit.authors[0].trim() || !newCit.year.trim()) return;
-    const entry: Citation = {
+    // Citation
+    const entry: ManagerCitation = {
       ...newCit,
       id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       index: citations.length + 1,
     };
     onCitationsChange(reindex([...citations, entry]));
+    onSave?.('add', entry); // ← notify caller to fire API mutation
     setNewCit(emptyCit());
     setView('list');
   };
  
-  const handleDelete = (id: string) => onCitationsChange(reindex(citations.filter(c => c.id !== id)));
+  const handleDelete = (id: string) => {
+    const cit = citations.find(c => c.id === id);
+    onCitationsChange(reindex(citations.filter(c => c.id !== id)))
+    if (cit) onSave?.('delete', cit); // ← notify caller to fire API mutation
+  };
  
-  const handleEditOpen = (cit: Citation) => { setEditingCit({ ...cit }); setView('edit'); };
+  // const handleEditOpen = (cit: Citation) => { setEditingCit({ ...cit }); setView('edit'); };
+  const handleEditOpen = (cit: ManagerCitation) => { setEditingCit({ ...cit }); setView('edit'); };
  
   const handleEditSave = () => {
     if (!editingCit || !editingCit.sourceTitle.trim() || !editingCit.authors[0].trim() || !editingCit.year.trim()) return;
     onCitationsChange(reindex(citations.map(c => (c.id === editingCit.id ? editingCit : c))));
+    onSave?.('edit', editingCit); // ← notify caller to fire API mutation
     setEditingCit(null);
     setView('list');
   };
@@ -530,13 +550,17 @@ interface CitationsManagerProps
 {
   isOpen: boolean;
   onClose: () => void;
-  citations: Citation[];
-  onCitationsChange: (citations: Citation[]) => void;
+  // citations: Citation[];
+  citations: ManagerCitation[];
+  // onCitationsChange: (citations: Citation[]) => void;
+  onCitationsChange: (citations: ManagerCitation[]) => void;
   initialView?: 'list' | 'add';
   // onAdd?: (cit: { sourceTitle: string, author: string, year: string }) => void | undefined;
   // onDelete?: (id: string) => void;
-  onInsert?: (cit: Citation) => void;
+  // onInsert?: (cit: Citation) => void;
+  onInsert?: (cit: ManagerCitation) => void;
   inline?: boolean;
+  onSave?: (action: 'add' | 'edit' | 'delete', cit: ManagerCitation) => void;
 }
 
 // Main Component
@@ -548,8 +572,9 @@ export function CitationsManager({
   initialView = 'list',
   onInsert,
   inline = false,
+  onSave
 }: CitationsManagerProps) {
-  const logic = useCitationsManagerLogic(citations, onCitationsChange, isOpen, initialView);
+  const logic = useCitationsManagerLogic(citations, onCitationsChange, isOpen, initialView, onSave);
  
   const content = (
     <CitationsManagerContent

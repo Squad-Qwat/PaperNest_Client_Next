@@ -257,6 +257,12 @@ importers:
       codemirror-lang-typst:
         specifier: ^0.4.0
         version: 0.4.0
+      date-fns:
+        specifier: ^4.2.1
+        version: 4.2.1
+      diff-match-patch-ts:
+        specifier: ^0.8.0
+        version: 0.8.0
       embla-carousel-react:
         specifier: ^8.6.0
         version: 8.6.0(react@19.2.0)
@@ -3720,6 +3726,9 @@ packages:
     resolution: {integrity: sha512-0R9ikRb668HB7QDxT1vkpuUBtqc53YyAwMwGeUFKRojY/NWKvdZ+9UYtRfGmhqNbRkTSVpMbmyhXipFFv2cb/A==}
     engines: {node: '>= 12'}
 
+  date-fns@4.2.1:
+    resolution: {integrity: sha512-37RhSdxaG1suen6VDCza6rNrQfooyQh57HFVPwQGEq2QWliVLzPQZ8Oa017weOu+HZCnzI7N3Pf/wyoBKfEqrA==}
+
   dayjs@1.11.20:
     resolution: {integrity: sha512-YbwwqR/uYpeoP4pu043q+LTDLFBLApUP6VxRihdfNTqu4ubqMlGDLd6ErXhEgsyvY0K6nCs7nggYumAN+9uEuQ==}
 
@@ -3769,6 +3778,9 @@ packages:
 
   devlop@1.1.0:
     resolution: {integrity: sha512-RWmIqhcFf1lRYBvNmr7qTNuyCt/7/ns2jbpp1+PalgE/rDQcBT0fioSMUpJ93irlUhC5hrg4cYqe6U+0ImW0rA==}
+
+  diff-match-patch-ts@0.8.0:
+    resolution: {integrity: sha512-Hor6jjh8bAkK+Yd1Aqrcx3Q5XXLTCr1CYdC05SO0OTV3KG6RCBZ1smHPMSusO5J/06bo7kdNeFwOoPc80Hs4pQ==}
 
   diff@4.0.4:
     resolution: {integrity: sha512-X07nttJQkwkfKfvTPG/KSnE2OMdcUCao6+eXF3wmnIQRn2aPAHH3VxDbDOdegkd6JbPsXqShpvEOHfAT+nCNwQ==}
@@ -8923,6 +8935,8 @@ snapshots:
 
   data-uri-to-buffer@4.0.1: {}
 
+  date-fns@4.2.1: {}
+
   dayjs@1.11.20: {}
 
   debug@4.4.3:
@@ -8956,6 +8970,8 @@ snapshots:
   devlop@1.1.0:
     dependencies:
       dequal: 2.0.3
+
+  diff-match-patch-ts@0.8.0: {}
 
   diff@4.0.4: {}
 

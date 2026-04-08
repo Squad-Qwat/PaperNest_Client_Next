@@ -12,7 +12,9 @@ import { useAuth } from '@/context/AuthContext'
 import { useDocumentReviews } from '@/lib/api/hooks/use-documents'
 import { useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
 import { documentsService } from '@/lib/api/services/documents.service'
-import { CitationsManager, type Citation } from '@/components/document/CitationsManager'
+import { CitationsManager } from '@/components/document/CitationsManager'
+import { ManagerCitation } from '@/lib/utils/citationBridge';
+
 import { getInitials } from '@/lib/utils'
 
 interface DocumentHeaderProps {
@@ -101,7 +103,7 @@ const DocumentHeader = ({
 	const [showCommitModal, setShowCommitModal] = useState(false)
 	const [isCitationModalOpen, setIsCitationModalOpen] = useState(false)
 	const { data: reviewsResponse } = useDocumentReviews(documentId)
-	const [citations, setCitations] = useState<Citation[]>([])
+	const [citations, setCitations] = useState<ManagerCitation[]>([]) // Citation
 	const { data: membersResponse } = useWorkspaceMembers(workspaceId)
 
 	// Safely determine pending reviews
@@ -131,7 +133,8 @@ const DocumentHeader = ({
 	}
 	*/
 
-	const insertCitationAtCursor = (cit: Citation) => {
+	// Citation
+	const insertCitationAtCursor = (cit: ManagerCitation) => {
 		const authorText = cit.authors.filter(Boolean).join('; ')
 		setIsCitationModalOpen(false)
 		onInsertCitation?.(`(${authorText}, ${cit.year})`)
@@ -140,7 +143,7 @@ const DocumentHeader = ({
 	// Find a lecturer to assign the review to
 	const members = membersResponse?.members || []
 	const lecturerMember = members.find((m: any) => m.user?.role === 'Lecturer')
-	const actualLecturerId = lecturerMember?.user?.userId || workspace?.ownerId
+	const _actualLecturerId = lecturerMember?.user?.userId || workspace?.ownerId
 
 	return (
 		<header className='bg-white border-b border-gray-200 sticky top-0 z-[1001] transition-all duration-300'>
@@ -615,32 +618,12 @@ const DocumentHeader = ({
 				onCommit={async (data) => {
 					try {
 						const content = getCurrentContent ? getCurrentContent() : ''
-						const versionRes = await documentsService.createVersion(documentId, {
+						await documentsService.createVersion(documentId, {
 							message: data.message,
 							content: content,
 						})
 
-						// Automatically create a review request after committing,
-						// so it appears in the lecturer's review list.
-						const isStudent = user?.role?.toLowerCase() === 'student'
-						const lecturerId = actualLecturerId
-						const documentBodyId = versionRes?.version?.documentBodyId
-
-						if (isStudent && lecturerId && documentBodyId) {
-							try {
-								await documentsService.createReview(documentId, documentBodyId, {
-									lecturerUserId: lecturerId,
-									message: data.message,
-								})
-								toast.success('Version committed and sent to lecturer for review!')
-							} catch (reviewErr) {
-								console.warn('Review creation failed after commit:', reviewErr)
-								toast.success('Version committed successfully')
-							}
-						} else {
-							toast.success('Version committed successfully')
-						}
-
+						toast.success('Version committed successfully')
 						setShowCommitModal(false)
 					} catch (error) {
 						console.error('Failed to commit version:', error)
