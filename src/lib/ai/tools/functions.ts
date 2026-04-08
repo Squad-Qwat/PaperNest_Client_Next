@@ -265,7 +265,7 @@ export const executeEditorTool = async (
 		switch (toolName) {
 			case 'read_document': {
 				const { fromLine, toLine, full } = args
-				const isFull = full ?? true
+				const isFull = full === true // Use strict true to avoid truthy fallback from backend default false
 				const doc = view.state.doc
 
 				// Helper: format content with line numbers for LLM reference
