@@ -24,7 +24,7 @@ export default function DocumentEditor({
 	initialContent,
 	readOnly,
 }: DocumentEditorProps) {
-	const shouldLoad = shouldInitializeFromFirestore !== false
+	// const shouldLoad = shouldInitializeFromFirestore !== false <- not gonna be used anyway
 	
 	return (
 		<div className='w-full h-full flex-1 overflow-hidden bg-white'>

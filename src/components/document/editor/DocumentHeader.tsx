@@ -52,7 +52,6 @@ interface DocumentHeaderProps {
 	toggleAiAssistant?: () => void
 	user?: any
 	workspace?: any
-	editor?: any
 	debugContentExtraction?: any
 }
 
@@ -74,7 +73,6 @@ const DocumentHeader = ({
 	documentId,
 
 	// Editor props
-	editor,
 	onInsertSnippet,
 	getCurrentContent,
 	insertTable,
@@ -580,7 +578,7 @@ const DocumentHeader = ({
 						</Link>
 						<div className='ml-2'>
 							<Avatar className='h-8 w-8'>
-								<AvatarImage src={user && user.length > 0 ? user[0].photoURL ?? '' : ''} alt={user && user.length > 0 ? user[0].name : 'User'} />
+								<AvatarImage src={user?.photoURL ?? ''} alt={user?.name ?? 'User'} />
 								<AvatarFallback className='bg-blue-600 text-white text-xs'>
 									{getInitials(user?.name || 'U')}
 								</AvatarFallback>

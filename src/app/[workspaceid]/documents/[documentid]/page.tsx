@@ -168,7 +168,7 @@ export default function DocumentPage() {
 					operationType: 'create-checkpoint' as OperationType,
 					payload: {
 						message: 'Auto-save checkpoint',
-						userId: user.length > 0 ? user[0].userId : '',
+						userId: user?.userId ?? '',
 					},
 				},
 			]
@@ -279,7 +279,6 @@ export default function DocumentPage() {
 					workspaceId={workspaceId}
 					workspace={workspace || undefined}
 					documentId={documentId}
-					editor={editorFunctions?.visualEditor}
 					onInsertSnippet={editorFunctions?.insertSnippet}
 					getCurrentContent={editorFunctions?.getCurrentContent}
 					insertTable={editorFunctions?.insertTable}

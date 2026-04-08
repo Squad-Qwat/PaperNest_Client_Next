@@ -10,9 +10,8 @@ import type { User } from '@/lib/api/types/user.types'
 import { auth } from '@/lib/firebase/config'
 import { useAuthStore } from '@/lib/store/auth-store'
 
-export interface AuthContextType {
-  	currentUser: User | null
-	user: User[] | null
+interface AuthContextType {
+	user: User | null
 	loading: boolean
 	isAuthenticated: boolean
 	onboardingData: any | null

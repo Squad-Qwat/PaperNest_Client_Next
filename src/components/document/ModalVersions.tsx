@@ -389,7 +389,7 @@ export default function ModalVersions({
 							)}
 
 							{/* Student Request Review Button */}
-							{(user && user.length > 0 ? user[0].name : 'Student') === 'Student' && selectedVersion && !selectedVersion.review && (
+							{(user?.name ?? 'Student') === 'Student' && selectedVersion && !selectedVersion.review && (
 								<Button
 									className='w-full'
 									variant='outline'
