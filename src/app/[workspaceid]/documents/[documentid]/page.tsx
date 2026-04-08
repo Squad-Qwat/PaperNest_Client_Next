@@ -1,7 +1,7 @@
 'use client'
 
-import { useParams, useRouter } from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import AIAssistant from '@/components/document/ai/AIAssistant'
 import DynamicContentPanel from '@/components/document/DynamicContentPanel'
@@ -29,6 +29,14 @@ export default function DocumentPage() {
 
 	const { user, loading: authLoading } = useAuth()
 	const isMobile = useIsMobile()
+	const searchParams = useSearchParams()
+
+	// Logic for Read Only: mode is review or user is Lecturer
+	const isReadOnly = useMemo(() => {
+		if (searchParams.get('mode') === 'review') return true
+		if (user?.role === 'Lecturer') return true
+		return false
+	}, [searchParams, user])
 
 	// State Management
 	const [title, setTitle] = useState('')
@@ -65,6 +73,17 @@ export default function DocumentPage() {
 	// Derived Data
 	const documentData = documentWithRoomData?.document || null
 	const _activeUsersInRoom = documentWithRoomData?.room?.activeUsers || 0
+	const initialContent = useMemo(() => {
+		const savedContent = documentData?.savedContent
+		if (typeof savedContent === 'string' && savedContent.trim().length > 0) {
+			return savedContent
+		}
+		const versionContent = documentWithRoomData?.currentVersion?.content
+		if (typeof versionContent === 'string' && versionContent.trim().length > 0) {
+			return versionContent
+		}
+		return ''
+	}, [documentData?.savedContent, documentWithRoomData?.currentVersion?.content])
 
 	// Sync title when document loads
 	useEffect(() => {
@@ -275,6 +294,7 @@ export default function DocumentPage() {
 					viewMode={editorFunctions?.viewMode}
 					toggleViewMode={editorFunctions?.toggleViewMode}
 					visualEditor={editorFunctions?.visualEditor}
+					editor={editorFunctions?.editor}
 					compilerMode={editorFunctions?.compilerMode}
 					onCompilerModeChange={editorFunctions?.setCompilerMode}
 					debugContentExtraction={editorFunctions?.debugContentExtraction}
@@ -303,6 +323,8 @@ export default function DocumentPage() {
 							user={Array.isArray(user) ? user[0] : user}
 							onEditorReady={onEditorReady}
 							isPdfHidden={isPdfHidden}
+							initialContent={initialContent}
+							readOnly={isReadOnly}
 						/>
 
 						<AIAssistant

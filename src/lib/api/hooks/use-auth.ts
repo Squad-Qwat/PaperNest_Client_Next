@@ -21,7 +21,6 @@ export const AUTH_KEYS = {
 	user: ['currentUser'] as const,
 }
 
-// Ensure token is set on API client and react-query is updated
 const handleAuthSuccess = (queryClient: any, response: any) => {
 	const accessToken = response.token || response.accessToken
 	if (accessToken) {
@@ -69,14 +68,10 @@ export function useRegister() {
 		mutationFn: (data: RegisterDto) => authService.register(data),
 		onSuccess: async (response) => {
 			if (response.isVerificationRequired && response.firebaseToken) {
-				// Sign in with the custom token so auth.currentUser is populated
 				const result = await signInWithCustomToken(auth, response.firebaseToken)
-
-				// Trigger native Firebase email verification from the client
 				await sendEmailVerification(result.user, {
 					url: `${window.location.origin}/login`,
 				})
-
 				toast.success('Pendaftaran berhasil! Silakan cek email Anda untuk verifikasi.')
 				router.push('/auth/verify-email')
 				return
@@ -88,9 +83,6 @@ export function useRegister() {
 	})
 }
 
-/**
- * Hook to finalize registration after clicking verification link
- */
 export function useVerifyCompletion() {
 	const queryClient = useQueryClient()
 	const router = useRouter()
@@ -99,14 +91,8 @@ export function useVerifyCompletion() {
 		mutationFn: async () => {
 			const user = auth.currentUser
 			if (!user) throw new Error('NO_USER_FOUND')
-
-			// Force reload to get fresh emailVerified status
 			await reload(user)
-
-			if (!user.emailVerified) {
-				throw new Error('EMAIL_NOT_VERIFIED')
-			}
-
+			if (!user.emailVerified) throw new Error('EMAIL_NOT_VERIFIED')
 			const idToken = await user.getIdToken(true)
 			return authService.finalizeRegistration({ firebaseToken: idToken })
 		},
@@ -122,10 +108,13 @@ export function useLoginEmail() {
 	const router = useRouter()
 
 	return useMutation({
-		mutationFn: async (data: LoginEmailDto) => {
+		mutationFn: async (data: LoginEmailDto & { turnstileToken?: string }) => {
 			const result = await signInWithEmailAndPassword(auth, data.email, data.password)
 			const idToken = await result.user.getIdToken()
-			return authService.login({ firebaseToken: idToken })
+			return authService.login({
+				firebaseToken: idToken,
+				turnstileToken: data.turnstileToken,
+			})
 		},
 		onSuccess: (response) => {
 			if (response.isVerificationRequired) {
@@ -138,10 +127,7 @@ export function useLoginEmail() {
 	})
 }
 
-/**
- * Clean Code: Logic extraction for Social Sign In
- */
-async function performSocialSignIn(providerName: SocialProviderName) {
+async function performSocialSignIn(providerName: SocialProviderName, turnstileToken?: string) {
 	const config = getAuthProvider(providerName)
 	const provider = config.create()
 
@@ -149,22 +135,21 @@ async function performSocialSignIn(providerName: SocialProviderName) {
 		const result = await signInWithPopup(auth, provider)
 		const idToken = await result.user.getIdToken()
 		const accessToken = config.getAccessToken ? config.getAccessToken(result) : undefined
-
-		const response = await authService.loginSocial({ firebaseToken: idToken, accessToken })
+		const response = await authService.loginSocial({
+			firebaseToken: idToken,
+			accessToken,
+			turnstileToken,
+		})
 		return { response, idToken }
 	} catch (error: any) {
 		if (error.code === 'auth/account-exists-with-different-credential') {
 			const email = error.customData?.email
 			if (!email) throw error
-
 			const pendingCred = config.getCredentialFromError(error)
 			const methods = await fetchSignInMethodsForEmail(auth, email)
 			const socialMethod = methods.find((m) => m !== 'password' && m !== 'emailLink')
 			const targetMethod = socialMethod || (methods.length === 0 ? 'google.com' : null)
-
 			if (!targetMethod) throw new Error('PASSWORD_CONFLICT')
-
-			// Throw custom error with metadata for the hook to catch and store in state
 			const conflictError = new Error('ACCOUNT_EXISTS_CONFLICT') as any
 			conflictError.payload = { email, pendingCred, targetMethod, providerName }
 			throw conflictError
@@ -173,23 +158,21 @@ async function performSocialSignIn(providerName: SocialProviderName) {
 	}
 }
 
-/**
- * Clean Code: Logic extraction for Account Linking
- */
-async function performAccountLinking(linkingSession: any) {
+async function performAccountLinking(linkingSession: any, turnstileToken?: string) {
 	const targetConfig = getAuthProvider(linkingSession.targetMethod)
 	const providerConfig = getAuthProvider(linkingSession.providerName)
-
 	const existingProvider = targetConfig.create()
 	const existingResult = await signInWithPopup(auth, existingProvider)
 	const result: any = await linkWithCredential(existingResult.user, linkingSession.pendingCred)
-
 	const idToken = await result.user.getIdToken()
 	const accessToken = providerConfig.getAccessToken
 		? providerConfig.getAccessToken(result)
 		: undefined
-
-	const response = await authService.loginSocial({ firebaseToken: idToken, accessToken })
+	const response = await authService.loginSocial({
+		firebaseToken: idToken,
+		accessToken,
+		turnstileToken,
+	})
 	return { response, idToken }
 }
 
@@ -203,7 +186,14 @@ export function useSignInWithSocial({
 	const [linkingSession, setLinkingSession] = useState<any>(null)
 
 	const socialSignin = useMutation({
-		mutationFn: (providerName: SocialProviderName) => performSocialSignIn(providerName),
+		mutationFn: ({
+			providerName,
+			turnstileToken,
+		}: {
+			providerName: SocialProviderName
+			turnstileToken?: string
+		}) => performSocialSignIn(providerName, turnstileToken),
+		meta: { errorMessage: false },
 		onError: (error: any) => {
 			if (error.message === 'ACCOUNT_EXISTS_CONFLICT' && error.payload) {
 				setLinkingSession(error.payload)
@@ -221,11 +211,11 @@ export function useSignInWithSocial({
 	})
 
 	const linkMutation = useMutation({
-		mutationFn: () => {
+		mutationFn: (turnstileToken?: string) => {
 			if (!linkingSession) throw new Error('No linking session')
-			return performAccountLinking(linkingSession)
+			return performAccountLinking(linkingSession, turnstileToken)
 		},
-		onSuccess: ({ response, idToken: _idToken }) => {
+		onSuccess: ({ response }) => {
 			setLinkingSession(null)
 			handleAuthSuccess(queryClient, response)
 			router.push('/')
@@ -246,8 +236,6 @@ export function useCompleteSocialRegistration({
 	clearOnboardingData?: () => void
 } = {}) {
 	const queryClient = useQueryClient()
-	const _router = useRouter()
-
 	return useMutation({
 		mutationFn: (data: { firebaseToken: string; username: string; role: string; email?: string }) =>
 			authService.completeSocialRegistration(data),

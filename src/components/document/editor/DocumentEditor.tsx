@@ -10,7 +10,8 @@ interface DocumentEditorProps {
 	user: User | null
 	onEditorReady: (functions: any) => void
 	isPdfHidden?: boolean
-	shouldInitializeFromFirestore?: boolean
+	initialContent?: string
+	readOnly?: boolean
 }
 
 // Komponen Editor yang ada di dalam Room
@@ -20,7 +21,8 @@ export default function DocumentEditor({
 	user,
 	onEditorReady,
 	isPdfHidden,
-	shouldInitializeFromFirestore,
+	initialContent,
+	readOnly,
 }: DocumentEditorProps) {
 	const shouldLoad = shouldInitializeFromFirestore !== false
 	
@@ -29,10 +31,11 @@ export default function DocumentEditor({
 			<LatexEditor 
 				documentId={document?.documentId}
 				user={user}
-				initialContent={shouldLoad ? document?.savedContent : undefined}
+				initialContent={initialContent}
 				title={title}
 				onEditorReady={onEditorReady}
 				isPdfHidden={isPdfHidden}
+				readOnly={readOnly}
 			/>
 		</div>
 	)

@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth, useDocuments } from "@/lib/store";
-import { Navbar } from "@/components/layout/navbar";
+import { Navbar } from "@/components/layout/Navbar";
 import { SearchInput } from "@/components/ui/search-input";
 import { StatusBadge } from "@/components/ui/badge";
 import { Modal, ModalFooter } from "@/components/ui/modal";
@@ -14,7 +14,7 @@ import type { ReviewStatus } from "@/types";
 export default function ReviewsPage() {
   const params = useParams();
   const router = useRouter();
-  const { currentUser } = useAuth();
+  const { user: currentUser } = useAuth();
   const { getDocument, addReview, deleteReview } = useDocuments();
 
   const [searchQuery, setSearchQuery] = useState("");

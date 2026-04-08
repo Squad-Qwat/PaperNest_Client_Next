@@ -27,8 +27,8 @@ class UsersService {
 	/**
 	 * Update user profile
 	 */
-	async update(userId: string, data: UpdateUserDto): Promise<User> {
-		return apiClient.put<User>(API_ENDPOINTS.users.byId(userId), data)
+	async update(userId: string, data: UpdateUserDto): Promise<{ user: User }> {
+		return apiClient.put<{ user: User }>(API_ENDPOINTS.users.byId(userId), data)
 	}
 
 	/**

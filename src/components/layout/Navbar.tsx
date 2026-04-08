@@ -1,6 +1,6 @@
 'use client'
 
-import { Bell, LogOut, Settings, Slash, User } from 'lucide-react'
+import { LogOut, Settings, Slash, User } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -22,7 +22,7 @@ interface NavbarProps {
 	documentId?: string
 }
 
-export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
+export function Navbar({ mode = 'workspace', documentId }: Readonly<NavbarProps>) {
 	const pathname = usePathname()
 	const router = useRouter()
 	const params = useParams()
@@ -122,17 +122,6 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 
 						{/* User Actions */}
 						<div className='hidden md:flex items-center gap-3'>
-							{/* Notifications Button */}
-							<button
-								type='button'
-								onClick={() => router.push('/notifications')}
-								className='p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors'
-								aria-label='Notifications'
-								title='Notifications'
-							>
-								<Bell className='w-5 h-5' />
-							</button>
-
 							{/* User Menu Dropdown */}
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>

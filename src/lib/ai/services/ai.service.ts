@@ -1,31 +1,16 @@
+import { API_CONFIG } from '../../api/config'
 import type { AIStreamPayload } from '../types/chat'
 
 /**
  * AI Service
- * Handles SSE streaming requests to the backend.
- *
- * NOTE: This service bypasses the standard apiClient/HttpClient because:
- * 1. SSE streaming requires direct access to the ReadableStream.
- * 2. Next.js local API proxy (/api) may buffer responses, breaking realtime streaming.
- * 3. Standard HttpClient has set timeouts (e.g., 10s) which are too short for AI reasoning.
+ * Handles SSE streaming requests and RAG operations.
  */
-
-const getBackendUrl = () => {
-	// Consistently resolve backend URL from environment variables
-	const url = process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '')
-	if (!url) {
-		console.warn('[AIService] NEXT_PUBLIC_API_URL not set, falling back to localhost:3000')
-		return 'http://localhost:3000/api'
-	}
-	return url
-}
-
 export const aiService = {
 	/**
 	 * Initiates a streaming chat request to the AI backend
 	 */
 	async streamChat(payload: AIStreamPayload, signal: AbortSignal): Promise<ReadableStream> {
-		const backendUrl = getBackendUrl()
+		const backendUrl = API_CONFIG.directBackendURL
 
 		console.log(`[AIService] Starting stream request to ${backendUrl}/ai/stream`)
 
@@ -33,7 +18,6 @@ export const aiService = {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
-				// Support for ngrok if applicable (matches HttpClient pattern)
 				'ngrok-skip-browser-warning': 'true',
 			},
 			body: JSON.stringify({
@@ -44,7 +28,6 @@ export const aiService = {
 		})
 
 		if (!response.ok) {
-			// Try to parse error message if available
 			let errorMsg = `AI Stream Request failed: ${response.status} ${response.statusText}`
 			try {
 				const errorData = await response.json()
@@ -66,15 +49,23 @@ export const aiService = {
 	 * Trigger PDF indexing for RAG
 	 */
 	async indexPDF(documentId: string, fileKey: string) {
-		const backendUrl = getBackendUrl()
+		const backendUrl = API_CONFIG.baseURL
 		try {
 			const response = await fetch(`${backendUrl}/ai/rag/index`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ documentId, fileKey }),
 			})
-			return await response.json()
-		} catch (error) {
+
+			if (!response.ok) {
+				const errorData = await response.json()
+				throw new Error(errorData.error || 'Failed to index PDF')
+			}
+
+			const result = await response.json()
+			// SSOT: Always unwrap .data from backend responses
+			return result.data || result
+		} catch (error: any) {
 			console.error('[AIService] Indexing error:', error)
 			throw error
 		}

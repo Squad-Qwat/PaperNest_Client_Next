@@ -1,7 +1,8 @@
-import { ChevronLeft, GitCommit, History, MessageSquare, Quote, Share2 } from 'lucide-react'
+import { ChevronLeft, GitCommit, History, MessageSquare, Share2, Quote } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import LatexToolbar from '@/components/document/latex/LatexToolbar'
 import { CommitModal } from '@/components/document/mergeview/CommitModal'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -9,8 +10,10 @@ import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAuth } from '@/context/AuthContext'
 import { useDocumentReviews } from '@/lib/api/hooks/use-documents'
+import { useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
 import { documentsService } from '@/lib/api/services/documents.service'
 import { CitationsManager } from '@/components/document/CitationsManager'
+import { getInitials } from '@/lib/utils'
 
 interface DocumentHeaderProps {
 	title: string
@@ -40,6 +43,7 @@ interface DocumentHeaderProps {
 	viewMode: 'source' | 'visual'
 	toggleViewMode: () => void
 	visualEditor: any
+	editor?: any
 	visibleCollaborators: any[]
 	hiddenCollaboratorsCount: number
 	compilerMode: 'client' | 'server' | 'server_pdflatex'
@@ -83,19 +87,22 @@ const DocumentHeader = ({
 	viewMode,
 	toggleViewMode,
 	visualEditor,
+	editor,
 	visibleCollaborators,
 	hiddenCollaboratorsCount,
 	compilerMode,
 	onCompilerModeChange,
 	aiAssistantOpen,
 	toggleAiAssistant,
+	workspace,
 }: DocumentHeaderProps) => {
 	const router = useRouter()
 	const { user } = useAuth()
 	const [showCommitModal, setShowCommitModal] = useState(false)
+	const [isCitationModalOpen, setIsCitationModalOpen] = useState(false);
 	const { data: reviewsResponse } = useDocumentReviews(documentId)
-	const [isCitationModalOpen, setIsCitationModalOpen] = useState(false)
-	const [citations, setCitations] = useState([])
+
+	const { data: membersResponse } = useWorkspaceMembers(workspaceId)
 
 	// Safely determine pending reviews
 	const reviews = Array.isArray(reviewsResponse)
@@ -106,13 +113,11 @@ const DocumentHeader = ({
 	const canCommit = !pendingReview
 	const commitBlockReason = pendingReview ? 'Waiting for pending review' : null
 
-	/* 
-		const deleteCitation = (id: string) => {
-        	setCitations((prev) => prev.filter(c => c.id !== id))
-    	} 
-	*/
+	// Find a lecturer to assign the review to
+	const members = membersResponse?.members || []
+	const lecturerMember = members.find((m: any) => m.user?.role === 'Lecturer')
+	const actualLecturerId = lecturerMember?.user?.userId || workspace?.ownerId
 
-	
 	const insertCitationAtCursor = (cit: any) => {
 		if (!editor) return
 		editor.chain().focus().insertContent(`(${cit.author}, ${cit.year})`).run()
@@ -487,7 +492,7 @@ const DocumentHeader = ({
 													className='text-xs font-semibold text-white'
 													style={{ backgroundColor: collaborator.color }}
 												>
-													{collaborator.name.charAt(0).toUpperCase()}
+													{getInitials(collaborator.name)}
 												</AvatarFallback>
 											</Avatar>
 										))}
@@ -543,6 +548,15 @@ const DocumentHeader = ({
 						<Button
 							variant='ghost'
 							size='icon'
+							onClick={() => setIsCitationModalOpen(true)}
+							title='Citations'
+						>
+							<Quote className='h-5 w-5' />
+						</Button>
+
+						<Button
+							variant='ghost'
+							size='icon'
 							onClick={toggleAiAssistant}
 							className={aiAssistantOpen ? 'bg-primary/20 text-primary' : ''}
 						>
@@ -568,7 +582,7 @@ const DocumentHeader = ({
 							<Avatar className='h-8 w-8'>
 								<AvatarImage src={user && user.length > 0 ? user[0].photoURL ?? '' : ''} alt={user && user.length > 0 ? user[0].name : 'User'} />
 								<AvatarFallback className='bg-blue-600 text-white text-xs'>
-									{user && user.length > 0 ? user[0].name.charAt(0) : 'U'}
+									{getInitials(user?.name || 'U')}
 								</AvatarFallback>
 							</Avatar>
 						</div>
@@ -582,17 +596,34 @@ const DocumentHeader = ({
 				onClose={() => setShowCommitModal(false)}
 				onCommit={async (data) => {
 					try {
-						// We also need content usually, but the API doc says content string.
-						// If editor content is available, pass it.
 						const content = getCurrentContent ? getCurrentContent() : ''
-						await documentsService.createVersion(documentId, {
+						const versionRes = await documentsService.createVersion(documentId, {
 							message: data.message,
 							content: content,
 						})
-						// Refresh versions or notify success
+
+						// Automatically create a review request after committing,
+						// so it appears in the lecturer's review list.
+						const isStudent = user?.role?.toLowerCase() === 'student'
+						const lecturerId = actualLecturerId
+						const documentBodyId = versionRes?.version?.documentBodyId
+
+						if (isStudent && lecturerId && documentBodyId) {
+							try {
+								await documentsService.createReview(documentId, documentBodyId, {
+									lecturerUserId: lecturerId,
+									message: data.message,
+								})
+								toast.success('Version committed and sent to lecturer for review!')
+							} catch (reviewErr) {
+								console.warn('Review creation failed after commit:', reviewErr)
+								toast.success('Version committed successfully')
+							}
+						} else {
+							toast.success('Version committed successfully')
+						}
+
 						setShowCommitModal(false)
-						// TODO: trigger version refresh if needed
-						// Maybe toast.success('Version created')
 					} catch (error) {
 						console.error('Failed to commit version:', error)
 						throw error // Re-throw so Modal can handle it/show error
@@ -600,12 +631,11 @@ const DocumentHeader = ({
 				}}
 			/>
 
+			{/* Citation manager */}
 			<CitationsManager 
 				isOpen={isCitationModalOpen}
 				onClose={() => setIsCitationModalOpen(false)}
-				// citations={citations}
-				initialView= 'list'
-				// onDelete={deleteCitation}
+				initialView='list'
 				onInsert={insertCitationAtCursor}
 			/>
 

@@ -47,6 +47,7 @@ const EditorToolbar = ({
 	const [hoveredStyle, setHoveredStyle] = useState(null)
 	const [mounted, setMounted] = useState(false)
 	const [_updateTrigger, setUpdateTrigger] = useState(0)
+	const [isCitationModalOpen, setIsCitationModalOpen] = useState(false)
 	const fontFamilyRef = useRef(null)
 	const textStyleRef = useRef(null)
 	const lineSpacingRef = useRef(null)
@@ -985,23 +986,11 @@ const EditorToolbar = ({
 		}
 	}
 
-	const editCitation = (cit) => {
+	const insertCitation = (cit: Parameters<NonNullable<React.ComponentProps<typeof CitationsManager>['onInsert']>>[0]) => {
 		if (!editor) return
 		editor.chain().focus().insertContent(`(${cit.author}, ${cit.year})`).run()
 		setIsCitationModalOpen(false)
 	}
-
-	/*
-	const addCitation = (newCit) => {
-		const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-        const citationWithId = { ...newCit, id: id}
-        setCitations((prev) => [...prev, citationWithId])
-    }
-
-	const deleteCitation = (id) => {
-		setCitations((prev) => prev.filter((c) => c.id !== id))
-	}
-	*/
 
 	return (
 		<div className='bg-white border-t border-gray-200 px-11 py-1 sticky top-0 z-[1002] transition-all duration-300'>
@@ -1531,37 +1520,25 @@ const EditorToolbar = ({
 					<FileDown className='h-4 w-4' />
 					Export DOCX
 				</Button>
+
 				<Button
 					variant='ghost'
 					size='sm'
 					onClick={() => setIsCitationModalOpen(true)}
 					className='text-xs flex items-center gap-1'
-					title='Manage Citations'
+					title='Add citation'
 					disabled={!editor}
 				>
-					<CitationsManager className='h-4 w-4'/>
+					<Quote className='h-4 w-4' />
 					Sitasi
 				</Button>
 			</div>
-
 			<CitationsManager
 				isOpen={isCitationModalOpen}
 				onClose={() => setIsCitationModalOpen(false)}
-				// citations={citations}
-				initialView= 'add'
-				//onAdd={addCitation}
-				//onDelete={deleteCitation}
-				onInsert={editCitation}
+				initialView='add'
+				onInsert={insertCitation}
 			/>
-			
-			{/* 
-			<ModalAddCitations
-				isOpen={isCitationModalOpen}
-				onClose={() => setIsCitationModalOpen(false)}
-				citations={citations}
-				onAdd={addCitation}
-			/> 
-			*/}
 		</div>
 	)
 }

@@ -1,62 +1,44 @@
-/**
- * Review Types
- * Types for review-related API operations
- */
+export type ReviewStatus = 'pending' | 'approved' | 'revision_required' | 'rejected'
 
-// Import jika perlu, misal: import type { User } from './user.types'
-
-/**
- * Review Status Type
- */
-export type ReviewStatus = 'pending' | 'approved' | 'revision_required' | 'rejected' | 'Pending' | 'Approved' | 'Revision_required' | 'Rejected'
-
-/**
- * Review Interface
- * (Matches Backend Schema)
- */
 export interface Review {
 	reviewId: string
-	documentBodyId: string // Connected Version ID
+	documentBodyId: string
 	documentId: string
+	versionNumber?: number
 	lecturerUserId: string
 	studentUserId: string
+	student?: {
+		name: string
+		photoURL: string | null
+	}
+	lecturer?: {
+		name: string
+		photoURL: string | null
+	}
 	message: string
+	lecturerMessage?: string
 	status: ReviewStatus
-	requestedAt: string // ISO Date String
-	reviewedAt: string | null // ISO Date String
+	requestedAt: string
+	reviewedAt: string | null
 	createdAt: string
 	updatedAt: string
 }
 
-/**
- * Create Review Request DTO
- * Payload for POST /api/documents/:docId/versions/:verId/reviews
- */
 export interface CreateReviewDto {
 	lecturerUserId: string
 	message?: string
 }
 
-/**
- * Update Review Status DTO
- * Payload for POST approve/reject/request-revision
- */
 export interface UpdateReviewStatusDto {
-	message?: string // Optional feedback message
+	status?: string
+	message?: string
 }
 
-/**
- * Reviews Response
- * Standard response for list endpoints
- */
 export interface ReviewsResponse {
 	reviews: Review[]
 	count: number
 }
 
-/**
- * Single Review Response
- */
 export interface ReviewResponse {
 	review: Review
 }

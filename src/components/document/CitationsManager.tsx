@@ -27,7 +27,7 @@ interface CitationsManagerProps {
 
 export function CitationsManager({ isOpen, onClose, initialView = 'list' ,onInsert }: CitationsManagerProps) {
     const [citations, setCitations] = useState<Citation[]>([]);
-    // const [view, setView] = useState<'list' | 'add'>('list');
+    // const [view, setView] = useState<'list' | 'add'>('qlist');
     const [view, setView] = useState<View>(initialView);
     const [newCit, setNewCit] = useState({ sourceTitle: '', author: '', year: '' });
     const [editingCit, setEditingCit] = useState<Citation | null>(null);

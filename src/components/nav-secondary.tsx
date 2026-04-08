@@ -1,8 +1,8 @@
 'use client'
 
 import type { Icon } from '@tabler/icons-react'
+import Link from 'next/link'
 import type * as React from 'react'
-
 import {
 	SidebarGroup,
 	SidebarGroupContent,
@@ -35,10 +35,10 @@ export function NavSecondary({
 										<span>{item.title}</span>
 									</div>
 								) : (
-									<a href={item.url}>
+									<Link href={item.url}>
 										<item.icon className='size-4' />
 										<span>{item.title}</span>
-									</a>
+									</Link>
 								)}
 							</SidebarMenuButton>
 						</SidebarMenuItem>

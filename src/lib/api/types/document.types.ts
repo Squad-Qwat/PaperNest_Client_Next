@@ -26,6 +26,7 @@ export interface CreateDocumentDto {
 	title: string
 	description?: string
 	savedContent?: any // TipTap JSON content (optional on create)
+	templateId?: string
 }
 
 /**

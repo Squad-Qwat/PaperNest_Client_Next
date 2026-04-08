@@ -34,7 +34,7 @@ interface Citation {
 export default function CitationPage() {
 	const params = useParams()
 	const router = useRouter()
-	const { currentUser } = useAuth()
+	const { user: currentUser } = useAuth()
 
 	const [document, setDocument] = useState<any | null>(null)
 	const [citations, setCitations] = useState<Citation[]>([])

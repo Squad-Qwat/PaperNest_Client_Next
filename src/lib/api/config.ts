@@ -1,27 +1,17 @@
-/**
- * API Configuration
- * Centralized configuration for API client
- */
-
 export const API_CONFIG = {
-	// On client side, we use the local /api proxy. On the server side, we can safely hit the API directly.
 	baseURL:
 		typeof window !== 'undefined'
 			? '/api'
 			: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
-	timeout: 10000, // 10 seconds
+	directBackendURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
+	timeout: 10000,
 	retryAttempts: 3,
 	headers: {
 		'Content-Type': 'application/json',
 	},
 } as const
 
-/**
- * API Endpoints
- * Centralized endpoint paths
- */
 export const API_ENDPOINTS = {
-	// Authentication
 	auth: {
 		register: '/auth/register',
 		login: '/auth/login',
@@ -31,18 +21,13 @@ export const API_ENDPOINTS = {
 		me: '/auth/me',
 		deleteAccount: '/auth/account',
 		updateEmail: '/auth/email',
-		// sonar: intentional - API endpoint path, not a secret password
 		passwordReset: '/auth/password/reset',
 	},
-
-	// Users
 	users: {
 		base: '/users',
 		search: '/users/search',
 		byId: (userId: string) => `/users/${userId}`,
 	},
-
-	// Workspaces
 	workspaces: {
 		base: '/workspaces',
 		byId: (workspaceId: string) => `/workspaces/${workspaceId}`,
@@ -51,14 +36,10 @@ export const API_ENDPOINTS = {
 		member: (workspaceId: string, userWorkspaceId: string) =>
 			`/workspaces/${workspaceId}/members/${userWorkspaceId}`,
 	},
-
-	// Invitations
 	invitations: {
 		base: '/invitations',
 		byId: (userWorkspaceId: string) => `/invitations/${userWorkspaceId}`,
 	},
-
-	// Documents
 	documents: {
 		myDocuments: '/documents/my-documents',
 		byWorkspace: (workspaceId: string) => `/workspaces/${workspaceId}/documents`,
@@ -74,16 +55,18 @@ export const API_ENDPOINTS = {
 		revert: (documentId: string, versionNumber: number) =>
 			`/documents/${documentId}/versions/${versionNumber}/revert`,
 	},
-
-	// Reviews
 	reviews: {
-		student: '/reviews', // Endpoint for Student
-		lecturer: '/reviews/pending', // Endpoint for Lecturer (Pending Reviews)
+		student: '/reviews',
+		lecturer: '/reviews/pending',
 		byDocument: (documentId: string) => `/documents/${documentId}/reviews`,
 		create: (documentId: string, documentBodyId: string) =>
 			`/documents/${documentId}/versions/${documentBodyId}/reviews`,
 		approve: (reviewId: string) => `/reviews/${reviewId}/approve`,
 		reject: (reviewId: string) => `/reviews/${reviewId}/reject`,
 		requestRevision: (reviewId: string) => `/reviews/${reviewId}/request-revision`,
+	},
+	templates: {
+		base: '/templates',
+		byId: (templateId: string) => `/templates/${templateId}`,
 	},
 } as const
