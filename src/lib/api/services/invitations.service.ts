@@ -5,11 +5,7 @@
 
 import { apiClient } from '../clients/api-client'
 import { API_ENDPOINTS } from '../config'
-import type {
-	Invitation,
-	UpdateInvitationDto,
-	InvitationsResponse,
-} from '../types/invitation.types'
+import type { Invitation, UpdateInvitationDto } from '../types/invitation.types'
 
 class InvitationsService {
 	/**

@@ -1,7 +1,7 @@
 'use client'
 
-import { ReactNode, useCallback } from 'react'
-import { LiveblocksProvider, RoomProvider, ClientSideSuspense } from '@liveblocks/react/suspense'
+import { ClientSideSuspense, LiveblocksProvider, RoomProvider } from '@liveblocks/react/suspense'
+import { type ReactNode, useCallback } from 'react'
 import { getDocumentRoomId } from '@/lib/liveblocks/config'
 
 type RoomProps = {
@@ -13,33 +13,38 @@ type RoomProps = {
 export function Room({ documentId, children, fallback }: RoomProps) {
 	const roomId = getDocumentRoomId(documentId)
 
-	const authEndpoint = useCallback(async (room?: string) => {
-		const token = localStorage.getItem('accessToken')
+	const authEndpoint = useCallback(
+		async (room?: string) => {
+			const token = localStorage.getItem('accessToken')
 
-		if (!token) {
-			throw new Error('No authentication token found')
-		}
+			if (!token) {
+				throw new Error('No authentication token found')
+			}
 
-		const response = await fetch('/api/liveblocks-auth', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				Authorization: `Bearer ${token}`,
-			},
-			body: JSON.stringify({ room: room ?? roomId }),
-		})
+			const response = await fetch('/api/liveblocks-auth', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${token}`,
+				},
+				body: JSON.stringify({ room: room ?? roomId }),
+			})
 
-		if (!response.ok) {
-			throw new Error('Authentication failed')
-		}
+			if (!response.ok) {
+				throw new Error('Authentication failed')
+			}
 
-		return await response.json()
-	}, [])
+			return await response.json()
+		},
+		[roomId]
+	)
 
 	return (
 		<LiveblocksProvider authEndpoint={authEndpoint}>
 			<RoomProvider id={roomId}>
-				<ClientSideSuspense fallback={fallback || <div>Loading…</div>}>{children}</ClientSideSuspense>
+				<ClientSideSuspense fallback={fallback || <div>Loading…</div>}>
+					{children}
+				</ClientSideSuspense>
 			</RoomProvider>
 		</LiveblocksProvider>
 	)

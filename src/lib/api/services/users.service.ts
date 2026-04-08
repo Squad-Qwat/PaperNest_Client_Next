@@ -5,8 +5,8 @@
 
 import { apiClient } from '../clients/api-client'
 import { API_ENDPOINTS } from '../config'
+import type { UpdateUserDto, User, UserSearchParams, UserSearchResult } from '../types/user.types'
 import { withQuery } from '../utils/query-builder'
-import type { User, UpdateUserDto, UserSearchParams, UserSearchResult } from '../types/user.types'
 
 class UsersService {
 	/**

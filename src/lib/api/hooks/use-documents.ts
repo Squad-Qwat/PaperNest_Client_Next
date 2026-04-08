@@ -1,13 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { documentsService } from '../services/documents.service'
+import type { BatchOperationRequest } from '../types/batchOperation.types'
 import type {
 	CreateDocumentDto,
-	UpdateDocumentDto,
-	UpdateDocumentContentDto,
 	DocumentSearchParams,
+	UpdateDocumentContentDto,
+	UpdateDocumentDto,
 } from '../types/document.types'
 import type { CreateReviewDto, UpdateReviewStatusDto } from '../types/review.types'
-import type { BatchOperationRequest } from '../types/batchOperation.types'
 
 export const DOCUMENT_KEYS = {
 	all: ['documents'] as const,
@@ -97,6 +98,7 @@ export function useCreateDocument() {
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.workspace(variables.workspaceId) })
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.myDocuments() })
+			toast.success('Dokumen berhasil dibuat!')
 		},
 	})
 }
@@ -117,6 +119,7 @@ export function useUpdateDocument() {
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.detail(variables.documentId) })
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.workspace(variables.workspaceId) })
+			toast.success('Perubahan dokumen berhasil disimpan.')
 		},
 	})
 }
@@ -151,6 +154,7 @@ export function useDeleteDocument() {
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.workspace(variables.workspaceId) })
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.myDocuments() })
 			queryClient.removeQueries({ queryKey: DOCUMENT_KEYS.detail(variables.documentId) })
+			toast.success('Dokumen berhasil dihapus.')
 		},
 	})
 }
@@ -164,6 +168,7 @@ export function useRevertVersion() {
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.detail(variables.documentId) })
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.versions(variables.documentId) })
+			toast.success(`Berhasil mengembalikan ke versi ${variables.versionNumber}.`)
 		},
 	})
 }
@@ -172,13 +177,8 @@ export function useBatchUpdateDocument() {
 	const queryClient = useQueryClient()
 
 	return useMutation({
-		mutationFn: ({
-			documentId,
-			request,
-		}: {
-			documentId: string
-			request: BatchOperationRequest
-		}) => documentsService.batchUpdateDocument(documentId, request),
+		mutationFn: ({ documentId, request }: { documentId: string; request: BatchOperationRequest }) =>
+			documentsService.batchUpdateDocument(documentId, request),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.detail(variables.documentId) })
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.versions(variables.documentId) })
@@ -226,7 +226,16 @@ export function useReviewAction() {
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.pendingReviews() })
-			queryClient.invalidateQueries({ queryKey: ['reviews'] }) 
+			queryClient.invalidateQueries({ queryKey: ['reviews'] })
 		},
+	})
+}
+
+export function useDocumentWithRoomState(documentId: string) {
+	return useQuery({
+		queryKey: [...DOCUMENT_KEYS.detail(documentId), 'room-state'] as const,
+		queryFn: () => documentsService.getDocumentWithRoomState(documentId),
+		enabled: !!documentId,
+		retry: 1,
 	})
 }

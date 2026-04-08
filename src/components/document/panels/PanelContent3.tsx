@@ -1,7 +1,7 @@
 'use client'
 
-import React from 'react'
 import { BookOpen } from 'lucide-react'
+import type React from 'react'
 
 const PanelContent3: React.FC = () => {
 	return (

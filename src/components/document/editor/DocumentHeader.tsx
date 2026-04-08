@@ -1,21 +1,61 @@
-import { ChevronLeft, GitCommit, History, MessageSquare, RefreshCw, Share2, X } from 'lucide-react'
+import { ChevronLeft, GitCommit, History, MessageSquare, Quote, Share2 } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { CommitModal } from '@/components/document/mergeview/CommitModal'
 import LatexToolbar from '@/components/document/latex/LatexToolbar'
-import { Button } from '@/components/ui/button'
+import { CommitModal } from '@/components/document/mergeview/CommitModal'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { useAuth } from '@/context/AuthContext'
 import { useDocumentReviews } from '@/lib/api/hooks/use-documents'
 import { documentsService } from '@/lib/api/services/documents.service'
-import { SidebarTrigger } from '@/components/ui/sidebar'
-import { Separator } from '@/components/ui/separator'
+import { CitationsManager } from '@/components/document/CitationsManager'
+
+interface DocumentHeaderProps {
+	title: string
+	setTitle: (title: string) => void
+
+	handleSave: () => void
+	isSaving: boolean
+	isAutoSaving: boolean
+	lastSavedAt?: string | number | Date
+	activeDropdown: string | null
+	toggleDropdown: (dropdown: string | null) => void
+	paperSize: string
+	setPaperSize: (size: string) => void
+	paperSizeSubmenuOpen: boolean
+	setPaperSizeSubmenuOpen: (open: boolean) => void
+	workspaceId: string
+	documentId: string
+	onInsertSnippet: (snippet: string) => void
+	getCurrentContent: () => string
+	insertTable: (rows?: number, cols?: number) => void
+	undo: () => void
+	redo: () => void
+	canUndo: boolean
+	canRedo: boolean
+	handleCompile: () => void
+	isCompiling: boolean
+	viewMode: 'source' | 'visual'
+	toggleViewMode: () => void
+	visualEditor: any
+	visibleCollaborators: any[]
+	hiddenCollaboratorsCount: number
+	compilerMode: 'client' | 'server' | 'server_pdflatex'
+	onCompilerModeChange: (mode: 'client' | 'server' | 'server_pdflatex') => void
+	aiAssistantOpen?: boolean
+	toggleAiAssistant?: () => void
+	user?: any
+	workspace?: any
+	editor?: any
+	debugContentExtraction?: any
+}
+
 const DocumentHeader = ({
 	title,
 	setTitle,
-	aiAssistantOpen,
-	toggleModalVersions,
-	toggleAiAssistant,
+
 	handleSave,
 	isSaving,
 	isAutoSaving,
@@ -26,12 +66,11 @@ const DocumentHeader = ({
 	setPaperSize,
 	paperSizeSubmenuOpen,
 	setPaperSizeSubmenuOpen,
-	user,
 	workspaceId,
-	workspace,
 	documentId,
 
 	// Editor props
+	editor,
 	onInsertSnippet,
 	getCurrentContent,
 	insertTable,
@@ -46,32 +85,56 @@ const DocumentHeader = ({
 	visualEditor,
 	visibleCollaborators,
 	hiddenCollaboratorsCount,
-	debugContentExtraction,
 	compilerMode,
 	onCompilerModeChange,
-}: any) => {
+	aiAssistantOpen,
+	toggleAiAssistant,
+}: DocumentHeaderProps) => {
+	const router = useRouter()
+	const { user } = useAuth()
 	const [showCommitModal, setShowCommitModal] = useState(false)
 	const { data: reviewsResponse } = useDocumentReviews(documentId)
+	const [isCitationModalOpen, setIsCitationModalOpen] = useState(false)
+	const [citations, setCitations] = useState([])
 
 	// Safely determine pending reviews
-	const reviews = Array.isArray(reviewsResponse) ? reviewsResponse : (reviewsResponse as any)?.reviews || [];
+	const reviews = Array.isArray(reviewsResponse)
+		? reviewsResponse
+		: (reviewsResponse as any)?.reviews || []
 	const pendingReview = reviews.find((r: any) => r.status === 'PENDING' || r.status === 'pending')
 
 	const canCommit = !pendingReview
 	const commitBlockReason = pendingReview ? 'Waiting for pending review' : null
+
+	/* 
+		const deleteCitation = (id: string) => {
+        	setCitations((prev) => prev.filter(c => c.id !== id))
+    	} 
+	*/
+
+	
+	const insertCitationAtCursor = (cit: any) => {
+		if (!editor) return
+		editor.chain().focus().insertContent(`(${cit.author}, ${cit.year})`).run()
+		setIsCitationModalOpen(false)
+	} 
 
 	return (
 		<header className='bg-white border-b border-gray-200 sticky top-0 z-[1001] transition-all duration-300'>
 			<div className='px-4 py-2'>
 				<div className='flex items-center justify-between'>
 					<div className='flex items-center gap-2'>
-						<Link
-							href={`/${workspaceId}`}
-							className='p-2 hover:bg-gray-100 rounded-lg transition-colors group'
+						<Button
+							variant='ghost'
+							onClick={() => router.push(`/${workspaceId}`)}
+							className='h-10 w-10 hover:bg-gray-100 rounded-lg transition-all group p-0 min-w-0'
 							title='Back to Workspace'
 						>
-							<ChevronLeft className='h-5 w-5 text-gray-500 group-hover:text-primary transition-colors' />
-						</Link>
+							<ChevronLeft
+								style={{ width: '20px', height: '20px' }}
+								className='text-gray-500 group-hover:text-primary transition-colors'
+							/>
+						</Button>
 						<div className='flex flex-col'>
 							<input
 								type='text'
@@ -81,7 +144,8 @@ const DocumentHeader = ({
 								placeholder='Untitled Document'
 							/>
 							<div className='flex items-center gap-4 text-sm text-gray-600'>
-								<div
+								<button
+									type='button'
 									className='dropdown-trigger hover:bg-gray-100 px-1 py-1 rounded relative cursor-pointer'
 									onClick={() => toggleDropdown('file')}
 								>
@@ -94,7 +158,10 @@ const DocumentHeader = ({
                                                 Wait, I should use multi_replace if I can't match the whole file easily.
                                                 Actually, I will just rewrite the imports and the button part.
                                              */}
-											<div className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 cursor-pointer'>
+											<button
+												type='button'
+												className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 cursor-pointer'
+											>
 												<svg
 													className='h-4 w-4'
 													viewBox='0 0 24 24'
@@ -106,8 +173,11 @@ const DocumentHeader = ({
 													<polyline points='14,2 14,8 20,8'></polyline>
 												</svg>
 												New Document
-											</div>
-											<div className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 cursor-pointer'>
+											</button>
+											<button
+												type='button'
+												className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 cursor-pointer'
+											>
 												<svg
 													className='h-4 w-4'
 													viewBox='0 0 24 24'
@@ -119,8 +189,12 @@ const DocumentHeader = ({
 													<polyline points='14,2 14,8 20,8'></polyline>
 												</svg>
 												Open
-											</div>
-											<div className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 cursor-pointer'>
+											</button>
+											<button
+												type='button'
+												className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 cursor-pointer'
+												onClick={handleSave}
+											>
 												<svg
 													className='h-4 w-4'
 													viewBox='0 0 24 24'
@@ -133,8 +207,9 @@ const DocumentHeader = ({
 													<polyline points='7,3 7,8 15,8'></polyline>
 												</svg>
 												Save
-											</div>
-											<div
+											</button>
+											<button
+												type='button'
 												className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 cursor-pointer'
 												onClick={handleSave}
 											>
@@ -150,9 +225,12 @@ const DocumentHeader = ({
 													<polyline points='7,3 7,8 15,8'></polyline>
 												</svg>
 												Save As
-											</div>
+											</button>
 											<hr className='my-1' />
-											<div className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 cursor-pointer'>
+											<button
+												type='button'
+												className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 cursor-pointer'
+											>
 												<svg
 													className='h-4 w-4'
 													viewBox='0 0 24 24'
@@ -165,8 +243,11 @@ const DocumentHeader = ({
 													<rect x='6' y='14' width='12' height='8'></rect>
 												</svg>
 												Print
-											</div>
-											<div className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 cursor-pointer'>
+											</button>
+											<button
+												type='button'
+												className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 cursor-pointer'
+											>
 												<svg
 													className='h-4 w-4'
 													viewBox='0 0 24 24'
@@ -179,9 +260,12 @@ const DocumentHeader = ({
 													<line x1='12' y1='15' x2='12' y2='3'></line>
 												</svg>
 												Download
-											</div>
+											</button>
 											<hr className='my-1' />
-											<div className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 cursor-pointer'>
+											<button
+												type='button'
+												className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 cursor-pointer'
+											>
 												<svg
 													className='h-4 w-4'
 													viewBox='0 0 24 24'
@@ -193,16 +277,20 @@ const DocumentHeader = ({
 													<rect x='8' y='2' width='8' height='4' rx='1' ry='1'></rect>
 												</svg>
 												Make a Copy
-											</div>
-											<div className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 cursor-pointer'>
+											</button>
+											<button
+												type='button'
+												className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 cursor-pointer'
+											>
 												<Share2 className='h-4 w-4' />
 												Share
-											</div>
+											</button>
 										</div>
 									)}
-								</div>
+								</button>
 
-								<div
+								<button
+									type='button'
 									className='dropdown-trigger hover:bg-gray-100 px-1 py-1 rounded relative cursor-pointer'
 									onClick={() => toggleDropdown('appearance')}
 								>
@@ -212,7 +300,8 @@ const DocumentHeader = ({
 											<div className='px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wide'>
 												Page Setup
 											</div>
-											<div
+											<button
+												type='button'
 												className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center justify-between cursor-pointer relative'
 												onMouseEnter={() => setPaperSizeSubmenuOpen(true)}
 												onMouseLeave={() => setPaperSizeSubmenuOpen(false)}
@@ -237,8 +326,10 @@ const DocumentHeader = ({
 														className='absolute left-full top-0 ml-1 bg-white border border-gray-200 rounded-lg shadow-lg py-2 w-40 z-60'
 														onMouseEnter={() => setPaperSizeSubmenuOpen(true)}
 														onMouseLeave={() => setPaperSizeSubmenuOpen(false)}
+														role='menu'
 													>
-														<div
+														<button
+															type='button'
 															className={`w-full text-left px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm flex items-center justify-between ${paperSize === 'A4' ? 'bg-blue-50 text-blue-700' : ''}`}
 															onClick={() => {
 																setPaperSize('A4')
@@ -257,8 +348,9 @@ const DocumentHeader = ({
 																	<polyline points='20,6 9,17 4,12'></polyline>
 																</svg>
 															)}
-														</div>
-														<div
+														</button>
+														<button
+															type='button'
 															className={`w-full text-left px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm flex items-center justify-between ${paperSize === 'A3' ? 'bg-blue-50 text-blue-700' : ''}`}
 															onClick={() => {
 																setPaperSize('A3')
@@ -277,11 +369,14 @@ const DocumentHeader = ({
 																	<polyline points='20,6 9,17 4,12'></polyline>
 																</svg>
 															)}
-														</div>
+														</button>
 													</div>
 												)}
-											</div>
-											<div className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center justify-between cursor-pointer'>
+											</button>
+											<button
+												type='button'
+												className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center justify-between cursor-pointer'
+											>
 												<span className='flex items-center gap-2'>
 													<svg
 														className='h-4 w-4'
@@ -297,12 +392,13 @@ const DocumentHeader = ({
 													Orientation
 												</span>
 												<span className='text-gray-500 text-sm'>Portrait</span>
-											</div>
+											</button>
 										</div>
 									)}
-								</div>
+								</button>
 
-								<div
+								<button
+									type='button'
 									className='dropdown-trigger hover:bg-gray-100 px-1 py-1 rounded relative cursor-pointer'
 									onClick={() => toggleDropdown('settings')}
 								>
@@ -312,7 +408,10 @@ const DocumentHeader = ({
 											<div className='px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wide'>
 												Editor Settings
 											</div>
-											<div className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center justify-between cursor-pointer'>
+											<button
+												type='button'
+												className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center justify-between cursor-pointer'
+											>
 												<span className='flex items-center gap-2'>
 													<svg
 														className='h-4 w-4'
@@ -330,8 +429,11 @@ const DocumentHeader = ({
 													Auto Save
 												</span>
 												<span className='text-green-500 text-sm'>On</span>
-											</div>
-											<div className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center justify-between cursor-pointer'>
+											</button>
+											<button
+												type='button'
+												className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center justify-between cursor-pointer'
+											>
 												<span className='flex items-center gap-2'>
 													<svg
 														className='h-4 w-4'
@@ -345,10 +447,10 @@ const DocumentHeader = ({
 													Spell Check
 												</span>
 												<span className='text-green-500 text-sm'>On</span>
-											</div>
+											</button>
 										</div>
 									)}
-								</div>
+								</button>
 							</div>
 						</div>
 					</div>
@@ -372,17 +474,17 @@ const DocumentHeader = ({
 							)}
 
 							{visibleCollaborators && visibleCollaborators.length > 0 && (
-								<div className="flex items-center gap-1.5 pr-2 mr-1 border-r border-gray-200">
-									<div className="flex -space-x-3">
+								<div className='flex items-center gap-1.5 pr-2 mr-1 border-r border-gray-200'>
+									<div className='flex -space-x-3'>
 										{visibleCollaborators.map((collaborator: any) => (
 											<Avatar
 												key={collaborator.id}
-												className="h-8 w-8 border-2 border-white shadow-sm"
+												className='h-8 w-8 border-2 border-white shadow-sm'
 												title={collaborator.name}
 											>
-												<AvatarImage src={collaborator.avatar} alt={collaborator.name} />
+												<AvatarImage src={collaborator.avatar || ''} alt={collaborator.name || 'User'} />
 												<AvatarFallback
-													className="text-xs font-semibold text-white"
+													className='text-xs font-semibold text-white'
 													style={{ backgroundColor: collaborator.color }}
 												>
 													{collaborator.name.charAt(0).toUpperCase()}
@@ -391,7 +493,7 @@ const DocumentHeader = ({
 										))}
 									</div>
 									{hiddenCollaboratorsCount > 0 && (
-										<span className="text-xs font-medium text-gray-500">
+										<span className='text-xs font-medium text-gray-500'>
 											+{hiddenCollaboratorsCount}
 										</span>
 									)}
@@ -450,23 +552,25 @@ const DocumentHeader = ({
 						<Button
 							variant='ghost'
 							size='icon'
-							onClick={toggleModalVersions}
-							title='History & Reviews'
+							onClick={() => setIsCitationModalOpen(true)}
+							className={isCitationModalOpen ? 'bg-blue-100 text-blue-600' : ''}
+							title='Citations'
 						>
-							<History className='h-5 w-5' />
+							<Quote className='h-5 w-5' />
 						</Button>
-						<div className='ml-2 flex items-center gap-2'>
-							{user?.avatar
-								? <img
-									src={user.avatar}
-									alt={user.name || 'User'}
-									className='h-8 w-8 rounded-full'
-								/>
-								: <div className='h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center'>
-									<span className='text-white text-sm font-medium'>
-										{user?.name?.charAt(0) || 'U'}
-									</span>
-								</div>}
+
+						<Link href={`/${workspaceId}/documents/${documentId}/versions`}>
+							<Button variant='ghost' size='icon' title='History & Reviews'>
+								<History className='h-5 w-5' />
+							</Button>
+						</Link>
+						<div className='ml-2'>
+							<Avatar className='h-8 w-8'>
+								<AvatarImage src={user && user.length > 0 ? user[0].photoURL ?? '' : ''} alt={user && user.length > 0 ? user[0].name : 'User'} />
+								<AvatarFallback className='bg-blue-600 text-white text-xs'>
+									{user && user.length > 0 ? user[0].name.charAt(0) : 'U'}
+								</AvatarFallback>
+							</Avatar>
 						</div>
 					</div>
 				</div>
@@ -494,6 +598,15 @@ const DocumentHeader = ({
 						throw error // Re-throw so Modal can handle it/show error
 					}
 				}}
+			/>
+
+			<CitationsManager 
+				isOpen={isCitationModalOpen}
+				onClose={() => setIsCitationModalOpen(false)}
+				// citations={citations}
+				initialView= 'list'
+				// onDelete={deleteCitation}
+				onInsert={insertCitationAtCursor}
 			/>
 
 			{/* Editor Toolbar - sticky di bawah header */}

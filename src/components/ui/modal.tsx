@@ -1,10 +1,9 @@
 'use client'
 
-import React from 'react'
+import type React from 'react'
 import {
 	Dialog,
 	DialogContent,
-	DialogDescription,
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,

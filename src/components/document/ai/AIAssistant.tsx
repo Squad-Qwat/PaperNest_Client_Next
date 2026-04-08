@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useCallback, useEffect, useRef } from 'react'
+import type React from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { AIChatPanel } from './AIChatPanel'
 
 /**
@@ -8,8 +9,8 @@ import { AIChatPanel } from './AIChatPanel'
  * Features a resizable sidebar for AI chat functionality
  */
 interface EditorFunctions {
-	editor?: any
-	getCurrentContent?: () => any
+	editor?: unknown
+	getCurrentContent?: () => unknown
 	getCurrentHTML?: () => string
 	saveCurrentContent?: () => Promise<void>
 	insertTable?: (rows: number, cols: number) => void
@@ -41,9 +42,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 }) => {
 	const [width, setWidth] = useState(320) // Default width 320px
 	const [isResizing, setIsResizing] = useState(false)
-	const indexingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-
-
+	const _indexingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
 	const handleMouseDown = useCallback(
 		(e: React.MouseEvent) => {
@@ -93,13 +92,17 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 			}}
 		>
 			{/* Resize Handle */}
-			<div
-				className={`absolute left-0 top-0 h-full w-1 cursor-ew-resize hover:bg-blue-500 transition-colors z-10 ${isResizing ? 'bg-blue-500' : 'bg-transparent hover:bg-blue-300'
-					}`}
+			<hr
+				className={`absolute left-0 top-0 h-full w-1 cursor-ew-resize hover:bg-blue-500 transition-colors z-10 border-none ${
+					isResizing ? 'bg-blue-500' : 'bg-transparent hover:bg-blue-300'
+				}`}
 				onMouseDown={handleMouseDown}
-			>
-				<div className='absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-8 rounded-full bg-gray-300 opacity-0 hover:opacity-100 transition-opacity' />
-			</div>
+				aria-orientation='vertical'
+				aria-valuenow={width}
+				aria-valuemin={280}
+				aria-valuemax={600}
+				tabIndex={0}
+			/>
 
 			{/* Content - with independent scroll */}
 			<div className='flex-1 flex flex-col overflow-hidden'>

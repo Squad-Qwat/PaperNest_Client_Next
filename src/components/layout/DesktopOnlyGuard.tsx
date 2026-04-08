@@ -1,14 +1,14 @@
 'use client'
 
-import React, { useState } from 'react'
-import { motion, AnimatePresence } from 'motion/react'
-import { Monitor, Eye, Laptop } from 'lucide-react'
+import { Eye, Laptop } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
 import Link from 'next/link'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 
 interface DesktopOnlyGuardProps {
-	workspaceId: string;
+	workspaceId: string
 }
 
 export function DesktopOnlyGuard({ workspaceId }: DesktopOnlyGuardProps) {
@@ -25,9 +25,14 @@ export function DesktopOnlyGuard({ workspaceId }: DesktopOnlyGuardProps) {
 				className='fixed inset-0 z-[9999] bg-white flex flex-col items-center justify-center p-6 text-center'
 			>
 				{/* Minimal Grid Background */}
-				<div className='absolute inset-0 opacity-[0.05] pointer-events-none' 
-					style={{ backgroundImage: 'linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)', backgroundSize: '40px 40px' }}>
-				</div>
+				<div
+					className='absolute inset-0 opacity-[0.05] pointer-events-none'
+					style={{
+						backgroundImage:
+							'linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)',
+						backgroundSize: '40px 40px',
+					}}
+				></div>
 
 				<motion.div
 					initial={{ y: 10, opacity: 0 }}
@@ -43,28 +48,26 @@ export function DesktopOnlyGuard({ workspaceId }: DesktopOnlyGuardProps) {
 					<h1 className='text-xl font-bold text-gray-900 mb-2 tracking-tight'>
 						Desktop Recommended
 					</h1>
-					
+
 					<p className='text-gray-500 text-sm leading-relaxed mb-8'>
-						PaperNest Editor is optimized for larger screens to handle complex LaTeX layouts and side-by-side PDF previewing.
+						PaperNest Editor is optimized for larger screens to handle complex LaTeX layouts and
+						side-by-side PDF previewing.
 					</p>
 
 					<div className='bg-gray-50 border border-gray-100 rounded-xl p-4 mb-8 flex flex-col items-center gap-2'>
 						<Laptop className='h-8 w-8 text-primary/40' />
-						<p className='text-[10px] font-bold text-gray-400 uppercase tracking-widest'>Best viewed on desktop</p>
+						<p className='text-[10px] font-bold text-gray-400 uppercase tracking-widest'>
+							Best viewed on desktop
+						</p>
 					</div>
 
 					<div className='flex flex-col gap-3'>
-						<Button
-							asChild
-							className='w-full transition-all shadow-none rounded-lg'
-						>
-							<Link href={`/${workspaceId}`}>
-								Back to Dashboard
-							</Link>
+						<Button asChild className='w-full transition-all shadow-none rounded-lg'>
+							<Link href={`/${workspaceId}`}>Back to Dashboard</Link>
 						</Button>
-						
+
 						<Button
-							variant="ghost"
+							variant='ghost'
 							onClick={() => setHidden(true)}
 							className='text-xs font-semibold text-gray-400 hover:text-gray-900 transition-all h-9 flex items-center gap-1.5'
 						>
@@ -74,7 +77,7 @@ export function DesktopOnlyGuard({ workspaceId }: DesktopOnlyGuardProps) {
 					</div>
 
 					<div className='mt-12'>
-						<Separator className="w-12 mx-auto mb-4 bg-gray-100" />
+						<Separator className='w-12 mx-auto mb-4 bg-gray-100' />
 						<p className='text-[9px] uppercase tracking-[0.2em] font-bold text-gray-300'>
 							PaperNest Professional
 						</p>

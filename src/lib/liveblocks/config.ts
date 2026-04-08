@@ -24,10 +24,7 @@ type Presence = {
 	} | null
 }
 
-type Storage = {
-	// Define your Yjs storage structure here if needed
-	// For now, Yjs handles the document structure
-}
+type Storage = Record<string, never>
 
 type UserMeta = {
 	id: string
@@ -40,9 +37,7 @@ type UserMeta = {
 	}
 }
 
-type RoomEvent = {
-	// Define custom room events here
-}
+type RoomEvent = Record<string, never>
 
 // Export the room context hooks
 const {

@@ -1,6 +1,5 @@
+import { CrownIcon, UserIcon } from 'lucide-react'
 import { useId } from 'react'
-
-import { UserIcon, CrownIcon } from 'lucide-react'
 
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'

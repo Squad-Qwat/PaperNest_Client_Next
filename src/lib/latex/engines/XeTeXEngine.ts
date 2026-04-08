@@ -1,21 +1,17 @@
 // src/extensions/switftlatex/XeTeXEngine.ts
-import {
-	BaseEngine,
-	type CompileResult,
-	type EngineConfig,
-} from './BaseEngine';
-import { EngineLoader } from './EngineLoader';
+import { BaseEngine, type CompileResult, type EngineConfig } from './BaseEngine'
+import { EngineLoader } from './EngineLoader'
 
-const BASE_PATH = '';
+const _BASE_PATH = ''
 
 declare global {
 	interface Window {
-		XeTeXEngine: any;
+		XeTeXEngine: any
 	}
 }
 
 interface XeTeXCompileResult extends CompileResult {
-	xdv?: Uint8Array;
+	xdv?: Uint8Array
 }
 
 export class XeTeXEngine extends BaseEngine {
@@ -25,73 +21,68 @@ export class XeTeXEngine extends BaseEngine {
 			setupScript: `/core/swiftlatex/XeTeXEngine.js`,
 			engineScript: `/core/swiftlatex/texlyrexetex.js`,
 			engineClass: 'XeTeXEngine',
-		};
-		super(config);
+		}
+		super(config)
 	}
 
 	async loadScripts(): Promise<void> {
 		if (typeof window.XeTeXEngine === 'function') {
-			return;
+			return
 		}
 
-		await EngineLoader.loadScripts([
-			this.config.setupScript,
-		]);
+		await EngineLoader.loadScripts([this.config.setupScript])
 
 		if (typeof window.XeTeXEngine !== 'function') {
-			throw new Error('XeTeXEngine not available after loading scripts');
+			throw new Error('XeTeXEngine not available after loading scripts')
 		}
 	}
 
 	createEngine(): any {
-		return new window.XeTeXEngine();
+		return new window.XeTeXEngine()
 	}
 
 	setTexliveEndpoint(endpoint: string): void {
-		this.engine.setTexliveEndpoint(endpoint);
-		console.log(`[XeTeXEngine] TexLive endpoint set for XeTeX: ${endpoint}`);
+		this.engine.setTexliveEndpoint(endpoint)
+		console.log(`[XeTeXEngine] TexLive endpoint set for XeTeX: ${endpoint}`)
 	}
 
 	writeMemFSFile(filename: string, content: string | Uint8Array): void {
-		if (!this.engine) throw new Error('Engine not initialized');
-		this.engine.writeMemFSFile(filename, content);
+		if (!this.engine) throw new Error('Engine not initialized')
+		this.engine.writeMemFSFile(filename, content)
 	}
 
 	makeMemFSFolder(folder: string): void {
-		if (!this.engine) throw new Error('Engine not initialized');
-		this.engine.makeMemFSFolder(folder);
+		if (!this.engine) throw new Error('Engine not initialized')
+		this.engine.makeMemFSFolder(folder)
 	}
 
 	setEngineMainFile(filename: string): void {
-		if (!this.engine) throw new Error('Engine not initialized');
-		this.engine.setEngineMainFile(filename);
+		if (!this.engine) throw new Error('Engine not initialized')
+		this.engine.setEngineMainFile(filename)
 	}
 
 	flushCache(): void {
-		if (!this.engine) throw new Error('Engine not initialized');
-		this.engine.flushCache();
+		if (!this.engine) throw new Error('Engine not initialized')
+		this.engine.flushCache()
 	}
 
 	async dumpDirectory(dir: string): Promise<{ [key: string]: ArrayBuffer }> {
-		if (!this.engine) throw new Error('Engine not initialized');
-		return await this.engine.dumpDirectory(dir);
+		if (!this.engine) throw new Error('Engine not initialized')
+		return await this.engine.dumpDirectory(dir)
 	}
 
-	async compile(
-		_mainFileName: string,
-		_fileNodes: any[],
-	): Promise<CompileResult> {
+	async compile(_mainFileName: string, _fileNodes: any[]): Promise<CompileResult> {
 		if (!this.engine || !this.isReady()) {
-			throw new Error('Engine not ready');
+			throw new Error('Engine not ready')
 		}
 
-		this.setStatus('compiling');
+		this.setStatus('compiling')
 
 		try {
-			await this.engine.compileLaTeX(); // Do it twice for tables
-			await this.engine.compileLaTeX(); // Do it thrice for good luck and bib
-			const result = await this.engine.compileLaTeX();
-			this.setStatus('ready');
+			await this.engine.compileLaTeX() // Do it twice for tables
+			await this.engine.compileLaTeX() // Do it thrice for good luck and bib
+			const result = await this.engine.compileLaTeX()
+			this.setStatus('ready')
 			// this.flushCache();
 
 			console.log('[XeTeXEngine] XeTeX compilation result:', {
@@ -100,7 +91,7 @@ export class XeTeXEngine extends BaseEngine {
 				hasXdv: !!result.xdv,
 				pdfSize: result.pdf?.length,
 				xdvSize: result.xdv?.length,
-			});
+			})
 
 			if (result.status === 0 && result.pdf) {
 				return {
@@ -108,18 +99,18 @@ export class XeTeXEngine extends BaseEngine {
 					status: result.status,
 					log: result.log,
 					xdv: result.pdf,
-				} as XeTeXCompileResult;
+				} as XeTeXCompileResult
 			}
 
 			return {
 				pdf: result.pdf,
 				status: result.status,
 				log: result.log,
-			};
+			}
 		} catch (error) {
-			this.flushCache();
-			this.setStatus('error');
-			throw error;
+			this.flushCache()
+			this.setStatus('error')
+			throw error
 		}
 	}
 }

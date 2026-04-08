@@ -1,18 +1,18 @@
 /* Prevent cursor jump to footer dengan pagination extension */
 .ProseMirror .page-footer {
-	pointer-events: none !important;
-	user-select: none !important;
-	-webkit-user-select: none !important;
-	-moz-user-select: none !important;
-	-ms-user-select: none !important;
+	pointer-events: none;
+	user-select: none;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
 }
 
 .ProseMirror .page-footer * {
-	pointer-events: none !important;
-	user-select: none !important;
-	-webkit-user-select: none !important;
-	-moz-user-select: none !important;
-	-ms-user-select: none !important;
+	pointer-events: none;
+	user-select: none;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
 }
 
 /* Ensure body content is always focusable */
@@ -38,38 +38,38 @@
 /* Make sure undo/redo doesn't jump to footer */
 .ProseMirror .page-footer::before,
 .ProseMirror .page-footer::after {
-	content: none !important;
+	content: none;
 }
 
 /* Hide any cursor/caret in footer area */
 .ProseMirror .page-footer .ProseMirror-cursor {
-	display: none !important;
+	display: none;
 }
 
 /* Default font styles for TipTap editor */
 .ProseMirror {
-	font-family: "Times New Roman", Times, serif !important;
-	font-size: 11pt !important;
+	font-family: "Times New Roman", Times, serif;
+	font-size: 11pt;
 	line-height: 1.6;
 }
 
 /* Remove focus styles that add borders */
 .ProseMirror:focus,
 .ProseMirror-focused {
-	outline: none !important;
-	border: none !important;
-	box-shadow: none !important;
-	border-radius: 0 !important;
+	outline: none;
+	border: none;
+	box-shadow: none;
+	border-radius: 0;
 }
 
 .ProseMirror-focused .page,
 .ProseMirror-focused .page *,
 .ProseMirror-focused [data-page],
 .ProseMirror-focused div[data-type="page"] {
-	border-radius: 0 !important;
-	border: none !important;
-	box-shadow: none !important;
-	outline: none !important;
+	border-radius: 0;
+	border: none;
+	box-shadow: none;
+	outline: none;
 }
 
 /* Ensure paragraphs inherit the font */
@@ -91,42 +91,42 @@
 
 /* Specific override for text nodes without explicit styling */
 .ProseMirror p:not([style*="font-family"]) {
-	font-family: "Times New Roman", Times, serif !important;
+	font-family: "Times New Roman", Times, serif;
 }
 
 .ProseMirror p:not([style*="font-size"]) {
-	font-size: 11pt !important;
+	font-size: 11pt;
 }
 
 /* Heading defaults */
 .ProseMirror h1 {
-	font-family: "Times New Roman", Times, serif !important;
-	font-size: 24pt !important;
-	font-weight: bold !important;
+	font-family: "Times New Roman", Times, serif;
+	font-size: 24pt;
+	font-weight: bold;
 	margin: 0;
 	padding: 0;
 }
 
 .ProseMirror h2 {
-	font-family: "Times New Roman", Times, serif !important;
-	font-size: 18pt !important;
-	font-weight: bold !important;
+	font-family: "Times New Roman", Times, serif;
+	font-size: 18pt;
+	font-weight: bold;
 	margin: 0;
 	padding: 0;
 }
 
 .ProseMirror h3 {
-	font-family: "Times New Roman", Times, serif !important;
-	font-size: 14pt !important;
-	font-weight: bold !important;
+	font-family: "Times New Roman", Times, serif;
+	font-size: 14pt;
+	font-weight: bold;
 	margin: 0;
 	padding: 0;
 }
 
 .ProseMirror h4 {
-	font-family: "Times New Roman", Times, serif !important;
-	font-size: 12pt !important;
-	font-weight: bold !important;
+	font-family: "Times New Roman", Times, serif;
+	font-size: 12pt;
+	font-weight: bold;
 	margin: 0;
 	padding: 0;
 }
@@ -190,7 +190,6 @@
 }
 
 .ProseMirror .resize-cursor {
-	cursor: ew-resize;
 	cursor: col-resize;
 }
 
@@ -198,19 +197,19 @@
 .ProseMirror .page {
 	font-family: inherit;
 	font-size: inherit;
-	border-radius: 0 !important;
-	border: none !important;
-	box-shadow: none !important;
-	outline: none !important;
+	border-radius: 0;
+	border: none;
+	box-shadow: none;
+	outline: none;
 }
 
 .ProseMirror .page-body {
 	font-family: inherit;
 	font-size: inherit;
-	border-radius: 0 !important;
-	border: none !important;
-	box-shadow: none !important;
-	outline: none !important;
+	border-radius: 0;
+	border: none;
+	box-shadow: none;
+	outline: none;
 }
 
 /* Remove all border-radius, borders, and shadows from page elements */
@@ -220,18 +219,18 @@
 .ProseMirror [data-page] *,
 .ProseMirror .page-header,
 .ProseMirror .page-footer {
-	border-radius: 0 !important;
-	box-shadow: none !important;
-	outline: none !important;
+	border-radius: 0;
+	box-shadow: none;
+	outline: none;
 }
 
 /* Override any vendor-specific page styling */
 .ProseMirror div[data-type="page"],
 .ProseMirror div[class*="page"] {
-	border-radius: 0 !important;
-	border: none !important;
-	box-shadow: none !important;
-	outline: none !important;
+	border-radius: 0;
+	border: none;
+	box-shadow: none;
+	outline: none;
 }
 
 /* List styles - from TipTap documentation */
@@ -280,7 +279,8 @@
 }
 
 /* For browsers that don't support ::marker, use alternative approach */
-.ProseMirror li {
+.ProseMirror ul li,
+.ProseMirror ol li {
 	font-weight: inherit;
 }
 
@@ -423,7 +423,7 @@
 
 /* Render the username above the caret */
 .collaboration-cursor__label {
-	font-family: "Arial", sans-serif !important;
+	font-family: "Arial", sans-serif;
 	font-style: normal;
 	font-weight: 600;
 	left: -1px;

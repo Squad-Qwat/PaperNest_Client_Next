@@ -3,8 +3,8 @@ div.mxRubberband {
 	overflow: hidden;
 	border-style: solid;
 	border-width: 1px;
-	border-color: #0000FF;
-	background: #0077FF;
+	border-color: #0000ff;
+	background: #0077ff;
 }
 .mxCellEditor {
 	background: url(data:image/gif;base64,R0lGODlhMAAwAIAAAP///wAAACH5BAEAAAAALAAAAAAwADAAAAIxhI+py+0Po5y02ouz3rz7D4biSJbmiabqyrbuC8fyTNf2jef6zvf+DwwKh8Si8egpAAA7);
@@ -27,11 +27,11 @@ div.mxRubberband {
 	margin: 0px;
 }
 div.mxWindow {
-	-webkit-box-shadow: 3px 3px 12px #C0C0C0;
-	-moz-box-shadow: 3px 3px 12px #C0C0C0;
-	box-shadow: 3px 3px 12px #C0C0C0;
+	-webkit-box-shadow: 3px 3px 12px #c0c0c0;
+	-moz-box-shadow: 3px 3px 12px #c0c0c0;
+	box-shadow: 3px 3px 12px #c0c0c0;
 	background: url(data:image/gif;base64,R0lGODlhGgAUAIAAAOzs7PDw8CH5BAAAAAAALAAAAAAaABQAAAIijI+py70Ao5y02lud3lzhD4ZUR5aPiKajyZbqq7YyB9dhAQA7);
-	border:1px solid #c3c3c3;
+	border: 1px solid #c3c3c3;
 	position: absolute;
 	overflow: hidden;
 	z-index: 1;
@@ -39,21 +39,22 @@ div.mxWindow {
 table.mxWindow {
 	border-collapse: collapse;
 	table-layout: fixed;
-  	font-family: Arial;
+	font-family: Arial;
 	font-size: 8pt;
 }
 td.mxWindowTitle {
-	background: url(data:image/gif;base64,R0lGODlhFwAXAMQAANfX18rKyuHh4c7OzsDAwMHBwc/Pz+Li4uTk5NHR0dvb2+jo6O/v79/f3/n5+dnZ2dbW1uPj44yMjNPT0+Dg4N3d3ebm5szMzAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAAAAAAALAAAAAAXABcAAAWQICESxWiW5Ck6bOu+MMvMdG3f86LvfO/rlqBwSCwaj8ikUohoOp/QaDNCrVqvWKpgezhsv+AwmEIum89ocmPNbrvf64p8Tq/b5Yq8fs/v5x+AgYKDhIAAh4iJiouHEI6PkJGSjhOVlpeYmZUJnJ2en6CcBqMDpaanqKgXq6ytrq+rAbKztLW2shK5uru8vbkhADs=) repeat-x;
+	background: url(data:image/gif;base64,R0lGODlhFwAXAMQAANfX18rKyuHh4c7OzsDAwMHBwc/Pz+Li4uTk5NHR0dvb2+jo6O/v79/f3/n5+dnZ2dbW1uPj44yMjNPT0+Dg4N3d3ebm5szMzAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAAAAAAALAAAAAAXABcAAAWQICESxWiW5Ck6bOu+MMvMdG3f86LvfO/rlqBwSCwaj8ikUohoOp/QaDNCrVqvWKpgezhsv+AwmEIum89ocmPNbrvf64p8Tq/b5Yq8fs/v5x+AgYKDhIAAh4iJiouHEI6PkJGSjhOVlpeYmZUJnJ2en6CcBqMDpaanqKgXq6ytrq+rAbKztLW2shK5uru8vbkhADs=)
+		repeat-x;
 	text-overflow: ellipsis;
 	white-space: nowrap;
- 	text-align: center;
- 	font-weight: bold;
- 	overflow: hidden;
+	text-align: center;
+	font-weight: bold;
+	overflow: hidden;
 	height: 13px;
 	padding: 2px;
- 	padding-top: 4px;
- 	padding-bottom: 6px;
- 	color: black;
+	padding-top: 4px;
+	padding-bottom: 6px;
+	color: black;
 	display: flex;
 	justify-content: center;
 	align-items: center;
@@ -93,10 +94,10 @@ img.mxToolbarModeSelected {
 	border-style: inset;
 }
 div.mxTooltip {
-	-webkit-box-shadow: 3px 3px 12px #C0C0C0;
-	-moz-box-shadow: 3px 3px 12px #C0C0C0;
-	box-shadow: 3px 3px 12px #C0C0C0;
-	background: #FFFFCC;
+	-webkit-box-shadow: 3px 3px 12px #c0c0c0;
+	-moz-box-shadow: 3px 3px 12px #c0c0c0;
+	box-shadow: 3px 3px 12px #c0c0c0;
+	background: #ffffcc;
 	border-style: solid;
 	border-width: 1px;
 	border-color: black;
@@ -108,9 +109,9 @@ div.mxTooltip {
 	color: black;
 }
 div.mxPopupMenu {
-	-webkit-box-shadow: 3px 3px 12px #C0C0C0;
-	-moz-box-shadow: 3px 3px 12px #C0C0C0;
-	box-shadow: 3px 3px 12px #C0C0C0;
+	-webkit-box-shadow: 3px 3px 12px #c0c0c0;
+	-moz-box-shadow: 3px 3px 12px #c0c0c0;
+	box-shadow: 3px 3px 12px #c0c0c0;
 	background: url(data:image/gif;base64,R0lGODlhGgAUAIAAAOzs7PDw8CH5BAAAAAAALAAAAAAaABQAAAIijI+py70Ao5y02lud3lzhD4ZUR5aPiKajyZbqq7YyB9dhAQA7);
 	position: absolute;
 	border-style: solid;
@@ -128,7 +129,7 @@ tr.mxPopupMenuItem {
 }
 tr.mxPopupMenuItemHover {
 	background-color: #000066;
-	color: #FFFFFF;
+	color: #ffffff;
 	cursor: pointer;
 }
 td.mxPopupMenuItem {
@@ -138,10 +139,10 @@ td.mxPopupMenuItem {
 	font-size: 8pt;
 }
 td.mxPopupMenuIcon {
-	background-color: #D0D0D0;
+	background-color: #d0d0d0;
 	padding: 2px 4px 2px 4px;
 }
 .mxDisabled {
-	opacity: 0.3 !important;
-	cursor:default !important;
+	opacity: 0.3;
+	cursor: default;
 }

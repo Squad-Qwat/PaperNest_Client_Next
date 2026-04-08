@@ -1,11 +1,11 @@
 import type { Metadata } from 'next'
 import { IBM_Plex_Mono, IBM_Plex_Sans } from 'next/font/google'
 import '@/app/css/globals.css'
+import { QueryProvider } from '@/components/providers/query-provider'
 import { Toaster } from '@/components/ui/sonner'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from '@/context/AuthContext'
 import { AppProvider } from '@/lib/store'
-import { TooltipProvider } from "@/components/ui/tooltip"
-import { QueryProvider } from '@/components/providers/query-provider'
 
 const ibmPlexSans = IBM_Plex_Sans({
 	variable: '--font-ibmPlex-sans',
@@ -31,7 +31,7 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang='en'>
-			<body 
+			<body
 				className={`${ibmPlexSans.variable} ${ibmPlexMono.variable} antialiased`}
 				suppressHydrationWarning
 			>
@@ -40,7 +40,7 @@ export default function RootLayout({
 						<TooltipProvider>
 							<AppProvider>{children}</AppProvider>
 						</TooltipProvider>
-						<Toaster position="bottom-right" richColors closeButton />
+						<Toaster position='bottom-right' richColors closeButton />
 					</AuthProvider>
 				</QueryProvider>
 			</body>

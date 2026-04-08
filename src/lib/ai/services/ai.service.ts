@@ -3,7 +3,7 @@ import type { AIStreamPayload } from '../types/chat'
 /**
  * AI Service
  * Handles SSE streaming requests to the backend.
- * 
+ *
  * NOTE: This service bypasses the standard apiClient/HttpClient because:
  * 1. SSE streaming requires direct access to the ReadableStream.
  * 2. Next.js local API proxy (/api) may buffer responses, breaking realtime streaming.
@@ -26,9 +26,9 @@ export const aiService = {
 	 */
 	async streamChat(payload: AIStreamPayload, signal: AbortSignal): Promise<ReadableStream> {
 		const backendUrl = getBackendUrl()
-		
+
 		console.log(`[AIService] Starting stream request to ${backendUrl}/ai/stream`)
-		
+
 		const response = await fetch(`${backendUrl}/ai/stream`, {
 			method: 'POST',
 			headers: {
@@ -36,7 +36,10 @@ export const aiService = {
 				// Support for ngrok if applicable (matches HttpClient pattern)
 				'ngrok-skip-browser-warning': 'true',
 			},
-			body: JSON.stringify(payload),
+			body: JSON.stringify({
+				...payload,
+				agentId: payload.agentId,
+			}),
 			signal,
 		})
 
@@ -57,5 +60,23 @@ export const aiService = {
 		}
 
 		return response.body
-	}
+	},
+
+	/**
+	 * Trigger PDF indexing for RAG
+	 */
+	async indexPDF(documentId: string, fileKey: string) {
+		const backendUrl = getBackendUrl()
+		try {
+			const response = await fetch(`${backendUrl}/ai/rag/index`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ documentId, fileKey }),
+			})
+			return await response.json()
+		} catch (error) {
+			console.error('[AIService] Indexing error:', error)
+			throw error
+		}
+	},
 }

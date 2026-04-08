@@ -68,7 +68,7 @@ export function format(
 			return '-'
 		}
 
-		if (isNaN(d.getTime())) {
+		if (Number.isNaN(d.getTime())) {
 			console.warn('Invalid Date object created from:', date)
 			return '-'
 		}

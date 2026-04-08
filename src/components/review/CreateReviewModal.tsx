@@ -96,7 +96,7 @@ export default function CreateReviewModal({ isOpen, onClose, onSubmit }: CreateR
 				</div>
 			</div>
 
-		<ModalFooter>
+			<ModalFooter>
 				<Button
 					variant='outline'
 					onClick={() => {

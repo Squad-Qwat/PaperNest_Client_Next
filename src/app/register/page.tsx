@@ -1,21 +1,17 @@
 'use client'
 
-import React, { useState } from 'react'
-import { FcGoogle } from "react-icons/fc";
-import { FaGithub, FaMicrosoft } from "react-icons/fa";
-import { useRouter } from 'next/navigation'
+import { AnimatePresence, motion } from 'motion/react'
+import Image from 'next/image'
 import Link from 'next/link'
-import { motion, AnimatePresence } from 'motion/react'
-import { useAuth } from '@/context/AuthContext'
-import { useRegister, useCheckEmail, useSignInWithSocial } from '@/lib/api/hooks/use-auth'
-import { useCreateWorkspace, useJoinWorkspace } from '@/lib/api/hooks/use-workspaces'
-import { getErrorMessage } from '@/lib/api/utils/error-handler'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { FaGithub } from 'react-icons/fa'
+import { FcGoogle } from 'react-icons/fc'
+import { MicrosoftIconIcon } from '@/components/icons/logos-microsoft-icon'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Badge } from '@/components/ui/badge'
 import {
 	Select,
 	SelectContent,
@@ -23,11 +19,13 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import Grainient from '@/components/visuals/Grainient/Grainient'
+import { useAuth } from '@/context/AuthContext'
+import { useCheckEmail, useRegister, useSignInWithSocial } from '@/lib/api/hooks/use-auth'
+import { useCreateWorkspace, useJoinWorkspace } from '@/lib/api/hooks/use-workspaces'
 import type { UserRole } from '@/lib/api/types/user.types'
-
-import Grainient from '@/components/visuals/Grainient/Grainient';
-import { MicrosoftIconIcon } from '@/components/icons/logos-microsoft-icon';
-
+import { getErrorMessage } from '@/lib/api/utils/error-handler'
 
 type StepData = {
 	email: string
@@ -46,16 +44,19 @@ type StepData = {
 const workspaceIcons = ['📚', '🎓', '📖', '✍️', '🔬', '💼', '📊', '🎯', '🌟', '💡']
 
 export default function RegisterPage() {
-	const router = useRouter()
+	const _router = useRouter()
 	const { setOnboardingData, error: authError } = useAuth()
 
 	const { mutateAsync: registerUser, isPending: isRegisterPending } = useRegister()
 	const { mutateAsync: verifyEmail, isPending: checkingEmail } = useCheckEmail()
-	const { mutateAsync: createWorkspace, isPending: isCreatePending } = useCreateWorkspace()
-	const { mutateAsync: joinWorkspace, isPending: isJoinPending } = useJoinWorkspace()
-	const { mutateAsync: socialMutate, isPending: isSocialPending } = useSignInWithSocial({ setOnboardingData })
+	const { mutateAsync: _createWorkspace, isPending: isCreatePending } = useCreateWorkspace()
+	const { mutateAsync: _joinWorkspace, isPending: isJoinPending } = useJoinWorkspace()
+	const { mutateAsync: socialMutate, isPending: isSocialPending } = useSignInWithSocial({
+		setOnboardingData,
+	})
 
-	const loading = isRegisterPending || isCreatePending || isJoinPending || isSocialPending || checkingEmail
+	const loading =
+		isRegisterPending || isCreatePending || isJoinPending || isSocialPending || checkingEmail
 
 	const [currentStep, setCurrentStep] = useState(1)
 	const [direction, setDirection] = useState(0)
@@ -189,10 +190,12 @@ export default function RegisterPage() {
 					try {
 						const result = await verifyEmail(formData.email)
 						if (!result.available) {
-							setErrors({ email: 'This email is already registered. Please use another one or log in.' })
+							setErrors({
+								email: 'This email is already registered. Please use another one or log in.',
+							})
 							isValid = false
 						}
-					} catch (err) {
+					} catch (_err) {
 						setErrors({ email: 'Failed to verify email. Please try again.' })
 						isValid = false
 					}
@@ -242,7 +245,7 @@ export default function RegisterPage() {
 					icon: formData.workspaceIcon,
 					mode: formData.workspaceMode,
 					invitationCode: formData.invitationCode,
-				}
+				},
 			})
 		} catch (error) {
 			console.error('Registration failed:', error)
@@ -260,13 +263,13 @@ export default function RegisterPage() {
 	}
 
 	// Password strength color
-	const getPasswordStrengthColor = () => {
+	const _getPasswordStrengthColor = () => {
 		if (passwordStrength < 40) return 'bg-red-500'
 		if (passwordStrength < 70) return 'bg-yellow-500'
 		return 'bg-green-500'
 	}
 
-	const getPasswordStrengthText = () => {
+	const _getPasswordStrengthText = () => {
 		if (passwordStrength < 40) return 'Weak'
 		if (passwordStrength < 70) return 'Medium'
 		return 'Strong'
@@ -304,7 +307,18 @@ export default function RegisterPage() {
 		<div className='min-h-screen flex min-w-screen bg-background relative'>
 			{/* Logo - Global Fixed Responsive */}
 			<div className='fixed top-6 left-0 right-0 flex justify-center lg:top-8 lg:left-10 lg:right-auto lg:justify-start z-50'>
-				<h1 className='text-2xl lg:text-3xl font-bold text-primary'>PaperNest</h1>
+				<Link href='/' className='flex items-center gap-2 lg:gap-3'>
+					<Image
+						src='/PaperNest-logo.svg'
+						alt='PaperNest Logo'
+						width={40}
+						height={40}
+						className='w-8 h-8 lg:w-10 lg:h-10'
+					/>
+					<h1 className='text-2xl lg:text-3xl font-bold text-primary leading-none -mt-1'>
+						PaperNest
+					</h1>
+				</Link>
 			</div>
 
 			{/* Left Side - Form Container */}
@@ -333,9 +347,7 @@ export default function RegisterPage() {
 								<div className='space-y-6'>
 									{/* Title */}
 									<div className='text-center'>
-										<h1 className='text-2xl font-bold text-gray-900 mb-2'>
-											Create your account
-										</h1>
+										<h1 className='text-2xl font-bold text-gray-900 mb-2'>Create your account</h1>
 										<p className='text-sm text-gray-500'>
 											Step {currentStep} of {totalSteps} - Account
 										</p>
@@ -428,7 +440,11 @@ export default function RegisterPage() {
 										{/* Password Strength Indicator */}
 										{formData.password && (
 											<div className='flex items-center gap-2 text-xs'>
-												<svg className='w-4 h-4 text-green-500' fill='currentColor' viewBox='0 0 20 20'>
+												<svg
+													className='w-4 h-4 text-green-500'
+													fill='currentColor'
+													viewBox='0 0 20 20'
+												>
 													<path
 														fillRule='evenodd'
 														d='M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z'
@@ -536,7 +552,9 @@ export default function RegisterPage() {
 									<RadioGroup
 										className='w-full grid grid-cols-2 gap-3'
 										value={formData.workspaceMode}
-										onValueChange={(value) => updateFormData('workspaceMode', value as 'create' | 'join')}
+										onValueChange={(value) =>
+											updateFormData('workspaceMode', value as 'create' | 'join')
+										}
 									>
 										<div className='border-input has-data-[state=checked]:bg-teal-500 has-data-[state=checked]:text-white relative flex flex-col gap-2 border p-4 rounded-lg outline-none has-data-[state=checked]:z-10 transition-all'>
 											<div className='group flex flex-col gap-2'>
@@ -583,10 +601,11 @@ export default function RegisterPage() {
 															key={icon}
 															type='button'
 															onClick={() => updateFormData('workspaceIcon', icon)}
-															className={`p-3 text-2xl border rounded-lg transition-all hover:scale-105 ${formData.workspaceIcon === icon
-																? 'bg-teal-500 border-teal-400'
-																: 'bg-white border-gray-200 hover:border-gray-300'
-																}`}
+															className={`p-3 text-2xl border rounded-lg transition-all hover:scale-105 ${
+																formData.workspaceIcon === icon
+																	? 'bg-teal-500 border-teal-400'
+																	: 'bg-white border-gray-200 hover:border-gray-300'
+															}`}
 														>
 															{icon}
 														</button>
@@ -700,9 +719,9 @@ export default function RegisterPage() {
 				{/* Gradient Background */}
 				<div className='absolute inset-0 w-full h-full p-6'>
 					<Grainient
-						color1="#009689"
-						color2="#F5A623"
-						color3="#009689"
+						color1='#009689'
+						color2='#F5A623'
+						color3='#009689'
 						timeSpeed={0.25}
 						colorBalance={0}
 						warpStrength={1}
@@ -726,12 +745,15 @@ export default function RegisterPage() {
 				</div>
 				{/* Text Overlay */}
 				<div className='absolute inset-0 flex flex-col items-center justify-center z-10 px-8'>
-					<p className='text-xl text-white text-center mt-4 max-w-sm italic' style={{ fontFamily: 'Times New Roman, Times, serif' }}>
-						"Your all-in-one research workspace for managing papers, projects, and collaboration. Sign up now to organize your research like never before!"
+					<p
+						className='text-xl text-white text-center mt-4 max-w-sm italic'
+						style={{ fontFamily: 'Times New Roman, Times, serif' }}
+					>
+						"Your all-in-one research workspace for managing papers, projects, and collaboration.
+						Sign up now to organize your research like never before!"
 					</p>
 				</div>
 			</div>
 		</div>
 	)
 }
-

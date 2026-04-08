@@ -1,14 +1,10 @@
 'use client'
 
-import React, { useState } from 'react'
+import { Bell, LogOut, Settings, Slash, User } from 'lucide-react'
 import Link from 'next/link'
-import { usePathname, useRouter, useParams } from 'next/navigation'
-import { useAuth } from '@/context/AuthContext'
-import { useLogout } from '@/lib/api/hooks/use-auth'
-import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher'
+import { useParams, usePathname, useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { cn } from '@/lib/utils'
-import { Slash, Bell, LogOut, User, Settings } from 'lucide-react'
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -16,6 +12,10 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher'
+import { useAuth } from '@/context/AuthContext'
+import { useLogout } from '@/lib/api/hooks/use-auth'
+import { cn } from '@/lib/utils'
 
 interface NavbarProps {
 	mode?: 'workspace' | 'document'
@@ -41,19 +41,27 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 		{ name: 'Settings', href: `/${workspaceId}/settings` },
 	]
 
-	// Document-specific menu items
-	const documentMenuItems = documentId
-		? [
-			{
-				name: 'Citations',
-				href: `/${workspaceId}/documents/${documentId}/citations`,
-			},
-			{
-				name: 'Reviews',
-				href: `/${workspaceId}/documents/${documentId}/reviews`,
-			},
-		]
-		: []
+    // Document-specific menu items
+    const documentMenuItems = documentId
+        ? [
+            { 
+                name: "Overview", 
+                href: `/${workspaceId}/documents/${documentId}` 
+            },
+            {
+                name: "Citations",
+                href: `/${workspaceId}/documents/${documentId}/citations`,
+            },
+            {
+                name: "Reviews",
+                href: `/${workspaceId}/documents/${documentId}/reviews`,
+            },
+            {
+                name: "Versions",
+                href: `/${workspaceId}/documents/${documentId}/versions`,
+            },
+        ]
+        : [];
 
 	const menuItems = mode === 'document' ? documentMenuItems : workspaceMenuItems
 
@@ -116,6 +124,7 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 						<div className='hidden md:flex items-center gap-3'>
 							{/* Notifications Button */}
 							<button
+								type='button'
 								onClick={() => router.push('/notifications')}
 								className='p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors'
 								aria-label='Notifications'
@@ -128,25 +137,32 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
 									<button
+										type='button'
 										className='flex items-center gap-2 p-1.5 hover:bg-gray-100 rounded-lg transition-colors'
 										aria-label='User menu'
 									>
 										<div className='w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-sm font-medium'>
-											{user.name.charAt(0).toUpperCase()}
+											{user.length > 0 ?user[0].name.charAt(0).toUpperCase() : ''}
 										</div>
 									</button>
 								</DropdownMenuTrigger>
 								<DropdownMenuContent align='end' className='w-56'>
 									<div className='px-2 py-1.5'>
-										<p className='text-sm font-medium text-gray-900'>{user.name}</p>
-										<p className='text-xs text-gray-500 capitalize'>{user.role}</p>
+										<p className='text-sm font-medium text-gray-900'>{user.length > 0 ?user[0].name : ''}</p>
+										<p className='text-xs text-gray-500 capitalize'>{user.length > 0 ?user[0].role : ''}</p>
 									</div>
 									<DropdownMenuSeparator />
-									<DropdownMenuItem onClick={() => router.push('/profile')} className='gap-2 cursor-pointer'>
+									<DropdownMenuItem
+										onClick={() => router.push('/profile')}
+										className='gap-2 cursor-pointer'
+									>
 										<User className='w-4 h-4' />
 										<span>Profile</span>
 									</DropdownMenuItem>
-									<DropdownMenuItem onClick={() => router.push('/settings')} className='gap-2 cursor-pointer'>
+									<DropdownMenuItem
+										onClick={() => router.push('/settings')}
+										className='gap-2 cursor-pointer'
+									>
 										<Settings className='w-4 h-4' />
 										<span>Settings</span>
 									</DropdownMenuItem>
@@ -164,6 +180,7 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 
 						{/* Mobile Menu Button */}
 						<button
+							type='button'
 							onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
 							className='md:hidden p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition-colors'
 							aria-label='Toggle menu'
@@ -213,22 +230,24 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 
 							<div className='flex items-center gap-3 px-4 py-3 bg-gray-900 rounded-lg border border-gray-800 mb-3'>
 								<button
+									type='button'
 									onClick={() => {
 										setIsMobileMenuOpen(false)
 										router.push('/profile')
 									}}
 									className='w-10 h-10 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold'
 								>
-									{user.name.charAt(0).toUpperCase()}
+									{user.map((member) => member.name.charAt(0).toUpperCase())}
 								</button>
 								<div>
-									<p className='text-sm font-medium text-gray-200'>{user.name}</p>
-									<p className='text-xs text-gray-500'>{user.role}</p>
+									<p className='text-sm font-medium text-gray-200'>{user.map((member) => member.name)}</p>
+									<p className='text-xs text-gray-500'>{user.map((member) => member.role)}</p>
 								</div>
 							</div>
 
 							<div className='flex gap-2'>
 								<button
+									type='button'
 									onClick={() => {
 										setIsMobileMenuOpen(false)
 										router.push('/notifications')
@@ -238,6 +257,7 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 									Notifications
 								</button>
 								<button
+									type='button'
 									onClick={() => {
 										setIsMobileMenuOpen(false)
 										setShowLogoutConfirm(true)

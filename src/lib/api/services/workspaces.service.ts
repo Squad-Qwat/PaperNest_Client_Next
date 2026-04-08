@@ -5,16 +5,16 @@
 
 import { apiClient } from '../clients/api-client'
 import { API_ENDPOINTS } from '../config'
+import type { Invitation } from '../types/invitation.types'
 import type {
-	Workspace,
-	WorkspaceWithRole,
 	CreateWorkspaceDto,
-	UpdateWorkspaceDto,
 	InviteMemberDto,
 	UpdateMemberRoleDto,
+	UpdateWorkspaceDto,
+	Workspace,
 	WorkspaceMembersResponse,
+	WorkspaceWithRole,
 } from '../types/workspace.types'
-import type { Invitation, UpdateInvitationDto } from '../types/invitation.types'
 
 class WorkspacesService {
 	/**

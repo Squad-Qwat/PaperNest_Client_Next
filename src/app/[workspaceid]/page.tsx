@@ -1,10 +1,11 @@
 'use client'
 
-import { toast } from 'sonner'
+import { FileText, Trash2 } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
-import { Plus, Settings, Trash2, FileText, MoreVertical } from 'lucide-react'
-import { AppSidebar } from "@/components/app-sidebar"
+import { toast } from 'sonner'
+import { AppSidebar } from '@/components/app-sidebar'
+import { DashboardSkeleton } from '@/components/layout/DashboardSkeleton'
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -12,27 +13,16 @@ import {
 	BreadcrumbList,
 	BreadcrumbPage,
 	BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
-import { Separator } from "@/components/ui/separator"
-import {
-	SidebarInset,
-	SidebarProvider,
-	SidebarTrigger,
-} from "@/components/ui/sidebar"
+} from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Modal, ModalFooter } from '@/components/ui/modal'
 import { SearchInput } from '@/components/ui/search-input'
-import { Textarea } from '@/components/ui/textarea'
-import { Skeleton } from '@/components/ui/skeleton'
+import { Separator } from '@/components/ui/separator'
+import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { useAuth } from '@/context/AuthContext'
-import { useWorkspaceDocuments, useCreateDocument, useDeleteDocument } from '@/lib/api/hooks/use-documents'
+import { useDeleteDocument, useWorkspaceDocuments } from '@/lib/api/hooks/use-documents'
 import { useWorkspace } from '@/lib/api/hooks/use-workspaces'
 import { format, id } from '@/lib/date'
-
-import { DashboardSkeleton } from '@/components/layout/DashboardSkeleton'
 
 export default function WorkspacePage() {
 	const params = useParams()
@@ -46,10 +36,8 @@ export default function WorkspacePage() {
 	} = useWorkspace(workspaceId)
 	const workspaceError = workspaceErrorObj ? (workspaceErrorObj as Error).message : null
 
-	const {
-		data: documentsResponse,
-		isLoading: documentsLoading,
-	} = useWorkspaceDocuments(workspaceId)
+	const { data: documentsResponse, isLoading: documentsLoading } =
+		useWorkspaceDocuments(workspaceId)
 	const documents = documentsResponse?.documents || []
 
 	const { mutateAsync: deleteDocMutate, isPending: isDeleting } = useDeleteDocument()
@@ -63,8 +51,7 @@ export default function WorkspacePage() {
 		const query = searchQuery.toLowerCase()
 		return documents.filter(
 			(doc) =>
-				doc.title.toLowerCase().includes(query) ||
-				(doc.description && doc.description.toLowerCase().includes(query))
+				doc.title.toLowerCase().includes(query) || doc.description?.toLowerCase().includes(query)
 		)
 	}, [documents, searchQuery])
 
@@ -117,9 +104,9 @@ export default function WorkspacePage() {
 	}
 
 	return (
-		<SidebarProvider className="h-svh overflow-hidden bg-sidebar">
+		<SidebarProvider className='h-svh overflow-hidden bg-sidebar'>
 			<AppSidebar />
-			<SidebarInset className="flex flex-col min-h-0 overflow-hidden border border-gray-200/50 transition-all duration-300 isolate rounded-2xl m-2">
+			<SidebarInset className='flex flex-col min-h-0 overflow-hidden border border-gray-200/50 transition-all duration-300 isolate rounded-2xl m-2'>
 				<header className='flex h-16 shrink-0 items-center gap-2 px-4 bg-white border-b sticky top-0 z-30 rounded-t-2xl'>
 					<SidebarTrigger className='-ml-1' />
 					<Separator orientation='vertical' className='mr-2 h-4' />
@@ -173,52 +160,64 @@ export default function WorkspacePage() {
 						</div>
 					) : (
 						<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-							{filteredDocuments.map((doc) => (
-								<div
-									key={doc.documentId}
-									className='bg-white border rounded-lg p-6 hover:border-primary transition-all group cursor-pointer relative'
-									onClick={() => handleOpenDocument(doc.documentId)}
-								>
-									<div className='flex items-start justify-between mb-3'>
-										<h3 className='text-lg font-semibold text-gray-900 group-hover:text-primary transition-colors line-clamp-2 flex-1'>
-											{doc.title}
-										</h3>
-									</div>
-
-									<p className='text-gray-600 text-sm mb-6 line-clamp-2 min-h-[40px]'>
-										{doc.description || 'No description'}
-									</p>
-
-									<div className='flex items-center justify-between text-xs text-gray-500 mb-6'>
-										<span>
-											{format(doc.updatedAt || doc.createdAt, 'd MMMM yyyy', { locale: id })}
-										</span>
-									</div>
-
-									<div className='flex gap-2 items-center'>
-										<Button
-											onClick={(e) => {
-												e.stopPropagation()
+							{filteredDocuments.map((doc) => {
+								return (
+									// biome-ignore lint/a11y/useSemanticElements: Card needs to be clickable but cannot be a button because it contains other buttons
+									<div
+										role='button'
+										tabIndex={0}
+										key={doc.documentId}
+										className='bg-white border rounded-lg p-6 hover:border-primary transition-all group cursor-pointer relative text-left w-full'
+										onClick={() => handleOpenDocument(doc.documentId)}
+										onKeyDown={(e) => {
+											if (e.key === 'Enter' || e.key === ' ') {
+												e.preventDefault()
 												handleOpenDocument(doc.documentId)
-											}}
-											className='flex-1 bg-primary hover:bg-primary/90'
-										>
-											Buka
-										</Button>
-										<button
-											onClick={(e) => {
-												e.stopPropagation()
-												setDeleteConfirm(doc.documentId)
-											}}
-											disabled={isDeleting}
-											className='inline-flex items-center justify-center h-9 w-9 rounded-md border border-gray-300 text-gray-600 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors disabled:opacity-50'
-											title='Hapus Dokumen'
-										>
-											<Trash2 className='h-4 w-4' />
-										</button>
+											}
+										}}
+									>
+										<div className='flex items-start justify-between mb-3'>
+											<h3 className='text-lg font-semibold text-gray-900 group-hover:text-primary transition-colors line-clamp-2 flex-1'>
+												{doc.title}
+											</h3>
+										</div>
+
+										<p className='text-gray-600 text-sm mb-6 line-clamp-2 min-h-[40px]'>
+											{doc.description || 'No description'}
+										</p>
+
+										<div className='flex items-center justify-between text-xs text-gray-500 mb-6'>
+											<span>
+												{format(doc.updatedAt || doc.createdAt, 'd MMMM yyyy', { locale: id })}
+											</span>
+										</div>
+
+										<div className='flex gap-2 items-center'>
+											<Button
+												onClick={(e) => {
+													e.stopPropagation()
+													handleOpenDocument(doc.documentId)
+												}}
+												className='flex-1 bg-primary hover:bg-primary/90'
+											>
+												Buka
+											</Button>
+											<button
+												type='button'
+												onClick={(e) => {
+													e.stopPropagation()
+													setDeleteConfirm(doc.documentId)
+												}}
+												disabled={isDeleting}
+												className='inline-flex items-center justify-center h-9 w-9 rounded-md border border-gray-300 text-gray-600 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors disabled:opacity-50'
+												title='Hapus Dokumen'
+											>
+												<Trash2 className='h-4 w-4' />
+											</button>
+										</div>
 									</div>
-								</div>
-							))}
+								)
+							})}
 						</div>
 					)}
 				</main>

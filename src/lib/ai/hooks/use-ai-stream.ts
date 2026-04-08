@@ -2,7 +2,7 @@ import type { SSEEvent } from '../types/chat'
 
 /**
  * useAIStream - Hook/Utility to parse SSE (Server-Sent Events) from a ReadableStream
- * 
+ *
  * Provides an async generator that yields parsed SSEEvent objects.
  */
 
@@ -14,7 +14,7 @@ export async function* parseSSEStream(stream: ReadableStream): AsyncGenerator<SS
 	try {
 		while (true) {
 			const { done, value } = await reader.read()
-			
+
 			if (done) {
 				// Handle any remaining text in the buffer
 				if (buffer.trim()) {
@@ -25,7 +25,7 @@ export async function* parseSSEStream(stream: ReadableStream): AsyncGenerator<SS
 
 			const chunk = decoder.decode(value, { stream: true })
 			buffer += chunk
-			
+
 			const lines = buffer.split('\n')
 			// Keep the last partial line (if any) in the buffer
 			buffer = lines.pop() || ''
@@ -57,7 +57,7 @@ export async function* parseSSEStream(stream: ReadableStream): AsyncGenerator<SS
  */
 function* processLines(lines: string | string[]): Generator<SSEEvent> {
 	const linesArray = Array.isArray(lines) ? lines : [lines]
-	
+
 	for (const line of linesArray) {
 		const trimmedLine = line.trim()
 		if (!trimmedLine || !trimmedLine.startsWith('data: ')) continue
@@ -70,7 +70,7 @@ function* processLines(lines: string | string[]): Generator<SSEEvent> {
 			yield data
 		} catch (e) {
 			// Specific logging for parse errors (fixing the swallow from audit)
-			console.warn('[SSEParser] Failed to parse JSON from line:', dataStr.slice(0, 100) + '...', e)
+			console.warn('[SSEParser] Failed to parse JSON from line:', `${dataStr.slice(0, 100)}...`, e)
 		}
 	}
 }

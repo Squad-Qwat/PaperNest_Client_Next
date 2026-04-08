@@ -31,12 +31,7 @@ export function AIChatInput({ input, setInput, isLoading, onSubmit }: AIChatInpu
 						size='sm'
 						className='h-8 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full px-4 text-sm'
 					>
-						<svg
-							className='w-4 h-4 mr-2'
-							fill='none'
-							stroke='currentColor'
-							viewBox='0 0 24 24'
-						>
+						<svg className='w-4 h-4 mr-2' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
 							<path
 								strokeLinecap='round'
 								strokeLinejoin='round'
@@ -67,12 +62,7 @@ export function AIChatInput({ input, setInput, isLoading, onSubmit }: AIChatInpu
 								size='icon'
 								className='h-8 w-8 text-gray-500 hover:text-gray-900 hover:bg-gray-200 rounded-lg'
 							>
-								<svg
-									className='w-4 h-4'
-									fill='none'
-									stroke='currentColor'
-									viewBox='0 0 24 24'
-								>
+								<svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
 									<path
 										strokeLinecap='round'
 										strokeLinejoin='round'
@@ -87,10 +77,11 @@ export function AIChatInput({ input, setInput, isLoading, onSubmit }: AIChatInpu
 							type='submit'
 							size='icon'
 							disabled={!input.trim() || isLoading}
-							className={`shrink-0 rounded-full w-9 h-9 transition-colors ${input.trim() && !isLoading
-								? 'bg-primary hover:bg-primary/90 text-primary-foreground'
-								: 'bg-gray-300 text-gray-500 cursor-not-allowed'
-								}`}
+							className={`shrink-0 rounded-full w-9 h-9 transition-colors ${
+								input.trim() && !isLoading
+									? 'bg-primary hover:bg-primary/90 text-primary-foreground'
+									: 'bg-gray-300 text-gray-500 cursor-not-allowed'
+							}`}
 						>
 							<svg
 								className='w-4 h-4'
@@ -99,11 +90,7 @@ export function AIChatInput({ input, setInput, isLoading, onSubmit }: AIChatInpu
 								strokeWidth={2.5}
 								viewBox='0 0 24 24'
 							>
-								<path
-									strokeLinecap='round'
-									strokeLinejoin='round'
-									d='M5 10l7-7m0 0l7 7m-7-7v18'
-								/>
+								<path strokeLinecap='round' strokeLinejoin='round' d='M5 10l7-7m0 0l7 7m-7-7v18' />
 							</svg>
 						</Button>
 					</div>

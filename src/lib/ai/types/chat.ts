@@ -1,7 +1,7 @@
 /**
  * AI Chat Type Definitions
- * 
- * Shared TypeScript types for AI chat conversations, messages, 
+ *
+ * Shared TypeScript types for AI chat conversations, messages,
  * tool calls, and streaming communication.
  */
 
@@ -93,6 +93,7 @@ export interface AIStreamPayload {
 	plan?: PlanStep[]
 	providerId: string
 	modelId: string
+	agentId?: string
 }
 
 /**
@@ -101,6 +102,7 @@ export interface AIStreamPayload {
 export type SSEEvent =
 	| { type: 'content'; content: string }
 	| { type: 'tool_calls'; toolCalls: { id: string; name: string; args: any }[] }
+	| { type: 'tool_results'; results: { name: string; result: string; toolCallId: string }[] }
 	| { type: 'plan_update'; plan: PlanStep[] }
 	| { type: 'reasoning'; content: string; duration?: number }
 	| { type: 'done'; hasMoreSteps: boolean }

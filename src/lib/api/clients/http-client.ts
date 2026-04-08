@@ -90,7 +90,7 @@ export class HttpClient {
 	 */
 	async request<T>(endpoint: string, options: RequestConfig = {}): Promise<T> {
 		const url = `${this.baseURL}${endpoint}`
-		const { timeout, retry, ...fetchOptions } = options
+		const { timeout: _timeout, retry: _retry, ...fetchOptions } = options
 
 		const config: RequestInit = {
 			...fetchOptions,
@@ -118,7 +118,7 @@ export class HttpClient {
 	 * Remove authentication token
 	 */
 	removeAuthToken(): void {
-		const { Authorization, ...rest } = this.defaultHeaders as any
+		const { Authorization: _Authorization, ...rest } = this.defaultHeaders as any
 		this.defaultHeaders = rest
 	}
 

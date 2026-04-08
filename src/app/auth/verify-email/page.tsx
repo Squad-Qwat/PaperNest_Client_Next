@@ -1,12 +1,12 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import { Loader2, Mail } from 'lucide-react'
 import { motion } from 'motion/react'
-import { Mail, CheckCircle2, ArrowRight, Loader2, RefreshCw } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import Grainient from '@/components/visuals/Grainient/Grainient'
 import { useVerifyCompletion } from '@/lib/api/hooks/use-auth'
 import { getErrorMessage } from '@/lib/api/utils/error-handler'
-import Grainient from '@/components/visuals/Grainient/Grainient'
 
 export default function VerifyEmailPage() {
 	const { mutate: verify, isPending, error: verifyError } = useVerifyCompletion()
@@ -61,23 +61,17 @@ export default function VerifyEmailPage() {
 
 					{/* Text Content - Focused */}
 					<div className=''>
-						<h1 className='text-2xl font-bold tracking-tight text-gray-900'>
-							Check your inbox
-						</h1>
+						<h1 className='text-2xl font-bold tracking-tight text-gray-900'>Check your inbox</h1>
 						<p className='text-sm text-gray-500 leading-relaxed max-w-[280px] mx-auto'>
-							We've sent a verification link to your email.
-							Please click it to activate your account.
+							We've sent a verification link to your email. Please click it to activate your
+							account.
 						</p>
 					</div>
 
 					{/* Actions & Status */}
 					<div className='space-y-4'>
 						<div className=''>
-							<Button
-								className='w-full'
-								onClick={handleCheckStatus}
-								disabled={isPending}
-							>
+							<Button className='w-full' onClick={handleCheckStatus} disabled={isPending}>
 								{isPending ? (
 									<Loader2 className='w-4 h-4 animate-spin' />
 								) : (
@@ -101,17 +95,16 @@ export default function VerifyEmailPage() {
 
 						{/* Minimalist Footnotes */}
 						<div className='flex flex-col gap-3 items-center w-full text-gray-500'>
-							<Button
-								variant='outline'
-								className='w-full'
-								onClick={() => window.location.reload()}
-							>
+							<Button variant='outline' className='w-full' onClick={() => window.location.reload()}>
 								Kirim Ulang Email
 							</Button>
 
 							<div className='flex items-center gap-2 text-sm opacity-70'>
 								<span>Salah alamat?</span>
-								<a href="/login" className='text-gray-900 hover:text-primary underline transition-colors font-medium'>
+								<a
+									href='/login'
+									className='text-gray-900 hover:text-primary underline transition-colors font-medium'
+								>
 									Login ulang
 								</a>
 							</div>
@@ -124,16 +117,20 @@ export default function VerifyEmailPage() {
 			<div className='hidden lg:flex lg:w-1/2 min-h-screen relative'>
 				<div className='absolute inset-0 w-full h-full p-6'>
 					<Grainient
-						color1="#009689"
-						color2="#F5A623"
-						color3="#009689"
+						color1='#009689'
+						color2='#F5A623'
+						color3='#009689'
 						timeSpeed={0.25}
 						zoom={0.8}
 					/>
 				</div>
 				<div className='absolute inset-0 flex flex-col items-center justify-center z-10 px-8'>
-					<p className='text-xl text-white text-center mt-4 max-w-sm italic' style={{ fontFamily: 'Times New Roman, Times, serif' }}>
-						"Your security is our priority. Verifying your email ensures your research data remains protected and private."
+					<p
+						className='text-xl text-white text-center mt-4 max-w-sm italic'
+						style={{ fontFamily: 'Times New Roman, Times, serif' }}
+					>
+						"Your security is our priority. Verifying your email ensures your research data remains
+						protected and private."
 					</p>
 				</div>
 			</div>

@@ -13,17 +13,17 @@
 	--border-color: #dadada;
 	--highlight-color: #e2e2e2;
 	--scrollbar-hover-color: #959798;
-	--text-color: #3F3F3F;
+	--text-color: #3f3f3f;
 	--dark-color: #121212;
-	--ge-dark-panel-color: #1B1D1E;
+	--ge-dark-panel-color: #1b1d1e;
 	--dark-border-color: #333333;
-	--dark-text-color: #C0C0C0;
+	--dark-text-color: #c0c0c0;
 	--dark-accent-color: #003555;
 	--dark-accent-text-color: #52a5f6;
-	--dark-active-accent-color: #004A77;
+	--dark-active-accent-color: #004a77;
 	--dark-inverse-active-color: #c4c4c4;
 	--dark-highlight-color: #000000;
-	--dark-header-color: #1B1D1E;
+	--dark-header-color: #1b1d1e;
 }
 
 .geEditor * {
@@ -31,7 +31,9 @@
 }
 
 .geEditor {
-	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", system-ui, ui-sans-serif, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+	font-family:
+		-apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", system-ui, ui-sans-serif,
+		Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
 	color-scheme: light dark;
 	position: absolute;
 	overflow: hidden;
@@ -54,20 +56,20 @@ html:has(.geFullscreen),
 	background-color: light-dark(var(--ge-panel-color), var(--ge-dark-panel-color));
 }
 
-.geEditor>svg,
+.geEditor > svg,
 div[id*="dgeMermaidOutput-"] {
 	position: absolute;
 	margin: -9999px 0 0 -9999px;
 	z-index: -1;
 }
 
-.geEditor>#geInfo {
+.geEditor > #geInfo {
 	grid-column: 1 / -1;
 	grid-row: 1 / -1;
 }
 
 .geSimpleMainMenu,
-.geEditor>.geMenubarContainer {
+.geEditor > .geMenubarContainer {
 	grid-column: 1 / -1;
 	grid-row: 1;
 	width: 100%;
@@ -79,27 +81,27 @@ div[id*="dgeMermaidOutput-"] {
 .geCompactMode .geFilenameContainer,
 .geSimple .geMenubarContainer:not(.geMinimal *),
 .geCompactMode .geButtonContainer:not(.geAtlas *, .geEmbed *),
-.geSimple>.geToolbarContainer:not(.geSimpleMainMenu, .geSketch *),
-.geSketch>.geToolbarContainer:has(.geToolbar) {
+.geSimple > .geToolbarContainer:not(.geSimpleMainMenu, .geSketch *),
+.geSketch > .geToolbarContainer:has(.geToolbar) {
 	display: none;
 }
 
-.geEditor.geAtlas>.geMenubarContainer,
-.geEditor.geCompactMode>.geMenubarContainer {
+.geEditor.geAtlas > .geMenubarContainer,
+.geEditor.geCompactMode > .geMenubarContainer {
 	margin-top: 0;
 	height: 30px;
 }
 
-.geEditor.geCompactMode>.geToolbarContainer:not(.geSketch *, .geAtlas *) {
+.geEditor.geCompactMode > .geToolbarContainer:not(.geSketch *, .geAtlas *) {
 	padding-left: 8px;
 }
 
-.geEditor.geSimple>.geToolbarContainer:not(.geVerticalToolbar) {
+.geEditor.geSimple > .geToolbarContainer:not(.geVerticalToolbar) {
 	padding: 0 10px;
 	height: 50px;
 }
 
-.geEditor.geSketch>.geToolbarContainer:not(.geVerticalToolbar) {
+.geEditor.geSketch > .geToolbarContainer:not(.geVerticalToolbar) {
 	height: 44px;
 }
 
@@ -112,7 +114,7 @@ div[id*="dgeMermaidOutput-"] {
 	display: none;
 }
 
-.geEditor.geCompactMode>.geMenubarContainer>.geMenubar {
+.geEditor.geCompactMode > .geMenubarContainer > .geMenubar {
 	padding-left: 4px;
 	top: 0;
 }
@@ -121,46 +123,46 @@ div[id*="dgeMermaidOutput-"] {
 	height: 38px;
 }
 
-.geEditor>.geToolbarContainer:not(.geSketch *) {
+.geEditor > .geToolbarContainer:not(.geSketch *) {
 	grid-column: 1 / -1;
 	grid-row: 2;
 	padding: 0 8px 0 16px;
 	width: 100%;
 }
 
-.geEditor.geClassic>.geToolbarContainer {
+.geEditor.geClassic > .geToolbarContainer {
 	border-top-style: solid;
 	border-top-width: 1px;
 	border-bottom-style: solid;
 	border-bottom-width: 1px;
 }
 
-.geEditor>.geSidebarContainer:not(.geFormatContainer) {
+.geEditor > .geSidebarContainer:not(.geFormatContainer) {
 	min-height: 0;
 	grid-column: 1;
 	grid-row: 3;
 }
 
-.geEditor>.geSidebarContainer.geFormatContainer {
+.geEditor > .geSidebarContainer.geFormatContainer {
 	min-height: 0;
 	grid-column: 4;
 	grid-row: 3;
 }
 
-.geEditor>.geHsplit {
+.geEditor > .geHsplit {
 	grid-column: 2;
 	grid-row: 3;
 	z-index: 2;
 }
 
-.geEditor>.geDiagramContainer {
+.geEditor > .geDiagramContainer {
 	min-height: 0;
 	margin-left: -10px;
 	grid-column: 3;
 	grid-row: 3;
 }
 
-.geEditor>.geTabContainer {
+.geEditor > .geTabContainer {
 	grid-column: 1 / -1;
 	grid-row: 4;
 	width: 100%;
@@ -248,7 +250,12 @@ div[id*="dgeMermaidOutput-"] {
 }
 
 .geHsplit {
-	background: linear-gradient(light-dark(var(--dark-accent-text-color), var(--accent-text-color)), light-dark(var(--dark-accent-text-color), var(--accent-text-color))) no-repeat left/2px 100%;
+	background:
+		linear-gradient(
+			light-dark(var(--dark-accent-text-color), var(--accent-text-color)),
+			light-dark(var(--dark-accent-text-color), var(--accent-text-color))
+		)
+		no-repeat left / 2px 100%;
 	transition: opacity 0.1s linear 0.1s;
 	cursor: ew-resize;
 	width: 10px;
@@ -307,24 +314,24 @@ div[id*="dgeMermaidOutput-"] {
 
 .geButton,
 .geHelpIcon:not(.geTitle *),
-.mxPopupMenuItem>div:not(:has(img)),
+.mxPopupMenuItem > div:not(:has(img)),
 .geTitle,
-.geBtnStepper>div {
+.geBtnStepper > div {
 	position: relative;
 }
 
 .geFreehandMode,
 .geFreehandMode * {
-	cursor: crosshair !important;
+	cursor: crosshair;
 }
 
 .geDarkMode .geButton,
 .geDarkMode .geHelpIcon:not(.geTitle *),
-.geDarkMode .mxPopupMenuItem>div:not(:has(img)),
+.geDarkMode .mxPopupMenuItem > div:not(:has(img)),
 .geDarkMode .geButtonContainer .geButton.geRoundButton img:not(.geAdaptiveAsset),
 .geDarkMode .geAdaptiveAsset,
 .geDarkMode .geTitle,
-.geDarkMode .geBtnStepper>div,
+.geDarkMode .geBtnStepper > div,
 .geDarkMode .geColorDropper,
 .geDarkMode .geStyleMenuItem,
 .geDarkMode .gePropHeader,
@@ -385,11 +392,11 @@ div[id*="dgeMermaidOutput-"] {
 }
 
 .geTitle,
-.geFormatTitle>div {
+.geFormatTitle > div {
 	font-weight: 500;
 }
 
-.geFormatTitle>div {
+.geFormatTitle > div {
 	display: inline;
 	text-align: center;
 	white-space: nowrap;
@@ -399,8 +406,8 @@ div[id*="dgeMermaidOutput-"] {
 	padding: 6px;
 }
 
-.gePageTab>div.geButton {
-	width: 20px !important;
+.gePageTab > div.geButton {
+	width: 20px;
 }
 
 .gePageTab:hover {
@@ -443,7 +450,7 @@ div.geActivePage:hover {
 	position: relative;
 }
 
-.geSwitcher>.geSwitcherDot {
+.geSwitcher > .geSwitcherDot {
 	display: inline-block;
 	width: 6px;
 	height: 6px;
@@ -454,7 +461,7 @@ div.geActivePage:hover {
 	border: 1px solid rgb(181, 182, 183);
 }
 
-.geGraphStylePreview>div {
+.geGraphStylePreview > div {
 	position: relative;
 	pointer-events: none;
 	width: 60px;
@@ -467,7 +474,7 @@ div.geActivePage:hover {
 	opacity: 0.75;
 }
 
-.geSidebarContainer:has(.geSidebarFooter)>div:first-child {
+.geSidebarContainer:has(.geSidebarFooter) > div:first-child {
 	position: relative;
 	overflow: hidden auto;
 	left: 0px;
@@ -518,12 +525,15 @@ html body.geEditor .gePrimaryBtn:hover:not([disabled]) {
 	border-radius: 6px;
 	margin-right: 6px;
 	padding: 3px 8px;
-	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .11), inset 0 -1px 0 0 rgba(0, 0, 0, .08), 0 1px 2px 0 rgba(0, 0, 0, .04);
+	box-shadow:
+		inset 0 0 0 1px rgba(0, 0, 0, 0.11),
+		inset 0 -1px 0 0 rgba(0, 0, 0, 0.08),
+		0 1px 2px 0 rgba(0, 0, 0, 0.04);
 }
 
 .geDarkMode .geButtonGroup {
 	border-style: solid;
-    border-width: 1px;
+	border-width: 1px;
 }
 
 .geButtonGroup .geButton {
@@ -548,7 +558,7 @@ html body.geEditor .gePrimaryBtn:hover:not([disabled]) {
 	cursor: pointer;
 }
 
-.geButton>span {
+.geButton > span {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	font-size: 13px;
@@ -563,14 +573,14 @@ html body.geSimple table.mxWindow {
 	font-size: 12px;
 }
 
-.geSimple .geStatus>div {
+.geSimple .geStatus > div {
 	max-width: 100%;
 	box-sizing: border-box;
 	text-overflow: ellipsis;
 }
 
 .geSimple .geBtn button {
-	min-width: 72px !important;
+	min-width: 72px;
 }
 
 .geSimple div.geToolbarContainer a.geButton:not(.geSketch *) {
@@ -584,15 +594,15 @@ html body.geSimple div.geToolbarContainer a.geColorBtn {
 
 .geToolbarContainer.geDialogToolbar {
 	position: absolute;
-    bottom: 0px;
-    left: 0px;
-    right: 0px;
-    height: 32px;
-    overflow: hidden;
-    padding: 3px 4px 4px;
-    border-width: 1px 0px 0px;
-    border-style: solid;
-    white-space: nowrap;
+	bottom: 0px;
+	left: 0px;
+	right: 0px;
+	height: 32px;
+	overflow: hidden;
+	padding: 3px 4px 4px;
+	border-width: 1px 0px 0px;
+	border-style: solid;
+	white-space: nowrap;
 }
 
 .geSimpletable.mxWindow td.mxWindowPane button.geColorBtn {
@@ -608,7 +618,10 @@ html body.geSimple .geMenuItem {
 	border: none;
 	border-radius: 5px;
 	color: light-dark(#353535, #cccccc);
-	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .11), inset 0 -1px 0 0 rgba(0, 0, 0, .08), 0 1px 2px 0 rgba(0, 0, 0, .04);
+	box-shadow:
+		inset 0 0 0 1px rgba(0, 0, 0, 0.11),
+		inset 0 -1px 0 0 rgba(0, 0, 0, 0.08),
+		0 1px 2px 0 rgba(0, 0, 0, 0.04);
 }
 
 html body div.mxPopupMenu {
@@ -626,7 +639,7 @@ html table.mxPopupMenu td.mxPopupMenuItem {
 
 html tr.mxPopupMenuItem,
 html td.mxPopupMenuItem {
-	transition-property: none !important;
+	transition-property: none;
 }
 
 html body td.mxWindowTitle {
@@ -635,7 +648,7 @@ html body td.mxWindowTitle {
 
 html body.geEditor.geDarkMode *,
 html body .mxWindow.geDarkMode {
-	box-shadow: none !important;
+	box-shadow: none;
 }
 
 html body.geDarkMode .mxCellEditor {
@@ -700,7 +713,7 @@ div.geTemplatePreview {
 }
 
 .geTemplateSelected .geTemplatePreview {
-	opacity: 1 !important;
+	opacity: 1;
 }
 
 .geTemplate span {
@@ -751,7 +764,7 @@ div.geTemplatePreview {
 	background: white;
 	margin: 0;
 	padding: 2px;
-	opacity: 1 !important;
+	opacity: 1;
 	width: 16px;
 	height: 16px;
 	right: 0px;
@@ -759,8 +772,8 @@ div.geTemplatePreview {
 }
 
 .geTemplate .geGenerateDiagramForm .geButton.geRoundButton {
-    margin: -6px -6px 0 0;
-    padding: 2px !important;
+	margin: -6px -6px 0 0;
+	padding: 2px;
 }
 
 .geDarkMode .geTemplate {
@@ -786,7 +799,7 @@ html body.geDarkMode .geSketch .geToolbarContainer {
 
 body.geDarkMode .geInverseAdaptiveAsset,
 .geDarkMode .geCommentUserImg {
-	filter: none !important
+	filter: none;
 }
 
 .geAdaptiveAsset {
@@ -852,7 +865,7 @@ html .geDarkMode .geCommentContainer {
 html div.mxWindow,
 .geSketch .geToolbarContainer:not(.geDialog *, .mxWindow *) {
 	border-radius: 5px;
-	box-shadow: 0px 0px 2px #C0C0C0;
+	box-shadow: 0px 0px 2px #c0c0c0;
 }
 
 .geSketch .geToolbarContainer:not(.geDialog *, .mxWindow *) {
@@ -868,7 +881,7 @@ div td.mxWindowTitle {
 	height: 22px;
 }
 
-.mxWindowTitle>div>img {
+.mxWindowTitle > div > img {
 	padding: 4px;
 }
 
@@ -889,7 +902,7 @@ div td.mxWindowTitle {
 	z-index: 10002;
 }
 
-.geEditor input[type=text]::-ms-clear {
+.geEditor input[type="text"]::-ms-clear {
 	display: none;
 }
 
@@ -956,7 +969,7 @@ div td.mxWindowTitle {
 	right: 12px;
 }
 
-.geSketch .geFooterToolbar>* {
+.geSketch .geFooterToolbar > * {
 	margin: 0;
 }
 
@@ -1033,7 +1046,7 @@ div.geFormatContainer {
 	opacity: 0.7;
 }
 
-.geStatus>* {
+.geStatus > * {
 	overflow: hidden;
 	white-space: nowrap;
 	vertical-align: middle;
@@ -1062,7 +1075,7 @@ div.geFormatContainer {
 	border-radius: 4px;
 }
 
-.geStatus div+div {
+.geStatus div + div {
 	margin-left: 8px;
 }
 
@@ -1076,7 +1089,7 @@ div.geFormatContainer {
 .geStatus .geStatusAlert {
 	padding: 4px 10px;
 	background-color: light-dark(#eacccc, #a20025);
-	color: light-dark(#b62623, white) !important;
+	color: light-dark(#b62623, white);
 }
 
 .geStatusDiv {
@@ -1087,19 +1100,19 @@ div.geFormatContainer {
 	flex-shrink: 0;
 }
 
-.geEmbed.geAtlas>.geMenubarContainer>.geStatusDiv,
-.geClassic.geEmbed.geCompactMode>.geMenubarContainer>.geStatusDiv {
+.geEmbed.geAtlas > .geMenubarContainer > .geStatusDiv,
+.geClassic.geEmbed.geCompactMode > .geMenubarContainer > .geStatusDiv {
 	position: fixed;
-    right: 16px;
-    top: 6px;
+	right: 16px;
+	top: 6px;
 }
 
-.geClassic.geEmbed.geCompactMode>.geMenubarContainer>.geStatusDiv {
-    top: 6px;
+.geClassic.geEmbed.geCompactMode > .geMenubarContainer > .geStatusDiv {
+	top: 6px;
 }
 
-.geEmbed.geAtlas>.geMenubarContainer>.geStatusDiv {
-    top: 12px;
+.geEmbed.geAtlas > .geMenubarContainer > .geStatusDiv {
+	top: 12px;
 }
 
 html body div.geBtn.geSmallBanner {
@@ -1113,18 +1126,18 @@ html body div.geBtn.geSmallBanner {
 
 .geSpinnerStatus {
 	position: absolute;
-    white-space: nowrap;
-    border-radius: 6px;
+	white-space: nowrap;
+	border-radius: 6px;
 	color: #ffffff;
-	background: #4B4243;
+	background: #4b4243;
 	transform: translate(-50%, -50%);
-    box-shadow: light-dark(#dddddd, transparent) 2px 2px 3px 0px;
+	box-shadow: light-dark(#dddddd, transparent) 2px 2px 3px 0px;
 	padding: 6px 10px;
 	font-size: 9pt;
-    z-index: 2000000000;
-    max-width: 60%;
-    overflow: hidden;
-    text-overflow: ellipsis;
+	z-index: 2000000000;
+	max-width: 60%;
+	overflow: hidden;
+	text-overflow: ellipsis;
 	cursor: default;
 }
 
@@ -1219,7 +1232,7 @@ html body div.geBtn.geSmallBanner {
 	border-width: 1px;
 }
 
-.geBtnStepper>div {
+.geBtnStepper > div {
 	background-position: center center;
 	background-repeat: no-repeat;
 	background-size: 18px;
@@ -1227,7 +1240,7 @@ html body div.geBtn.geSmallBanner {
 	padding: 1px 0 0 0;
 }
 
-.geBtnStepper>div:active {
+.geBtnStepper > div:active {
 	background-color: #4d90fe;
 }
 
@@ -1247,7 +1260,7 @@ html body div.geBtn.geSmallBanner {
 	padding: 0;
 }
 
-.geStyleBtn>span {
+.geStyleBtn > span {
 	position: absolute;
 	display: block;
 	text-align: center;
@@ -1263,7 +1276,7 @@ html body div.geBtn.geSmallBanner {
 	flex-grow: 1;
 }
 
-.geStyleBtn .geAdaptiveAsset>div.gePatternPreview {
+.geStyleBtn .geAdaptiveAsset > div.gePatternPreview {
 	height: 1px;
 	border-color: black;
 	border-width: 1px;
@@ -1276,7 +1289,7 @@ html body div.geBtn.geSmallBanner {
 	padding: 4px 8px;
 }
 
-.geStyleBtn .geAdaptiveAsset>div {
+.geStyleBtn .geAdaptiveAsset > div {
 	background-repeat: no-repeat;
 	background-position: center;
 	position: absolute;
@@ -1288,7 +1301,7 @@ td.mxPopupMenuIcon .geStyleMenuItem {
 	margin: auto;
 }
 
-td.mxPopupMenuIcon .geStyleMenuItem>div {
+td.mxPopupMenuIcon .geStyleMenuItem > div {
 	background-position: bottom left;
 	background-repeat: repeat-x;
 	border-color: black;
@@ -1332,7 +1345,7 @@ td.mxPopupMenuIcon .geStyleMenuItem>div {
 	background-size: 18px;
 }
 
-.geButton.gePageMenu>span {
+.geButton.gePageMenu > span {
 	padding: 0px;
 	max-width: 160px;
 	overflow: hidden;
@@ -1345,15 +1358,15 @@ td.mxPopupMenuIcon .geStyleMenuItem>div {
 }
 
 .geButton.geZoomInput {
-    cursor: initial;
-    font-size: 14px;
-    border-style: none;
-    border-color: #000000;
-    padding: 0px 16px 0px 2px;
-    background-position: right 2px center;
-    text-align: center;
-    height: 28px;
-    width: 62px;
+	cursor: initial;
+	font-size: 14px;
+	border-style: none;
+	border-color: #000000;
+	padding: 0px 16px 0px 2px;
+	background-position: right 2px center;
+	text-align: center;
+	height: 28px;
+	width: 62px;
 }
 
 .geClassic .geZoomInput {
@@ -1388,13 +1401,13 @@ td.mxPopupMenuIcon .geStyleMenuItem>div {
 .geEditor .geHelpIcon:active,
 .geEditor button:active:not([disabled], .geBigButton, .geShareBtn),
 .geEditor .geFormatTitle:active,
-.geEditor .geBtnStepper>div:active,
+.geEditor .geBtnStepper > div:active,
 .geEditor .geTab:active:not(.mxDisabled, [disabled]),
-.geDarkMode .mxPopupMenuItem>div:not(:has(img)),
+.geDarkMode .mxPopupMenuItem > div:not(:has(img)),
 .geTitle,
-.geBtnStepper>div,
+.geBtnStepper > div,
 .geHelpIcon,
-.geStatus>div:not(.geStatusAlert) {
+.geStatus > div:not(.geStatusAlert) {
 	opacity: 0.75;
 }
 
@@ -1404,10 +1417,10 @@ td.mxPopupMenuIcon .geStyleMenuItem>div {
 
 .geItem:hover:not(.mxDisabled, [disabled]),
 .geBtn:hover:not([disabled]),
-.geBtnStepper>div:hover,
+.geBtnStepper > div:hover,
 .geHelpIcon:hover,
 .geColorDropper:hover,
-.geTitle>div>img:hover,
+.geTitle > div > img:hover,
 .geFormatTitle.geActiveFormatTitle,
 .geHint img:hover,
 .geGraphStylePreview:hover,
@@ -1420,7 +1433,17 @@ select:hover:not([disabled]),
 .geStyleBtn:hover:not([disabled]),
 table.mxPopupMenu tr.mxPopupMenuItemHover,
 .geTitle:hover,
-.geButton:hover:not(.mxDisabled, .mxDisabled *, [disabled], .gePageTab *, .geSimpleMainMenu *, .geBtn *, .geButtonGroup *, .geAdaptiveAsset, .gePrimaryBtn) {
+.geButton:hover:not(
+		.mxDisabled,
+		.mxDisabled *,
+		[disabled],
+		.gePageTab *,
+		.geSimpleMainMenu *,
+		.geBtn *,
+		.geButtonGroup *,
+		.geAdaptiveAsset,
+		.gePrimaryBtn
+	) {
 	opacity: 1;
 }
 
@@ -1433,7 +1456,17 @@ table.mxPopupMenu tr.mxPopupMenuItemHover {
 }
 
 .geTitle:hover,
-.geButton:hover:not(.mxDisabled, .mxDisabled *, [disabled], .gePageTab *, .geSimpleMainMenu *, .geBtn *, .geButtonGroup *, .geAdaptiveAsset, .gePrimaryBtn) {
+.geButton:hover:not(
+		.mxDisabled,
+		.mxDisabled *,
+		[disabled],
+		.gePageTab *,
+		.geSimpleMainMenu *,
+		.geBtn *,
+		.geButtonGroup *,
+		.geAdaptiveAsset,
+		.gePrimaryBtn
+	) {
 	background-color: light-dark(var(--highlight-color), white);
 }
 
@@ -1447,10 +1480,10 @@ table.mxPopupMenu tr.mxPopupMenuItemHover {
 }
 
 .mxDisabled:hover {
-	background-color: inherit !important;
+	background-color: inherit;
 }
 
-a.geStatus>div {
+a.geStatus > div {
 	display: inline-flex;
 	align-items: center;
 }
@@ -1460,7 +1493,7 @@ a.geStatus>div {
 	border-right-width: 1px;
 }
 
-.geClassic .geSidebarContainer:not(.geFormatContainer)>div {
+.geClassic .geSidebarContainer:not(.geFormatContainer) > div {
 	padding: 0 4px;
 }
 
@@ -1499,21 +1532,21 @@ a.geStatus>div {
 .geVerticalToolbar.geCollapsedToolbar {
 	top: auto;
 	bottom: 12px;
-	transform: none !important;
+	transform: none;
 }
 
-.geToolbarContainer.geVerticalToolbar>* {
+.geToolbarContainer.geVerticalToolbar > * {
 	display: flex;
 	overflow: visible;
 	margin: 2px 0;
 }
 
-.geVerticalToolbar.geCollapsedToolbar>* {
+.geVerticalToolbar.geCollapsedToolbar > * {
 	margin: 0;
-	width: 24px !important;
+	width: 24px;
 }
 
-.geVerticalToolbar>.geButton {
+.geVerticalToolbar > .geButton {
 	width: 34px;
 	height: 34px;
 }
@@ -1535,7 +1568,7 @@ a.geStatus>div {
 	height: 100%;
 }
 
-.geButton>div:not(.geShortcutKey) {
+.geButton > div:not(.geShortcutKey) {
 	display: flex;
 	align-items: center;
 	width: 100%;
@@ -1599,7 +1632,7 @@ a.geStatus>div {
 	display: none;
 }
 
-.mxPopupMenuIcon>img.geButton:empty {
+.mxPopupMenuIcon > img.geButton:empty {
 	width: 22px;
 }
 
@@ -1611,7 +1644,7 @@ a.geStatus>div {
 	cursor: default;
 }
 
-.geShapePicker>* {
+.geShapePicker > * {
 	display: inline-block;
 	width: 30px;
 	height: 30px;
@@ -1647,7 +1680,7 @@ a.geStatus>div {
 .geHelpIcon {
 	width: 16px;
 	margin: 0 4px;
-	vertical-align: text-bottom
+	vertical-align: text-bottom;
 }
 
 .geFormatSection {
@@ -1731,7 +1764,7 @@ a.geStatus>div {
 
 .mxWindowPane .geSidebarContainer {
 	position: absolute;
-	width: 100% !important;
+	width: 100%;
 	top: 0;
 	bottom: 28px;
 }
@@ -1740,7 +1773,7 @@ a.geStatus>div {
 	bottom: 0;
 }
 
-.geEditor>div>.geMenubarContainer {
+.geEditor > div > .geMenubarContainer {
 	border-bottom-style: solid;
 	border-bottom-width: 1px;
 }
@@ -1840,7 +1873,7 @@ a.geStatus>div {
 	height: 30px;
 }
 
-.geTitle>span {
+.geTitle > span {
 	flex-grow: 1;
 	flex-shrink: 1;
 	width: 0;
@@ -1858,7 +1891,7 @@ a.geStatus>div {
 	margin: 4px 4px 4px 0;
 }
 
-.geTitle>div {
+.geTitle > div {
 	display: flex;
 	flex-grow: 0;
 	padding-right: 4px;
@@ -1908,7 +1941,7 @@ a.geStatus>div {
 	overflow: hidden;
 	border-width: 1px;
 	border-style: solid;
-	box-shadow: 0 2px 6px 2px rgba(60, 64, 67, .15);
+	box-shadow: 0 2px 6px 2px rgba(60, 64, 67, 0.15);
 	border-radius: 6px;
 }
 
@@ -2011,18 +2044,18 @@ html body .geBigStandardButton:hover {
 }
 
 html body .geBigStandardButton:active {
-	background-color: #F8C382;
+	background-color: #f8c382;
 	color: #600000;
 }
 
 @media print {
 	div.geNoPrint {
-		display: none !important;
+		display: none;
 	}
 }
 
 html div.mxRubberband {
-	border-color: light-dark(#0000DD, white);
+	border-color: light-dark(#0000dd, white);
 	background-color: light-dark(#99ccff, var(--dark-border-color));
 }
 
@@ -2031,7 +2064,7 @@ html div.mxRubberband {
 }
 
 .geEditor div.mxPopupMenu {
-	box-shadow: 0px 0px 2px #C0C0C0;
+	box-shadow: 0px 0px 2px #c0c0c0;
 	background-color: var(--ge-panel-color);
 	background-image: none;
 	border-radius: 4px;
@@ -2047,14 +2080,14 @@ html div.mxRubberband {
 	border-radius: 18px;
 	width: 100%;
 	outline: none;
-	padding: 6px 20px 6px 10px
+	padding: 6px 20px 6px 10px;
 }
 
-.geSearchSidebar>div {
+.geSearchSidebar > div {
 	margin-bottom: 4px;
 }
 
-.geSearchSidebar>div>img.geAdaptiveAsset {
+.geSearchSidebar > div > img.geAdaptiveAsset {
 	position: relative;
 	top: 4px;
 	left: -24px;
@@ -2106,9 +2139,9 @@ table.geProperties tr th {
 
 .gePropValue {
 	width: 100%;
-    overflow: hidden;
+	overflow: hidden;
 	white-space: nowrap;
-    text-overflow: ellipsis;
+	text-overflow: ellipsis;
 }
 
 .gePropHeader,
@@ -2116,18 +2149,18 @@ table.geProperties tr th {
 	border: 1px solid light-dark(var(--border-color), var(--dark-border-color));
 }
 
-.gePropHeader>.gePropHeaderCell {
+.gePropHeader > .gePropHeaderCell {
 	border-top: 0;
 	border-bottom: 0;
 	text-align: left;
 	width: 50%;
 }
 
-.gePropHeader>.gePropHeaderCell:first-child {
+.gePropHeader > .gePropHeaderCell:first-child {
 	border-left: none;
 }
 
-.gePropHeader>.gePropHeaderCell:last-child {
+.gePropHeader > .gePropHeaderCell:last-child {
 	border-right: none;
 }
 
@@ -2149,22 +2182,22 @@ table.geProperties tr th {
 	border-left: 1px solid light-dark(var(--border-color), var(--dark-border-color));
 }
 
-.gePropRow>.gePropRowCell {
+.gePropRow > .gePropRowCell {
 	background-color: light-dark(#fff, var(--ge-dark-panel-color));
 }
 
-.gePropRowAlt>.gePropRowCell {
+.gePropRowAlt > .gePropRowCell {
 	background-color: light-dark(#fcfcfc, var(--ge-dark-panel-color));
 }
 
-.gePropRowDark>.gePropRowCell {
+.gePropRowDark > .gePropRowCell {
 	background-color: light-dark(#fff, var(--ge-dark-panel-color));
 	color: light-dark(#305496, #cccccc);
 	font-weight: bold;
 }
 
-.gePropRowDarkAlt>.gePropRowCell {
-	background-color: light-dark(#D9E1F2, #000000);
+.gePropRowDarkAlt > .gePropRowCell {
+	background-color: light-dark(#d9e1f2, #000000);
 	color: light-dark(#305496, #cccccc);
 	font-weight: bold;
 }
@@ -2211,8 +2244,8 @@ table.geProperties tr th {
 	border-style: solid;
 	border-radius: 10px;
 	white-space: nowrap;
-	box-shadow: 2px 2px 6px rgba(60, 64, 67, .15);
-	color: #3C4043;
+	box-shadow: 2px 2px 6px rgba(60, 64, 67, 0.15);
+	color: #3c4043;
 }
 
 .geCommentHeader {
@@ -2263,7 +2296,7 @@ table.geProperties tr th {
 
 .geCommentEditTxtArea {
 	margin-top: 5px;
-	font-size: 14px !important;
+	font-size: 14px;
 	min-height: 12px;
 	max-width: 100%;
 	min-width: 100%;
@@ -2279,8 +2312,8 @@ table.geProperties tr th {
 }
 
 .geCommentEditBtn {
-	padding: 3px 8px 3px 8px !important;
-	float: right !important;
+	padding: 3px 8px 3px 8px;
+	float: right;
 	margin-left: 5px;
 }
 
@@ -2322,8 +2355,8 @@ table.geProperties tr th {
 
 .geCheckedBtn {
 	background-color: #ccc;
-	border-top: 1px solid black !important;
-	border-left: 1px solid black !important;
+	border-top: 1px solid black;
+	border-left: 1px solid black;
 }
 
 .geCommentBusyImg {
@@ -2336,7 +2369,7 @@ table.geProperties tr th {
 	width: 120px;
 	height: 120px;
 	display: inline-block;
-	border: 3px solid #F0F0F0;
+	border: 3px solid #f0f0f0;
 	border-radius: 5px;
 	padding: 5px;
 	margin: 2px 2px 20px 2px;
@@ -2441,7 +2474,7 @@ table.geProperties tr th {
 
 .geBell-bottom::before,
 .geBell-bottom::after {
-	content: '';
+	content: "";
 	position: absolute;
 	top: -4px;
 }
@@ -2479,7 +2512,7 @@ table.geProperties tr th {
 	font-size: 8px;
 	border-radius: 50%;
 	background-color: #ff4927;
-	color: #FFF;
+	color: #fff;
 	animation: geZoomAnim 1s 1s both;
 }
 
@@ -2558,7 +2591,7 @@ table.geProperties tr th {
 	border-radius: 3px;
 	overflow: hidden;
 	box-shadow: 10px 10px 15px 0 rgba(0, 0, 0, 0.3);
-	transition: all .5s ease-in-out;
+	transition: all 0.5s ease-in-out;
 	position: absolute;
 	right: 100px;
 	top: 42px;
@@ -2600,7 +2633,7 @@ table.geProperties tr th {
 	left: 27px;
 	height: 100%;
 	width: 3px;
-	background-color: #EBEBEB;
+	background-color: #ebebeb;
 }
 
 .geNotifPanel .notifications .notification {
@@ -2609,13 +2642,13 @@ table.geProperties tr th {
 	margin: 25px 20px 25px 43px;
 }
 
-.geNotifPanel .notifications .notification:nth-child(n+1) {
+.geNotifPanel .notifications .notification:nth-child(n + 1) {
 	animation: geHere-am-i 0.5s ease-out 0.4s;
 	animation-fill-mode: both;
 }
 
 .geNotifPanel .notifications .notification:hover {
-	color: #1B95E0;
+	color: #1b95e0;
 	cursor: pointer;
 }
 
@@ -2625,7 +2658,7 @@ table.geProperties tr th {
 	height: 11px;
 	width: 11px;
 	background-color: #fff;
-	border: 2px solid #1B95E0;
+	border: 2px solid #1b95e0;
 	box-shadow: 0 0 0 3px #fff;
 	border-radius: 6px;
 	top: 0;
@@ -2633,7 +2666,7 @@ table.geProperties tr th {
 }
 
 .geNotifPanel .notifications .notification .circle.active {
-	background-color: #1B95E0;
+	background-color: #1b95e0;
 }
 
 .geNotifPanel .notifications .notification .time {
@@ -2724,8 +2757,8 @@ table.geProperties tr th {
 	padding-left: 15px;
 }
 
-.geTempTreeActive>li,
-.geTempTreeNested>li {
+.geTempTreeActive > li,
+.geTempTreeNested > li {
 	box-sizing: border-box;
 	padding: 3px;
 	width: 100%;
@@ -2785,19 +2818,19 @@ table.geProperties tr th {
 }
 
 #close-button:hover {
-	background-color: #E81123 !important;
+	background-color: #e81123;
 }
 
 #close-button:active {
-	background-color: #F1707A !important;
+	background-color: #f1707a;
 }
 
 #restore-button {
-	display: none !important;
+	display: none;
 }
 
 .geMaximized #restore-button {
-	display: flex !important;
+	display: flex;
 }
 
 .geMaximized #max-button {
@@ -2815,11 +2848,11 @@ table.geProperties tr th {
 }
 
 .geAtlas .gePrimaryBtn.geEmbedBtn:hover:not(.geDarkMode *, [disabled]) {
-	background-color: #1558bc !important;
+	background-color: #1558bc;
 }
 
 .geAtlas .geMenubarContainer .geItem:hover:not(.geDarkMode *) {
-	background-color: rgba(9, 30, 66, 0.48) !important;
+	background-color: rgba(9, 30, 66, 0.48);
 }
 
 .geAtlas .geMenubar .geButtonContainer {
@@ -2827,7 +2860,7 @@ table.geProperties tr th {
 }
 
 .geAtlas .geStatus,
-.geAtlas .geStatus>div:not(.geStatusAlert) {
+.geAtlas .geStatus > div:not(.geStatusAlert) {
 	opacity: 1;
 }
 
@@ -2838,14 +2871,14 @@ table.geProperties tr th {
 
 .geAtlas .geMenubar .geButtonContainer .geButton:hover {
 	background-color: transparent;
-	opacity: 1 !important;
+	opacity: 1;
 }
 
-.geEditor.geAtlas>.geMenubarContainer {
+.geEditor.geAtlas > .geMenubarContainer {
 	height: 40px;
 }
 
-.geEditor.geAtlas>.geMenubarContainer .geMenubar {
+.geEditor.geAtlas > .geMenubarContainer .geMenubar {
 	padding-left: 12px;
 	height: 100%;
 	top: 0;

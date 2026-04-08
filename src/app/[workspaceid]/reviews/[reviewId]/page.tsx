@@ -1,14 +1,10 @@
 'use client'
 
-import { AlertCircle } from 'lucide-react'
 import { useParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Navbar } from '@/components/layout/Navbar'
 import { ReviewComment } from '@/components/review/ReviewComment'
 import { ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/context/AuthContext'
 import { documentsService } from '@/lib/api/services/documents.service'
 

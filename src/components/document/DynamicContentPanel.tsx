@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useState, useCallback, useRef } from 'react'
 import { X } from 'lucide-react'
+import type React from 'react'
+import { useCallback, useState } from 'react'
 import PanelContent1 from './panels/PanelContent1'
 import PanelContent2 from './panels/PanelContent2'
 import PanelContent3 from './panels/PanelContent3'
@@ -15,7 +16,7 @@ interface DynamicContentPanelProps {
 	onResizeEnd?: () => void
 	currentContent?: string | null
 	onNavigateToSection?: (heading: string, position: number) => void
-	editorView?: any
+	onInsertText?: (text: string) => void
 	getCurrentContent?: () => string
 	documentId?: string | null
 }
@@ -28,7 +29,7 @@ const DynamicContentPanel: React.FC<DynamicContentPanelProps> = ({
 	onResizeEnd,
 	currentContent,
 	onNavigateToSection,
-	editorView,
+	onInsertText,
 	getCurrentContent,
 	documentId,
 }) => {
@@ -78,13 +79,12 @@ const DynamicContentPanel: React.FC<DynamicContentPanelProps> = ({
 	const renderContent = () => {
 		switch (activePanel) {
 			case 'panel1':
-				return <PanelContent1 documentId={documentId} editorView={editorView} />
+				return <PanelContent1 documentId={documentId} onInsertText={onInsertText} />
 			case 'panel2':
 				return (
 					<PanelContent2
 						currentContent={currentContent}
 						onNavigateToSection={onNavigateToSection}
-						editorView={editorView}
 						getCurrentContent={getCurrentContent}
 					/>
 				)
@@ -106,13 +106,17 @@ const DynamicContentPanel: React.FC<DynamicContentPanelProps> = ({
 			}}
 		>
 			{/* Resize Handle - right edge */}
-			<div
-				className={`absolute right-0 top-0 h-full w-1 cursor-ew-resize hover:bg-blue-500 transition-colors z-10 ${isResizing ? 'bg-blue-500' : 'bg-transparent hover:bg-blue-300'
-					}`}
+			<hr
+				className={`absolute right-0 top-0 h-full w-1 cursor-ew-resize hover:bg-blue-500 transition-colors z-10 border-none ${
+					isResizing ? 'bg-blue-500' : 'bg-transparent hover:bg-blue-300'
+				}`}
 				onMouseDown={handleMouseDown}
-			>
-				<div className='absolute right-1/2 top-1/2 translate-x-1/2 -translate-y-1/2 w-1 h-8 rounded-full bg-gray-300 opacity-0 hover:opacity-100 transition-opacity' />
-			</div>
+				aria-orientation='vertical'
+				aria-valuenow={width}
+				aria-valuemin={280}
+				aria-valuemax={600}
+				tabIndex={0}
+			/>
 
 			{/* Content */}
 			<div className='flex-1 flex flex-col overflow-hidden'>
@@ -121,6 +125,7 @@ const DynamicContentPanel: React.FC<DynamicContentPanelProps> = ({
 						{panelLabels[activePanel] || 'Panel'}
 					</h3>
 					<button
+						type='button'
 						onClick={onClose}
 						className='p-2 hover:bg-gray-100 rounded-lg transition-colors'
 						title='Close panel'

@@ -1,23 +1,25 @@
-import { ArrowLeft, MoreVertical } from 'lucide-react'
+import { ChevronLeft, FileText, Loader2, MoreVertical } from 'lucide-react'
 import { useParams } from 'next/navigation'
-import React, { useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { ReviewRequestModal } from '@/components/review/ReviewRequestModal'
 import { ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { toast } from 'sonner'
 import { useAuth } from '@/context/AuthContext'
+import { useDocumentFiles } from '@/lib/api/hooks/use-document-files'
 import {
-	useDocumentVersions,
-	useDocumentReviews,
-	useRevertVersion,
 	useCreateReview,
+	useDocumentReviews,
+	useDocumentVersions,
+	useRevertVersion,
 } from '@/lib/api/hooks/use-documents'
 import type { Version } from '@/lib/api/types/document.types'
 import type { Review } from '@/lib/api/types/review.types'
 import { format, id } from '@/lib/date'
+import { laTeXService } from '@/lib/latex/LaTeXService'
 
 interface ModalVersionsProps {
 	isOpen: boolean
@@ -43,27 +45,69 @@ export default function ModalVersions({
 	const { user } = useAuth()
 
 	const { data: versionsResponse, isLoading: versionsLoading } = useDocumentVersions(documentId)
-	// Handle robust response parsing if response is different format
-	let versions: Version[] = []
-	if (versionsResponse && Array.isArray((versionsResponse as any).versions)) {
-		versions = (versionsResponse as any).versions
-	} else if (Array.isArray(versionsResponse)) {
-		versions = versionsResponse as Version[]
-	}
+	const versions: Version[] = useMemo(() => {
+		if (versionsResponse && Array.isArray((versionsResponse as any).versions)) {
+			return (versionsResponse as any).versions
+		}
+		if (Array.isArray(versionsResponse)) {
+			return versionsResponse as Version[]
+		}
+		return []
+	}, [versionsResponse])
 
 	const { data: reviewsResponse } = useDocumentReviews(documentId)
-	let reviews: Review[] = []
-	if (reviewsResponse && Array.isArray((reviewsResponse as any).reviews)) {
-		reviews = (reviewsResponse as any).reviews
-	} else if (Array.isArray(reviewsResponse)) {
-		reviews = reviewsResponse as Review[]
-	}
+	const reviews: Review[] = useMemo(() => {
+		if (reviewsResponse && Array.isArray((reviewsResponse as any).reviews)) {
+			return (reviewsResponse as any).reviews
+		}
+		if (Array.isArray(reviewsResponse)) {
+			return reviewsResponse as Review[]
+		}
+		return []
+	}, [reviewsResponse])
 
 	const { mutateAsync: revertVersionMutate, isPending: isRollingBack } = useRevertVersion()
 	const { mutateAsync: requestReviewMutate } = useCreateReview()
+	const { data: files = [] } = useDocumentFiles(documentId)
 
 	const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null)
 	const [showReviewModal, setShowReviewModal] = useState(false)
+	const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+	const [isCompiling, setIsCompiling] = useState(false)
+	const [compileError, setCompileError] = useState<string | null>(null)
+
+	// Function to compile LaTeX to PDF
+	const handleCompile = useCallback(
+		async (content: string) => {
+			if (!content) return
+
+			setIsCompiling(true)
+			setCompileError(null)
+
+			try {
+				// Using server mode for preview consistency in modal
+				const result = await laTeXService.compileWithAssets('main.tex', content, files)
+
+				if (result.status === 0 && result.pdf) {
+					// Use Uint8Array directly, but cast to any or use it in the array to satisfy TypeScript's BlobPart requirement
+					const blob = new Blob([result.pdf as any], { type: 'application/pdf' })
+					const url = URL.createObjectURL(blob)
+
+					// Revoke old URL to prevent memory leaks
+					if (pdfUrl) URL.revokeObjectURL(pdfUrl)
+					setPdfUrl(url)
+				} else {
+					setCompileError(result.log || 'Compilation failed')
+				}
+			} catch (error: any) {
+				console.error('Compilation error in ModalVersions:', error)
+				setCompileError(error.message || 'Error compiling PDF')
+			} finally {
+				setIsCompiling(false)
+			}
+		},
+		[files, pdfUrl]
+	)
 
 	// const { toast } = useToast()
 
@@ -84,8 +128,8 @@ export default function ModalVersions({
 			// If the ID matches current user, use their name.
 			// "atau ga yang terlogin saja" -> Fallback to current user name if missing
 			let authorName = version.createdBy
-			if (user && (version.createdBy === user.userId || !version.createdBy)) {
-				authorName = user.name || 'User'
+			if (user && (version.createdBy === (user.length > 0 ? user[0].userId : '') || !version.createdBy)) {
+				authorName = user.length > 0 ? user[0].name : 'User'
 			}
 
 			// Map to UI format
@@ -113,6 +157,21 @@ export default function ModalVersions({
 			}
 		})
 	}, [versions, reviews, user])
+
+	// Compile when version selection changes
+	useEffect(() => {
+		const version = versionsList.find((v) => v.id === selectedVersionId)
+		if (isOpen && version?.content) {
+			handleCompile(version.content)
+		}
+	}, [selectedVersionId, isOpen, handleCompile, versionsList])
+
+	// Cleanup on unmount or close
+	useEffect(() => {
+		return () => {
+			if (pdfUrl) URL.revokeObjectURL(pdfUrl)
+		}
+	}, [pdfUrl])
 
 	const selectedVersion = versionsList.find((v) => v.id === selectedVersionId)
 
@@ -146,27 +205,34 @@ export default function ModalVersions({
 			visuallyHiddenTitle={true}
 		>
 			<div className='flex flex-col h-screen w-full bg-white'>
-				<div className='h-14 border-b flex items-center justify-between px-4 shrink-0'>
+				<div className='h-20 border-b flex items-center justify-between px-3'>
 					<div className='flex items-center gap-4'>
 						<Button
+							type='button'
 							variant='ghost'
-							size='icon'
 							onClick={onClose}
-							className='rounded-full hover:bg-gray-100'
+							className='p-2 hover:bg-gray-100 rounded-lg transition-colors group'
+							title='Back'
 						>
-							<ArrowLeft className='h-5 w-5 text-gray-600' />
+							<ChevronLeft className='h-5 w-5 text-gray-500 group-hover:text-primary transition-colors' />
 						</Button>
 						<div className='flex flex-col'>
-							<span className='text-sm font-medium text-gray-900'>Riwayat versi</span>
-							<span className='text-xs text-gray-500'>Nama Dokumen</span>
+							<span className='text-xl font-medium text-gray-900'>Riwayat versi</span>
+							<span className='text-md text-gray-500'>
+								{selectedVersion
+									? selectedVersion.timestamp
+									: versionsLoading
+										? 'Loading...'
+										: 'No version selected'}
+							</span>
 						</div>
 					</div>
 
 					<div className='flex items-center gap-2'></div>
 				</div>
 
-				<div className='flex-1 flex overflow-hidden'>
-					<div className='flex-1 bg-gray-100 relative flex flex-col min-w-0'>
+				<div className='flex-1 flex overflow-hidden h-full'>
+					<div className='flex-1 bg-gray-100 relative h-full flex flex-col min-w-0'>
 						<ScrollArea className='h-full w-full'>
 							<div className='flex flex-col items-center p-8 min-h-full gap-6'>
 								{/* Review Card */}
@@ -204,16 +270,42 @@ export default function ModalVersions({
 									</div>
 								)}
 
-								{/* Document Page Mockup */}
-								<div className='bg-white shadow-sm w-[816px] min-h-[1056px] p-12 border border-gray-200 shrink-0'>
-									{selectedVersion?.content ? (
-										<div
-											className='prose max-w-none'
-											dangerouslySetInnerHTML={{ __html: selectedVersion.content }}
+								{/* PDF Viewer Mockup */}
+								<div className='bg-gray-200 shadow-sm w-[816px] aspect-[1/1.414] border border-gray-300 shrink-0 flex items-center justify-center relative overflow-hidden'>
+									{isCompiling ? (
+										<div className='flex flex-col items-center gap-3 text-gray-500'>
+											<Loader2 className='w-10 h-10 animate-spin opacity-50' />
+											<span className='text-sm font-medium'>Menyiapkan Preview PDF...</span>
+										</div>
+									) : pdfUrl ? (
+										<iframe
+											src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+											className='w-full min-h-full border-none'
+											title='PDF Preview'
 										/>
+									) : compileError ? (
+										<div className='flex flex-col items-center gap-3 p-8 text-center'>
+											<FileText className='w-12 h-12 text-red-200' />
+											<div className='space-y-1'>
+												<p className='text-sm font-medium text-red-600'>Gagal Memuat Preview</p>
+												<p className='text-xs text-gray-500 max-w-xs line-clamp-3'>
+													{compileError}
+												</p>
+											</div>
+											<Button
+												variant='outline'
+												size='sm'
+												onClick={() =>
+													selectedVersion?.content && handleCompile(selectedVersion.content)
+												}
+											>
+												Coba Lagi
+											</Button>
+										</div>
 									) : (
-										<div className='prose max-w-none text-gray-500 italic text-center mt-20'>
-											No content available for this version.
+										<div className='flex flex-col items-center gap-2 text-gray-400'>
+											<FileText className='w-10 h-10 opacity-20' />
+											<p className='text-sm italic'>Pilih versi untuk melihat pratinjau</p>
 										</div>
 									)}
 								</div>
@@ -230,8 +322,9 @@ export default function ModalVersions({
 							<div className='py-2'>
 								<div className='px-4 py-2 text-xs font-medium text-gray-500'>Hari ini</div>
 
-								{MOCK_VERSIONS.map((version) => (
-									<div
+								{versionsList.map((version) => (
+									<button
+										type='button'
 										key={version.id}
 										onClick={() => setSelectedVersionId(version.id)}
 										onKeyDown={(e) => {
@@ -239,9 +332,7 @@ export default function ModalVersions({
 												setSelectedVersionId(version.id)
 											}
 										}}
-										role='button'
-										tabIndex={0}
-										className={`px-4 py-3 cursor-pointer group transition-colors relative ${
+										className={`w-full text-left px-4 py-3 cursor-pointer group transition-colors relative block ${
 											selectedVersionId === version.id ? 'bg-blue-50' : 'hover:bg-gray-50'
 										}`}
 									>
@@ -265,7 +356,7 @@ export default function ModalVersions({
 												<MoreVertical className='h-4 w-4' />
 											</Button>
 										</div>
-									</div>
+									</button>
 								))}
 							</div>
 						</ScrollArea>
@@ -280,7 +371,7 @@ export default function ModalVersions({
 							)}
 
 							{/* Student Request Review Button */}
-							{user?.role === 'Student' && selectedVersion && !selectedVersion.review && (
+							{(user && user.length > 0 ? user[0].name : 'Student') === 'Student' && selectedVersion && !selectedVersion.review && (
 								<Button
 									className='w-full'
 									variant='outline'

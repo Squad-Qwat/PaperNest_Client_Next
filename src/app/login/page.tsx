@@ -1,30 +1,31 @@
 'use client'
 
-import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Link2 } from 'lucide-react'
+import Image from 'next/image'
 import Link from 'next/link'
-import { useAuth } from '@/context/AuthContext'
-import { useLoginEmail, useSignInWithSocial } from '@/lib/api/hooks/use-auth'
-import { getErrorMessage } from '@/lib/api/utils/error-handler'
+import { useRouter } from 'next/navigation'
+import type React from 'react'
+import { useState } from 'react'
+import { FaGithub } from 'react-icons/fa'
+import { FcGoogle } from 'react-icons/fc'
+import { MicrosoftIconIcon } from '@/components/icons/logos-microsoft-icon'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
 	DialogHeader,
 	DialogTitle,
-} from "@/components/ui/dialog"
-
-import Grainient from '@/components/visuals/Grainient/Grainient';
-import { FcGoogle } from 'react-icons/fc'
-import { FaGithub, FaMicrosoft } from 'react-icons/fa'
-import { Link2 } from 'lucide-react'
-import { MicrosoftIconIcon } from '@/components/icons/logos-microsoft-icon'
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import Grainient from '@/components/visuals/Grainient/Grainient'
+import { useAuth } from '@/context/AuthContext'
+import { useLoginEmail, useSignInWithSocial } from '@/lib/api/hooks/use-auth'
+import { getErrorMessage } from '@/lib/api/utils/error-handler'
 
 export default function LoginPage() {
-	const router = useRouter()
+	const _router = useRouter()
 	const { setOnboardingData } = useAuth()
 
 	const { mutateAsync: loginEmailMutate, isPending: isEmailPending } = useLoginEmail()
@@ -33,7 +34,7 @@ export default function LoginPage() {
 		isPending: isSocialPending,
 		linkingSession,
 		linkMutation,
-		resetLinking
+		resetLinking,
 	} = useSignInWithSocial({ setOnboardingData })
 
 	const [email, setEmail] = useState('')
@@ -75,7 +76,9 @@ export default function LoginPage() {
 				return // Handled by linkingSession UI
 			}
 			if (err.message === 'PASSWORD_CONFLICT') {
-				setLocalError('Email ini sudah terdaftar menggunakan password. Silakan login menggunakan form email & password.')
+				setLocalError(
+					'Email ini sudah terdaftar menggunakan password. Silakan login menggunakan form email & password.'
+				)
 				return
 			}
 			setLocalError(getErrorMessage(err))
@@ -88,7 +91,18 @@ export default function LoginPage() {
 		<div className='min-h-screen flex min-w-screen bg-background relative'>
 			{/* Logo - Global Fixed Responsive */}
 			<div className='fixed top-6 left-0 right-0 flex justify-center lg:top-8 lg:left-10 lg:right-auto lg:justify-start z-50'>
-				<h1 className='text-2xl lg:text-3xl font-bold text-primary'>PaperNest</h1>
+				<Link href='/' className='flex items-center gap-2 lg:gap-3'>
+					<Image
+						src='/PaperNest-logo.svg'
+						alt='PaperNest Logo'
+						width={40}
+						height={40}
+						className='w-8 h-8 lg:w-10 lg:h-10'
+					/>
+					<h1 className='text-2xl lg:text-3xl font-bold text-primary leading-none -mt-1'>
+						PaperNest
+					</h1>
+				</Link>
 			</div>
 
 			{/* Left Side - Form Container */}
@@ -97,9 +111,7 @@ export default function LoginPage() {
 				<div className='w-full max-w-sm space-y-6'>
 					{/* Title */}
 					<div className='text-center'>
-						<h1 className='text-2xl font-bold text-gray-900 mb-2'>
-							Log in to your account
-						</h1>
+						<h1 className='text-2xl font-bold text-gray-900 mb-2'>Log in to your account</h1>
 						<p className='text-sm text-gray-500'>Welcome back to PaperNest</p>
 					</div>
 
@@ -124,8 +136,11 @@ export default function LoginPage() {
 								</DialogTitle>
 								<DialogDescription className='text-center text-sm'>
 									Email <strong>{linkingSession?.email}</strong> sudah terdaftar melalui
-									<span className='capitalize font-medium'> {linkingSession?.targetMethod.split('.')[0]}</span>.
-									Hubungkan dengan {linkingSession?.providerName} untuk akses ke akun yang sama.
+									<span className='capitalize font-medium'>
+										{' '}
+										{linkingSession?.targetMethod.split('.')[0]}
+									</span>
+									. Hubungkan dengan {linkingSession?.providerName} untuk akses ke akun yang sama.
 								</DialogDescription>
 							</DialogHeader>
 							<div className='grid gap-2 mt-4'>
@@ -185,9 +200,7 @@ export default function LoginPage() {
 							<div className='w-full border-t border-gray-200'></div>
 						</div>
 						<div className='relative flex justify-center text-sm'>
-							<span className='px-4 bg-white text-gray-500'>
-								Or Continue With Your Credentials
-							</span>
+							<span className='px-4 bg-white text-gray-500'>Or Continue With Your Credentials</span>
 						</div>
 					</div>
 
@@ -254,9 +267,9 @@ export default function LoginPage() {
 				{/* Gradient Background */}
 				<div className='absolute inset-0 w-full h-full p-6'>
 					<Grainient
-						color1="#009689"
-						color2="#F5A623"
-						color3="#009689"
+						color1='#009689'
+						color2='#F5A623'
+						color3='#009689'
 						timeSpeed={0.25}
 						colorBalance={0}
 						warpStrength={1}
@@ -280,7 +293,10 @@ export default function LoginPage() {
 				</div>
 				{/* Text Overlay */}
 				<div className='absolute inset-0 flex flex-col items-center justify-center z-10 px-8'>
-					<p className='text-xl text-white text-center mt-4 max-w-sm italic' style={{ fontFamily: 'Times New Roman, Times, serif' }}>
+					<p
+						className='text-xl text-white text-center mt-4 max-w-sm italic'
+						style={{ fontFamily: 'Times New Roman, Times, serif' }}
+					>
 						"Organize your research like never before. Login to continue your work."
 					</p>
 				</div>
@@ -288,4 +304,3 @@ export default function LoginPage() {
 		</div>
 	)
 }
-

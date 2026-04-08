@@ -2,9 +2,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { workspacesService } from '../services/workspaces.service'
 import type {
 	CreateWorkspaceDto,
-	UpdateWorkspaceDto,
 	InviteMemberDto,
 	UpdateMemberRoleDto,
+	UpdateWorkspaceDto,
 } from '../types/workspace.types'
 
 // Centralized query keys for workspaces
@@ -93,13 +93,8 @@ export function useInviteMember() {
 	const queryClient = useQueryClient()
 
 	return useMutation({
-		mutationFn: ({
-			workspaceId,
-			data,
-		}: {
-			workspaceId: string
-			data: InviteMemberDto
-		}) => workspacesService.inviteMember(workspaceId, data),
+		mutationFn: ({ workspaceId, data }: { workspaceId: string; data: InviteMemberDto }) =>
+			workspacesService.inviteMember(workspaceId, data),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({ queryKey: WORKSPACE_KEYS.members(variables.workspaceId) })
 		},

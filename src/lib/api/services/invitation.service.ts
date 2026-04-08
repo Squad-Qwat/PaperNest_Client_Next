@@ -6,8 +6,8 @@
 import { apiClient } from '../clients/api-client'
 import type {
 	Invitation,
-	UpdateInvitationDto,
 	InvitationsResponse,
+	UpdateInvitationDto,
 } from '../types/invitation.types'
 
 class InvitationService {
