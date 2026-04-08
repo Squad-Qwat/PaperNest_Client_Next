@@ -97,6 +97,7 @@
 		"embla-carousel-react": "^8.6.0",
 		"eventsource-parser": "^3.0.6",
 		"firebase": "^12.6.0",
+		"immer": "^11.1.4",
 		"langchain": "^1.2.35",
 		"lucide-react": "^0.555.0",
 		"mathlive": "^0.109.0",
@@ -129,7 +130,8 @@
 		"y-protocols": "^1.0.6",
 		"y-webrtc": "^10.3.0",
 		"yjs": "^13.6.27",
-		"zod": "^4.3.5"
+		"zod": "^4.3.5",
+		"zustand": "^5.0.12"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.2.0",
