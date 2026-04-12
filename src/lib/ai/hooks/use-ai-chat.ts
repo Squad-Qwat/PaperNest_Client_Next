@@ -40,8 +40,8 @@ export function useAIChat({ editor, documentId }: UseAIChatOptions) {
 		stop()
 		
 		const controller = new AbortController()
-		// SAFETY: Timeout to prevent hanging connections
-		const timeoutSignal = AbortSignal.timeout(60000) 
+		// Increased timeout for backend-executed tools (Semantic Scholar can take >60s)
+		const timeoutSignal = AbortSignal.timeout(180000)
 		const combinedSignal = AbortSignal.any([controller.signal, timeoutSignal])
 		abortControllerRef.current = controller
 
@@ -52,7 +52,7 @@ export function useAIChat({ editor, documentId }: UseAIChatOptions) {
 		store.setStreaming(true)
 
 		// Get initial document state
-		workingDocTextRef.current = editor?.editor?.state?.doc?.toString() ?? ''
+		workingDocTextRef.current = editor?.getCurrentContent?.() ?? ''
 
 		try {
 			const MAX_STEPS = 20
@@ -87,6 +87,7 @@ export function useAIChat({ editor, documentId }: UseAIChatOptions) {
 					threadId: currentState.threadId,
 					documentId,
 					reasoningEnabled: currentState.reasoningEnabled,
+					agentId: currentState.agentId,
 					plan: currentState.currentPlan.length > 0 ? currentState.currentPlan : undefined,
 					providerId,
 					modelId,
@@ -128,6 +129,18 @@ export function useAIChat({ editor, documentId }: UseAIChatOptions) {
 										result: errorMsg
 									})
 									shouldContinue = false
+									continue
+								}
+
+								// Backend-executed tools: show loading state, wait for tool_results event
+								const BACKEND_TOOLS = new Set(['search_semantic_scholar', 'search_attached_pdfs'])
+								if (BACKEND_TOOLS.has(toolData.name)) {
+									store.addToolPart(assistantKey, {
+										id: toolData.id,
+										name: toolData.name,
+										args: toolData.args,
+										status: 'executing'
+									})
 									continue
 								}
 
@@ -184,7 +197,14 @@ export function useAIChat({ editor, documentId }: UseAIChatOptions) {
 							}
 							break
 
-						case 'plan_update':
+						case 'tool_results':
+						// Backend-executed tool results (e.g. Semantic Scholar) — update tool boxes with real data
+						for (const r of event.results) {
+							store.updateToolResult(assistantKey, r.toolCallId, r.result, 'complete')
+						}
+						break
+
+					case 'plan_update':
 							store.setPlan(event.plan)
 							break
 

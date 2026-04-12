@@ -258,7 +258,7 @@ export const executeEditorTool = async (
 	if (!editor) return 'Error: Editor not available'
 
 	// Extract CodeMirror view from the editor wrapper provided by LatexEditor
-	const view = editor.editor
+	const view = editor.getInternalView?.() || editor.editor
 	if (!view) return 'Error: CodeMirror view not available'
 
 	try {
@@ -557,6 +557,15 @@ export const executeEditorTool = async (
 					return editor.compileResult.log
 				}
 				return 'No compilation logs found. Try calling compile_latex first.'
+			}
+
+			// BACKEND-SIDE TOOLS (Visual only in UI)
+			case 'search_semantic_scholar': {
+				return 'Operation in progress on server: Searching Semantic Scholar database... (Detailed metadata will appear here shortly)'
+			}
+
+			case 'search_attached_pdfs': {
+				return 'Operation in progress on server: Searching through your uploaded PDFs... (Results will sync here shortly)'
 			}
 
 			default:

@@ -42,12 +42,9 @@ export function CreateDocumentModal({ isOpen, onClose, workspaceId }: CreateDocu
 				},
 			})
 			
-			// Invalidate queries to refresh document list
-			queryClient.invalidateQueries({ queryKey: ['documents', workspaceId] })
-			
 			handleClose()
 		} catch (error) {
-			console.error('Error creating document:', error)
+			// Error is already handled by global mutation cache toast
 		}
 	}
 

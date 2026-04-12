@@ -130,6 +130,12 @@ export function LatexVisualEditor({
     // Handle external content changes (e.g. from Source mode)
     useEffect(() => {
         if (!editor) return;
+        
+        // Report editor to parent if callback exists
+        if (onEditorReady) {
+            onEditorReady(editor);
+        }
+
         const parts = LaTeXConverter.splitDocument(content);
         docParts.current = parts;
         if (isInternalUpdate.current) {
