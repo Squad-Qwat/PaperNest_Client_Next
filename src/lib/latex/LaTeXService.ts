@@ -12,7 +12,7 @@ type EngineType = 'pdftex' | 'xetex';
 export class LaTeXService {
 	private engines: Map<EngineType | 'dvipdfmx', BaseEngine> = new Map();
 	private currentEngineType: EngineType = 'pdftex';
-	private compilerMode: 'client' | 'server' = 'server'; // Defaulting to server as per user request
+	private compilerMode: 'client' | 'server' | 'server_pdflatex' = 'server'; // Defaulting to server as per user request
 	private statusListeners: Set<() => void> = new Set();
 	private texliveEndpoint = 'https://texlive.texlyre.org'; // Default endpoint from reference
 
@@ -47,12 +47,12 @@ export class LaTeXService {
 		await this.initialize(engineType);
 	}
 
-	setCompilerMode(mode: 'client' | 'server'): void {
+	setCompilerMode(mode: 'client' | 'server' | 'server_pdflatex'): void {
 		this.compilerMode = mode;
 		this.notifyStatusChange();
 	}
 
-	getCompilerMode(): 'client' | 'server' {
+	getCompilerMode(): 'client' | 'server' | 'server_pdflatex' {
 		return this.compilerMode;
 	}
 
@@ -67,8 +67,9 @@ export class LaTeXService {
 	}
 
 	async compileWithAssets(mainFileName: string, content: string, assets: DocumentFile[]): Promise<CompileResult> {
-		if (this.compilerMode === 'server') {
-			return this.compileOnServer(mainFileName, content, assets);
+		if (this.compilerMode === 'server' || this.compilerMode === 'server_pdflatex') {
+			const engineMode = this.compilerMode === 'server_pdflatex' ? 'pdflatex' : 'tectonic';
+			return this.compileOnServer(mainFileName, content, assets, engineMode);
 		}
 
 		const engine = this.getCurrentEngine();
@@ -169,7 +170,7 @@ export class LaTeXService {
 	/**
 	 * Sends the LaTeX source and asset info to the backend for server-side compilation with Tectonic.
 	 */
-	private async compileOnServer(mainFileName: string, content: string, assets: DocumentFile[]): Promise<CompileResult> {
+	private async compileOnServer(mainFileName: string, content: string, assets: DocumentFile[], engine?: 'tectonic' | 'pdflatex'): Promise<CompileResult> {
 		try {
 			console.log(`[LaTeXService] Compiling on server: ${mainFileName}`);
 			
@@ -185,7 +186,8 @@ export class LaTeXService {
 					assets: assets.map(a => ({
 						name: a.name,
 						url: a.url
-					}))
+					})),
+					engine
 				})
 			});
 
