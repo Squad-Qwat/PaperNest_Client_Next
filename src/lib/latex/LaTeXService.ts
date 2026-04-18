@@ -12,7 +12,7 @@ type EngineType = 'pdftex' | 'xetex';
 export class LaTeXService {
 	private engines: Map<EngineType | 'dvipdfmx', BaseEngine> = new Map();
 	private currentEngineType: EngineType = 'pdftex';
-	private compilerMode: 'client' | 'server' | 'server_pdflatex' = 'server'; // Defaulting to server as per user request
+	private compilerMode: 'client' | 'server' | 'server_pdflatex' = 'server_pdflatex'; // Defaulting to server_pdflatex as per user request
 	private statusListeners: Set<() => void> = new Set();
 	private texliveEndpoint = 'https://texlive.texlyre.org'; // Default endpoint from reference
 
