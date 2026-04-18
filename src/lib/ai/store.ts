@@ -16,6 +16,7 @@ interface AIChatState {
 	model: string
 	reasoningEnabled: boolean
 	threadId: string
+	agentId: string
 }
 
 interface AIChatActions {
@@ -28,6 +29,7 @@ interface AIChatActions {
 	setPlan: (plan: PlanStep[]) => void
 	setStreaming: (value: boolean) => void
 	setModel: (model: string) => void
+	setAgentId: (id: string) => void
 	setReasoningEnabled: (value: boolean) => void
 	clearChat: () => void
 	resetThreadId: () => void
@@ -42,6 +44,7 @@ export const useAIChatStore = create<AIChatState & AIChatActions>()(
 		model: 'google-genai:gemma-4-31b-it', // Default model
 		reasoningEnabled: false,
 		threadId: `thread_${Date.now()}_${nanoid(6)}`,
+		agentId: 'manual_graph',
 
 		addUserMessage: (text: string) => 
 			set((state) => {
@@ -139,6 +142,8 @@ export const useAIChatStore = create<AIChatState & AIChatActions>()(
 		setStreaming: (value: boolean) => set({ isStreaming: value }),
 
 		setModel: (model: string) => set({ model }),
+
+		setAgentId: (id: string) => set({ agentId: id }),
 
 		setReasoningEnabled: (value: boolean) => set({ reasoningEnabled: value }),
 

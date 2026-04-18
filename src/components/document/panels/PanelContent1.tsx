@@ -9,13 +9,14 @@ import { toast } from 'sonner'
 import { apiClient } from '@/lib/api/clients/api-client'
 import { useDocumentFiles, useAddDocumentFile, DOCUMENT_FILE_KEYS } from '@/lib/api/hooks/use-document-files'
 import { useQueryClient } from '@tanstack/react-query'
+import { aiService } from '@/lib/ai/services/ai.service'
 
 interface FilesPanelProps {
 	documentId?: string | null
-	editorView?: any
+	onInsertText?: (text: string) => void
 }
 
-const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, editorView }) => {
+const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, onInsertText }) => {
 	const { data: files = [], isLoading, refetch } = useDocumentFiles(documentId)
 	const addDocumentFile = useAddDocumentFile()
 	const queryClient = useQueryClient()
@@ -58,6 +59,13 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, editorView }) => {
 					createdAt: new Date() as any // bypass strict typing for now if needed
 				}
 			})
+
+			// 4. Trigger RAG indexing if file is a PDF
+			if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+				aiService.indexPDF(documentId, key).catch(err => {
+					console.error('[FilesPanel] RAG indexing error:', err)
+				})
+			}
 
 			toast.success('File uploaded successfully')
 
@@ -104,7 +112,7 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, editorView }) => {
 	}
 
 	const handleInsertToEditor = (file: DocumentFile) => {
-		if (!editorView) {
+		if (!onInsertText) {
 			toast.warning('Editor not ready yet')
 			return
 		}
@@ -120,13 +128,7 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, editorView }) => {
 			command = `% Attached file: ${file.name}\n`
 		}
 
-		const { state } = editorView
-		const { from } = state.selection.main
-
-		editorView.dispatch({
-			changes: { from, insert: command },
-			selection: { anchor: from + command.length }
-		})
+		onInsertText(command)
 
 		toast.success(`LaTeX command for ${file.name} added to editor`)
 	}

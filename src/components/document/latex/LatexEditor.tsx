@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useLatexEditor } from '@/hooks/editor/use-latex-editor'
 import { laTeXService } from '@/lib/latex/LaTeXService'
+import { toast } from 'sonner'
 import { undo as cmUndo, redo as cmRedo } from '@codemirror/commands'
 import { useOthers } from '@liveblocks/react/suspense'
 import { LatexVisualEditor } from './LatexVisualEditor'
@@ -119,8 +120,13 @@ export function LatexEditor({
         })
     }, [others])
 
-    const visibleCollaborators = collaborators.slice(0, 4)
-    const hiddenCollaboratorsCount = Math.max(collaborators.length - visibleCollaborators.length, 0)
+    const { visibleCollaborators, hiddenCollaboratorsCount } = useMemo(() => {
+        const visible = collaborators.slice(0, 4)
+        return {
+            visibleCollaborators: visible,
+            hiddenCollaboratorsCount: Math.max(collaborators.length - visible.length, 0)
+        }
+    }, [collaborators])
 
     const {
         editorRef,
@@ -133,18 +139,39 @@ export function LatexEditor({
         user,
         initialContent
     })
+    
+    /**
+     * Normalizes text for resilient comparison by:
+     * 1. Converting CRLF to LF
+     * 2. Trimming trailing whitespace on every line
+     * 3. Trimming the overall document
+     */
+    const normalizeText = (text: string): string => {
+        return text
+            .replace(/\r\n/g, '\n')
+            .split('\n')
+            .map(line => line.trimEnd())
+            .join('\n')
+            .trim();
+    };
 
     const getRebasedPreview = useCallback((merge: PendingMergeChange): { modified: string; isRebased: boolean; reason?: string } => {
-        const currentDoc = view?.state.doc.toString()
-        if (!currentDoc) {
+        if (!view) {
             return { modified: merge.modified, isRebased: false, reason: 'editor_not_ready' }
         }
+        const currentDoc = view.state.doc.toString()
+        const normalizedCurrent = normalizeText(currentDoc)
+        const normalizedOriginal = normalizeText(merge.original)
 
         const searchBlock = Array.isArray(merge.searchBlock) ? merge.searchBlock : []
         const replaceBlock = Array.isArray(merge.replaceBlock) ? merge.replaceBlock : []
         const hasAtomicBlocks = searchBlock.length > 0 && searchBlock.length === replaceBlock.length
 
         if (!hasAtomicBlocks) {
+            // Identity Fallback: if user made no content changes (ignoring whitespace/line-endings)
+            if (normalizedOriginal === normalizedCurrent) {
+                return { modified: merge.modified, isRebased: true, reason: undefined }
+            }
             return { modified: merge.modified, isRebased: false, reason: 'missing_anchors' }
         }
 
@@ -158,13 +185,34 @@ export function LatexEditor({
                 return { modified: merge.modified, isRebased: false, reason: 'invalid_anchor' }
             }
 
-            const index = currentDoc.indexOf(search, searchFrom)
+            // 1. Try strict match first
+            let index = currentDoc.indexOf(search, searchFrom)
+            let matchedLength = search.length
+
+            // 2. Try fuzzy match (regex-based, whitespace agnostic)
             if (index === -1) {
+                const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+                const fuzzyPattern = escaped.replace(/\s+/g, '[\\s\\r\\n]+')
+                const regex = new RegExp(fuzzyPattern, 'g')
+                regex.lastIndex = searchFrom
+                const match = regex.exec(currentDoc)
+                
+                if (match) {
+                    index = match.index
+                    matchedLength = match[0].length
+                }
+            }
+
+            if (index === -1) {
+                // Identity Fallback: if searching fails but doc is semantically identical to original
+                if (normalizedOriginal === normalizedCurrent) {
+                    return { modified: merge.modified, isRebased: true, reason: undefined }
+                }
                 return { modified: merge.modified, isRebased: false, reason: 'anchor_not_found' }
             }
 
-            ranges.push({ from: index, to: index + search.length, insert: replace })
-            searchFrom = index + search.length
+            ranges.push({ from: index, to: index + matchedLength, insert: replace })
+            searchFrom = index + matchedLength
         }
 
         return {
@@ -279,16 +327,52 @@ export function LatexEditor({
         return unsubscribe
     }, [])
 
+    const handleCompile = useCallback(async () => {
+        if (!view) return
+
+        setIsCompiling(true)
+        try {
+            const content = activePendingMerge ? activePendingMerge.modified : view.state.doc.toString()
+
+            let currentFiles = files
+            if (documentId) {
+                const refreshed = await refetchFiles()
+                if (refreshed.data) currentFiles = refreshed.data
+            }
+
+            const result = await laTeXService.compileWithAssets('main.tex', content, currentFiles)
+            setCompileResult(result)
+
+            if (result.pdf) {
+                const blob = new Blob([result.pdf as any], { type: 'application/pdf' })
+                if (pdfUrl) URL.revokeObjectURL(pdfUrl)
+                setPdfUrl(URL.createObjectURL(blob))
+
+                if (result.status !== 0) {
+                    toast.warning('Kompilasi selesai dengan peringatan.')
+                    setShowLog(true)
+                }
+            } else {
+                toast.error('Gagal membuat PDF. Periksa log untuk detailnya.')
+                setShowLog(true)
+            }
+        } catch (error: any) {
+            console.error('Compilation error:', error)
+            toast.error(`Kompilasi gagal: ${error.message || 'Terjadi kesalahan internal'}`)
+        } finally {
+            setIsCompiling(false)
+        }
+    }, [view, activePendingMerge, files, documentId, refetchFiles, pdfUrl])
+
     // Report editor functions back to parent
     useEffect(() => {
         if (view && onEditorReady) {
-            onEditorReady({
+            const functionalInterface = {
                 getCurrentContent: () => view.state.doc.toString(),
                 getCurrentHTML: () => view.state.doc.toString(),
-                editor: view,
                 undo: () => cmUndo(view),
                 redo: () => cmRedo(view),
-                canUndo: true, 
+                canUndo: true,
                 canRedo: true,
                 insertTable: () => {
                     handleInsertSnippet("\\begin{tabular}{|l|l|}\n\\hline\n  $SELECTION$ &  \\\\\n\\hline\n\\end{tabular}", 16)
@@ -300,54 +384,52 @@ export function LatexEditor({
                 visibleCollaborators,
                 hiddenCollaboratorsCount,
                 viewMode,
-                visualEditor,
                 toggleViewMode: () => {
-                    if (viewMode === 'source') {
-                        setViewMode('visual');
-                    } else {
-                        setViewMode('source');
-                    }
+                    setViewMode(v => (v === 'source' ? 'visual' : 'source'))
                 },
                 setCompilerMode: (mode: 'client' | 'server') => {
-                    laTeXService.setCompilerMode(mode);
-                    setCompilerMode(mode);
+                    laTeXService.setCompilerMode(mode)
+                    setCompilerMode(mode)
                 },
                 compilerMode,
-                setPendingMerge: enqueuePendingMerge
+                setPendingMerge: enqueuePendingMerge,
+                // Provide getters for internal instances but keep them non-enumerable
+                // to prevent React/DevTools from deep-inspecting them and hitting the PDF iframe window.
+                getInternalView: () => view,
+                getInternalVisualEditor: () => visualEditor,
+            }
+
+            // Backward compatibility for executeEditorTool
+            Object.defineProperty(functionalInterface, 'editor', {
+                get: () => view,
+                enumerable: false,
+                configurable: true,
             })
+
+            Object.defineProperty(functionalInterface, 'visualEditor', {
+                get: () => visualEditor,
+                enumerable: false,
+                configurable: true,
+            })
+
+            onEditorReady(functionalInterface)
         }
-    }, [view, isReady, onEditorReady, documentId, isCompiling, visibleCollaborators, hiddenCollaboratorsCount, viewMode, visualEditor, enqueuePendingMerge, compilerMode])
-
-    const handleCompile = async () => {
-        if (!view) return
-
-        setIsCompiling(true)
-        try {
-            // Use modified content if a merge is pending, otherwise use current editor content
-            const content = activePendingMerge ? activePendingMerge.modified : view.state.doc.toString()
-            
-            // Re-fetch files to ensure we have the latest list (in case of recent uploads)
-            let currentFiles = files;
-            if (documentId) {
-                const refreshed = await refetchFiles();
-                if (refreshed.data) currentFiles = refreshed.data;
-            }
-
-            const result = await laTeXService.compileWithAssets('main.tex', content, currentFiles)
-            setCompileResult(result)
-
-            if (result.pdf) {
-                const blob = new Blob([result.pdf as any], { type: 'application/pdf' })
-                if (pdfUrl) URL.revokeObjectURL(pdfUrl)
-                setPdfUrl(URL.createObjectURL(blob))
-                if (result.status !== 0) setShowLog(true)
-            } else {
-                setShowLog(true)
-            }
-        } finally {
-            setIsCompiling(false)
-        }
-    }
+    }, [
+        view,
+        isReady,
+        onEditorReady,
+        documentId,
+        isCompiling,
+        visibleCollaborators,
+        hiddenCollaboratorsCount,
+        viewMode,
+        visualEditor,
+        enqueuePendingMerge,
+        compilerMode,
+        handleCompile,
+        compileResult,
+        handleInsertSnippet
+    ])
 
     // Report auto-save state back to parent
     useEffect(() => {
@@ -421,7 +503,7 @@ export function LatexEditor({
                                     return
                                 }
 
-                                const applied = applyPendingMerge(mergeToApply, content, { allowFallback: activeMergePreview?.isRebased === true })
+                                const applied = applyPendingMerge(mergeToApply, activeMergePreview?.modified, { allowFallback: activeMergePreview?.isRebased === true })
                                 if (!applied) {
                                     console.warn('Merge preview apply failed: staged change no longer matches current document. Please review/discard this queue item.')
                                     return
@@ -523,7 +605,7 @@ export function LatexEditor({
                         </div>
                     ) : (
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 p-4 text-center text-sm">
-                            <FileText className="w-10 h-10 mb-3 opacity-20"/>
+                            <FileText className="w-10 h-10 mb-3 opacity-20" />
                             <p className="font-medium">Ready to compile</p>
                             <p className="text-xs text-gray-500 mt-1">Press "Compile" to see preview</p>
                         </div>

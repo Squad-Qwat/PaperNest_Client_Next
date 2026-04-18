@@ -15,7 +15,7 @@ interface DynamicContentPanelProps {
 	onResizeEnd?: () => void
 	currentContent?: string | null
 	onNavigateToSection?: (heading: string, position: number) => void
-	editorView?: any
+	onInsertText?: (text: string) => void
 	getCurrentContent?: () => string
 	documentId?: string | null
 }
@@ -28,7 +28,7 @@ const DynamicContentPanel: React.FC<DynamicContentPanelProps> = ({
 	onResizeEnd,
 	currentContent,
 	onNavigateToSection,
-	editorView,
+	onInsertText,
 	getCurrentContent,
 	documentId,
 }) => {
@@ -78,13 +78,12 @@ const DynamicContentPanel: React.FC<DynamicContentPanelProps> = ({
 	const renderContent = () => {
 		switch (activePanel) {
 			case 'panel1':
-				return <PanelContent1 documentId={documentId} editorView={editorView} />
+				return <PanelContent1 documentId={documentId} onInsertText={onInsertText} />
 			case 'panel2':
 				return (
 					<PanelContent2
 						currentContent={currentContent}
 						onNavigateToSection={onNavigateToSection}
-						editorView={editorView}
 						getCurrentContent={getCurrentContent}
 					/>
 				)

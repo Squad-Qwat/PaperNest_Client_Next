@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { authService } from '../services/auth.service'
 import { apiClient } from '../clients/api-client'
 import { getErrorMessage } from '../utils/error-handler'
@@ -50,6 +51,7 @@ export function useLogin() {
 		mutationFn: (data: LoginDto) => authService.login(data),
 		onSuccess: (response) => {
 			handleAuthSuccess(queryClient, response)
+			toast.success('Login berhasil! Selamat datang kembali.')
 			router.push('/')
 		},
 	})
@@ -77,10 +79,12 @@ export function useRegister() {
 					url: `${window.location.origin}/login`,
 				})
 
+				toast.success('Pendaftaran berhasil! Silakan cek email Anda untuk verifikasi.')
 				router.push('/auth/verify-email')
 				return
 			}
 			handleAuthSuccess(queryClient, response)
+			toast.success('Pendaftaran berhasil! Selamat datang di PaperNest.')
 			router.push('/')
 		},
 	})

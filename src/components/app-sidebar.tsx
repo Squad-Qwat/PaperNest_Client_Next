@@ -3,12 +3,11 @@
 import * as React from "react"
 import { useParams } from "next/navigation"
 import {
-  IconDashboard,
   IconFileDescription,
   IconMessage2,
+  IconQuote,
   IconSettings,
   IconHelp,
-  IconSearch,
   IconFiles,
   IconBook,
 } from "@tabler/icons-react"
@@ -33,7 +32,6 @@ import {
   SidebarGroupContent,
 } from "@/components/ui/sidebar"
 import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher"
-import { Search } from "lucide-react"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuth()
@@ -51,11 +49,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     },
     navMain: [
       {
-        title: "Dashboard",
-        url: `/${workspaceId}`,
-        icon: IconDashboard,
-      },
-      {
         title: "Documents",
         url: `/${workspaceId}`,
         icon: IconFileDescription,
@@ -65,6 +58,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         title: "Reviews",
         url: `/${workspaceId}/reviews`,
         icon: IconMessage2,
+      },
+      {
+        title: "Citations",
+        url: `/${workspaceId}/citations`,
+        icon: IconQuote,
       },
     ],
     navSecondary: [
@@ -84,11 +82,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         url: "#",
         icon: IconHelp,
       },
-      {
-        title: "Search",
-        url: "#",
-        icon: IconSearch,
-      },
     ],
   }
 
@@ -96,15 +89,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     <Sidebar variant="inset" collapsible="icon" {...props}>
       <SidebarHeader>
         <WorkspaceSwitcher currentWorkspaceId={workspaceId} />
-        <SidebarGroup className="-ml-0.5 py-0">
-          <SidebarGroupContent className="relative">
-            <SidebarInput 
-              placeholder="Search documents..." 
-              className="pl-8"
-            />
-            <Search className="pointer-events-none absolute left-2 top-1/2 size-4 -translate-y-1/2 select-none opacity-50" />
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarHeader>
       <SidebarContent>
         <NavMain 

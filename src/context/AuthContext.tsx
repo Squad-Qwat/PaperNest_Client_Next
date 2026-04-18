@@ -11,6 +11,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api/clients/api-client'
 import { authService } from '@/lib/api/services/auth.service'
+import { toast } from 'sonner'
 import type {
 	AuthResponse,
 	LoginDto,
@@ -113,6 +114,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 			await authService.logout()
 			queryClient.setQueryData(['currentUser'], null)
 			queryClient.clear()
+			toast.success('Anda telah keluar.')
 			router.push('/login')
 		} catch (err) {
 			console.error('[AuthContext] Failed to logout:', err)

@@ -36,7 +36,10 @@ export const aiService = {
 				// Support for ngrok if applicable (matches HttpClient pattern)
 				'ngrok-skip-browser-warning': 'true',
 			},
-			body: JSON.stringify(payload),
+			body: JSON.stringify({
+				...payload,
+				agentId: payload.agentId,
+			}),
 			signal,
 		})
 
@@ -57,5 +60,23 @@ export const aiService = {
 		}
 
 		return response.body
+	},
+
+	/**
+	 * Trigger PDF indexing for RAG
+	 */
+	async indexPDF(documentId: string, fileKey: string) {
+		const backendUrl = getBackendUrl()
+		try {
+			const response = await fetch(`${backendUrl}/ai/rag/index`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ documentId, fileKey }),
+			})
+			return await response.json()
+		} catch (error) {
+			console.error('[AIService] Indexing error:', error)
+			throw error
+		}
 	}
 }

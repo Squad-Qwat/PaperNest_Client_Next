@@ -7,14 +7,12 @@ import { parseLatexSections, TableOfContentsEntry } from '@/lib/utils/latex-toc'
 interface PanelContent2Props {
 	currentContent?: string | null
 	onNavigateToSection?: (heading: string, position: number) => void
-	editorView?: any
 	getCurrentContent?: () => string
 }
 
 const PanelContent2: React.FC<PanelContent2Props> = ({
 	currentContent,
 	onNavigateToSection,
-	editorView,
 	getCurrentContent,
 }) => {
 	const content = useMemo(() => {
