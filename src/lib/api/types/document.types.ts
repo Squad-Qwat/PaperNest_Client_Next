@@ -69,6 +69,13 @@ export interface Version {
 	message?: string
 	createdAt: string
 	createdBy: string
+	userId?: string
+	user?: {
+		name?: string;
+		username?: string;
+		email?: string;
+		photoURL?: string | null;
+	}
 }
 
 /**

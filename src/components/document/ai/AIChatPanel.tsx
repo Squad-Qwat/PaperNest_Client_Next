@@ -1,8 +1,9 @@
 'use client'
 
-import { CheckIcon, Sparkles } from 'lucide-react'
+import { CheckIcon } from 'lucide-react'
 
 import { AIChatHeader } from './AIChatHeader'
+import { AgentSelector } from './AgentSelector'
 import {
 	Conversation,
 	ConversationContent,
@@ -227,8 +228,6 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 							onStop={stop}
 							model={model}
 							setModel={setModel}
-							reasoningEnabled={reasoningEnabled}
-							setReasoningEnabled={setReasoningEnabled}
 							selectedModelData={selectedModelData}
 						/>
 					</PromptInputProvider>
@@ -244,8 +243,6 @@ function AIChatInput({
 	onStop,
 	model,
 	setModel,
-	reasoningEnabled,
-	setReasoningEnabled,
 	selectedModelData
 }: any) {
 	const controller = usePromptInputController();
@@ -272,15 +269,7 @@ function AIChatInput({
 			</PromptInputBody>
 			<PromptInputFooter>
 				<PromptInputTools>
-					<Button
-						size="default"
-						onClick={() => setReasoningEnabled(!reasoningEnabled)}
-						variant={reasoningEnabled ? "default" : "ghost"}
-						className="h-8 text-xs gap-1"
-					>
-						<Sparkles className="w-4 h-4" />
-						<span className="hidden sm:inline">Reasoning</span>
-					</Button>
+					<AgentSelector />
 					
 					<ModelSelector>
 						<ModelSelectorTrigger asChild>

@@ -26,7 +26,7 @@ export default function DocumentPage() {
   const params = useParams()
   const workspaceId = params.workspaceid as string
   const documentId = params.documentid as string
-  
+
   const { user, loading: authLoading } = useAuth()
   const isMobile = useIsMobile()
 
@@ -44,7 +44,7 @@ export default function DocumentPage() {
   const [modalVersionsOpen, setModalVersionsOpen] = useState(false)
   const [editorFunctions, setEditorFunctions] = useState<any>(null)
   const [isPdfHidden, setIsPdfHidden] = useState(false)
-  
+
   const defaultFontFamily = '"Times New Roman", Times, serif'
   const defaultFontSize = "11pt"
 
@@ -71,7 +71,7 @@ export default function DocumentPage() {
   // Sync title when document loads
   useEffect(() => {
     if (documentData?.title) {
-        setTitle(documentData.title)
+      setTitle(documentData.title)
     }
   }, [documentData?.title])
 
@@ -185,7 +185,7 @@ export default function DocumentPage() {
 
       setLastSavedAt(new Date())
       toast.success("Document saved")
-      
+
     } catch (error) {
       console.error("❌ Error saving document:", error)
       toast.error("Failed to save document")
@@ -314,7 +314,7 @@ export default function DocumentPage() {
             <DynamicContentPanel
               activePanel={activePanel}
               onClose={() => setActivePanel(null)}
-              onWidthChange={() => {}}
+              onWidthChange={() => { }}
               onResizeStart={handleResizeStart}
               onResizeEnd={handleResizeEnd}
               currentContent={documentData?.savedContent}

@@ -1,6 +1,6 @@
 "use client"
 
-import { IconCirclePlusFilled, IconMail, type Icon } from "@tabler/icons-react"
+import { IconCirclePlusFilled, type Icon } from "@tabler/icons-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -35,14 +35,6 @@ export function NavMain({
               <IconCirclePlusFilled className="shrink-0" />
               <span className="group-data-[collapsible=icon]:hidden">Create Document</span>
             </SidebarMenuButton>
-            <Button
-              size="icon"
-              className="size-8 group-data-[collapsible=icon]:opacity-0"
-              variant="outline"
-            >
-              <IconMail />
-              <span className="sr-only">Inbox</span>
-            </Button>
           </SidebarMenuItem>
         </SidebarMenu>
         <SidebarMenu>

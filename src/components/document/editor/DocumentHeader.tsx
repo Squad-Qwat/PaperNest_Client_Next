@@ -1,5 +1,6 @@
 import { ChevronLeft, GitCommit, History, MessageSquare, RefreshCw, Share2, X } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { CommitModal } from '@/components/document/mergeview/CommitModal'
 import LatexToolbar from '@/components/document/latex/LatexToolbar'
@@ -50,6 +51,7 @@ const DocumentHeader = ({
 	compilerMode,
 	onCompilerModeChange,
 }: any) => {
+	const router = useRouter()
 	const [showCommitModal, setShowCommitModal] = useState(false)
 	const { data: reviewsResponse } = useDocumentReviews(documentId)
 
@@ -65,13 +67,14 @@ const DocumentHeader = ({
 			<div className='px-4 py-2'>
 				<div className='flex items-center justify-between'>
 					<div className='flex items-center gap-2'>
-						<Link
-							href={`/${workspaceId}`}
-							className='p-2 hover:bg-gray-100 rounded-lg transition-colors group'
+						<Button
+							variant='ghost'
+							onClick={() => router.push(`/${workspaceId}`)}
+							className='h-10 w-10 hover:bg-gray-100 rounded-lg transition-all group p-0 min-w-0'
 							title='Back to Workspace'
 						>
-							<ChevronLeft className='h-5 w-5 text-gray-500 group-hover:text-primary transition-colors' />
-						</Link>
+							<ChevronLeft style={{ width: '20px', height: '20px' }} className='text-gray-500 group-hover:text-primary transition-colors' />
+						</Button>
 						<div className='flex flex-col'>
 							<input
 								type='text'
@@ -447,14 +450,15 @@ const DocumentHeader = ({
 							<MessageSquare className='h-5 w-5' />
 						</Button>
 
-						<Button
-							variant='ghost'
-							size='icon'
-							onClick={toggleModalVersions}
-							title='History & Reviews'
-						>
-							<History className='h-5 w-5' />
-						</Button>
+						<Link href={`/${workspaceId}/documents/${documentId}/versions`}>
+							<Button
+								variant='ghost'
+								size='icon'
+								title='History & Reviews'
+							>
+								<History className='h-5 w-5' />
+							</Button>
+						</Link>
 						<div className='ml-2 flex items-center gap-2'>
 							{user?.avatar
 								? <img
