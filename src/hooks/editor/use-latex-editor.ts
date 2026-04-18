@@ -83,12 +83,18 @@ export function useLatexEditor({
 
         const yText = yDoc ? yDoc.getText('latex') : null
 
-        // If Yjs is ready and empty, but we have initial content, seed it
-        if (yText?.length === 0 && initialContent && initialContent !== 'Start writing here...') {
-            yText.insert(0, initialContent)
-            console.log('📝 [LaTeX] Loaded initial content from Firestore')
+        // Secure seeding using Y.Map flag to minimize race condition risks
+        if (yDoc && yText?.length === 0 && initialContent && initialContent !== 'Start writing here...') {
+            const configMap = yDoc.getMap('config')
+            if (!configMap.get('isSeeded')) {
+                configMap.set('isSeeded', true)
+                yText.insert(0, initialContent)
+                console.log('📝 [LaTeX] Loaded initial content from Firestore')
+            } else {
+                console.log('🔄 [LaTeX] Skipping Firestore init - Document seeded by another peer')
+            }
         } else if (yText?.length === 0 && !initialContent) {
-            console.log('🔄 [LaTeX] Skipping Firestore init - relying on Yjs sync from existing room')
+            console.log('🔄 [LaTeX] Skipping Firestore init - no initial content provided')
         }
 
         const extensions: Extension[] = [

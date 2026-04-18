@@ -329,7 +329,6 @@ export default function DocumentPage() {
               title={title}
               user={user}
               onEditorReady={onEditorReady}
-              shouldInitializeFromFirestore={activeUsersInRoom === 0}
               isPdfHidden={isPdfHidden}
             />
 
