@@ -16,8 +16,15 @@ import {
     Table as TableIcon,
     Sigma,
     Loader2,
-    Play
+    Play,
+    ChevronDown
 } from 'lucide-react'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Button } from '@/components/ui/button'
 import {
     Tooltip,
@@ -38,8 +45,8 @@ interface LatexToolbarProps {
     insertTable?: () => void;
     handleCompile?: () => void;
     isCompiling?: boolean;
-    compilerMode?: 'client' | 'server';
-    onCompilerModeChange?: (mode: 'client' | 'server') => void;
+    compilerMode?: 'client' | 'server' | 'server_pdflatex';
+    onCompilerModeChange?: (mode: 'client' | 'server' | 'server_pdflatex') => void;
 }
 
 export default function LatexToolbar({
@@ -181,54 +188,69 @@ export default function LatexToolbar({
                                 </Button>
                             </div>
 
-                            {/* Compiler Mode Toggle */}
-                            <div className="flex items-center bg-gray-100 rounded-md p-1">
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
+                            <div className="flex items-center shadow-sm">
+                                <Button
+                                    variant="default"
+                                    size="sm"
+                                    onClick={handleCompile}
+                                    disabled={isCompiling}
+                                    className="h-8 rounded-r-none transition-all duration-200 active:scale-95 flex items-center gap-2 px-3 focus:relative focus:z-10"
+                                >
+                                    {isCompiling ? (
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                        <Play className="w-3 h-3 fill-current" />
+                                    )}
+                                    <span className="text-xs font-bold uppercase tracking-wide">Compile</span>
+                                </Button>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
                                         <Button
-                                            variant={compilerMode === 'server' ? 'secondary' : 'ghost'}
+                                            variant="default"
                                             size="sm"
-                                            className={`h-7 px-3 text-[10px] uppercase font-bold tracking-wider ${compilerMode === 'server' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                            disabled={isCompiling}
+                                            className="h-8 rounded-l-none border-l border-white/20 px-2 focus:relative focus:z-10 shadow-none"
+                                        >
+                                            <ChevronDown className="h-3.5 w-3.5" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-48 text-xs font-medium z-[2000]">
+                                        <div className="px-2 py-1.5 text-[10px] uppercase text-gray-500 font-bold tracking-wider">
+                                            Compiler Engine
+                                        </div>
+                                        <DropdownMenuItem
                                             onClick={() => onCompilerModeChange?.('server')}
+                                            className={`flex items-center justify-between cursor-pointer py-2 ${compilerMode === 'server' ? 'bg-blue-50 text-blue-700' : ''}`}
                                         >
-                                            Server
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="bottom" className="text-[10px] font-bold uppercase tracking-widest bg-gray-900 border-gray-800">
-                                        Use Tectonic (Faster, Cloud)
-                                    </TooltipContent>
-                                </Tooltip>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            variant={compilerMode === 'client' ? 'secondary' : 'ghost'}
-                                            size="sm"
-                                            className={`h-7 px-3 text-[10px] uppercase font-bold tracking-wider ${compilerMode === 'client' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                            <span className="flex flex-col gap-0.5">
+                                                <span>Tectonic (Cloud Engine)</span>
+                                                <span className="text-[10px] text-gray-500 font-normal">Super fast via server</span>
+                                            </span>
+                                            {compilerMode === 'server' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600"></div>}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            onClick={() => onCompilerModeChange?.('server_pdflatex')}
+                                            className={`flex items-center justify-between cursor-pointer py-2 ${compilerMode === 'server_pdflatex' ? 'bg-blue-50 text-blue-700' : ''}`}
+                                        >
+                                            <span className="flex flex-col gap-0.5">
+                                                <span>pdflatex (Server Engine)</span>
+                                                <span className="text-[10px] text-gray-500 font-normal">Standard pdflatex on backend</span>
+                                            </span>
+                                            {compilerMode === 'server_pdflatex' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600"></div>}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
                                             onClick={() => onCompilerModeChange?.('client')}
+                                            className={`flex items-center justify-between cursor-pointer py-2 ${compilerMode === 'client' ? 'bg-blue-50 text-blue-700' : ''}`}
                                         >
-                                            Client
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="bottom" className="text-[10px] font-bold uppercase tracking-widest bg-gray-900 border-gray-800">
-                                        Use WASM (Local processing)
-                                    </TooltipContent>
-                                </Tooltip>
+                                            <span className="flex flex-col gap-0.5">
+                                                <span>WASM (Browser Engine)</span>
+                                                <span className="text-[10px] text-gray-500 font-normal">Private WASM local compile</span>
+                                            </span>
+                                            {compilerMode === 'client' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600"></div>}
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </div>
-
-                            <Button
-                                variant="default"
-                                size="sm"
-                                onClick={handleCompile}
-                                disabled={isCompiling}
-                                className="h-8 transition-all duration-200 active:scale-95 flex items-center gap-2 px-3"
-                            >
-                                {isCompiling ? (
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                ) : (
-                                    <Play className="w-3 h-3 fill-current" />
-                                )}
-                                <span className="text-xs font-bold uppercase tracking-wide">Compile</span>
-                            </Button>
                         </div>
                     </>
                 )}

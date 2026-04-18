@@ -72,7 +72,7 @@ export function LatexEditor({
     const [editorPdfSplitWidth, setEditorPdfSplitWidth] = useState(55) // Editor width as percentage
     const [isEditorPdfResizing, setIsEditorPdfResizing] = useState(false)
     const [viewMode, setViewMode] = useState<'source' | 'visual'>('source')
-    const [compilerMode, setCompilerMode] = useState<'client' | 'server'>(laTeXService.getCompilerMode())
+    const [compilerMode, setCompilerMode] = useState<'client' | 'server' | 'server_pdflatex'>(laTeXService.getCompilerMode())
     const [visualEditor, setVisualEditor] = useState<any>(null)
     const [pendingMerges, setPendingMerges] = useState<PendingMergeChange[]>([])
     const [lastBatchSummary, setLastBatchSummary] = useState<{ applied: number; failed: number } | null>(null)
@@ -387,7 +387,7 @@ export function LatexEditor({
                 toggleViewMode: () => {
                     setViewMode(v => (v === 'source' ? 'visual' : 'source'))
                 },
-                setCompilerMode: (mode: 'client' | 'server') => {
+                setCompilerMode: (mode: 'client' | 'server' | 'server_pdflatex') => {
                     laTeXService.setCompilerMode(mode)
                     setCompilerMode(mode)
                 },
