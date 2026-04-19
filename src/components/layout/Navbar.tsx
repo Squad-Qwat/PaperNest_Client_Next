@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter, useParams } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { useLogout } from '@/lib/api/hooks/use-auth'
@@ -83,7 +84,8 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 										href='/'
 										className='flex items-center gap-2 text-lg font-semibold text-gray-900 hover:text-gray-700 transition-colors'
 									>
-										<span>PaperNest</span>
+										<Image src='/PaperNest-logo.svg' alt='PaperNest Logo' width={32} height={32} />
+										<span className='hidden sm:inline-block'>PaperNest</span>
 									</Link>
 									<span className='px-2 py-0.5 bg-primary text-white text-xs font-medium rounded'>
 										Hobby

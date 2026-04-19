@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useAuth } from '@/context/AuthContext'
 import { useLoginEmail, useSignInWithSocial } from '@/lib/api/hooks/use-auth'
 import { getErrorMessage } from '@/lib/api/utils/error-handler'
@@ -88,7 +89,10 @@ export default function LoginPage() {
 		<div className='min-h-screen flex min-w-screen bg-background relative'>
 			{/* Logo - Global Fixed Responsive */}
 			<div className='fixed top-6 left-0 right-0 flex justify-center lg:top-8 lg:left-10 lg:right-auto lg:justify-start z-50'>
-				<h1 className='text-2xl lg:text-3xl font-bold text-primary'>PaperNest</h1>
+				<Link href="/" className="flex items-center gap-2 lg:gap-3">
+					<Image src="/PaperNest-logo.svg" alt="PaperNest Logo" width={40} height={40} className="w-8 h-8 lg:w-10 lg:h-10" />
+					<h1 className='text-2xl lg:text-3xl font-bold text-primary leading-none -mt-1'>PaperNest</h1>
+				</Link>
 			</div>
 
 			{/* Left Side - Form Container */}
