@@ -13,9 +13,9 @@ export function parseLatexSections(content: string): TableOfContentsEntry[] {
 
 	const pattern = /\\(chapter|section|subsection|subsubsection)\{([^}]+)\}/g
 	const entries: TableOfContentsEntry[] = []
-	let match
 
-	while ((match = pattern.exec(content)) !== null) {
+	let match = pattern.exec(content)
+	while (match !== null) {
 		const command = match[1] as 'chapter' | 'section' | 'subsection' | 'subsubsection'
 		entries.push({
 			command,
@@ -23,6 +23,7 @@ export function parseLatexSections(content: string): TableOfContentsEntry[] {
 			level: getLevelNumber(command),
 			position: match.index,
 		})
+		match = pattern.exec(content)
 	}
 
 	return entries

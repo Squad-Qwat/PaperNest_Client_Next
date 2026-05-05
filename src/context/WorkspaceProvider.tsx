@@ -1,20 +1,21 @@
 'use client'
 
-import React, { createContext, useContext, useMemo, useEffect } from 'react'
-import { 
-	useWorkspaces, 
-	useWorkspace, 
-	useWorkspaceMembers,
+import type React from 'react'
+import { createContext, useContext, useMemo } from 'react'
+import {
 	useCreateWorkspace,
+	useDeleteWorkspace,
 	useUpdateWorkspace,
-	useDeleteWorkspace
+	useWorkspace,
+	useWorkspaceMembers,
+	useWorkspaces,
 } from '@/lib/api/hooks/use-workspaces'
 import type {
-	Workspace,
-	WorkspaceWithRole,
 	CreateWorkspaceDto,
 	UpdateWorkspaceDto,
+	Workspace,
 	WorkspaceMember,
+	WorkspaceWithRole,
 } from '@/lib/api/types/workspace.types'
 import { useWorkspaceStore } from '@/lib/store/workspace-store'
 
@@ -43,27 +44,26 @@ const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefin
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 	const { lastWorkspaceId, setLastWorkspaceId } = useWorkspaceStore()
-	
+
 	// Use TanStack Query hooks as the source of truth
-	const { 
-		data: workspacesData, 
-		isLoading: workspacesLoading, 
+	const {
+		data: workspacesData,
+		isLoading: workspacesLoading,
 		error: workspacesError,
-		refetch: refetchWorkspaces
+		refetch: refetchWorkspaces,
 	} = useWorkspaces()
 
 	const {
 		data: currentWorkspaceData,
 		isLoading: workspaceLoading,
 		error: workspaceError,
-		refetch: refetchWorkspace
 	} = useWorkspace(lastWorkspaceId || '')
 
 	const {
 		data: membersData,
 		isLoading: membersLoading,
 		error: membersError,
-		refetch: refetchMembers
+		refetch: refetchMembers,
 	} = useWorkspaceMembers(lastWorkspaceId || '')
 
 	// Mutations
@@ -75,15 +75,32 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 	const workspaces = useMemo(() => workspacesData?.workspaces || [], [workspacesData])
 	const currentWorkspace = (currentWorkspaceData as WorkspaceWithRole) || null
 	const members = useMemo(() => membersData?.members || [], [membersData])
-	
-	const isLoading = workspacesLoading || workspaceLoading || membersLoading || 
-					createMutation.isPending || updateMutation.isPending || deleteMutation.isPending
-	
+
+	const isLoading =
+		workspacesLoading ||
+		workspaceLoading ||
+		membersLoading ||
+		createMutation.isPending ||
+		updateMutation.isPending ||
+		deleteMutation.isPending
+
 	const error = useMemo(() => {
-		const err = workspacesError || workspaceError || membersError || 
-					createMutation.error || updateMutation.error || deleteMutation.error
+		const err =
+			workspacesError ||
+			workspaceError ||
+			membersError ||
+			createMutation.error ||
+			updateMutation.error ||
+			deleteMutation.error
 		return err ? (err as Error).message : null
-	}, [workspacesError, workspaceError, membersError, createMutation.error, updateMutation.error, deleteMutation.error])
+	}, [
+		workspacesError,
+		workspaceError,
+		membersError,
+		createMutation.error,
+		updateMutation.error,
+		deleteMutation.error,
+	])
 
 	// Legacy method implementations using TanStack Query
 	const fetchWorkspaces = async () => {
@@ -146,4 +163,3 @@ export function useWorkspaceContext() {
 	}
 	return context
 }
-

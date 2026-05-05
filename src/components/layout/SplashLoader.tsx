@@ -1,6 +1,5 @@
 'use client'
 
-import React from 'react'
 import { motion } from 'motion/react'
 
 export function SplashLoader() {
@@ -30,7 +29,7 @@ export function SplashLoader() {
 
 				{/* Brand Name */}
 				<h1 className='text-2xl font-bold text-gray-900 mb-2 tracking-tight'>PaperNest</h1>
-				
+
 				{/* Loading Indicator */}
 				<div className='flex items-center gap-1.5 mt-2'>
 					<motion.div

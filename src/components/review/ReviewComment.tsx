@@ -1,5 +1,4 @@
 import { Card } from '@/components/ui/card'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 interface ReviewCommentProps {
 	authorName: string
@@ -10,14 +9,7 @@ interface ReviewCommentProps {
 	authorInitials?: string
 }
 
-export function ReviewComment({
-	authorName,
-	date,
-	content,
-	userType = 'lecturer',
-	avatarUrl,
-	authorInitials = 'LC',
-}: ReviewCommentProps) {
+export function ReviewComment({ authorName, date, content }: ReviewCommentProps) {
 	return (
 		<div className='flex gap-4 group relative'>
 			{/* Comment Body */}

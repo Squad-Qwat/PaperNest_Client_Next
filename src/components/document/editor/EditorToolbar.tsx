@@ -1,51 +1,43 @@
 // @ts-nocheck
 'use client'
 
-import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
 import {
+	AlignCenter,
+	AlignJustify,
+	AlignLeft,
+	AlignRight,
 	Bold as BoldIcon,
-	Italic as ItalicIcon,
-	Underline as UnderlineIcon,
-	Strikethrough,
+	Check,
+	ChevronDown,
+	ChevronRight,
 	Code as CodeIcon,
-	Quote,
+	FileDown,
+	FileText,
+	Italic as ItalicIcon,
 	List,
 	ListOrdered,
-	Heading1,
-	Heading2,
-	Heading3,
-	Undo,
-	Redo,
-	ChevronDown,
-	Plus,
 	Minus,
-	ChevronRight,
-	Check,
-	AlignLeft,
-	AlignCenter,
-	AlignRight,
-	AlignJustify,
-	FileText,
-	Download,
-	FileDown,
-	FileUp,
+	Plus,
+	Quote,
+	Redo,
+	Strikethrough,
+	Underline as UnderlineIcon,
+	Undo,
 	Upload,
 } from 'lucide-react'
-import { useState, useRef, useEffect } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 
 const EditorToolbar = ({
 	editor,
 	insertTable,
-	aiAssistantOpen,
 	// Undo/Redo functions (collaboration-aware)
 	undo,
 	redo,
 	canUndo,
 	canRedo,
-	// Debug function (development only)
-	debugContentExtraction,
 }) => {
 	const [fontFamilyOpen, setFontFamilyOpen] = useState(false)
 	const [textStyleOpen, setTextStyleOpen] = useState(false)
@@ -53,10 +45,45 @@ const EditorToolbar = ({
 	const [activeTextStyle, setActiveTextStyle] = useState('Normal Text')
 	const [hoveredStyle, setHoveredStyle] = useState(null)
 	const [mounted, setMounted] = useState(false)
-	const [updateTrigger, setUpdateTrigger] = useState(0)
+	const [_updateTrigger, setUpdateTrigger] = useState(0)
 	const fontFamilyRef = useRef(null)
 	const textStyleRef = useRef(null)
 	const lineSpacingRef = useRef(null)
+
+	// Function to update list item classes based on bold content
+	const updateListItemBoldClasses = useCallback(() => {
+		if (!editor || editor.isDestroyed) return
+
+		try {
+			// Get the editor DOM element
+			const editorElement = editor.view.dom
+			if (!editorElement) return
+
+			// Find all list items in the editor
+			const listItems = editorElement.querySelectorAll('li')
+
+			listItems.forEach((li) => {
+				// Check if the list item contains bold content
+				const hasBoldContent =
+					li.querySelector('strong') ||
+					li.querySelector('b') ||
+					li.querySelector('[style*="font-weight: bold"]') ||
+					li.querySelector('[style*="font-weight:bold"]') ||
+					// Check if the paragraph inside has bold styling
+					li.querySelector('p[style*="font-weight: bold"]') ||
+					li.querySelector('p[style*="font-weight:bold"]')
+
+				// Add or remove the bold-content class based on content
+				if (hasBoldContent) {
+					li.classList.add('bold-content')
+				} else {
+					li.classList.remove('bold-content')
+				}
+			})
+		} catch (error) {
+			console.warn('Error updating list item bold classes:', error)
+		}
+	}, [editor])
 
 	// Helper function untuk safe focus yang menghindari cursor jump ke footer
 	const safeFocus = (editor) => {
@@ -217,7 +244,7 @@ const EditorToolbar = ({
 		}
 
 		return () => {}
-	}, [editor])
+	}, [editor, updateListItemBoldClasses])
 
 	const getDropdownPosition = (ref) => {
 		if (!ref.current) return { top: 0, left: 0 }
@@ -312,7 +339,7 @@ const EditorToolbar = ({
 	]
 
 	// Apply style to current paragraph and set as default for future paragraphs
-	const applyStyleToCurrentAndFutureParagraphs = (fontFamily, fontSize) => {
+	const _applyStyleToCurrentAndFutureParagraphs = (fontFamily, fontSize) => {
 		if (!editor) return
 
 		const { state } = editor
@@ -454,7 +481,7 @@ const EditorToolbar = ({
 				console.log(`Updating all instances of "${style}" with:`, newStyleDef)
 
 				// Show user feedback
-				const originalText = `Update "${style}" to match`
+				const _originalText = `Update "${style}" to match`
 
 				try {
 					// Update all instances of this style type in the document
@@ -510,7 +537,7 @@ const EditorToolbar = ({
 				if (isTargetNode) {
 					// For headings, check the level
 					if (node.type.name === 'heading' && styleName.startsWith('Heading ')) {
-						const level = parseInt(styleName.split(' ')[1])
+						const level = parseInt(styleName.split(' ')[1], 10)
 						if (node.attrs.level !== level) {
 							return true // Continue if not the right heading level
 						}
@@ -565,7 +592,7 @@ const EditorToolbar = ({
 									break
 								}
 							}
-						} catch (e) {
+						} catch (_e) {
 							contextInfo = 'unknown-context'
 						}
 
@@ -607,7 +634,7 @@ const EditorToolbar = ({
 					if (from >= 0 && to <= currentDoc.content.size && from < to) {
 						// Double-check we're not accidentally selecting table content
 						const $from = currentDoc.resolve(from)
-						const $to = currentDoc.resolve(to)
+						const _$to = currentDoc.resolve(to)
 						let insideTable = false
 
 						// Check if we're inside a table
@@ -691,7 +718,7 @@ const EditorToolbar = ({
 				const textStyleMark = editor.state.storedMarks.find(
 					(mark) => mark.type.name === 'textStyle'
 				)
-				if (textStyleMark && textStyleMark.attrs.fontFamily) {
+				if (textStyleMark?.attrs.fontFamily) {
 					currentFontFamily = textStyleMark.attrs.fontFamily
 				}
 			}
@@ -716,7 +743,7 @@ const EditorToolbar = ({
 				const textStyleMark = editor.state.storedMarks.find(
 					(mark) => mark.type.name === 'textStyle'
 				)
-				if (textStyleMark && textStyleMark.attrs.fontSize) {
+				if (textStyleMark?.attrs.fontSize) {
 					currentFontSize = textStyleMark.attrs.fontSize
 				}
 			}
@@ -726,14 +753,14 @@ const EditorToolbar = ({
 			// Handle both pt and px units, convert px to pt if necessary
 			if (currentFontSize.includes('px')) {
 				// Convert px to pt (1px ≈ 0.75pt, so 1pt ≈ 1.33px)
-				const pxValue = parseInt(currentFontSize.replace('px', ''))
+				const pxValue = parseInt(currentFontSize.replace('px', ''), 10)
 				return Math.round(pxValue * 0.75)
 			} else if (currentFontSize.includes('pt')) {
-				return parseInt(currentFontSize.replace('pt', ''))
+				return parseInt(currentFontSize.replace('pt', ''), 10)
 			}
 
 			// If no unit specified, assume it's pt
-			return parseInt(currentFontSize) || 11
+			return parseInt(currentFontSize, 10) || 11
 		} catch (error) {
 			console.warn('Error getting current font size:', error)
 			return 11
@@ -829,7 +856,7 @@ const EditorToolbar = ({
 	}
 
 	// Set stored marks for future typing without affecting existing text
-	const setStoredMarksForTyping = () => {
+	const _setStoredMarksForTyping = () => {
 		if (!editor || editor.isDestroyed) return
 
 		try {
@@ -856,7 +883,7 @@ const EditorToolbar = ({
 	const getStyleFontSize = (styleName) => {
 		try {
 			const styleDef = styleDefinitions[styleName]
-			if (styleDef && styleDef.fontSize) {
+			if (styleDef?.fontSize) {
 				return styleDef.fontSize
 			}
 
@@ -904,41 +931,6 @@ const EditorToolbar = ({
 		}
 	}
 
-	// Function to update list item classes based on bold content
-	const updateListItemBoldClasses = () => {
-		if (!editor || editor.isDestroyed) return
-
-		try {
-			// Get the editor DOM element
-			const editorElement = editor.view.dom
-			if (!editorElement) return
-
-			// Find all list items in the editor
-			const listItems = editorElement.querySelectorAll('li')
-
-			listItems.forEach((li) => {
-				// Check if the list item contains bold content
-				const hasBoldContent =
-					li.querySelector('strong') ||
-					li.querySelector('b') ||
-					li.querySelector('[style*="font-weight: bold"]') ||
-					li.querySelector('[style*="font-weight:bold"]') ||
-					// Check if the paragraph inside has bold styling
-					li.querySelector('p[style*="font-weight: bold"]') ||
-					li.querySelector('p[style*="font-weight:bold"]')
-
-				// Add or remove the bold-content class based on content
-				if (hasBoldContent) {
-					li.classList.add('bold-content')
-				} else {
-					li.classList.remove('bold-content')
-				}
-			})
-		} catch (error) {
-			console.warn('Error updating list item bold classes:', error)
-		}
-	}
-
 	// Get current line spacing
 	const getCurrentLineSpacing = () => {
 		if (!editor || editor.isDestroyed) return '1.0'
@@ -950,7 +942,7 @@ const EditorToolbar = ({
 
 			// Get attributes from the current paragraph or heading
 			const parentNode = $from.parent
-			if (parentNode && parentNode.attrs && parentNode.attrs.lineSpacing) {
+			if (parentNode?.attrs?.lineSpacing) {
 				return parentNode.attrs.lineSpacing
 			}
 
@@ -1009,13 +1001,21 @@ const EditorToolbar = ({
 						mounted &&
 						createPortal(
 							<>
-								<div
-									className='fixed inset-0 z-[9998]'
+								<button
+									type='button'
+									className='fixed inset-0 z-[9998] cursor-default bg-transparent border-none'
 									onClick={() => {
 										setTextStyleOpen(false)
 										setHoveredStyle(null)
 									}}
-								></div>
+									onKeyDown={(e) => {
+										if (e.key === 'Escape') {
+											setTextStyleOpen(false)
+											setHoveredStyle(null)
+										}
+									}}
+									aria-label='Close menu'
+								/>
 								<div
 									className='fixed bg-white border border-gray-200 rounded-md shadow-xl z-[9999] min-w-[170px]'
 									style={getDropdownPosition(textStyleRef)}
@@ -1026,8 +1026,10 @@ const EditorToolbar = ({
 											className='relative'
 											onMouseEnter={() => setHoveredStyle(style.name)}
 											onMouseLeave={() => setHoveredStyle(null)}
+											role='none'
 										>
 											<button
+												type='button'
 												onClick={() => {
 													if (!editor || editor.isDestroyed) return
 													try {
@@ -1056,6 +1058,7 @@ const EditorToolbar = ({
 											{hoveredStyle === style.name && (
 												<div className='absolute left-full top-0 bg-white border border-gray-200 rounded-md shadow-md min-w-[200px] z-[10000]'>
 													<button
+														type='button'
 														onClick={() => {
 															if (!editor || editor.isDestroyed) return
 															try {
@@ -1072,6 +1075,7 @@ const EditorToolbar = ({
 														</div>
 													</button>
 													<button
+														type='button'
 														onClick={() => {
 															if (!editor || editor.isDestroyed) return
 															try {
@@ -1115,16 +1119,22 @@ const EditorToolbar = ({
 						mounted &&
 						createPortal(
 							<>
-								<div
-									className='fixed inset-0 z-[9998]'
+								<button
+									type='button'
+									className='fixed inset-0 z-[9998] cursor-default bg-transparent border-none'
 									onClick={() => setFontFamilyOpen(false)}
-								></div>
+									onKeyDown={(e) => {
+										if (e.key === 'Escape') setFontFamilyOpen(false)
+									}}
+									aria-label='Close menu'
+								/>
 								<div
 									className='fixed bg-white border border-gray-200 rounded-md shadow-xl z-[9999] min-w-[140px]'
 									style={getDropdownPosition(fontFamilyRef)}
 								>
 									{fontFamilies.map((font) => (
 										<button
+											type='button'
 											key={font.value}
 											onClick={() => {
 												if (!editor || editor.isDestroyed) return
@@ -1194,16 +1204,22 @@ const EditorToolbar = ({
 						mounted &&
 						createPortal(
 							<>
-								<div
-									className='fixed inset-0 z-[9998]'
+								<button
+									type='button'
+									className='fixed inset-0 z-[9998] cursor-default bg-transparent border-none'
 									onClick={() => setLineSpacingOpen(false)}
-								></div>
+									onKeyDown={(e) => {
+										if (e.key === 'Escape') setLineSpacingOpen(false)
+									}}
+									aria-label='Close menu'
+								/>
 								<div
 									className='fixed bg-white border border-gray-200 rounded-md shadow-xl z-[9999] min-w-[100px]'
 									style={getDropdownPosition(lineSpacingRef)}
 								>
 									{lineSpacingOptions.map((option) => (
 										<button
+											type='button'
 											key={option.value}
 											onClick={() => setLineSpacing(option.value)}
 											className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-100 first:rounded-t-md last:rounded-b-md ${
@@ -1430,7 +1446,9 @@ const EditorToolbar = ({
 									await editor.chain().focus().importDocx({ file }).run()
 								} catch (error) {
 									console.error('Import DOCX failed:', error)
-									toast.error('Failed to import document. Please check your Tiptap Cloud credentials.')
+									toast.error(
+										'Failed to import document. Please check your Tiptap Cloud credentials.'
+									)
 								}
 							}
 							input.click()

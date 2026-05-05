@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react'
 import { Navbar } from '@/components/layout/Navbar'
 import { ReviewCard } from '@/components/review/ReviewCard'
 import { Input } from '@/components/ui/input'
-import { Skeleton } from '@/components/ui/skeleton'
 import {
 	Select,
 	SelectContent,
@@ -14,6 +13,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/context/AuthContext'
 import { documentsService } from '@/lib/api/services/documents.service'
 import type { Document } from '@/lib/api/types/document.types'
@@ -43,11 +43,11 @@ export default function ReviewsPage() {
 				setLoading(true)
 
 				// Fetch Reviews
-				let reviewsRes
+				let reviewsRes: { reviews: Review[] } = { reviews: [] }
 				if (user.role?.toLowerCase() === 'student') {
-					reviewsRes = await documentsService.getStudentReviews()
+					reviewsRes = (await documentsService.getStudentReviews()) as { reviews: Review[] }
 				} else {
-					reviewsRes = await documentsService.getPendingReviews()
+					reviewsRes = (await documentsService.getPendingReviews()) as { reviews: Review[] }
 				}
 				setReviews(reviewsRes.reviews || [])
 
@@ -180,14 +180,19 @@ export default function ReviewsPage() {
 				{/* Reviews List */}
 				{loading ? (
 					<div className='grid gap-4'>
-						{[...Array(5)].map((_, i) => (
-							<Skeleton key={i} className='h-24 rounded-lg' />
+						{[1, 2, 3, 4, 5].map((i) => (
+							<Skeleton key={`review-skeleton-item-${i}`} className='h-24 rounded-lg' />
 						))}
 					</div>
 				) : filteredReviews.length === 0 ? (
 					<div className='text-center py-16 bg-white rounded-lg border border-dashed border-gray-300'>
 						<div className='inline-flex items-center justify-center h-12 w-12 rounded-full bg-gray-100 mb-4'>
-							<svg className='h-6 w-6 text-gray-400' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+							<svg
+								className='h-6 w-6 text-gray-400'
+								fill='none'
+								stroke='currentColor'
+								viewBox='0 0 24 24'
+							>
 								<path
 									strokeLinecap='round'
 									strokeLinejoin='round'
@@ -197,9 +202,7 @@ export default function ReviewsPage() {
 							</svg>
 						</div>
 						<p className='text-gray-600 font-medium mb-1'>No reviews found</p>
-						<p className='text-gray-500 text-sm'>
-							Try adjusting your search or filter criteria
-						</p>
+						<p className='text-gray-500 text-sm'>Try adjusting your search or filter criteria</p>
 					</div>
 				) : (
 					<div className='grid gap-4'>
@@ -223,11 +226,17 @@ export default function ReviewsPage() {
 										: undefined
 								}
 								onReviewUpdate={(newStatus, newMessage) => {
-									setReviews(prev => prev.map(r => 
-										r.reviewId === review.reviewId 
-											? { ...r, status: newStatus as any, message: newMessage || r.message }
-											: r
-									))
+									setReviews((prev) =>
+										prev.map((r) =>
+											r.reviewId === review.reviewId
+												? {
+														...r,
+														status: newStatus as Review['status'],
+														message: newMessage || r.message,
+													}
+												: r
+										)
+									)
 								}}
 							/>
 						))}

@@ -4,9 +4,9 @@
  */
 
 export interface CodeMirrorChange {
-	from: number;
-	to: number;
-	insert: string;
+	from: number
+	to: number
+	insert: string
 }
 
 /**
@@ -15,21 +15,21 @@ export interface CodeMirrorChange {
  * which is highly effective for localized edits typical of AI tool usage.
  */
 export function computeCodeMirrorChanges(oldDoc: string, newDoc: string): CodeMirrorChange[] {
-	if (oldDoc === newDoc) return [];
+	if (oldDoc === newDoc) return []
 
-	let start = 0;
-	let oldEnd = oldDoc.length;
-	let newEnd = newDoc.length;
+	let start = 0
+	let oldEnd = oldDoc.length
+	let newEnd = newDoc.length
 
 	// Find common prefix
 	while (start < oldEnd && start < newEnd && oldDoc[start] === newDoc[start]) {
-		start++;
+		start++
 	}
 
 	// Find common suffix
 	while (oldEnd > start && newEnd > start && oldDoc[oldEnd - 1] === newDoc[newEnd - 1]) {
-		oldEnd--;
-		newEnd--;
+		oldEnd--
+		newEnd--
 	}
 
 	// The change is from 'start' to 'oldEnd' in the original doc,
@@ -40,5 +40,5 @@ export function computeCodeMirrorChanges(oldDoc: string, newDoc: string): CodeMi
 			to: oldEnd,
 			insert: newDoc.slice(start, newEnd),
 		},
-	];
+	]
 }

@@ -1,18 +1,24 @@
 'use client'
 
+import { ChevronLeft, FileText, Loader2, MessageSquare, RotateCcw } from 'lucide-react'
+import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
-import { ChevronLeft, FileText, Loader2, RotateCcw, MessageSquare } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { toast } from 'sonner'
-import { useDocumentVersions, useDocumentReviews, useRevertVersion } from '@/lib/api/hooks/use-documents'
-import { laTeXService } from '@/lib/latex/LaTeXService'
-import { useDocumentFiles } from '@/lib/api/hooks/use-document-files'
-import { format, id } from '@/lib/date'
 import { ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { useDocumentFiles } from '@/lib/api/hooks/use-document-files'
+import {
+	useDocumentReviews,
+	useDocumentVersions,
+	useRevertVersion,
+} from '@/lib/api/hooks/use-documents'
+import type { Version } from '@/lib/api/types/document.types'
+import type { Review } from '@/lib/api/types/review.types'
+import { format, id } from '@/lib/date'
+import { laTeXService } from '@/lib/latex/LaTeXService'
 import { getAvatarUrl, getInitials } from '@/lib/utils'
 
 export default function VersionDetailPage() {
@@ -31,36 +37,39 @@ export default function VersionDetailPage() {
 	const { data: files = [] } = useDocumentFiles(documentId)
 	const { mutateAsync: revertVersion, isPending: isReverting } = useRevertVersion()
 
-	const versions = Array.isArray(versionsResponse) 
-		? versionsResponse 
-		: (versionsResponse as any)?.versions || []
-	
-	const version = versions.find((v: any) => v.documentBodyId === versionId)
-	const reviews = Array.isArray(reviewsResponse) 
-		? reviewsResponse 
-		: (reviewsResponse as any)?.reviews || []
-	const versionReview = reviews.find((r: any) => r.documentBodyId === versionId)
+	const versions = Array.isArray(versionsResponse)
+		? (versionsResponse as Version[])
+		: (versionsResponse as { versions: Version[] })?.versions || []
 
-	const handleCompile = useCallback(async (content: string) => {
-		if (!content) return
-		setIsCompiling(true)
-		setCompileError(null)
-		try {
-			const result = await laTeXService.compileWithAssets('main.tex', content, files)
-			if (result.status === 0 && result.pdf) {
-				const blob = new Blob([result.pdf as any], { type: 'application/pdf' })
-				const url = URL.createObjectURL(blob)
-				// We'll manage the revocation in a separate effect to avoid logic loops
-				setPdfUrl(url)
-			} else {
-				setCompileError(result.log || 'Compilation failed')
+	const version = versions.find((v: Version) => v.documentBodyId === versionId)
+	const reviews = Array.isArray(reviewsResponse)
+		? (reviewsResponse as Review[])
+		: (reviewsResponse as { reviews: Review[] })?.reviews || []
+	const versionReview = reviews.find((r: Review) => r.documentBodyId === versionId)
+
+	const handleCompile = useCallback(
+		async (content: string) => {
+			if (!content) return
+			setIsCompiling(true)
+			setCompileError(null)
+			try {
+				const result = await laTeXService.compileWithAssets('main.tex', content, files)
+				if (result.status === 0 && result.pdf) {
+					const blob = new Blob([result.pdf as any], { type: 'application/pdf' })
+					const url = URL.createObjectURL(blob)
+					// We'll manage the revocation in a separate effect to avoid logic loops
+					setPdfUrl(url)
+				} else {
+					setCompileError(result.log || 'Compilation failed')
+				}
+			} catch (error: any) {
+				setCompileError(error.message || 'Error compiling PDF')
+			} finally {
+				setIsCompiling(false)
 			}
-		} catch (error: any) {
-			setCompileError(error.message || 'Error compiling PDF')
-		} finally {
-			setIsCompiling(false)
-		}
-	}, [files]) // Removed pdfUrl from dependencies
+		},
+		[files]
+	) // Removed pdfUrl from dependencies
 
 	useEffect(() => {
 		if (version?.content && !pdfUrl && !isCompiling && !compileError) {
@@ -80,7 +89,7 @@ export default function VersionDetailPage() {
 			await revertVersion({ documentId, versionNumber: version.versionNumber })
 			toast.success('Versi berhasil dipulihkan')
 			router.push(`/${workspaceId}/documents/${documentId}`)
-		} catch (e: any) {
+		} catch (_e: any) {
 			toast.error('Gagal memulihkan versi')
 		}
 	}
@@ -97,7 +106,9 @@ export default function VersionDetailPage() {
 		return (
 			<div className='h-screen flex flex-col items-center justify-center bg-background'>
 				<p className='text-muted-foreground mb-4 text-sm'>Versi tidak ditemukan</p>
-				<Button variant='outline' onClick={() => router.back()}>Kembali</Button>
+				<Button variant='outline' onClick={() => router.back()}>
+					Kembali
+				</Button>
 			</div>
 		)
 	}
@@ -107,8 +118,8 @@ export default function VersionDetailPage() {
 			<header className='bg-background border-b sticky top-0 z-50 py-4'>
 				<div className='w-full px-4 md:px-6 flex items-center justify-between'>
 					<div className='flex items-center gap-4'>
-						<Button 
-							variant='ghost' 
+						<Button
+							variant='ghost'
 							onClick={() => router.push(`/${workspaceId}/documents/${documentId}/versions`)}
 							className='h-10 w-10 hover:bg-muted rounded-lg transition-all group p-0 min-w-0 shrink-0'
 							title='Kembali ke Riwayat'
@@ -116,7 +127,9 @@ export default function VersionDetailPage() {
 							<ChevronLeft className='h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors' />
 						</Button>
 						<div className='flex flex-col'>
-							<h1 className='text-sm font-semibold tracking-tight'>Detail Versi #{String(version.versionNumber).padStart(3, '0')}</h1>
+							<h1 className='text-sm font-semibold tracking-tight'>
+								Detail Versi #{String(version.versionNumber).padStart(3, '0')}
+							</h1>
 							<p className='text-xs text-muted-foreground'>
 								{format(version.createdAt, 'd MMMM yyyy, HH:mm', { locale: id })}
 							</p>
@@ -134,7 +147,9 @@ export default function VersionDetailPage() {
 						)}
 						<Button size='sm' className='gap-2' onClick={handleRestore} disabled={isReverting}>
 							<RotateCcw className='w-4 h-4' />
-							<span className='hidden sm:inline'>{isReverting ? 'Memulihkan...' : 'Pulihkan Versi Ini'}</span>
+							<span className='hidden sm:inline'>
+								{isReverting ? 'Memulihkan...' : 'Pulihkan Versi Ini'}
+							</span>
 						</Button>
 					</div>
 				</div>
@@ -148,10 +163,11 @@ export default function VersionDetailPage() {
 							<span className='text-sm text-muted-foreground'>Mengompilasi PDF...</span>
 						</div>
 					) : pdfUrl ? (
-						<iframe 
-							key={pdfUrl} 
-							src={`${pdfUrl}#toolbar=1`} 
-							className='w-full h-full border-none' 
+						<iframe
+							key={pdfUrl}
+							src={`${pdfUrl}#toolbar=1`}
+							className='w-full h-full border-none'
+							title='PDF Preview'
 						/>
 					) : compileError ? (
 						<div className='p-8 text-center'>
@@ -171,16 +187,21 @@ export default function VersionDetailPage() {
 						<div className='border-b pb-3'>
 							<h3 className='text-sm font-semibold text-foreground'>Metadata Versi</h3>
 						</div>
-						
+
 						<div className='space-y-4'>
 							<div className='flex items-center gap-3'>
 								{(() => {
-									const displayName = version.user?.name || version.user?.username || version.userId || 'User'
+									const displayName =
+										version.user?.name || version.user?.username || version.userId || 'User'
 									return (
 										<>
 											<Avatar className='h-9 w-9 border'>
-												<AvatarImage src={version.user?.photoURL || getAvatarUrl(displayName, version.userId)} />
-												<AvatarFallback className='text-xs'>{getInitials(displayName)}</AvatarFallback>
+												<AvatarImage
+													src={version.user?.photoURL || getAvatarUrl(displayName, version.userId)}
+												/>
+												<AvatarFallback className='text-xs'>
+													{getInitials(displayName)}
+												</AvatarFallback>
 											</Avatar>
 											<div className='flex flex-col'>
 												<span className='text-sm font-medium'>{displayName}</span>
@@ -190,7 +211,7 @@ export default function VersionDetailPage() {
 									)
 								})()}
 							</div>
-							
+
 							{versionReview && (
 								<div className='pt-3 border-t space-y-3'>
 									<div>
@@ -198,9 +219,7 @@ export default function VersionDetailPage() {
 										<ReviewStatusBadge status={versionReview.status} />
 									</div>
 									<div className='bg-muted/50 p-3 rounded-md'>
-										<p className='text-sm text-foreground italic'>
-											"{versionReview.message}"
-										</p>
+										<p className='text-sm text-foreground italic'>"{versionReview.message}"</p>
 									</div>
 								</div>
 							)}

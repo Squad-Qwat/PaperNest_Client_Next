@@ -71,10 +71,10 @@ export interface Version {
 	createdBy: string
 	userId?: string
 	user?: {
-		name?: string;
-		username?: string;
-		email?: string;
-		photoURL?: string | null;
+		name?: string
+		username?: string
+		email?: string
+		photoURL?: string | null
 	}
 }
 

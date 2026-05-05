@@ -1,15 +1,10 @@
 'use client'
 
-import React, { useState } from 'react'
+import { Bell, LogOut, Settings, Slash, User } from 'lucide-react'
 import Link from 'next/link'
-import Image from 'next/image'
-import { usePathname, useRouter, useParams } from 'next/navigation'
-import { useAuth } from '@/context/AuthContext'
-import { useLogout } from '@/lib/api/hooks/use-auth'
-import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher'
+import { useParams, usePathname, useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { cn } from '@/lib/utils'
-import { Slash, Bell, LogOut, User, Settings } from 'lucide-react'
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -17,6 +12,10 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher'
+import { useAuth } from '@/context/AuthContext'
+import { useLogout } from '@/lib/api/hooks/use-auth'
+import { cn } from '@/lib/utils'
 
 interface NavbarProps {
 	mode?: 'workspace' | 'document'
@@ -45,15 +44,15 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 	// Document-specific menu items
 	const documentMenuItems = documentId
 		? [
-			{
-				name: 'Citations',
-				href: `/${workspaceId}/documents/${documentId}/citations`,
-			},
-			{
-				name: 'Reviews',
-				href: `/${workspaceId}/documents/${documentId}/reviews`,
-			},
-		]
+				{
+					name: 'Citations',
+					href: `/${workspaceId}/documents/${documentId}/citations`,
+				},
+				{
+					name: 'Reviews',
+					href: `/${workspaceId}/documents/${documentId}/reviews`,
+				},
+			]
 		: []
 
 	const menuItems = mode === 'document' ? documentMenuItems : workspaceMenuItems
@@ -84,8 +83,7 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 										href='/'
 										className='flex items-center gap-2 text-lg font-semibold text-gray-900 hover:text-gray-700 transition-colors'
 									>
-										<Image src='/PaperNest-logo.svg' alt='PaperNest Logo' width={32} height={32} />
-										<span className='hidden sm:inline-block'>PaperNest</span>
+										<span>PaperNest</span>
 									</Link>
 									<span className='px-2 py-0.5 bg-primary text-white text-xs font-medium rounded'>
 										Hobby
@@ -118,6 +116,7 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 						<div className='hidden md:flex items-center gap-3'>
 							{/* Notifications Button */}
 							<button
+								type='button'
 								onClick={() => router.push('/notifications')}
 								className='p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors'
 								aria-label='Notifications'
@@ -130,6 +129,7 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
 									<button
+										type='button'
 										className='flex items-center gap-2 p-1.5 hover:bg-gray-100 rounded-lg transition-colors'
 										aria-label='User menu'
 									>
@@ -144,11 +144,17 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 										<p className='text-xs text-gray-500 capitalize'>{user.role}</p>
 									</div>
 									<DropdownMenuSeparator />
-									<DropdownMenuItem onClick={() => router.push('/profile')} className='gap-2 cursor-pointer'>
+									<DropdownMenuItem
+										onClick={() => router.push('/profile')}
+										className='gap-2 cursor-pointer'
+									>
 										<User className='w-4 h-4' />
 										<span>Profile</span>
 									</DropdownMenuItem>
-									<DropdownMenuItem onClick={() => router.push('/settings')} className='gap-2 cursor-pointer'>
+									<DropdownMenuItem
+										onClick={() => router.push('/settings')}
+										className='gap-2 cursor-pointer'
+									>
 										<Settings className='w-4 h-4' />
 										<span>Settings</span>
 									</DropdownMenuItem>
@@ -166,6 +172,7 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 
 						{/* Mobile Menu Button */}
 						<button
+							type='button'
 							onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
 							className='md:hidden p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition-colors'
 							aria-label='Toggle menu'
@@ -215,6 +222,7 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 
 							<div className='flex items-center gap-3 px-4 py-3 bg-gray-900 rounded-lg border border-gray-800 mb-3'>
 								<button
+									type='button'
 									onClick={() => {
 										setIsMobileMenuOpen(false)
 										router.push('/profile')
@@ -231,6 +239,7 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 
 							<div className='flex gap-2'>
 								<button
+									type='button'
 									onClick={() => {
 										setIsMobileMenuOpen(false)
 										router.push('/notifications')
@@ -240,6 +249,7 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 									Notifications
 								</button>
 								<button
+									type='button'
 									onClick={() => {
 										setIsMobileMenuOpen(false)
 										setShowLogoutConfirm(true)

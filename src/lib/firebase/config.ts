@@ -3,10 +3,10 @@
  * Initialize Firebase App, Auth, Firestore, and Analytics
  */
 
-import { initializeApp, getApps, type FirebaseApp } from 'firebase/app'
-import { getAuth, type Auth } from 'firebase/auth'
-import { getFirestore, type Firestore } from 'firebase/firestore'
-import { getAnalytics, type Analytics } from 'firebase/analytics'
+import { type Analytics, getAnalytics } from 'firebase/analytics'
+import { type FirebaseApp, getApps, initializeApp } from 'firebase/app'
+import { type Auth, getAuth } from 'firebase/auth'
+import { type Firestore, getFirestore } from 'firebase/firestore'
 
 // Firebase configuration from environment variables
 const firebaseConfig = {

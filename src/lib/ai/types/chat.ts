@@ -1,7 +1,7 @@
 /**
  * AI Chat Type Definitions
- * 
- * Shared TypeScript types for AI chat conversations, messages, 
+ *
+ * Shared TypeScript types for AI chat conversations, messages,
  * tool calls, and streaming communication.
  */
 

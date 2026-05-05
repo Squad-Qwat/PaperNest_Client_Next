@@ -1,13 +1,7 @@
+import { nanoid } from 'nanoid'
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
-import { nanoid } from 'nanoid'
-import type { 
-	ChatMessage, 
-	PlanStep, 
-	ToolCall, 
-	MessageRole,
-	ToolStatus
-} from './types/chat'
+import type { ChatMessage, PlanStep, ToolCall, ToolStatus } from './types/chat'
 
 interface AIChatState {
 	messages: ChatMessage[]
@@ -46,15 +40,17 @@ export const useAIChatStore = create<AIChatState & AIChatActions>()(
 		threadId: `thread_${Date.now()}_${nanoid(6)}`,
 		agentId: 'manual_graph',
 
-		addUserMessage: (text: string) => 
+		addUserMessage: (text: string) =>
 			set((state) => {
 				const message: ChatMessage = {
 					key: nanoid(),
 					from: 'user',
-					versions: [{
-						id: nanoid(),
-						parts: [{ id: nanoid(), type: 'text', content: text.trim() }]
-					}],
+					versions: [
+						{
+							id: nanoid(),
+							parts: [{ id: nanoid(), type: 'text', content: text.trim() }],
+						},
+					],
 					activeVersionIndex: 0,
 					timestamp: new Date(),
 				}
@@ -95,7 +91,7 @@ export const useAIChatStore = create<AIChatState & AIChatActions>()(
 				msg.versions[msg.activeVersionIndex].parts.push({
 					id: nanoid(),
 					type: 'tool',
-					tool
+					tool,
 				})
 			}),
 
@@ -104,7 +100,7 @@ export const useAIChatStore = create<AIChatState & AIChatActions>()(
 				const msg = state.messages.find((m) => m.key === key)
 				if (!msg) return
 				const version = msg.versions[msg.activeVersionIndex]
-				const part = version.parts.find(p => p.type === 'tool' && p.tool.id === toolId)
+				const part = version.parts.find((p) => p.type === 'tool' && p.tool.id === toolId)
 				if (part && part.type === 'tool') {
 					part.tool.result = result
 					part.tool.status = status
@@ -115,25 +111,25 @@ export const useAIChatStore = create<AIChatState & AIChatActions>()(
 			set((state) => {
 				const msg = state.messages.find((m) => m.key === key)
 				if (!msg) return
-				
+
 				const existing = msg.reasoning?.content || ''
 				const incoming = typeof content === 'string' ? content.trim() : ''
 				if (!incoming) return
 
 				// Deduplication logic (same as in original implementation)
-				const existingLines = new Set(existing.split('\n').map(l => l.trim()))
+				const existingLines = new Set(existing.split('\n').map((l) => l.trim()))
 				const incomingLines = incoming.split('\n')
 				const filteredIncoming = incomingLines
 					.filter((line: string) => line.trim() && !existingLines.has(line.trim()))
 					.join('\n')
-				
+
 				if (!filteredIncoming && existing) return
 
 				const combined = existing ? `${existing}\n\n${filteredIncoming}` : filteredIncoming
-				
+
 				msg.reasoning = {
 					content: combined,
-					duration: duration !== undefined ? duration : msg.reasoning?.duration
+					duration: duration !== undefined ? duration : msg.reasoning?.duration,
 				}
 			}),
 
@@ -147,21 +143,20 @@ export const useAIChatStore = create<AIChatState & AIChatActions>()(
 
 		setReasoningEnabled: (value: boolean) => set({ reasoningEnabled: value }),
 
-		clearChat: () => 
+		clearChat: () =>
 			set((state) => {
 				state.messages = []
 				state.currentPlan = []
 			}),
 
-		resetThreadId: () => 
-			set({ threadId: `thread_${Date.now()}_${nanoid(6)}` }),
+		resetThreadId: () => set({ threadId: `thread_${Date.now()}_${nanoid(6)}` }),
 
 		updateMessageVersion: (messageKey: string, versionIndex: number) =>
 			set((state) => {
-				const msg = state.messages.find(m => m.key === messageKey)
+				const msg = state.messages.find((m) => m.key === messageKey)
 				if (msg) {
 					msg.activeVersionIndex = versionIndex
 				}
-			})
+			}),
 	}))
 )

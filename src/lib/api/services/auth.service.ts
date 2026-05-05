@@ -6,16 +6,15 @@
 import { apiClient } from '../clients/api-client'
 import { API_ENDPOINTS } from '../config'
 import type {
-	RegisterDto,
-	LoginDto,
-	LoginEmailDto,
 	AuthResponse,
+	CheckEmailResponse,
+	LoginDto,
+	PasswordResetDto,
 	RefreshTokenDto,
 	RefreshTokenResponse,
-	PasswordResetDto,
+	RegisterDto,
 	UpdateEmailDto,
 	VerifyTokenDto,
-	CheckEmailResponse,
 } from '../types/auth.types'
 import type { User } from '../types/user.types'
 

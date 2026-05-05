@@ -11,53 +11,58 @@
 
 .geSidebar *:not(svg *, .mxDisabled, [disabled]),
 .geToolbar *:not(svg *, .mxDisabled, [disabled]) {
-	opacity: 1 !important;
+	opacity: 1;
 }
 
 *:not(svg *, .mxDisabled, [disabled], .spinner *, .geBackground, .geDragPreview, .geButton) {
-	border-color: light-dark(#000000, #FFFFFF) !important;
+	border-color: light-dark(#000000, #ffffff);
 }
 
-button, .geBtn, *::-webkit-scrollbar-thumb {
-	border-color: light-dark(#000000, #FFFFFF) !important;
-	color: light-dark(#000000, #FFFFFF) !important;
+button,
+.geBtn,
+*::-webkit-scrollbar-thumb {
+	border-color: light-dark(#000000, #ffffff);
+	color: light-dark(#000000, #ffffff);
 }
 
-button, .geBtn {
-	border-style: solid !important;
-	border-width: 1px !important;
+button,
+.geBtn {
+	border-style: solid;
+	border-width: 1px;
 }
 
 .geSimple .geDiagramContainer {
-	border-top-style: none !important;
-	border-bottom-style: none !important;
+	border-top-style: none;
+	border-bottom-style: none;
 }
 
-button:not(:hover), .geBtn:not(:hover) {
-	background-color: transparent !important;
+button:not(:hover),
+.geBtn:not(:hover) {
+	background-color: transparent;
 }
 
 .gePrimaryBtn {
-	border-width: 3px !important;
+	border-width: 3px;
 }
 
-.geActivePage, .geActiveFormatTitle {
+.geActivePage,
+.geActiveFormatTitle {
 	text-decoration: underline;
 }
 
 .geActivePage {
-	background-color: light-dark(#ffffff, #000000) !important;
-	color: inherit !important;
+	background-color: light-dark(#ffffff, #000000);
+	color: inherit;
 	filter: invert(1);
 }
 
-.geBigButton>img:not(.geDarkMode *) {
+.geBigButton > img:not(.geDarkMode *) {
 	filter: invert(1);
 }
 
 .geEditor,
 .geTitle,
-.geFormatTitle  {
+.geFormatTitle {
 	font-size: 15px;
 }
 
@@ -65,8 +70,8 @@ button:not(:hover), .geBtn:not(:hover) {
 .geFormatContainer,
 .geSearchSidebar input,
 .geSpinnerStatus {
-	font-size: 14px !important;
-	line-height: 14px !important;
+	font-size: 14px;
+	line-height: 14px;
 }
 
 .geEditor div.mxTooltip {

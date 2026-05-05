@@ -1,6 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { DocumentService } from '@/lib/firebase/document-service'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { DocumentFile } from '@/lib/api/types/document.types'
+import { DocumentService } from '@/lib/firebase/document-service'
 
 export const DOCUMENT_FILE_KEYS = {
 	all: ['documentFiles'] as const,
@@ -19,13 +19,8 @@ export function useAddDocumentFile() {
 	const queryClient = useQueryClient()
 
 	return useMutation({
-		mutationFn: ({
-			documentId,
-			file,
-		}: {
-			documentId: string
-			file: Partial<DocumentFile>
-		}) => DocumentService.addDocumentFile(documentId, file as DocumentFile),
+		mutationFn: ({ documentId, file }: { documentId: string; file: Partial<DocumentFile> }) =>
+			DocumentService.addDocumentFile(documentId, file as DocumentFile),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_FILE_KEYS.detail(variables.documentId) })
 		},

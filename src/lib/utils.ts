@@ -23,7 +23,7 @@ export function getInitials(name: string): string {
  * @param seed Optional underlying seed to generate the geometric pattern (usually userId)
  */
 export function getAvatarUrl(name: string, seed?: string): string {
-    const initials = getInitials(name)
-    const identifier = seed || name
-    return `https://avatar.vercel.sh/${encodeURIComponent(identifier)}.svg?text=${encodeURIComponent(initials)}`
+	const initials = getInitials(name)
+	const identifier = seed || name
+	return `https://avatar.vercel.sh/${encodeURIComponent(identifier)}.svg?text=${encodeURIComponent(initials)}`
 }
