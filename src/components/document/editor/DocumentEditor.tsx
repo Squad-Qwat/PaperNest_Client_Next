@@ -20,10 +20,9 @@ export default function DocumentEditor({
 	onEditorReady,
 	isPdfHidden,
 }: DocumentEditorProps) {
-	
 	return (
 		<div className='w-full h-full flex-1 overflow-hidden bg-white'>
-			<LatexEditor 
+			<LatexEditor
 				documentId={document?.documentId}
 				user={user}
 				initialContent={document?.savedContent}

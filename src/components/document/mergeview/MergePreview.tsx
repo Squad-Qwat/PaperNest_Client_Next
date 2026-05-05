@@ -1,227 +1,270 @@
 'use client'
 
-import React, { useEffect, useRef } from 'react'
-import { Extension, EditorState } from '@codemirror/state'
-import { EditorView, lineNumbers, highlightActiveLineGutter } from '@codemirror/view'
+import { defaultHighlightStyle, foldGutter, syntaxHighlighting } from '@codemirror/language'
 import { MergeView, unifiedMergeView } from '@codemirror/merge'
+import { EditorState, type Extension } from '@codemirror/state'
+import { EditorView, highlightActiveLineGutter, lineNumbers } from '@codemirror/view'
 import { latex } from 'codemirror-lang-latex'
-import { syntaxHighlighting, defaultHighlightStyle, foldGutter } from '@codemirror/language'
+import { Check, Columns, Rows, X } from 'lucide-react'
+import React, { useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
-import { Check, X, Columns, Rows } from 'lucide-react'
 
 interface MergePreviewProps {
-    original: string
-    modified: string
-    queuePosition?: number
-    queueTotal?: number
-    batchSummary?: { applied: number; failed: number } | null
-    rebaseStatus?: { isRebased: boolean; reason?: string }
-    onAccept: (content: string) => void
-    onAcceptAll?: () => void
-    onDiscard: () => void
+	original: string
+	modified: string
+	queuePosition?: number
+	queueTotal?: number
+	batchSummary?: { applied: number; failed: number } | null
+	rebaseStatus?: { isRebased: boolean; reason?: string }
+	onAccept: (content: string) => void
+	onAcceptAll?: () => void
+	onDiscard: () => void
 }
 
-export function MergePreview({ original, modified, queuePosition = 0, queueTotal = 0, batchSummary = null, rebaseStatus, onAccept, onAcceptAll, onDiscard }: MergePreviewProps) {
-    const containerRef = useRef<HTMLDivElement>(null)
-    const mergeViewRef = useRef<MergeView | null>(null)
-    const editorViewRef = useRef<EditorView | null>(null)
-    const [viewMode, setViewMode] = React.useState<'side-by-side' | 'unified'>('unified')
+export function MergePreview({
+	original,
+	modified,
+	queuePosition = 0,
+	queueTotal = 0,
+	batchSummary = null,
+	rebaseStatus,
+	onAccept,
+	onAcceptAll,
+	onDiscard,
+}: MergePreviewProps) {
+	const containerRef = useRef<HTMLDivElement>(null)
+	const mergeViewRef = useRef<MergeView | null>(null)
+	const editorViewRef = useRef<EditorView | null>(null)
+	const [viewMode, setViewMode] = React.useState<'side-by-side' | 'unified'>('unified')
 
-    const getCurrentMergedContent = React.useCallback((): string => {
-        if (viewMode === 'side-by-side') {
-            return mergeViewRef.current?.b?.state.doc.toString() ?? modified
-        }
-        return editorViewRef.current?.state.doc.toString() ?? modified
-    }, [viewMode, modified])
+	const getCurrentMergedContent = React.useCallback((): string => {
+		if (viewMode === 'side-by-side') {
+			return mergeViewRef.current?.b?.state.doc.toString() ?? modified
+		}
+		return editorViewRef.current?.state.doc.toString() ?? modified
+	}, [viewMode, modified])
 
-    useEffect(() => {
-        if (!containerRef.current) return
+	useEffect(() => {
+		if (!containerRef.current) return
 
-        const commonExtensions: Extension[] = [
-            lineNumbers(),
-            highlightActiveLineGutter(),
-            foldGutter(),
-            syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-            latex(),
-            EditorView.lineWrapping,
-        ]
+		const commonExtensions: Extension[] = [
+			lineNumbers(),
+			highlightActiveLineGutter(),
+			foldGutter(),
+			syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+			latex(),
+			EditorView.lineWrapping,
+		]
 
-        if (viewMode === 'side-by-side') {
-            const mergeView = new MergeView({
-                a: {
-                    doc: original,
-                    extensions: [...commonExtensions, EditorView.editable.of(false), EditorView.editorAttributes.of({ class: 'merge-original' })]
-                },
-                b: {
-                    doc: modified,
-                    extensions: [...commonExtensions, EditorView.editable.of(false), EditorView.editorAttributes.of({ class: 'merge-modified' })]
-                },
-                parent: containerRef.current,
-                orientation: 'a-b',
-                revertControls: 'a-to-b',
-                collapseUnchanged: { margin: 3, minSize: 10 },
-                highlightChanges: true,
-                gutter: true
-            })
-            mergeViewRef.current = mergeView
+		if (viewMode === 'side-by-side') {
+			const mergeView = new MergeView({
+				a: {
+					doc: original,
+					extensions: [
+						...commonExtensions,
+						EditorView.editable.of(false),
+						EditorView.editorAttributes.of({ class: 'merge-original' }),
+					],
+				},
+				b: {
+					doc: modified,
+					extensions: [
+						...commonExtensions,
+						EditorView.editable.of(false),
+						EditorView.editorAttributes.of({ class: 'merge-modified' }),
+					],
+				},
+				parent: containerRef.current,
+				orientation: 'a-b',
+				revertControls: 'a-to-b',
+				collapseUnchanged: { margin: 3, minSize: 10 },
+				highlightChanges: true,
+				gutter: true,
+			})
+			mergeViewRef.current = mergeView
 
-            const timer = setTimeout(() => {
-                if (!mergeView.b) return
-                const docA = original.split('\n'), docB = modified.split('\n')
-                let firstChangeLine = -1
-                for (let i = 0; i < Math.max(docA.length, docB.length); i++) {
-                    if (docA[i] !== docB[i]) { firstChangeLine = i + 1; break; }
-                }
-                if (firstChangeLine !== -1) {
-                    try {
-                        const line = mergeView.b.state.doc.line(Math.min(firstChangeLine, mergeView.b.state.doc.lines))
-                        mergeView.b.dispatch({ selection: { anchor: line.from }, scrollIntoView: true })
-                    } catch (e) { }
-                }
-            }, 150)
+			const timer = setTimeout(() => {
+				if (!mergeView.b) return
+				const docA = original.split('\n'),
+					docB = modified.split('\n')
+				let firstChangeLine = -1
+				for (let i = 0; i < Math.max(docA.length, docB.length); i++) {
+					if (docA[i] !== docB[i]) {
+						firstChangeLine = i + 1
+						break
+					}
+				}
+				if (firstChangeLine !== -1) {
+					try {
+						const line = mergeView.b.state.doc.line(
+							Math.min(firstChangeLine, mergeView.b.state.doc.lines)
+						)
+						mergeView.b.dispatch({ selection: { anchor: line.from }, scrollIntoView: true })
+					} catch (_e) {}
+				}
+			}, 150)
 
-            return () => { clearTimeout(timer); mergeView.destroy(); mergeViewRef.current = null; }
-        } else {
-            const state = EditorState.create({
-                doc: modified,
-                extensions: [
-                    ...commonExtensions,
-                    EditorView.editable.of(false),
-                    unifiedMergeView({
-                        original,
-                        collapseUnchanged: { margin: 3, minSize: 10 },
-                        gutter: true,
-                        syntaxHighlightDeletions: true,
-                        mergeControls: (type, action) => {
-                            const btn = document.createElement("button")
-                            btn.className = `cm-merge-control cm-merge-control-${type} pb-5`
-                            btn.innerHTML = `<span>${type === "accept" ? "Accept" : "Reject"}</span>`
-                            btn.onclick = (e) => {
-                                e.preventDefault()
-                                e.stopPropagation()
-                                action(e)
-                            }
-                            return btn
-                        }
-                    })
-                ]
-            })
-            const view = new EditorView({
-                state,
-                parent: containerRef.current
-            })
-            editorViewRef.current = view
+			return () => {
+				clearTimeout(timer)
+				mergeView.destroy()
+				mergeViewRef.current = null
+			}
+		} else {
+			const state = EditorState.create({
+				doc: modified,
+				extensions: [
+					...commonExtensions,
+					EditorView.editable.of(false),
+					unifiedMergeView({
+						original,
+						collapseUnchanged: { margin: 3, minSize: 10 },
+						gutter: true,
+						syntaxHighlightDeletions: true,
+						mergeControls: (type, action) => {
+							const btn = document.createElement('button')
+							btn.className = `cm-merge-control cm-merge-control-${type} pb-5`
+							btn.innerHTML = `<span>${type === 'accept' ? 'Accept' : 'Reject'}</span>`
+							btn.onclick = (e) => {
+								e.preventDefault()
+								e.stopPropagation()
+								action(e)
+							}
+							return btn
+						},
+					}),
+				],
+			})
+			const view = new EditorView({
+				state,
+				parent: containerRef.current,
+			})
+			editorViewRef.current = view
 
-            const timer = setTimeout(() => {
-                const docA = original.split('\n'), docB = modified.split('\n')
-                let firstChangeLine = -1
-                for (let i = 0; i < Math.max(docA.length, docB.length); i++) {
-                    if (docA[i] !== docB[i]) { firstChangeLine = i + 1; break; }
-                }
-                if (firstChangeLine !== -1) {
-                    try {
-                        const line = view.state.doc.line(Math.min(firstChangeLine, view.state.doc.lines))
-                        view.dispatch({ selection: { anchor: line.from }, scrollIntoView: true })
-                    } catch (e) {
-                        console.warn('Could not scroll to first change:', e)
-                    }
-                }
-            }, 150)
+			const timer = setTimeout(() => {
+				const docA = original.split('\n'),
+					docB = modified.split('\n')
+				let firstChangeLine = -1
+				for (let i = 0; i < Math.max(docA.length, docB.length); i++) {
+					if (docA[i] !== docB[i]) {
+						firstChangeLine = i + 1
+						break
+					}
+				}
+				if (firstChangeLine !== -1) {
+					try {
+						const line = view.state.doc.line(Math.min(firstChangeLine, view.state.doc.lines))
+						view.dispatch({ selection: { anchor: line.from }, scrollIntoView: true })
+					} catch (e) {
+						console.warn('Could not scroll to first change:', e)
+					}
+				}
+			}, 150)
 
-            return () => { clearTimeout(timer); view.destroy(); editorViewRef.current = null; }
-        }
-    }, [original, modified, viewMode])
+			return () => {
+				clearTimeout(timer)
+				view.destroy()
+				editorViewRef.current = null
+			}
+		}
+	}, [original, modified, viewMode])
 
-    return (
-        <div className="flex flex-col h-full w-full bg-white relative overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-2 border-b bg-gray-50 z-10 shrink-0">
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                        <span className="text-[10px] bg-primary text-white px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">AI Merge Preview</span>
-                        {queueTotal > 0 && (
-                            <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold">
-                                {queuePosition} of {queueTotal}
-                            </span>
-                        )}
-                        {batchSummary && (
-                            <span className="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded font-semibold">
-                                Applied {batchSummary.applied}, Failed {batchSummary.failed}
-                            </span>
-                        )}
-                        {rebaseStatus && !rebaseStatus.isRebased && (
-                            <span className="text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded font-semibold">
-                                Stale queue item
-                            </span>
-                        )}
-                        {rebaseStatus?.isRebased && (
-                            <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-semibold">
-                                Rebased
-                            </span>
-                        )}
-                    </div>
+	return (
+		<div className='flex flex-col h-full w-full bg-white relative overflow-hidden'>
+			<div className='flex items-center justify-between px-4 py-2 border-b bg-gray-50 z-10 shrink-0'>
+				<div className='flex items-center gap-4'>
+					<div className='flex items-center gap-2'>
+						<span className='text-[10px] bg-primary text-white px-1.5 py-0.5 rounded font-bold uppercase tracking-wider'>
+							AI Merge Preview
+						</span>
+						{queueTotal > 0 && (
+							<span className='text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold'>
+								{queuePosition} of {queueTotal}
+							</span>
+						)}
+						{batchSummary && (
+							<span className='text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded font-semibold'>
+								Applied {batchSummary.applied}, Failed {batchSummary.failed}
+							</span>
+						)}
+						{rebaseStatus && !rebaseStatus.isRebased && (
+							<span className='text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded font-semibold'>
+								Stale queue item
+							</span>
+						)}
+						{rebaseStatus?.isRebased && (
+							<span className='text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-semibold'>
+								Rebased
+							</span>
+						)}
+					</div>
 
-                    <div className="flex bg-gray-200/50 p-0.5 rounded-md border border-gray-200">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setViewMode('side-by-side')}
-                            className={`h-7 px-2 text-[10px] gap-1.5 ${viewMode === 'side-by-side' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                        >
-                            <Columns className="w-3 h-3" />
-                            Side-by-side
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setViewMode('unified')}
-                            className={`h-7 px-2 text-[10px] gap-1.5 ${viewMode === 'unified' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                        >
-                            <Rows className="w-3 h-3" />
-                            Unified
-                        </Button>
-                    </div>
-                </div>
-                <div className="flex items-center gap-2">
-                    <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 text-xs text-gray-500 hover:text-red-600 gap-1.5"
-                        onClick={onDiscard}
-                    >
-                        <X className="w-3.5 h-3.5" />
-                        Discard
-                    </Button>
-                    <Button
-                        size="sm"
-                        className="h-8 text-xs text-white gap-1.5"
-                        disabled={rebaseStatus?.isRebased === false}
-                        onClick={() => onAccept(getCurrentMergedContent())}
-                    >
-                        <Check className="w-3.5 h-3.5" />
-                        Accept This
-                    </Button>
-                    {queueTotal > 1 && onAcceptAll && (
-                        <Button
-                            size="sm"
-                            className="h-8 text-xs bg-black hover:bg-gray-800 text-white gap-1.5"
-                            onClick={onAcceptAll}
-                        >
-                            <Check className="w-3.5 h-3.5" />
-                            Accept All {queueTotal}
-                        </Button>
-                    )}
-                </div>
-            </div>
+					<div className='flex bg-gray-200/50 p-0.5 rounded-md border border-gray-200'>
+						<Button
+							variant='ghost'
+							size='sm'
+							onClick={() => setViewMode('side-by-side')}
+							className={`h-7 px-2 text-[10px] gap-1.5 ${viewMode === 'side-by-side' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+						>
+							<Columns className='w-3 h-3' />
+							Side-by-side
+						</Button>
+						<Button
+							variant='ghost'
+							size='sm'
+							onClick={() => setViewMode('unified')}
+							className={`h-7 px-2 text-[10px] gap-1.5 ${viewMode === 'unified' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+						>
+							<Rows className='w-3 h-3' />
+							Unified
+						</Button>
+					</div>
+				</div>
+				<div className='flex items-center gap-2'>
+					<Button
+						size='sm'
+						variant='ghost'
+						className='h-8 text-xs text-gray-500 hover:text-red-600 gap-1.5'
+						onClick={onDiscard}
+					>
+						<X className='w-3.5 h-3.5' />
+						Discard
+					</Button>
+					<Button
+						size='sm'
+						className='h-8 text-xs text-white gap-1.5'
+						disabled={rebaseStatus?.isRebased === false}
+						onClick={() => onAccept(getCurrentMergedContent())}
+					>
+						<Check className='w-3.5 h-3.5' />
+						Accept This
+					</Button>
+					{queueTotal > 1 && onAcceptAll && (
+						<Button
+							size='sm'
+							className='h-8 text-xs bg-black hover:bg-gray-800 text-white gap-1.5'
+							onClick={onAcceptAll}
+						>
+							<Check className='w-3.5 h-3.5' />
+							Accept All {queueTotal}
+						</Button>
+					)}
+				</div>
+			</div>
 
-            {rebaseStatus && !rebaseStatus.isRebased && (
-                <div className="px-4 py-2 text-xs bg-rose-50 text-rose-700 border-b border-rose-100">
-                    Queue item ini stale terhadap dokumen terkini. Accept This dinonaktifkan untuk mencegah perubahan lama muncul lagi.
-                </div>
-            )}
+			{rebaseStatus && !rebaseStatus.isRebased && (
+				<div className='px-4 py-2 text-xs bg-rose-50 text-rose-700 border-b border-rose-100'>
+					Queue item ini stale terhadap dokumen terkini. Accept This dinonaktifkan untuk mencegah
+					perubahan lama muncul lagi.
+				</div>
+			)}
 
-            <div key={viewMode} ref={containerRef} className="flex-1 overflow-hidden cm-merge-container min-h-0" />
+			<div
+				key={viewMode}
+				ref={containerRef}
+				className='flex-1 overflow-hidden cm-merge-container min-h-0'
+			/>
 
-            <style jsx global>{`
+			<style jsx global>{`
                 .cm-merge-container {
                     display: flex;
                     flex-direction: column;
@@ -331,6 +374,6 @@ export function MergePreview({ original, modified, queuePosition = 0, queueTotal
                     background-color: #fafafa !important;
                 }
             `}</style>
-        </div>
-    )
+		</div>
+	)
 }

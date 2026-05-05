@@ -2,9 +2,9 @@ import { Calendar, FileText, Plus, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { toast } from 'sonner'
 import { documentsService } from '@/lib/api/services/documents.service'
 import CreateReviewModal from './CreateReviewModal'
 import { ReviewStatusBadge } from './ReviewStatusBadge'
@@ -80,14 +80,14 @@ export function ReviewCard({
 				console.error('Validation errors:', error.errors)
 			}
 			toast.error('Validation Error', {
-				description: error.errors ? JSON.stringify(error.errors) : (error.message || 'Failed to update review status'),
+				description: error.errors
+					? JSON.stringify(error.errors)
+					: error.message || 'Failed to update review status',
 			})
 		} finally {
 			setIsUpdating(false)
 		}
 	}
-
-
 
 	return (
 		<>
@@ -111,9 +111,17 @@ export function ReviewCard({
 				onSubmit={handleReviewSubmit}
 			/>
 
+			{/* biome-ignore lint/a11y/useSemanticElements: Card is interactive but contains nested links, so it cannot be a button */}
 			<div
 				className='relative bg-white rounded-xl border border-gray-200 transition-all hover:shadow-md group cursor-pointer'
 				onClick={() => router.push(`/${workspaceId}/reviews/${reviewId}`)}
+				onKeyDown={(e) => {
+					if (e.key === 'Enter' || e.key === ' ') {
+						router.push(`/${workspaceId}/reviews/${reviewId}`)
+					}
+				}}
+				role='button'
+				tabIndex={0}
 			>
 				{/* Delete Button - Absolute Positioned */}
 				{onDelete && (
@@ -156,9 +164,18 @@ export function ReviewCard({
 				</div>
 
 				{/* Footer: Doc Link & Buttons */}
+				{/* biome-ignore lint/a11y/useSemanticElements: Footer is a group of actions but contains nested links/buttons */}
 				<div
 					className='px-6 pb-6 pt-2 flex items-center justify-between'
 					onClick={(e) => e.stopPropagation()}
+					onKeyDown={(e) => {
+						if (e.key === 'Enter' || e.key === ' ') {
+							e.stopPropagation()
+						}
+					}}
+					role='button'
+					tabIndex={-1}
+					aria-label='Card footer actions'
 				>
 					<Link
 						href={`/${workspaceId}/documents/${documentBodyId}`}
@@ -170,7 +187,6 @@ export function ReviewCard({
 					</Link>
 
 					<div className='flex gap-2'>
-
 						{/* New Review / Review Decision Button */}
 						{isLatest && (
 							<Button

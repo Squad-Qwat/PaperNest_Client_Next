@@ -25,7 +25,8 @@ type AnchoredReplacePair = {
 	replace: string
 }
 
-const createStagedChangeId = (): string => `staged_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+const createStagedChangeId = (): string =>
+	`staged_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
 
 const createAnchoredReplacePair = (
 	docText: string,
@@ -56,11 +57,16 @@ const parseApplyDiffPairs = (args: any): { pairs?: DiffPair[]; error?: string } 
 	const { searchBlock, replaceBlock } = args || {}
 
 	if (!Array.isArray(searchBlock) || !Array.isArray(replaceBlock)) {
-		return { error: 'Error: apply_diff_edit requires both searchBlock and replaceBlock as arrays of strings.' }
+		return {
+			error:
+				'Error: apply_diff_edit requires both searchBlock and replaceBlock as arrays of strings.',
+		}
 	}
 
 	if (searchBlock.length !== replaceBlock.length) {
-		return { error: `Error: apply_diff_edit requires equal length arrays. searchBlock.length=${searchBlock.length}, replaceBlock.length=${replaceBlock.length}.` }
+		return {
+			error: `Error: apply_diff_edit requires equal length arrays. searchBlock.length=${searchBlock.length}, replaceBlock.length=${replaceBlock.length}.`,
+		}
 	}
 
 	if (searchBlock.length === 0) {
@@ -81,7 +87,9 @@ const parseApplyDiffPairs = (args: any): { pairs?: DiffPair[]; error?: string } 
 		let replace = replaceBlock[i]
 
 		if (typeof search !== 'string' || typeof replace !== 'string') {
-			return { error: `Error: apply_diff_edit expects string values in arrays. Invalid value at index ${i}.` }
+			return {
+				error: `Error: apply_diff_edit expects string values in arrays. Invalid value at index ${i}.`,
+			}
 		}
 
 		if (search.length === 0) {
@@ -97,7 +105,10 @@ const parseApplyDiffPairs = (args: any): { pairs?: DiffPair[]; error?: string } 
 	return { pairs }
 }
 
-const findAtomicDiffMatches = (docText: string, pairs: DiffPair[]): { matches?: DiffMatch[]; error?: string } => {
+const findAtomicDiffMatches = (
+	docText: string,
+	pairs: DiffPair[]
+): { matches?: DiffMatch[]; error?: string } => {
 	const candidateMatchesByPair: DiffMatch[][] = []
 	const isDeletionByPair: boolean[] = []
 
@@ -163,7 +174,7 @@ const findAtomicDiffMatches = (docText: string, pairs: DiffPair[]): { matches?: 
 		} else {
 			// For non-deletions: use GREEDY matching (first valid candidate only)
 			// This avoids "ambiguous match" errors by always picking earliest match
-			const validCandidates = candidateMatchesByPair[pairIdx].filter(c => c.from >= minStart)
+			const validCandidates = candidateMatchesByPair[pairIdx].filter((c) => c.from >= minStart)
 			if (validCandidates.length > 0) {
 				const candidate = validCandidates[0] // Greedy: take earliest
 				current.push(candidate)
@@ -214,7 +225,8 @@ const findAllOccurrences = (text: string, search: string, caseSensitive = false)
 	return positions
 }
 
-const findLatexEndDocumentIndex = (text: string): number => text.lastIndexOf(String.raw`\end{document}`)
+const findLatexEndDocumentIndex = (text: string): number =>
+	text.lastIndexOf(String.raw`\end{document}`)
 
 const findLatexBibliographyStart = (text: string, limitExclusive?: number): number | null => {
 	const limit = typeof limitExclusive === 'number' ? limitExclusive : text.length
@@ -228,11 +240,12 @@ const findLatexBibliographyStart = (text: string, limitExclusive?: number): numb
 	let bestIndex = -1
 	for (const pattern of patterns) {
 		pattern.lastIndex = 0
-		let match: RegExpExecArray | null
-		while ((match = pattern.exec(text)) !== null) {
+		let match = pattern.exec(text)
+		while (match !== null) {
 			if (match.index < limit && match.index > bestIndex) {
 				bestIndex = match.index
 			}
+			match = pattern.exec(text)
 		}
 	}
 
@@ -253,7 +266,7 @@ export const executeEditorTool = async (
 	editor: any,
 	toolName: string,
 	args: any,
-	documentId?: string
+	_documentId?: string
 ): Promise<any> => {
 	if (!editor) return 'Error: Editor not available'
 
@@ -279,28 +292,30 @@ export const executeEditorTool = async (
 				}
 
 				if (isFull) {
-					return `[Document Content (Full)]\nTotal Lines: ${doc.lines}\n\n` + withLineNumbers(1, doc.lines)
+					return `[Document Content (Full)]\nTotal Lines: ${doc.lines}\n\n${withLineNumbers(1, doc.lines)}`
 				}
 
 				if (fromLine !== undefined) {
 					const startLine = Math.max(1, fromLine)
-					const endLine = toLine !== undefined ? Math.min(doc.lines, toLine) : Math.min(doc.lines, startLine + 100)
+					const endLine =
+						toLine !== undefined
+							? Math.min(doc.lines, toLine)
+							: Math.min(doc.lines, startLine + 100)
 
-					return `[Document Slice: Lines ${startLine} to ${endLine}]\nTotal Lines: ${doc.lines}\n\n` + withLineNumbers(startLine, endLine)
+					return `[Document Slice: Lines ${startLine} to ${endLine}]\nTotal Lines: ${doc.lines}\n\n${withLineNumbers(startLine, endLine)}`
 				}
 
 				// Default preview: first 50 lines with line numbers
 				const previewEnd = Math.min(doc.lines, 50)
-				return `[Document Preview: First 50 Lines]\nTotal Lines: ${doc.lines}\nNote: Use fromLine/toLine or full=true for more.\n\n` + withLineNumbers(1, previewEnd)
+				return `[Document Preview: First 50 Lines]\nTotal Lines: ${doc.lines}\nNote: Use fromLine/toLine or full=true for more.\n\n${withLineNumbers(1, previewEnd)}`
 			}
 
 			case 'get_sections': {
 				const docText = view.state.doc.toString()
 				const sectionRegex = /^\\(?:sub)*section\{([^}]+)\}/gm
 				const sections: Array<{ text: string; level: number; line: number }> = []
-				let match: RegExpExecArray | null
-
-				while ((match = sectionRegex.exec(docText)) !== null) {
+				let match = sectionRegex.exec(docText)
+				while (match !== null) {
 					const textBeforeMatch = docText.slice(0, match.index)
 					const line = textBeforeMatch.split('\n').length
 					const command = match[0].match(/^\\((?:sub)*)section/)?.[1] ?? ''
@@ -311,6 +326,7 @@ export const executeEditorTool = async (
 						level,
 						line,
 					})
+					match = sectionRegex.exec(docText)
 				}
 
 				return JSON.stringify({
@@ -349,7 +365,7 @@ export const executeEditorTool = async (
 				let output = `[Search Results for "${query}"]\n`
 				output += `Match Count: ${results.length}\n`
 				if (results.length >= 50) output += `Note: Showing first 50 matches.\n`
-				output += `\n` + results.map(r => `${String(r.line).padStart(4, ' ')} | ${r.text}`).join('\n')
+				output += `\n${results.map((r) => `${String(r.line).padStart(4, ' ')} | ${r.text}`).join('\n')}`
 
 				return output
 			}
@@ -379,20 +395,29 @@ export const executeEditorTool = async (
 						modified: prefix + newContent + suffix,
 						searchBlock: anchored ? [anchored.search] : undefined,
 						replaceBlock: anchored ? [anchored.replace] : undefined,
-						description: `Replace lines ${fromLine}-${toLine}`
+						description: `Replace lines ${fromLine}-${toLine}`,
 					}
 				}
 
 				view.dispatch({
 					changes: { from: fromPos, to: toPos, insert: newContent },
-					scrollIntoView: true
+					scrollIntoView: true,
 				})
 				view.focus()
 				return `Successfully replaced lines ${fromLine} to ${toLine}.`
 			}
 
 			case 'insert_content': {
-				const { content, position, stage, atLine, afterText, beforeText, occurrence, caseSensitive } = args
+				const {
+					content,
+					position,
+					stage,
+					atLine,
+					afterText,
+					beforeText,
+					occurrence,
+					caseSensitive,
+				} = args
 				const selection = view.state.selection.main
 				const docText = view.state.doc.toString()
 				const endDocumentIndex = findLatexEndDocumentIndex(docText)
@@ -487,14 +512,14 @@ export const executeEditorTool = async (
 						modified: prefix + content + suffix,
 						searchBlock: anchored ? [anchored.search] : undefined,
 						replaceBlock: anchored ? [anchored.replace] : undefined,
-						description: `Insert content at ${insertionLabel}`
+						description: `Insert content at ${insertionLabel}`,
 					}
 				}
 
 				view.dispatch({
 					changes: { from, to, insert: content },
 					selection: { anchor: from + content.length },
-					scrollIntoView: true
+					scrollIntoView: true,
 				})
 				view.focus()
 				return `Inserted content at ${position || 'cursor'}`
@@ -526,17 +551,21 @@ export const executeEditorTool = async (
 						operationType: 'apply_diff_edit',
 						original: docText,
 						modified,
-						searchBlock: parsed.pairs.map(pair => pair.search),
-						replaceBlock: parsed.pairs.map(pair => pair.replace),
+						searchBlock: parsed.pairs.map((pair) => pair.search),
+						replaceBlock: parsed.pairs.map((pair) => pair.replace),
 						description: isBatch
 							? `Apply diff edit (batch ${parsed.pairs.length} items)`
-							: 'Apply diff edit'
+							: 'Apply diff edit',
 					}
 				}
 
 				view.dispatch({
-					changes: sortedDesc.map(match => ({ from: match.from, to: match.to, insert: match.replace })),
-					scrollIntoView: true
+					changes: sortedDesc.map((match) => ({
+						from: match.from,
+						to: match.to,
+						insert: match.replace,
+					})),
+					scrollIntoView: true,
 				})
 				view.focus()
 				return parsed.pairs.length > 1
@@ -575,4 +604,3 @@ export const executeEditorTool = async (
 		return `Error in CodeMirror tool execution: ${e instanceof Error ? e.message : 'Unknown error'}`
 	}
 }
-

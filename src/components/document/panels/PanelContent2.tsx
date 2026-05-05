@@ -1,8 +1,9 @@
 'use client'
 
-import React, { useMemo } from 'react'
 import { List } from 'lucide-react'
-import { parseLatexSections, TableOfContentsEntry } from '@/lib/utils/latex-toc'
+import type React from 'react'
+import { useMemo } from 'react'
+import { parseLatexSections, type TableOfContentsEntry } from '@/lib/utils/latex-toc'
 
 interface PanelContent2Props {
 	currentContent?: string | null
@@ -47,7 +48,7 @@ const PanelContent2: React.FC<PanelContent2Props> = ({
 		}
 	}
 
-	const getLevelColor = (level: number): string => {
+	const getLevelColor = (_level: number): string => {
 		// All levels use gray color
 		return 'text-gray-600'
 	}
@@ -80,6 +81,7 @@ const PanelContent2: React.FC<PanelContent2Props> = ({
 				<nav className='space-y-1 p-2'>
 					{tocEntries.map((entry, index) => (
 						<button
+							type='button'
 							key={`${entry.position}-${index}`}
 							onClick={() => handleNavigateToSection(entry)}
 							className={`w-full text-left px-2 py-2 rounded hover:bg-blue-50 active:bg-blue-100 transition-colors text-sm ${getLevelColor(entry.level)} ${getLevelIndent(entry.level)}`}

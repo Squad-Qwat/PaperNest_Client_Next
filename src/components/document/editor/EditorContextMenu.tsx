@@ -1,6 +1,22 @@
 // @ts-nocheck
 'use client'
 
+import {
+	ArrowDown,
+	ArrowLeft,
+	ArrowRight,
+	ArrowUp,
+	Bold,
+	Clipboard,
+	Copy,
+	Italic,
+	Palette,
+	Scissors,
+	Strikethrough,
+	Trash2,
+	Type,
+	Underline,
+} from 'lucide-react'
 import { useState } from 'react'
 import {
 	ContextMenu,
@@ -13,23 +29,6 @@ import {
 	ContextMenuSubTrigger,
 	ContextMenuTrigger,
 } from '@/components/ui/context-menu'
-import {
-	Bold,
-	Italic,
-	Underline,
-	Strikethrough,
-	Copy,
-	Clipboard,
-	Scissors,
-	Trash2,
-	Type,
-	ArrowUp,
-	ArrowDown,
-	ArrowLeft,
-	ArrowRight,
-	Palette,
-	Highlighter,
-} from 'lucide-react'
 
 const EditorContextMenu = ({ editor, children }) => {
 	const [hasSelection, setHasSelection] = useState(false)
@@ -43,10 +42,10 @@ const EditorContextMenu = ({ editor, children }) => {
 
 	const handleContextMenuOpen = () => {
 		if (!editor) return
-		
+
 		const { from, to } = editor.state.selection
 		setHasSelection(from !== to)
-		
+
 		setInTable(editor.isActive('tableCell') || editor.isActive('tableHeader'))
 	}
 
@@ -117,9 +116,7 @@ const EditorContextMenu = ({ editor, children }) => {
 						{fontFamilies.map((font) => (
 							<ContextMenuItem
 								key={font.value}
-								onClick={() =>
-									editor.chain().focus().setFontFamily(font.value).run()
-								}
+								onClick={() => editor.chain().focus().setFontFamily(font.value).run()}
 							>
 								<span style={{ fontFamily: font.value }}>{font.name}</span>
 							</ContextMenuItem>
@@ -197,15 +194,11 @@ const EditorContextMenu = ({ editor, children }) => {
 								Insert Row
 							</ContextMenuSubTrigger>
 							<ContextMenuSubContent>
-								<ContextMenuItem
-									onClick={() => editor.chain().focus().addRowBefore().run()}
-								>
+								<ContextMenuItem onClick={() => editor.chain().focus().addRowBefore().run()}>
 									<ArrowUp className='mr-2 h-4 w-4' />
 									Above
 								</ContextMenuItem>
-								<ContextMenuItem
-									onClick={() => editor.chain().focus().addRowAfter().run()}
-								>
+								<ContextMenuItem onClick={() => editor.chain().focus().addRowAfter().run()}>
 									<ArrowDown className='mr-2 h-4 w-4' />
 									Below
 								</ContextMenuItem>
@@ -219,15 +212,11 @@ const EditorContextMenu = ({ editor, children }) => {
 								Insert Column
 							</ContextMenuSubTrigger>
 							<ContextMenuSubContent>
-								<ContextMenuItem
-									onClick={() => editor.chain().focus().addColumnBefore().run()}
-								>
+								<ContextMenuItem onClick={() => editor.chain().focus().addColumnBefore().run()}>
 									<ArrowLeft className='mr-2 h-4 w-4' />
 									Left
 								</ContextMenuItem>
-								<ContextMenuItem
-									onClick={() => editor.chain().focus().addColumnAfter().run()}
-								>
+								<ContextMenuItem onClick={() => editor.chain().focus().addColumnAfter().run()}>
 									<ArrowRight className='mr-2 h-4 w-4' />
 									Right
 								</ContextMenuItem>

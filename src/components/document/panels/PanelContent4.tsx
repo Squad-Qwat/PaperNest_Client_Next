@@ -1,7 +1,7 @@
 'use client'
 
-import React from 'react'
 import { MessageSquare } from 'lucide-react'
+import type React from 'react'
 
 const PanelContent4: React.FC = () => {
 	return (

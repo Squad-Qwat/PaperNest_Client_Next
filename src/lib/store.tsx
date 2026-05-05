@@ -12,7 +12,7 @@
  * - Clean provider composition pattern
  */
 
-import React from 'react'
+import type React from 'react'
 import { WorkspaceProvider } from '@/context/WorkspaceProvider'
 
 /**
@@ -20,9 +20,7 @@ import { WorkspaceProvider } from '@/context/WorkspaceProvider'
  * AuthProvider is now at the layout level, so we only wrap with WorkspaceProvider here
  */
 export function AppProvider({ children }: { children: React.ReactNode }) {
-	return (
-		<WorkspaceProvider>{children}</WorkspaceProvider>
-	)
+	return <WorkspaceProvider>{children}</WorkspaceProvider>
 }
 
 // Re-export hooks for convenience

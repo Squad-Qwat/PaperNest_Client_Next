@@ -1,6 +1,6 @@
 'use client'
 
-import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from '@tanstack/react-query'
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -43,7 +43,7 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
 	return (
 		<QueryClientProvider client={queryClient}>
 			{children}
-			<ReactQueryDevtools initialIsOpen={false} position="bottom" />
+			<ReactQueryDevtools initialIsOpen={false} position='bottom' />
 		</QueryClientProvider>
 	)
 }

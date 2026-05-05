@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import type React from 'react'
 
 /**
  * Editor Context Menu Component (Placeholder)
@@ -8,20 +8,12 @@ import React from 'react'
  * Will be implemented in the future
  */
 interface ContextMenuProps {
-	editor?: any
 	visible?: boolean
 	x?: number
 	y?: number
-	onClose?: () => void
 }
 
-const ContextMenu: React.FC<ContextMenuProps> = ({
-	editor,
-	visible = false,
-	x = 0,
-	y = 0,
-	onClose,
-}) => {
+const ContextMenu: React.FC<ContextMenuProps> = ({ visible = false, x = 0, y = 0 }) => {
 	if (!visible) return null
 
 	return (

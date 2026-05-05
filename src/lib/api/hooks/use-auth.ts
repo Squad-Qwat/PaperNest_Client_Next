@@ -1,23 +1,21 @@
-import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
-import { authService } from '../services/auth.service'
-import { apiClient } from '../clients/api-client'
-import { getErrorMessage } from '../utils/error-handler'
-import type { LoginDto, RegisterDto, LoginEmailDto, PasswordResetDto, CheckEmailResponse } from '../types/auth.types'
-import { auth } from '../../firebase/config'
 import {
-	signInWithPopup,
-	signInWithEmailAndPassword,
 	fetchSignInMethodsForEmail,
 	linkWithCredential,
-	onAuthStateChanged,
 	reload,
-	signInWithCustomToken,
 	sendEmailVerification,
+	signInWithCustomToken,
+	signInWithEmailAndPassword,
+	signInWithPopup,
 } from 'firebase/auth'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { toast } from 'sonner'
 import { getAuthProvider, type SocialProviderName } from '../../firebase/auth-providers'
+import { auth } from '../../firebase/config'
+import { apiClient } from '../clients/api-client'
+import { authService } from '../services/auth.service'
+import type { LoginDto, LoginEmailDto, PasswordResetDto, RegisterDto } from '../types/auth.types'
 
 export const AUTH_KEYS = {
 	user: ['currentUser'] as const,
@@ -161,7 +159,7 @@ async function performSocialSignIn(providerName: SocialProviderName) {
 
 			const pendingCred = config.getCredentialFromError(error)
 			const methods = await fetchSignInMethodsForEmail(auth, email)
-			const socialMethod = methods.find(m => m !== 'password' && m !== 'emailLink')
+			const socialMethod = methods.find((m) => m !== 'password' && m !== 'emailLink')
 			const targetMethod = socialMethod || (methods.length === 0 ? 'google.com' : null)
 
 			if (!targetMethod) throw new Error('PASSWORD_CONFLICT')
@@ -187,13 +185,19 @@ async function performAccountLinking(linkingSession: any) {
 	const result: any = await linkWithCredential(existingResult.user, linkingSession.pendingCred)
 
 	const idToken = await result.user.getIdToken()
-	const accessToken = providerConfig.getAccessToken ? providerConfig.getAccessToken(result) : undefined
+	const accessToken = providerConfig.getAccessToken
+		? providerConfig.getAccessToken(result)
+		: undefined
 
 	const response = await authService.loginSocial({ firebaseToken: idToken, accessToken })
 	return { response, idToken }
 }
 
-export function useSignInWithSocial({ setOnboardingData }: { setOnboardingData?: (data: any) => void } = {}) {
+export function useSignInWithSocial({
+	setOnboardingData,
+}: {
+	setOnboardingData?: (data: any) => void
+} = {}) {
 	const queryClient = useQueryClient()
 	const router = useRouter()
 	const [linkingSession, setLinkingSession] = useState<any>(null)
@@ -221,7 +225,7 @@ export function useSignInWithSocial({ setOnboardingData }: { setOnboardingData?:
 			if (!linkingSession) throw new Error('No linking session')
 			return performAccountLinking(linkingSession)
 		},
-		onSuccess: ({ response, idToken }) => {
+		onSuccess: ({ response, idToken: _idToken }) => {
 			setLinkingSession(null)
 			handleAuthSuccess(queryClient, response)
 			router.push('/')
@@ -232,13 +236,17 @@ export function useSignInWithSocial({ setOnboardingData }: { setOnboardingData?:
 		...socialSignin,
 		linkingSession,
 		linkMutation,
-		resetLinking: () => setLinkingSession(null)
+		resetLinking: () => setLinkingSession(null),
 	}
 }
 
-export function useCompleteSocialRegistration({ clearOnboardingData }: { clearOnboardingData?: () => void } = {}) {
+export function useCompleteSocialRegistration({
+	clearOnboardingData,
+}: {
+	clearOnboardingData?: () => void
+} = {}) {
 	const queryClient = useQueryClient()
-	const router = useRouter()
+	const _router = useRouter()
 
 	return useMutation({
 		mutationFn: (data: { firebaseToken: string; username: string; role: string; email?: string }) =>

@@ -1,25 +1,25 @@
-import { ArrowLeft, ChevronLeft, MoreVertical, Loader2, FileText } from 'lucide-react'
+import { ChevronLeft, FileText, Loader2, MoreVertical } from 'lucide-react'
 import { useParams } from 'next/navigation'
-import React, { useMemo, useState, useEffect, useCallback } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { ReviewRequestModal } from '@/components/review/ReviewRequestModal'
 import { ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { toast } from 'sonner'
 import { useAuth } from '@/context/AuthContext'
-import { laTeXService } from '@/lib/latex/LaTeXService'
 import { useDocumentFiles } from '@/lib/api/hooks/use-document-files'
 import {
-	useDocumentVersions,
-	useDocumentReviews,
-	useRevertVersion,
 	useCreateReview,
+	useDocumentReviews,
+	useDocumentVersions,
+	useRevertVersion,
 } from '@/lib/api/hooks/use-documents'
 import type { Version } from '@/lib/api/types/document.types'
 import type { Review } from '@/lib/api/types/review.types'
 import { format, id } from '@/lib/date'
+import { laTeXService } from '@/lib/latex/LaTeXService'
 
 interface ModalVersionsProps {
 	isOpen: boolean
@@ -45,21 +45,26 @@ export default function ModalVersions({
 	const { user } = useAuth()
 
 	const { data: versionsResponse, isLoading: versionsLoading } = useDocumentVersions(documentId)
-	// Handle robust response parsing if response is different format
-	let versions: Version[] = []
-	if (versionsResponse && Array.isArray((versionsResponse as any).versions)) {
-		versions = (versionsResponse as any).versions
-	} else if (Array.isArray(versionsResponse)) {
-		versions = versionsResponse as Version[]
-	}
+	const versions: Version[] = useMemo(() => {
+		if (versionsResponse && Array.isArray((versionsResponse as any).versions)) {
+			return (versionsResponse as any).versions
+		}
+		if (Array.isArray(versionsResponse)) {
+			return versionsResponse as Version[]
+		}
+		return []
+	}, [versionsResponse])
 
 	const { data: reviewsResponse } = useDocumentReviews(documentId)
-	let reviews: Review[] = []
-	if (reviewsResponse && Array.isArray((reviewsResponse as any).reviews)) {
-		reviews = (reviewsResponse as any).reviews
-	} else if (Array.isArray(reviewsResponse)) {
-		reviews = reviewsResponse as Review[]
-	}
+	const reviews: Review[] = useMemo(() => {
+		if (reviewsResponse && Array.isArray((reviewsResponse as any).reviews)) {
+			return (reviewsResponse as any).reviews
+		}
+		if (Array.isArray(reviewsResponse)) {
+			return reviewsResponse as Review[]
+		}
+		return []
+	}, [reviewsResponse])
 
 	const { mutateAsync: revertVersionMutate, isPending: isRollingBack } = useRevertVersion()
 	const { mutateAsync: requestReviewMutate } = useCreateReview()
@@ -72,34 +77,37 @@ export default function ModalVersions({
 	const [compileError, setCompileError] = useState<string | null>(null)
 
 	// Function to compile LaTeX to PDF
-	const handleCompile = useCallback(async (content: string) => {
-		if (!content) return
+	const handleCompile = useCallback(
+		async (content: string) => {
+			if (!content) return
 
-		setIsCompiling(true)
-		setCompileError(null)
-		
-		try {
-			// Using server mode for preview consistency in modal
-			const result = await laTeXService.compileWithAssets('main.tex', content, files)
-			
-			if (result.status === 0 && result.pdf) {
-				// Use Uint8Array directly, but cast to any or use it in the array to satisfy TypeScript's BlobPart requirement
-				const blob = new Blob([result.pdf as any], { type: 'application/pdf' })
-				const url = URL.createObjectURL(blob)
-				
-				// Revoke old URL to prevent memory leaks
-				if (pdfUrl) URL.revokeObjectURL(pdfUrl)
-				setPdfUrl(url)
-			} else {
-				setCompileError(result.log || 'Compilation failed')
+			setIsCompiling(true)
+			setCompileError(null)
+
+			try {
+				// Using server mode for preview consistency in modal
+				const result = await laTeXService.compileWithAssets('main.tex', content, files)
+
+				if (result.status === 0 && result.pdf) {
+					// Use Uint8Array directly, but cast to any or use it in the array to satisfy TypeScript's BlobPart requirement
+					const blob = new Blob([result.pdf as any], { type: 'application/pdf' })
+					const url = URL.createObjectURL(blob)
+
+					// Revoke old URL to prevent memory leaks
+					if (pdfUrl) URL.revokeObjectURL(pdfUrl)
+					setPdfUrl(url)
+				} else {
+					setCompileError(result.log || 'Compilation failed')
+				}
+			} catch (error: any) {
+				console.error('Compilation error in ModalVersions:', error)
+				setCompileError(error.message || 'Error compiling PDF')
+			} finally {
+				setIsCompiling(false)
 			}
-		} catch (error: any) {
-			console.error('Compilation error in ModalVersions:', error)
-			setCompileError(error.message || 'Error compiling PDF')
-		} finally {
-			setIsCompiling(false)
-		}
-	}, [files, pdfUrl])
+		},
+		[files, pdfUrl]
+	)
 
 	// const { toast } = useToast()
 
@@ -109,21 +117,6 @@ export default function ModalVersions({
 			setSelectedVersionId(versions[0].documentBodyId)
 		}
 	}, [versions, selectedVersionId])
-
-	// Compile when version selection changes
-	useEffect(() => {
-		const version = versionsList.find(v => v.id === selectedVersionId)
-		if (isOpen && version?.content) {
-			handleCompile(version.content)
-		}
-	}, [selectedVersionId, isOpen])
-
-	// Cleanup on unmount or close
-	useEffect(() => {
-		return () => {
-			if (pdfUrl) URL.revokeObjectURL(pdfUrl)
-		}
-	}, [pdfUrl])
 
 	// Merge Version and Review Data
 	const versionsList = useMemo(() => {
@@ -165,6 +158,21 @@ export default function ModalVersions({
 		})
 	}, [versions, reviews, user])
 
+	// Compile when version selection changes
+	useEffect(() => {
+		const version = versionsList.find((v) => v.id === selectedVersionId)
+		if (isOpen && version?.content) {
+			handleCompile(version.content)
+		}
+	}, [selectedVersionId, isOpen, handleCompile, versionsList])
+
+	// Cleanup on unmount or close
+	useEffect(() => {
+		return () => {
+			if (pdfUrl) URL.revokeObjectURL(pdfUrl)
+		}
+	}, [pdfUrl])
+
 	const selectedVersion = versionsList.find((v) => v.id === selectedVersionId)
 
 	const handleRollback = async () => {
@@ -200,6 +208,7 @@ export default function ModalVersions({
 				<div className='h-20 border-b flex items-center justify-between px-3'>
 					<div className='flex items-center gap-4'>
 						<Button
+							type='button'
 							variant='ghost'
 							onClick={onClose}
 							className='p-2 hover:bg-gray-100 rounded-lg transition-colors group'
@@ -278,10 +287,12 @@ export default function ModalVersions({
 													{compileError}
 												</p>
 											</div>
-											<Button 
-												variant="outline" 
-												size="sm" 
-												onClick={() => selectedVersion?.content && handleCompile(selectedVersion.content)}
+											<Button
+												variant='outline'
+												size='sm'
+												onClick={() =>
+													selectedVersion?.content && handleCompile(selectedVersion.content)
+												}
 											>
 												Coba Lagi
 											</Button>
@@ -309,7 +320,8 @@ export default function ModalVersions({
 								</div>
 
 								{versionsList.map((version) => (
-									<div
+									<button
+										type='button'
 										key={version.id}
 										onClick={() => setSelectedVersionId(version.id)}
 										onKeyDown={(e) => {
@@ -317,9 +329,7 @@ export default function ModalVersions({
 												setSelectedVersionId(version.id)
 											}
 										}}
-										role='button'
-										tabIndex={0}
-										className={`px-4 py-3 cursor-pointer group transition-colors relative ${
+										className={`w-full text-left px-4 py-3 cursor-pointer group transition-colors relative block ${
 											selectedVersionId === version.id ? 'bg-blue-50' : 'hover:bg-gray-50'
 										}`}
 									>
@@ -343,7 +353,7 @@ export default function ModalVersions({
 												<MoreVertical className='h-4 w-4' />
 											</Button>
 										</div>
-									</div>
+									</button>
 								))}
 							</div>
 						</ScrollArea>

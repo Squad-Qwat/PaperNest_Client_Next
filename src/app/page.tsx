@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { DashboardSkeleton } from '@/components/layout/DashboardSkeleton'
+import { SplashLoader } from '@/components/layout/SplashLoader'
+import { Button } from '@/components/ui/button'
+import { CreateWorkspaceModal } from '@/components/workspace/CreateWorkspaceModal'
 import { useAuth } from '@/context/AuthContext'
 import { useWorkspaces } from '@/lib/api/hooks/use-workspaces'
-import { CreateWorkspaceModal } from '@/components/workspace/CreateWorkspaceModal'
-import { Button } from '@/components/ui/button'
-import { SplashLoader } from '@/components/layout/SplashLoader'
-import { DashboardSkeleton } from '@/components/layout/DashboardSkeleton'
 
 export default function Page() {
 	const router = useRouter()
@@ -48,13 +48,15 @@ export default function Page() {
 					<div className='w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6'>
 						<span className='text-2xl font-bold text-primary'>PN</span>
 					</div>
-					<h1 className='text-2xl font-bold text-gray-900 mb-3 tracking-tight'>Welcome to PaperNest!</h1>
+					<h1 className='text-2xl font-bold text-gray-900 mb-3 tracking-tight'>
+						Welcome to PaperNest!
+					</h1>
 					<p className='text-gray-500 mb-8 text-sm leading-relaxed'>
 						You don't have any workspaces yet. Create your first workspace to get started.
 					</p>
 					<Button
 						onClick={() => setShowCreateModal(true)}
-						className="w-full py-6 text-base font-semibold rounded-2xl"
+						className='w-full py-6 text-base font-semibold rounded-2xl'
 					>
 						Create Workspace
 					</Button>

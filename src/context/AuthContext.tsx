@@ -5,30 +5,15 @@
 
 'use client'
 
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { usePathname, useRouter } from 'next/navigation'
 import type React from 'react'
 import { createContext, useContext, useEffect, useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { apiClient } from '@/lib/api/clients/api-client'
 import { authService } from '@/lib/api/services/auth.service'
-import { toast } from 'sonner'
-import type {
-	AuthResponse,
-	LoginDto,
-	LoginEmailDto,
-	PasswordResetDto,
-	RegisterDto,
-} from '@/lib/api/types/auth.types'
 import type { User } from '@/lib/api/types/user.types'
 import { auth } from '@/lib/firebase/config'
-import {
-	GoogleAuthProvider,
-	GithubAuthProvider,
-	signInWithPopup,
-	signInWithEmailAndPassword,
-	signOut,
-} from 'firebase/auth'
-import { getErrorMessage } from '@/lib/api/utils/error-handler'
 
 interface AuthContextType {
 	user: User | null
@@ -44,7 +29,13 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 // Public routes that don't require authentication
-const PUBLIC_ROUTES = ['/login', '/register', '/forgot-password', '/auth/onboarding', '/auth/verify-email']
+const PUBLIC_ROUTES = [
+	'/login',
+	'/register',
+	'/forgot-password',
+	'/auth/onboarding',
+	'/auth/verify-email',
+]
 
 interface AuthProviderProps {
 	children: React.ReactNode
@@ -53,8 +44,8 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
 	const queryClient = useQueryClient()
 	const [onboardingData, setOnboardingData] = useState<any | null>(null)
-	
-	const { data: user = null, isLoading: isQueryLoading, refetch: refetchUser } = useQuery({
+
+	const { data: user = null, isLoading: isQueryLoading } = useQuery({
 		queryKey: ['currentUser'],
 		queryFn: async () => {
 			try {
@@ -103,8 +94,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 		)
 
 		return () => clearInterval(refreshInterval)
-	}, [user])
-	
+	}, [user, queryClient.setQueryData, router.push])
+
 	const logout = async () => {
 		try {
 			// Sign out from Firebase

@@ -1,6 +1,5 @@
 'use client'
 
-import React from 'react'
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -39,7 +38,7 @@ export function ConfirmDialog({
 		onClose()
 	}
 
-	const variantClasses = {
+	const _variantClasses = {
 		danger: '',
 		warning: '',
 		info: '',
@@ -56,10 +55,7 @@ export function ConfirmDialog({
 					<AlertDialogCancel>{cancelText}</AlertDialogCancel>
 					<AlertDialogAction
 						onClick={handleConfirm}
-						className={cn(
-							variant === 'danger' &&
-							'bg-red-600 text-white hover:bg-red-700'
-						)}
+						className={cn(variant === 'danger' && 'bg-red-600 text-white hover:bg-red-700')}
 					>
 						{confirmText}
 					</AlertDialogAction>

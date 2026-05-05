@@ -5,17 +5,17 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { workspacesService } from '@/lib/api/services/workspaces.service'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { Modal, ModalFooter } from '@/components/ui/modal'
-import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { getErrorMessage } from '@/lib/api/utils/error-handler'
+import { Textarea } from '@/components/ui/textarea'
+import { workspacesService } from '@/lib/api/services/workspaces.service'
 import type { Workspace } from '@/lib/api/types/workspace.types'
+import { getErrorMessage } from '@/lib/api/utils/error-handler'
 
 interface WorkspaceSettingsModalProps {
 	isOpen: boolean

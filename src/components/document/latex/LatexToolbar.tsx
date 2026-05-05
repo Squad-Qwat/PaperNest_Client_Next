@@ -1,260 +1,299 @@
 'use client'
 
-import React from 'react'
 import {
-    Bold,
-    Italic,
-    Underline,
-    Type,
-    List,
-    ListOrdered,
-    Undo,
-    Redo,
-    Heading1,
-    Heading2,
-    Code,
-    Table as TableIcon,
-    Sigma,
-    Loader2,
-    Play,
-    ChevronDown
+	Bold,
+	ChevronDown,
+	Code,
+	Heading1,
+	Heading2,
+	Italic,
+	List,
+	ListOrdered,
+	Loader2,
+	Play,
+	Redo,
+	Sigma,
+	Table as TableIcon,
+	Type,
+	Underline,
+	Undo,
 } from 'lucide-react'
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import React from 'react'
 import { Button } from '@/components/ui/button'
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from "@/components/ui/tooltip"
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 interface LatexToolbarProps {
-    onInsertSnippet?: (snippet: string, offset?: number) => void;
-    visualEditor?: any; // Tiptap editor
-    viewMode?: 'source' | 'visual';
-    toggleViewMode?: () => void;
-    undo?: () => void;
-    redo?: () => void;
-    canUndo?: boolean;
-    canRedo?: boolean;
-    insertTable?: () => void;
-    handleCompile?: () => void;
-    isCompiling?: boolean;
-    compilerMode?: 'client' | 'server' | 'server_pdflatex';
-    onCompilerModeChange?: (mode: 'client' | 'server' | 'server_pdflatex') => void;
+	onInsertSnippet?: (snippet: string, offset?: number) => void
+	visualEditor?: any // Tiptap editor
+	viewMode?: 'source' | 'visual'
+	toggleViewMode?: () => void
+	undo?: () => void
+	redo?: () => void
+	canUndo?: boolean
+	canRedo?: boolean
+	insertTable?: (rows?: number, cols?: number) => void
+	handleCompile?: () => void
+	isCompiling?: boolean
+	compilerMode?: 'client' | 'server' | 'server_pdflatex'
+	onCompilerModeChange?: (mode: 'client' | 'server' | 'server_pdflatex') => void
 }
 
 export default function LatexToolbar({
-    onInsertSnippet,
-    visualEditor,
-    viewMode = 'source',
-    toggleViewMode,
-    undo,
-    redo,
-    canUndo,
-    canRedo,
-    insertTable,
-    handleCompile,
-    isCompiling,
-    compilerMode,
-    onCompilerModeChange
+	onInsertSnippet,
+	visualEditor,
+	viewMode = 'source',
+	toggleViewMode,
+	undo,
+	redo,
+	canUndo,
+	canRedo,
+	insertTable,
+	handleCompile,
+	isCompiling,
+	compilerMode,
+	onCompilerModeChange,
 }: LatexToolbarProps) {
+	const insertSnippet = (snippet: string, selectionOffset: number = 0) => {
+		if (viewMode === 'source') {
+			if (onInsertSnippet) {
+				onInsertSnippet(snippet, selectionOffset)
+			}
+		} else if (visualEditor) {
+			// Very basic Tiptap snippet insertion - could be improved with custom commands
+			// For now, we mainly rely on Tiptap's built-in formatting for the toolbar
+			visualEditor.chain().focus().insertContent(snippet.replace('$SELECTION$', '')).run()
+		}
+	}
 
-    const insertSnippet = (snippet: string, selectionOffset: number = 0) => {
-        if (viewMode === 'source') {
-            if (onInsertSnippet) {
-                onInsertSnippet(snippet, selectionOffset)
-            }
-        } else if (visualEditor) {
-            // Very basic Tiptap snippet insertion - could be improved with custom commands
-            // For now, we mainly rely on Tiptap's built-in formatting for the toolbar
-            visualEditor.chain().focus().insertContent(snippet.replace('$SELECTION$', '')).run()
-        }
-    }
+	const wrapInCommand = (command: string) => {
+		if (viewMode === 'visual' && visualEditor) {
+			if (command === 'textbf') visualEditor.chain().focus().toggleBold().run()
+			else if (command === 'textit') visualEditor.chain().focus().toggleItalic().run()
+			else if (command === 'underline') visualEditor.chain().focus().toggleUnderline().run()
+			else if (command === 'section') visualEditor.chain().focus().toggleHeading({ level: 1 }).run()
+			else if (command === 'subsection')
+				visualEditor.chain().focus().toggleHeading({ level: 2 }).run()
+			return
+		}
+		insertSnippet(`\\${command}{$SELECTION$}`, command.length + 2)
+	}
 
-    const wrapInCommand = (command: string) => {
-        if (viewMode === 'visual' && visualEditor) {
-            if (command === 'textbf') visualEditor.chain().focus().toggleBold().run();
-            else if (command === 'textit') visualEditor.chain().focus().toggleItalic().run();
-            else if (command === 'underline') visualEditor.chain().focus().toggleUnderline().run();
-            else if (command === 'section') visualEditor.chain().focus().toggleHeading({ level: 1 }).run();
-            else if (command === 'subsection') visualEditor.chain().focus().toggleHeading({ level: 2 }).run();
-            return;
-        }
-        insertSnippet(`\\${command}{$SELECTION$}`, command.length + 2)
-    }
+	const toolbarGroups = [
+		{
+			name: 'History',
+			actions: [
+				{ icon: <Undo className='w-4 h-4' />, label: 'Undo', onClick: undo, disabled: !canUndo },
+				{ icon: <Redo className='w-4 h-4' />, label: 'Redo', onClick: redo, disabled: !canRedo },
+			],
+		},
+		{
+			name: 'Basic Formatting',
+			actions: [
+				{
+					icon: <Bold className='w-4 h-4' />,
+					label: 'Bold',
+					onClick: () => wrapInCommand('textbf'),
+					disabled: false,
+				},
+				{
+					icon: <Italic className='w-4 h-4' />,
+					label: 'Italic',
+					onClick: () => wrapInCommand('textit'),
+					disabled: false,
+				},
+				{
+					icon: <Underline className='w-4 h-4' />,
+					label: 'Underline',
+					onClick: () => wrapInCommand('underline'),
+					disabled: false,
+				},
+			],
+		},
+		{
+			name: 'Structure',
+			actions: [
+				{
+					icon: <Heading1 className='w-4 h-4' />,
+					label: 'Section',
+					onClick: () => wrapInCommand('section'),
+					disabled: false,
+				},
+				{
+					icon: <Heading2 className='w-4 h-4' />,
+					label: 'Subsection',
+					onClick: () => wrapInCommand('subsection'),
+					disabled: false,
+				},
+				{
+					icon: <Type className='w-4 h-4' />,
+					label: 'Environment',
+					onClick: () => insertSnippet('\\begin{$SELECTION$}\n\n\\end{$SELECTION$}', 7),
+					disabled: false,
+				},
+			],
+		},
+		{
+			name: 'Math',
+			actions: [
+				{
+					icon: <Sigma className='w-4 h-4' />,
+					label: 'Inline Math',
+					onClick: () => insertSnippet('$$SELECTION$$', 1),
+					disabled: false,
+				},
+				{
+					icon: <Code className='w-4 h-4' />,
+					label: 'Block Math',
+					onClick: () => insertSnippet('\\[\n  $SELECTION$\n\\]', 4),
+					disabled: false,
+				},
+			],
+		},
+		{
+			name: 'Lists',
+			actions: [
+				{
+					icon: <List className='w-4 h-4' />,
+					label: 'Itemize',
+					onClick: () =>
+						insertSnippet('\\begin{itemize}\n  \\item $SELECTION$\n\\end{itemize}', 19),
+					disabled: false,
+				},
+				{
+					icon: <ListOrdered className='w-4 h-4' />,
+					label: 'Enumerate',
+					onClick: () =>
+						insertSnippet('\\begin{enumerate}\n  \\item $SELECTION$\n\\end{enumerate}', 21),
+					disabled: false,
+				},
+			],
+		},
+		{
+			name: 'Insert',
+			actions: [
+				{
+					icon: <TableIcon className='w-4 h-4' />,
+					label: 'Table',
+					onClick: () => insertTable?.(3, 3),
+					disabled: false,
+				},
+			],
+		},
+	]
 
-    const toolbarGroups = [
-        {
-            name: 'History',
-            actions: [
-                { icon: <Undo className="w-4 h-4" />, label: 'Undo', onClick: undo, disabled: !canUndo },
-                { icon: <Redo className="w-4 h-4" />, label: 'Redo', onClick: redo, disabled: !canRedo },
-            ]
-        },
-        {
-            name: 'Basic Formatting',
-            actions: [
-                { icon: <Bold className="w-4 h-4" />, label: 'Bold', onClick: () => wrapInCommand('textbf'), disabled: false },
-                { icon: <Italic className="w-4 h-4" />, label: 'Italic', onClick: () => wrapInCommand('textit'), disabled: false },
-                { icon: <Underline className="w-4 h-4" />, label: 'Underline', onClick: () => wrapInCommand('underline'), disabled: false },
-            ]
-        },
-        {
-            name: 'Structure',
-            actions: [
-                { icon: <Heading1 className="w-4 h-4" />, label: 'Section', onClick: () => wrapInCommand('section'), disabled: false },
-                { icon: <Heading2 className="w-4 h-4" />, label: 'Subsection', onClick: () => wrapInCommand('subsection'), disabled: false },
-                { icon: <Type className="w-4 h-4" />, label: 'Environment', onClick: () => insertSnippet('\\begin{$SELECTION$}\n\n\\end{$SELECTION$}', 7), disabled: false },
-            ]
-        },
-        {
-            name: 'Math',
-            actions: [
-                { icon: <Sigma className="w-4 h-4" />, label: 'Inline Math', onClick: () => insertSnippet('$$SELECTION$$', 1), disabled: false },
-                { icon: <Code className="w-4 h-4" />, label: 'Block Math', onClick: () => insertSnippet('\\[\n  $SELECTION$\n\\]', 4), disabled: false },
-            ]
-        },
-        {
-            name: 'Lists',
-            actions: [
-                { icon: <List className="w-4 h-4" />, label: 'Itemize', onClick: () => insertSnippet('\\begin{itemize}\n  \\item $SELECTION$\n\\end{itemize}', 19), disabled: false },
-                { icon: <ListOrdered className="w-4 h-4" />, label: 'Enumerate', onClick: () => insertSnippet('\\begin{enumerate}\n  \\item $SELECTION$\n\\end{enumerate}', 21), disabled: false },
-            ]
-        },
-        {
-            name: 'Insert',
-            actions: [
-                { icon: <TableIcon className="w-4 h-4" />, label: 'Table', onClick: insertTable, disabled: false },
-            ]
-        }
-    ]
+	return (
+		<TooltipProvider delayDuration={400}>
+			<div className='flex items-center gap-1 px-4 py-1 bg-white/50 backdrop-blur-sm border-b border-gray-200 overflow-x-auto no-scrollbar'>
+				{toolbarGroups.map((group, groupIdx) => (
+					<React.Fragment key={group.name}>
+						{groupIdx > 0 && <div className='h-4 w-[1px] bg-gray-300 mx-1 flex-shrink-0' />}
+						<div className='flex items-center gap-0.5'>
+							{group.actions.map((action, actionIdx) => (
+								<Tooltip key={`${group.name}-${actionIdx}`}>
+									<TooltipTrigger asChild>
+										<Button
+											variant='ghost'
+											size='icon'
+											className='w-8 h-8 hover:bg-gray-100 text-gray-600 flex-shrink-0'
+											onClick={action.onClick}
+											disabled={action.disabled}
+										>
+											{action.icon}
+										</Button>
+									</TooltipTrigger>
+									<TooltipContent
+										side='bottom'
+										className='text-[10px] font-bold uppercase tracking-widest bg-gray-900 border-gray-800'
+									>
+										{action.label}
+									</TooltipContent>
+								</Tooltip>
+							))}
+						</div>
+					</React.Fragment>
+				))}
 
-    return (
-        <TooltipProvider delayDuration={400}>
-            <div className="flex items-center gap-1 px-4 py-1 bg-white/50 backdrop-blur-sm border-b border-gray-200 overflow-x-auto no-scrollbar">
-                {toolbarGroups.map((group, groupIdx) => (
-                    <React.Fragment key={group.name}>
-                        {groupIdx > 0 && <div className="h-4 w-[1px] bg-gray-300 mx-1 flex-shrink-0" />}
-                        <div className="flex items-center gap-0.5">
-                            {group.actions.map((action, actionIdx) => (
-                                <Tooltip key={`${group.name}-${actionIdx}`}>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="w-8 h-8 hover:bg-gray-100 text-gray-600 flex-shrink-0"
-                                            onClick={action.onClick}
-                                            disabled={action.disabled}
-                                        >
-                                            {action.icon}
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="bottom" className="text-[10px] font-bold uppercase tracking-widest bg-gray-900 border-gray-800">
-                                        {action.label}
-                                    </TooltipContent>
-                                </Tooltip>
-                            ))}
-                        </div>
-                    </React.Fragment>
-                ))}
+				{handleCompile && (
+					<>
+						<div className='h-4 w-[1px] bg-gray-300 mx-1 flex-shrink-0' />
+						<div className='flex items-center ml-auto pr-2 gap-2'>
+							{/* Mode Toggle */}
+							<div className='flex items-center bg-gray-100 rounded-md p-1'>
+								<Button
+									variant={viewMode === 'source' ? 'secondary' : 'ghost'}
+									size='sm'
+									className={`h-7 px-3 text-[10px] uppercase font-bold tracking-wider ${viewMode === 'source' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+									onClick={() => viewMode !== 'source' && toggleViewMode?.()}
+								>
+									Source
+								</Button>
+								<Button
+									variant={viewMode === 'visual' ? 'secondary' : 'ghost'}
+									size='sm'
+									className={`h-7 px-3 text-[10px] uppercase font-bold tracking-wider ${viewMode === 'visual' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+									onClick={() => viewMode !== 'visual' && toggleViewMode?.()}
+								>
+									Visual
+								</Button>
+							</div>
 
-                {handleCompile && (
-                    <>
-                        <div className="h-4 w-[1px] bg-gray-300 mx-1 flex-shrink-0" />
-                        <div className="flex items-center ml-auto pr-2 gap-2">
-                            {/* Mode Toggle */}
-                            <div className="flex items-center bg-gray-100 rounded-md p-1">
-                                <Button
-                                    variant={viewMode === 'source' ? 'secondary' : 'ghost'}
-                                    size="sm"
-                                    className={`h-7 px-3 text-[10px] uppercase font-bold tracking-wider ${viewMode === 'source' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                                    onClick={() => viewMode !== 'source' && toggleViewMode?.()}
-                                >
-                                    Source
-                                </Button>
-                                <Button
-                                    variant={viewMode === 'visual' ? 'secondary' : 'ghost'}
-                                    size="sm"
-                                    className={`h-7 px-3 text-[10px] uppercase font-bold tracking-wider ${viewMode === 'visual' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                                    onClick={() => viewMode !== 'visual' && toggleViewMode?.()}
-                                >
-                                    Visual
-                                </Button>
-                            </div>
-
-                            <div className="flex items-center shadow-sm">
-                                <Button
-                                    variant="default"
-                                    size="sm"
-                                    onClick={handleCompile}
-                                    disabled={isCompiling}
-                                    className="h-8 rounded-r-none transition-all duration-200 active:scale-95 flex items-center gap-2 px-3 focus:relative focus:z-10"
-                                >
-                                    {isCompiling ? (
-                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                    ) : (
-                                        <Play className="w-3 h-3 fill-current" />
-                                    )}
-                                    <span className="text-xs font-bold uppercase tracking-wide">Compile</span>
-                                </Button>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button
-                                            variant="default"
-                                            size="sm"
-                                            disabled={isCompiling}
-                                            className="h-8 rounded-l-none border-l border-white/20 px-2 focus:relative focus:z-10 shadow-none"
-                                        >
-                                            <ChevronDown className="h-3.5 w-3.5" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="w-48 text-xs font-medium z-[2000]">
-                                        <div className="px-2 py-1.5 text-[10px] uppercase text-gray-500 font-bold tracking-wider">
-                                            Compiler Engine
-                                        </div>
-                                        <DropdownMenuItem
-                                            onClick={() => onCompilerModeChange?.('server')}
-                                            className={`flex items-center justify-between cursor-pointer py-2 ${compilerMode === 'server' ? 'bg-blue-50 text-blue-700' : ''}`}
-                                        >
-                                            <span className="flex flex-col gap-0.5">
-                                                <span>Tectonic (Cloud Engine)</span>
-                                                <span className="text-[10px] text-gray-500 font-normal">Super fast via server</span>
-                                            </span>
-                                            {compilerMode === 'server' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600"></div>}
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                            onClick={() => onCompilerModeChange?.('server_pdflatex')}
-                                            className={`flex items-center justify-between cursor-pointer py-2 ${compilerMode === 'server_pdflatex' ? 'bg-blue-50 text-blue-700' : ''}`}
-                                        >
-                                            <span className="flex flex-col gap-0.5">
-                                                <span>pdflatex (Server Engine)</span>
-                                                <span className="text-[10px] text-gray-500 font-normal">Standard pdflatex on backend</span>
-                                            </span>
-                                            {compilerMode === 'server_pdflatex' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600"></div>}
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                            onClick={() => onCompilerModeChange?.('client')}
-                                            className={`flex items-center justify-between cursor-pointer py-2 ${compilerMode === 'client' ? 'bg-blue-50 text-blue-700' : ''}`}
-                                        >
-                                            <span className="flex flex-col gap-0.5">
-                                                <span>WASM (Browser Engine)</span>
-                                                <span className="text-[10px] text-gray-500 font-normal">Private WASM local compile</span>
-                                            </span>
-                                            {compilerMode === 'client' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600"></div>}
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </div>
-                        </div>
-                    </>
-                )}
-            </div>
-        </TooltipProvider>
-    )
+							<div className='flex items-center shadow-sm'>
+								<Button
+									variant='default'
+									size='sm'
+									onClick={handleCompile}
+									disabled={isCompiling}
+									className='h-8 rounded-r-none transition-all duration-200 active:scale-95 flex items-center gap-2 px-3 focus:relative focus:z-10'
+								>
+									{isCompiling ? (
+										<Loader2 className='w-3.5 h-3.5 animate-spin' />
+									) : (
+										<Play className='w-3 h-3 fill-current' />
+									)}
+									<span className='text-xs font-bold uppercase tracking-wide'>Compile</span>
+								</Button>
+								<DropdownMenu>
+									<DropdownMenuTrigger asChild>
+										<Button
+											variant='default'
+											size='sm'
+											disabled={isCompiling}
+											className='h-8 rounded-l-none border-l border-white/20 px-2 focus:relative focus:z-10 shadow-none'
+										>
+											<ChevronDown className='h-3.5 w-3.5' />
+										</Button>
+									</DropdownMenuTrigger>
+									<DropdownMenuContent align='end' className='w-48 text-xs font-medium z-[2000]'>
+										<div className='px-2 py-1.5 text-[10px] uppercase text-gray-500 font-bold tracking-wider'>
+											Compiler Engine
+										</div>
+										<DropdownMenuItem
+											onClick={() => onCompilerModeChange?.('server_pdflatex')}
+											className={`flex items-center justify-between cursor-pointer py-2 ${compilerMode === 'server_pdflatex' ? 'bg-blue-50 text-blue-700' : ''}`}
+										>
+											<span className='flex flex-col gap-0.5'>
+												<span>pdflatex (Server Engine)</span>
+												<span className='text-[10px] text-gray-500 font-normal'>
+													Standard pdflatex on backend
+												</span>
+											</span>
+											{compilerMode === 'server_pdflatex' && (
+												<div className='w-1.5 h-1.5 rounded-full bg-blue-600'></div>
+											)}
+										</DropdownMenuItem>
+									</DropdownMenuContent>
+								</DropdownMenu>
+							</div>
+						</div>
+					</>
+				)}
+			</div>
+		</TooltipProvider>
+	)
 }

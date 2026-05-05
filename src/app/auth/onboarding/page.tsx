@@ -1,16 +1,12 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/context/AuthContext'
-import { motion, AnimatePresence } from 'motion/react'
-import { useCompleteSocialRegistration } from '@/lib/api/hooks/use-auth'
-import { useCreateWorkspace, useJoinWorkspace } from '@/lib/api/hooks/use-workspaces'
-import { getErrorMessage } from '@/lib/api/utils/error-handler'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
 	Select,
@@ -19,23 +15,29 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import Grainient from '@/components/visuals/Grainient/Grainient'
+import { useAuth } from '@/context/AuthContext'
+import { useCompleteSocialRegistration } from '@/lib/api/hooks/use-auth'
+import { useCreateWorkspace, useJoinWorkspace } from '@/lib/api/hooks/use-workspaces'
 import type { UserRole } from '@/lib/api/types/user.types'
+import { getErrorMessage } from '@/lib/api/utils/error-handler'
 
 const workspaceIcons = ['📚', '🎓', '📖', '✍️', '🔬', '💼', '📊', '🎯', '🌟', '💡']
 
 export default function OnboardingPage() {
 	const router = useRouter()
 	const { onboardingData, setOnboardingData, error: authError } = useAuth()
-	
-	const { mutateAsync: completeSocial, isPending: isCompletePending } = useCompleteSocialRegistration({
-		clearOnboardingData: () => setOnboardingData(null)
-	})
+
+	const { mutateAsync: completeSocial, isPending: isCompletePending } =
+		useCompleteSocialRegistration({
+			clearOnboardingData: () => setOnboardingData(null),
+		})
 	const { mutateAsync: createWorkspace, isPending: isCreatePending } = useCreateWorkspace()
 	const { mutateAsync: joinWorkspace, isPending: isJoinPending } = useJoinWorkspace()
 
 	const loading = isCompletePending || isCreatePending || isJoinPending
-	
+
 	const [currentStep, setCurrentStep] = useState(1)
 	const [direction, setDirection] = useState(0)
 	const [formData, setFormData] = useState({
@@ -57,7 +59,7 @@ export default function OnboardingPage() {
 		} else if (!onboardingData) {
 			router.push('/login')
 		}
-	}, [onboardingData, router])
+	}, [onboardingData, router, formData.username])
 
 	const validateStep1 = () => {
 		const newErrors: Record<string, string> = {}
@@ -136,8 +138,8 @@ export default function OnboardingPage() {
 	}
 
 	const updateField = (field: string, value: any) => {
-		setFormData(prev => ({ ...prev, [field]: value }))
-		setErrors(prev => ({ ...prev, [field]: '' }))
+		setFormData((prev) => ({ ...prev, [field]: value }))
+		setErrors((prev) => ({ ...prev, [field]: '' }))
 	}
 
 	const variants: any = {
@@ -182,9 +184,7 @@ export default function OnboardingPage() {
 						<h1 className='text-2xl font-bold text-gray-900 mb-1'>
 							{currentStep === 1 ? 'Complete Your Profile' : 'Setup Your Workspace'}
 						</h1>
-						<p className='text-sm text-gray-500'>
-							Step {currentStep} of 2
-						</p>
+						<p className='text-sm text-gray-500'>Step {currentStep} of 2</p>
 					</div>
 
 					<AnimatePresence mode='wait' custom={direction}>
@@ -203,18 +203,24 @@ export default function OnboardingPage() {
 									{/* Profile Preview */}
 									<div className='flex flex-col items-center gap-3 p-4 bg-gray-50 rounded-xl'>
 										{onboardingData.firebaseData.picture ? (
-											<img
-												src={onboardingData.firebaseData.picture}
-												alt='Profile'
-												className='w-16 h-16 rounded-full border-2 border-primary'
-											/>
+											<div className='relative w-16 h-16'>
+												<Image
+													src={onboardingData.firebaseData.picture}
+													alt='Profile'
+													fill
+													className='rounded-full border-2 border-primary object-cover'
+													unoptimized
+												/>
+											</div>
 										) : (
 											<div className='w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary text-2xl font-bold'>
 												{onboardingData.firebaseData.name?.[0] || 'U'}
 											</div>
 										)}
 										<div className='text-center'>
-											<p className='font-medium text-gray-900'>{onboardingData.firebaseData.name}</p>
+											<p className='font-medium text-gray-900'>
+												{onboardingData.firebaseData.name}
+											</p>
 											<p className='text-xs text-gray-500'>{onboardingData.firebaseData.email}</p>
 										</div>
 									</div>
@@ -259,8 +265,14 @@ export default function OnboardingPage() {
 										<div className='border-input has-data-[state=checked]:bg-teal-500 has-data-[state=checked]:text-white relative flex flex-col gap-2 border p-4 rounded-lg outline-none has-data-[state=checked]:z-10 transition-all'>
 											<div className='group flex flex-col gap-2'>
 												<div className='flex items-center gap-2'>
-													<RadioGroupItem id='mode-create' value='create' className='bg-white data-[state=checked]:border-white data-[state=checked]:[&_svg]:fill-teal-500 after:absolute after:inset-0' />
-													<Label className='font-semibold cursor-pointer' htmlFor='mode-create'>Create New</Label>
+													<RadioGroupItem
+														id='mode-create'
+														value='create'
+														className='bg-white data-[state=checked]:border-white data-[state=checked]:[&_svg]:fill-teal-500 after:absolute after:inset-0'
+													/>
+													<Label className='font-semibold cursor-pointer' htmlFor='mode-create'>
+														Create New
+													</Label>
 												</div>
 												<p className='text-[10px] opacity-80 pl-6'>Start your own research space</p>
 											</div>
@@ -268,8 +280,14 @@ export default function OnboardingPage() {
 										<div className='border-input has-data-[state=checked]:bg-teal-500 has-data-[state=checked]:text-white relative flex flex-col gap-2 border p-4 rounded-lg outline-none has-data-[state=checked]:z-10 transition-all'>
 											<div className='group flex flex-col gap-2'>
 												<div className='flex items-center gap-2'>
-													<RadioGroupItem id='mode-join' value='join' className='bg-white data-[state=checked]:border-white data-[state=checked]:[&_svg]:fill-teal-500 after:absolute after:inset-0' />
-													<Label className='font-semibold cursor-pointer' htmlFor='mode-join'>Join Existing</Label>
+													<RadioGroupItem
+														id='mode-join'
+														value='join'
+														className='bg-white data-[state=checked]:border-white data-[state=checked]:[&_svg]:fill-teal-500 after:absolute after:inset-0'
+													/>
+													<Label className='font-semibold cursor-pointer' htmlFor='mode-join'>
+														Join Existing
+													</Label>
 												</div>
 												<p className='text-[10px] opacity-80 pl-6'>Use an invitation code</p>
 											</div>
@@ -301,7 +319,9 @@ export default function OnboardingPage() {
 													onChange={(e) => updateField('workspaceTitle', e.target.value)}
 													placeholder='My Research Lab'
 												/>
-												{errors.workspaceTitle && <p className='text-xs text-red-500'>{errors.workspaceTitle}</p>}
+												{errors.workspaceTitle && (
+													<p className='text-xs text-red-500'>{errors.workspaceTitle}</p>
+												)}
 											</div>
 											<div className='space-y-2'>
 												<Label htmlFor='workspaceDescription'>Description (Optional)</Label>
@@ -323,7 +343,9 @@ export default function OnboardingPage() {
 												onChange={(e) => updateField('invitationCode', e.target.value)}
 												placeholder='Enter workspace code'
 											/>
-											{errors.invitationCode && <p className='text-xs text-red-500'>{errors.invitationCode}</p>}
+											{errors.invitationCode && (
+												<p className='text-xs text-red-500'>{errors.invitationCode}</p>
+											)}
 										</div>
 									)}
 								</div>
@@ -369,12 +391,15 @@ export default function OnboardingPage() {
 					/>
 				</div>
 				<div className='absolute inset-0 flex flex-col items-center justify-center z-10 px-8'>
-					<p className='text-xl text-white text-center mt-4 max-w-sm italic' style={{ fontFamily: 'Times New Roman, Times, serif' }}>
-						"Your all-in-one research workspace for managing papers, projects, and collaboration. Start your journey today."
+					<p
+						className='text-xl text-white text-center mt-4 max-w-sm italic'
+						style={{ fontFamily: 'Times New Roman, Times, serif' }}
+					>
+						"Your all-in-one research workspace for managing papers, projects, and collaboration.
+						Start your journey today."
 					</p>
 				</div>
 			</div>
 		</div>
 	)
 }
-

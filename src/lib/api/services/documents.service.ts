@@ -5,16 +5,17 @@
 
 import { apiClient } from '../clients/api-client'
 import { API_ENDPOINTS } from '../config'
+import type { BatchOperationRequest, BatchOperationResponse } from '../types/batchOperation.types'
 import type {
 	CreateDocumentDto,
 	Document,
 	DocumentSearchParams,
 	DocumentsResponse,
+	DocumentWithRoomStateResponse,
 	UpdateDocumentContentDto,
 	UpdateDocumentDto,
 	VersionResponse,
 	VersionsResponse,
-	DocumentWithRoomStateResponse,
 } from '../types/document.types'
 import type {
 	CreateReviewDto,
@@ -22,10 +23,6 @@ import type {
 	ReviewsResponse,
 	UpdateReviewStatusDto,
 } from '../types/review.types'
-import type {
-	BatchOperationRequest,
-	BatchOperationResponse,
-} from '../types/batchOperation.types'
 
 class DocumentsService {
 	// Request deduplication cache: key -> Promise
@@ -35,10 +32,7 @@ class DocumentsService {
 	 * Deduplicate concurrent identical API requests
 	 * If request already in-flight, return same promise
 	 */
-	private async deduplicateRequest<T>(
-		key: string,
-		fetcher: () => Promise<T>
-	): Promise<T> {
+	private async deduplicateRequest<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
 		// Check if request already in-flight
 		if (this.inFlightRequests.has(key)) {
 			console.log(`♻️ [DocumentsService] Reusing in-flight request: ${key}`)
@@ -198,7 +192,7 @@ class DocumentsService {
 	 * Get document with room state information
 	 * Returns document details + active user count in Liveblocks room
 	 * Used to determine if initial content should be loaded from Firestore
-	 * 
+	 *
 	 * @param documentId - Document ID
 	 * @returns Document data with room state (activeUsers count)
 	 * @throws - If endpoint fails, throws error (page will fallback to Firestore)

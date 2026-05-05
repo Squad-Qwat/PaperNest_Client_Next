@@ -1,14 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { documentsService } from '../services/documents.service'
+import type { BatchOperationRequest } from '../types/batchOperation.types'
 import type {
 	CreateDocumentDto,
-	UpdateDocumentDto,
-	UpdateDocumentContentDto,
 	DocumentSearchParams,
+	UpdateDocumentContentDto,
+	UpdateDocumentDto,
 } from '../types/document.types'
 import type { CreateReviewDto, UpdateReviewStatusDto } from '../types/review.types'
-import type { BatchOperationRequest } from '../types/batchOperation.types'
 
 export const DOCUMENT_KEYS = {
 	all: ['documents'] as const,
@@ -177,13 +177,8 @@ export function useBatchUpdateDocument() {
 	const queryClient = useQueryClient()
 
 	return useMutation({
-		mutationFn: ({
-			documentId,
-			request,
-		}: {
-			documentId: string
-			request: BatchOperationRequest
-		}) => documentsService.batchUpdateDocument(documentId, request),
+		mutationFn: ({ documentId, request }: { documentId: string; request: BatchOperationRequest }) =>
+			documentsService.batchUpdateDocument(documentId, request),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.detail(variables.documentId) })
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.versions(variables.documentId) })
@@ -229,9 +224,9 @@ export function useReviewAction() {
 			if (action === 'reject') return documentsService.rejectReview(reviewId, data!)
 			return documentsService.requestRevision(reviewId, data!)
 		},
-	onSuccess: () => {
+		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.pendingReviews() })
-			queryClient.invalidateQueries({ queryKey: ['reviews'] }) 
+			queryClient.invalidateQueries({ queryKey: ['reviews'] })
 		},
 	})
 }
@@ -244,4 +239,3 @@ export function useDocumentWithRoomState(documentId: string) {
 		retry: 1,
 	})
 }
-

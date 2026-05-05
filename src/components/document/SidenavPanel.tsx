@@ -1,7 +1,7 @@
 'use client'
 
-import React from 'react'
-import { FileText, List, BookOpen, MessageSquare } from 'lucide-react'
+import { BookOpen, FileText, List, MessageSquare } from 'lucide-react'
+import type React from 'react'
 
 interface SidenavPanelProps {
 	activePanel: string | null
@@ -23,13 +23,12 @@ const SidenavPanel: React.FC<SidenavPanelProps> = ({ activePanel, onPanelClick }
 				const isActive = activePanel === panel.id
 				return (
 					<button
+						type='button'
 						key={panel.id}
 						onClick={() => onPanelClick(panel.id)}
 						title={panel.label}
 						className={`p-2 rounded-lg transition-colors ${
-							isActive
-								? 'bg-primary/20 text-primary'
-								: 'text-gray-600 hover:bg-gray-100'
+							isActive ? 'bg-primary/20 text-primary' : 'text-gray-600 hover:bg-gray-100'
 						}`}
 					>
 						<Icon className='h-5 w-5' />

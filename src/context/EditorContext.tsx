@@ -1,7 +1,8 @@
 'use client'
 
-import React, { createContext, useContext, useMemo } from 'react'
-import { parseLatexSections, TableOfContentsEntry } from '@/lib/utils/latex-toc'
+import type React from 'react'
+import { createContext, useContext, useMemo } from 'react'
+import { parseLatexSections, type TableOfContentsEntry } from '@/lib/utils/latex-toc'
 
 interface EditorContextValue {
 	content: string | null
@@ -42,7 +43,9 @@ export function EditorContextProvider({
 		if (!currentContent) return
 
 		// Find section command matching this heading
-		const pattern = new RegExp(`\\\\(chapter|section|subsection|subsubsection)\\{${heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\}`)
+		const pattern = new RegExp(
+			`\\\\(chapter|section|subsection|subsubsection)\\{${heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\}`
+		)
 		const match = currentContent.match(pattern)
 
 		if (match && match.index !== undefined) {

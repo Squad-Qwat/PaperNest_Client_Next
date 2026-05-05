@@ -3,7 +3,7 @@ import type { AIStreamPayload } from '../types/chat'
 /**
  * AI Service
  * Handles SSE streaming requests to the backend.
- * 
+ *
  * NOTE: This service bypasses the standard apiClient/HttpClient because:
  * 1. SSE streaming requires direct access to the ReadableStream.
  * 2. Next.js local API proxy (/api) may buffer responses, breaking realtime streaming.
@@ -26,9 +26,9 @@ export const aiService = {
 	 */
 	async streamChat(payload: AIStreamPayload, signal: AbortSignal): Promise<ReadableStream> {
 		const backendUrl = getBackendUrl()
-		
+
 		console.log(`[AIService] Starting stream request to ${backendUrl}/ai/stream`)
-		
+
 		const response = await fetch(`${backendUrl}/ai/stream`, {
 			method: 'POST',
 			headers: {
@@ -78,5 +78,5 @@ export const aiService = {
 			console.error('[AIService] Indexing error:', error)
 			throw error
 		}
-	}
+	},
 }

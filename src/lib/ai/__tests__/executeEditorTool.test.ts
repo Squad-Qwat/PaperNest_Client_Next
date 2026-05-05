@@ -33,7 +33,13 @@ const createMockEditor = (initialText: string) => {
 				main: { from: 0, to: 0 },
 			},
 		},
-		dispatch: ({ changes }: { changes: Array<{ from: number; to: number; insert: string }> | { from: number; to: number; insert: string } }) => {
+		dispatch: ({
+			changes,
+		}: {
+			changes:
+				| Array<{ from: number; to: number; insert: string }>
+				| { from: number; to: number; insert: string }
+		}) => {
 			if (Array.isArray(changes)) {
 				let next = docText
 				for (const change of changes) {
