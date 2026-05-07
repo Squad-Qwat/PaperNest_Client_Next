@@ -86,4 +86,10 @@ export const API_ENDPOINTS = {
 		reject: (reviewId: string) => `/reviews/${reviewId}/reject`,
 		requestRevision: (reviewId: string) => `/reviews/${reviewId}/request-revision`,
 	},
+
+	// Templates
+	templates: {
+		base: '/templates',
+		byId: (templateId: string) => `/templates/${templateId}`,
+	},
 } as const

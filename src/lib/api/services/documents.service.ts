@@ -127,8 +127,14 @@ class DocumentsService {
 	/**
 	 * Create new document
 	 */
-	async create(workspaceId: string, data: CreateDocumentDto): Promise<Document> {
-		return apiClient.post<Document>(API_ENDPOINTS.documents.byWorkspace(workspaceId), data)
+	async create(
+		workspaceId: string,
+		data: CreateDocumentDto
+	): Promise<{ document: Document; initialVersion: any }> {
+		return apiClient.post<{ document: Document; initialVersion: any }>(
+			API_ENDPOINTS.documents.byWorkspace(workspaceId),
+			data
+		)
 	}
 
 	/**

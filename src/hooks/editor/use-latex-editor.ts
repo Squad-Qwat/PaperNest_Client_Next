@@ -95,29 +95,40 @@ export function useLatexEditor({
 		[documentId, autoSaveInterval, batchUpdate]
 	)
 
+	// Track if seeding has been attempted to avoid duplicate inserts
+	const seedingAttemptedRef = useRef(false)
+
+	// Effect 1: Handle Initial Content Seeding (Firestore -> Yjs)
 	useEffect(() => {
-		if (!editorRef.current || (enabled && (!collaborationReady || !hasSyncedOnce))) return
+		if (!enabled || !collaborationReady || !hasSyncedOnce || !yDoc) return
+		if (seedingAttemptedRef.current) return
+
+		const initialText = typeof initialContent === 'string' ? initialContent : ''
+		const yText = yDoc.getText('latex')
+		const configMap = yDoc.getMap('config')
+		const isSeeded = configMap.get('isSeeded')
+
+		if (yText.length > 0 || isSeeded) {
+			seedingAttemptedRef.current = true
+			return
+		}
+
+		if (initialText !== 'Start writing here...' && initialText.trim().length > 0) {
+			yDoc.transact(() => {
+				configMap.set('isSeeded', true)
+				yText.insert(0, initialText)
+				console.log('📝 [LaTeX] Seeding template content successful')
+			})
+			seedingAttemptedRef.current = true
+		}
+	}, [enabled, collaborationReady, hasSyncedOnce, yDoc, initialContent])
+
+	// Effect 2: EditorView Lifecycle
+	useEffect(() => {
+		if (!editorRef.current || (enabled && !collaborationReady)) return
+		if (viewRef.current) return // Prevent duplicate initialization
 
 		const yText = yDoc ? yDoc.getText('latex') : null
-
-		// Secure seeding using Y.Map flag to minimize race condition risks
-		if (
-			yDoc &&
-			yText?.length === 0 &&
-			initialContent &&
-			initialContent !== 'Start writing here...'
-		) {
-			const configMap = yDoc.getMap('config')
-			if (!configMap.get('isSeeded')) {
-				configMap.set('isSeeded', true)
-				yText.insert(0, initialContent)
-				console.log('📝 [LaTeX] Loaded initial content from Firestore')
-			} else {
-				console.log('🔄 [LaTeX] Skipping Firestore init - Document seeded by another peer')
-			}
-		} else if (yText?.length === 0 && !initialContent) {
-			console.log('🔄 [LaTeX] Skipping Firestore init - no initial content provided')
-		}
 
 		const extensions: Extension[] = [
 			lineNumbers(),
@@ -154,8 +165,10 @@ export function useLatexEditor({
 			extensions.push(yCollab(yText, awareness, { undoManager: undoManager as any }))
 		}
 
+		// Always start with empty string if collaboration is active, yCollab will sync.
+		// If not enabled, use initialContent.
 		const state = EditorState.create({
-			doc: yText ? yText.toJSON() : initialContent,
+			doc: enabled && collaborationReady ? '' : initialContent || '',
 			extensions,
 		})
 
@@ -175,14 +188,14 @@ export function useLatexEditor({
 		}
 	}, [
 		collaborationReady,
-		hasSyncedOnce,
 		enabled,
 		awareness,
-		initialContent,
 		onUpdate,
 		undoManager,
 		yDoc,
-	]) // Removed initialContent from dependencies
+		initialContent,
+		// initialContent removed to prevent recreation
+	])
 
 	return {
 		editorRef,

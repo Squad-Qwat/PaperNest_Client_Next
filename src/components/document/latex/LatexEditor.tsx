@@ -349,7 +349,13 @@ export function LatexEditor({
 				if (refreshed.data) currentFiles = refreshed.data
 			}
 
-			const result = await laTeXService.compileWithAssets('main.tex', content, currentFiles)
+			const result = await laTeXService.compileWithAssets(
+				'main.tex',
+				content,
+				currentFiles,
+				undefined,
+				documentId ?? undefined
+			)
 			setCompileResult(result)
 
 			if (result.pdf) {
