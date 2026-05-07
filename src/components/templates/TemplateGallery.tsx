@@ -9,6 +9,8 @@ import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/comp
 import { useCreateDocument } from '@/lib/api/hooks/use-documents'
 import { useTemplates } from '@/lib/api/hooks/use-templates'
 
+import { getErrorMessage } from '@/lib/api/utils/error-handler'
+
 interface TemplateGalleryProps {
 	workspaceId: string
 }
@@ -36,7 +38,7 @@ export function TemplateGallery({ workspaceId }: TemplateGalleryProps) {
 			}
 		} catch (err) {
 			console.error('Error creating document from template:', err)
-			toast.error('Gagal membuat dokumen dari template')
+			toast.error(getErrorMessage(err))
 		}
 	}
 
