@@ -52,6 +52,7 @@ export function useLatexEditor({
 	const [isSaving, setIsSaving] = useState(false)
 	const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
 	const { mutateAsync: batchUpdate } = useBatchUpdateDocument()
+	const initialContentRef = useRef(initialContent)
 
 	const {
 		yDoc,
@@ -168,7 +169,7 @@ export function useLatexEditor({
 		// Always start with empty string if collaboration is active, yCollab will sync.
 		// If not enabled, use initialContent.
 		const state = EditorState.create({
-			doc: enabled && collaborationReady ? '' : initialContent || '',
+			doc: enabled && collaborationReady ? '' : initialContentRef.current || '',
 			extensions,
 		})
 
@@ -186,15 +187,7 @@ export function useLatexEditor({
 			setIsReady(false)
 			if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
 		}
-	}, [
-		collaborationReady,
-		enabled,
-		awareness,
-		onUpdate,
-		undoManager,
-		yDoc,
-		// initialContent removed to prevent recreation
-	])
+	}, [collaborationReady, enabled, awareness, onUpdate, undoManager, yDoc])
 
 	return {
 		editorRef,
