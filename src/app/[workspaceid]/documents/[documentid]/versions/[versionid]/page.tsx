@@ -53,7 +53,7 @@ export default function VersionDetailPage() {
 			setIsCompiling(true)
 			setCompileError(null)
 			try {
-				const result = await laTeXService.compileWithAssets('main.tex', content, files)
+				const result = await laTeXService.compileWithAssets('main.tex', content, files, undefined, documentId)
 				if (result.status === 0 && result.pdf) {
 					const blob = new Blob([result.pdf as any], { type: 'application/pdf' })
 					const url = URL.createObjectURL(blob)
@@ -68,7 +68,7 @@ export default function VersionDetailPage() {
 				setIsCompiling(false)
 			}
 		},
-		[files]
+		[files, documentId]
 	) // Removed pdfUrl from dependencies
 
 	useEffect(() => {

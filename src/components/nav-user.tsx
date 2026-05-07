@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import {
 	IconCreditCard,
 	IconDotsVertical,
@@ -48,7 +49,7 @@ export function NavUser({
 							className='data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground'
 						>
 							<Avatar className='h-8 w-8 rounded-lg grayscale'>
-								<AvatarImage src={user.avatar} alt={user.name} />
+								<AvatarImage src={user.avatar || undefined} alt={user.name} />
 								<AvatarFallback className='rounded-lg'>CN</AvatarFallback>
 							</Avatar>
 							<div className='grid flex-1 text-left text-sm leading-tight'>
@@ -67,7 +68,7 @@ export function NavUser({
 						<DropdownMenuLabel className='p-0 font-normal'>
 							<div className='flex items-center gap-2 px-1 py-1.5 text-left text-sm'>
 								<Avatar className='h-8 w-8 rounded-lg'>
-									<AvatarImage src={user.avatar} alt={user.name} />
+									<AvatarImage src={user.avatar || undefined} alt={user.name} />
 									<AvatarFallback className='rounded-lg'>CN</AvatarFallback>
 								</Avatar>
 								<div className='grid flex-1 text-left text-sm leading-tight'>
@@ -78,10 +79,12 @@ export function NavUser({
 						</DropdownMenuLabel>
 						<DropdownMenuSeparator />
 						<DropdownMenuGroup>
-							<DropdownMenuItem>
-								<IconUserCircle />
-								Account
-							</DropdownMenuItem>
+							<Link href='/settings/profile'>
+								<DropdownMenuItem className='cursor-pointer'>
+									<IconUserCircle />
+									Edit Profil
+								</DropdownMenuItem>
+							</Link>
 							<DropdownMenuItem>
 								<IconCreditCard />
 								Billing
@@ -92,7 +95,7 @@ export function NavUser({
 							</DropdownMenuItem>
 						</DropdownMenuGroup>
 						<DropdownMenuSeparator />
-						<DropdownMenuItem onClick={logout}>
+						<DropdownMenuItem onClick={logout} className='cursor-pointer'>
 							<IconLogout />
 							Log out
 						</DropdownMenuItem>

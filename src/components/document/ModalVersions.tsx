@@ -86,7 +86,7 @@ export default function ModalVersions({
 
 			try {
 				// Using server mode for preview consistency in modal
-				const result = await laTeXService.compileWithAssets('main.tex', content, files)
+				const result = await laTeXService.compileWithAssets('main.tex', content, files, undefined, documentId)
 
 				if (result.status === 0 && result.pdf) {
 					// Use Uint8Array directly, but cast to any or use it in the array to satisfy TypeScript's BlobPart requirement

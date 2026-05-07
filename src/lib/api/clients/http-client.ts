@@ -78,11 +78,21 @@ export class HttpClient {
 			)
 		}
 
-		// Parse JSON response
-		const data = await response.json()
+		// If status is 204 No Content, return empty object (as T)
+		if (response.status === 204) {
+			return {} as T
+		}
 
-		// Backend success format: { success: true, data: {...}, message?: string }
-		return data.data ?? data
+		// Parse JSON response
+		try {
+			const data = await response.json()
+
+			// Backend success format: { success: true, data: {...}, message?: string }
+			return data.data ?? data
+		} catch (error) {
+			// If body is empty but status was ok (and not 204), handle it gracefully
+			return {} as T
+		}
 	}
 
 	/**

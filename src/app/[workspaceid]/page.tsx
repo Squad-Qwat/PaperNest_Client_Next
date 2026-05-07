@@ -23,6 +23,7 @@ import { useAuth } from '@/context/AuthContext'
 import { useDeleteDocument, useWorkspaceDocuments } from '@/lib/api/hooks/use-documents'
 import { useWorkspace } from '@/lib/api/hooks/use-workspaces'
 import { format, id } from '@/lib/date'
+import { TemplateGallery } from '@/components/templates/TemplateGallery'
 
 export default function WorkspacePage() {
 	const params = useParams()
@@ -123,11 +124,11 @@ export default function WorkspacePage() {
 					</Breadcrumb>
 				</header>
 
-				<main className='flex-1 p-6 max-w-7xl overflow-y-auto'>
+				<main className='flex-1 p-6 w-full overflow-y-auto'>
 					{/* Header Content */}
 					<div className='mb-8 flex items-center justify-between'>
 						<div>
-							<h2 className='text-2xl font-bold text-gray-900'>Dokumen Terbaru</h2>
+							<h2 className='text-2xl font-bold text-gray-900'>Dokumen</h2>
 							<p className='text-sm text-gray-500 mt-1'>
 								Kelola dokumen Anda di workspace {workspace?.title}
 							</p>
@@ -145,7 +146,16 @@ export default function WorkspacePage() {
 						</div>
 					</div>
 
-					{/* Documents Grid */}
+					<div className='mb-12'>
+						<TemplateGallery workspaceId={workspaceId} />
+					</div>
+
+					<div className='mb-6'>
+						<h3 className='text-lg font-semibold flex items-center gap-2'>
+							<FileText className='h-5 w-5 text-primary' />
+							Kelola Dokumen
+						</h3>
+					</div>
 					{filteredDocuments.length === 0 ? (
 						<div className='text-center py-20 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200'>
 							<FileText className='h-16 w-16 mx-auto text-gray-400 mb-4 opacity-50' />

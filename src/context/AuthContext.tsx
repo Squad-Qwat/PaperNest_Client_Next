@@ -10,6 +10,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import type React from 'react'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { AUTH_KEYS } from '@/lib/api/hooks/use-auth'
 import { apiClient } from '@/lib/api/clients/api-client'
 import { authService } from '@/lib/api/services/auth.service'
 import type { User } from '@/lib/api/types/user.types'
@@ -46,7 +47,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 	const [onboardingData, setOnboardingData] = useState<any | null>(null)
 
 	const { data: user = null, isLoading: isQueryLoading } = useQuery({
-		queryKey: ['currentUser'],
+		queryKey: AUTH_KEYS.user,
 		queryFn: async () => {
 			try {
 				const { accessToken } = authService.initializeAuth()
