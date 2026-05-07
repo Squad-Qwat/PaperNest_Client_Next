@@ -1,12 +1,13 @@
 'use client'
 
 import { FilePlus, Layout, Loader2 } from 'lucide-react'
-import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { useTemplates } from '@/lib/api/hooks/use-templates'
-import { useCreateDocument } from '@/lib/api/hooks/use-documents'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { useCreateDocument } from '@/lib/api/hooks/use-documents'
+import { useTemplates } from '@/lib/api/hooks/use-templates'
 
 interface TemplateGalleryProps {
 	workspaceId: string
@@ -65,7 +66,7 @@ export function TemplateGallery({ workspaceId }: TemplateGalleryProps) {
 
 			<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
 				{/* Blank Document Option */}
-				<Card 
+				<Card
 					className='hover:border-primary transition-all cursor-pointer group flex flex-col'
 					onClick={() => handleSelectTemplate('', 'Blank Document')}
 				>
@@ -79,7 +80,10 @@ export function TemplateGallery({ workspaceId }: TemplateGalleryProps) {
 						</CardDescription>
 					</CardHeader>
 					<CardFooter className='p-4 pt-0'>
-						<Button variant='ghost' className='w-full text-xs h-8 group-hover:bg-primary group-hover:text-white'>
+						<Button
+							variant='ghost'
+							className='w-full text-xs h-8 group-hover:bg-primary group-hover:text-white'
+						>
 							Pilih
 						</Button>
 					</CardFooter>
@@ -87,17 +91,18 @@ export function TemplateGallery({ workspaceId }: TemplateGalleryProps) {
 
 				{/* Template List */}
 				{templates.map((template) => (
-					<Card 
+					<Card
 						key={template.id}
 						className='hover:border-primary transition-all cursor-pointer group flex flex-col'
 						onClick={() => handleSelectTemplate(template.id, template.name)}
 					>
 						<div className='aspect-[4/3] bg-gray-100 border-b overflow-hidden relative'>
 							{template.thumbnail ? (
-								<img 
-									src={template.thumbnail} 
-									alt={template.name} 
-									className='w-full h-full object-cover group-hover:scale-105 transition-transform duration-300'
+								<Image
+									src={template.thumbnail}
+									alt={template.name}
+									fill
+									className='object-cover group-hover:scale-105 transition-transform duration-300'
 								/>
 							) : (
 								<div className='w-full h-full flex items-center justify-center bg-gray-50'>
@@ -117,8 +122,8 @@ export function TemplateGallery({ workspaceId }: TemplateGalleryProps) {
 							</CardDescription>
 						</CardHeader>
 						<CardFooter className='p-4 pt-0'>
-							<Button 
-								variant='ghost' 
+							<Button
+								variant='ghost'
 								className='w-full text-xs h-8 group-hover:bg-primary group-hover:text-white'
 								disabled={isCreating}
 							>

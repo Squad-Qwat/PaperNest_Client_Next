@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { AppSidebar } from '@/components/app-sidebar'
 import { DashboardSkeleton } from '@/components/layout/DashboardSkeleton'
+import { TemplateGallery } from '@/components/templates/TemplateGallery'
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -23,7 +24,6 @@ import { useAuth } from '@/context/AuthContext'
 import { useDeleteDocument, useWorkspaceDocuments } from '@/lib/api/hooks/use-documents'
 import { useWorkspace } from '@/lib/api/hooks/use-workspaces'
 import { format, id } from '@/lib/date'
-import { TemplateGallery } from '@/components/templates/TemplateGallery'
 
 export default function WorkspacePage() {
 	const params = useParams()

@@ -1,14 +1,8 @@
 'use client'
 
-import { 
-	IconUser, 
-	IconCreditCard, 
-	IconReceipt, 
-	IconKey
-} from '@tabler/icons-react'
+import { IconCreditCard, IconKey, IconReceipt, IconUser } from '@tabler/icons-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
 import {
 	Sidebar,
 	SidebarContent,
@@ -19,10 +13,9 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from '@/components/ui/sidebar'
+import { cn } from '@/lib/utils'
 
-const accountItems = [
-	{ title: 'Profile', icon: IconUser, href: '/settings/profile' },
-]
+const accountItems = [{ title: 'Profile', icon: IconUser, href: '/settings/profile' }]
 
 const billingItems = [
 	{ title: 'Billing Information', icon: IconCreditCard, href: '/settings/billing', disabled: true },
@@ -33,7 +26,9 @@ const billingItems = [
 export function SettingsSidebar() {
 	const pathname = usePathname()
 
-	const renderMenuItems = (items: { title: string; icon: any; href: string; disabled?: boolean }[]) => (
+	const renderMenuItems = (
+		items: { title: string; icon: any; href: string; disabled?: boolean }[]
+	) => (
 		<SidebarMenu>
 			{items.map((item) => {
 				const Icon = item.icon
@@ -48,7 +43,8 @@ export function SettingsSidebar() {
 							tooltip={item.title}
 							disabled={isDisabled}
 							className={cn(
-								isActive && 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground',
+								isActive &&
+									'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground',
 								isDisabled && 'pointer-events-none'
 							)}
 						>
@@ -70,18 +66,14 @@ export function SettingsSidebar() {
 					<SidebarGroupLabel className='px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
 						Account Settings
 					</SidebarGroupLabel>
-					<SidebarGroupContent>
-						{renderMenuItems(accountItems)}
-					</SidebarGroupContent>
+					<SidebarGroupContent>{renderMenuItems(accountItems)}</SidebarGroupContent>
 				</SidebarGroup>
 
 				<SidebarGroup>
 					<SidebarGroupLabel className='px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
 						Billing & Payments
 					</SidebarGroupLabel>
-					<SidebarGroupContent>
-						{renderMenuItems(billingItems)}
-					</SidebarGroupContent>
+					<SidebarGroupContent>{renderMenuItems(billingItems)}</SidebarGroupContent>
 				</SidebarGroup>
 			</SidebarContent>
 		</Sidebar>

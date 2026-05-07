@@ -1,8 +1,8 @@
 'use client'
 
-import { ProfileSettingsForm } from '../../../components/settings/ProfileSettingsForm'
-import { useAuth } from '@/context/AuthContext'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useAuth } from '@/context/AuthContext'
+import { ProfileSettingsForm } from '../../../components/settings/ProfileSettingsForm'
 
 export default function ProfileSettingsPage() {
 	const { user, loading } = useAuth()
@@ -33,7 +33,7 @@ export default function ProfileSettingsPage() {
 					Manage your public profile and personal information.
 				</p>
 			</div>
-			
+
 			<ProfileSettingsForm user={user} />
 		</div>
 	)

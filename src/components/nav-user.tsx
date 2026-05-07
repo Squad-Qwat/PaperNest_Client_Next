@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import {
 	IconCreditCard,
 	IconDotsVertical,
@@ -8,6 +7,7 @@ import {
 	IconNotification,
 	IconUserCircle,
 } from '@tabler/icons-react'
+import Link from 'next/link'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {

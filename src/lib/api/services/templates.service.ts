@@ -1,6 +1,6 @@
 import { apiClient } from '../clients/api-client'
 import { API_ENDPOINTS } from '../config'
-import type { Template, TemplateMetadata, TemplatesResponse } from '../types/template.types'
+import type { Template, TemplatesResponse } from '../types/template.types'
 
 export const templatesService = {
 	/**

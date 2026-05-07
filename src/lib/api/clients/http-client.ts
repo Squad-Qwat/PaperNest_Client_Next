@@ -89,7 +89,7 @@ export class HttpClient {
 
 			// Backend success format: { success: true, data: {...}, message?: string }
 			return data.data ?? data
-		} catch (error) {
+		} catch (_error) {
 			// If body is empty but status was ok (and not 204), handle it gracefully
 			return {} as T
 		}

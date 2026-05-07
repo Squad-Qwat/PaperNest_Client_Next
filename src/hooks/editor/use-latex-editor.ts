@@ -168,7 +168,7 @@ export function useLatexEditor({
 		// Always start with empty string if collaboration is active, yCollab will sync.
 		// If not enabled, use initialContent.
 		const state = EditorState.create({
-			doc: enabled && collaborationReady ? '' : (initialContent || ''),
+			doc: enabled && collaborationReady ? '' : initialContent || '',
 			extensions,
 		})
 
@@ -193,6 +193,7 @@ export function useLatexEditor({
 		onUpdate,
 		undoManager,
 		yDoc,
+		initialContent,
 		// initialContent removed to prevent recreation
 	])
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronLeft, User } from 'lucide-react'
+import { ChevronLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 
@@ -22,8 +22,7 @@ export function SettingsHeader() {
 					<div className='flex flex-col'>
 						<div className='flex items-center gap-3'>
 							<h1 className='text-xl font-semibold tracking-tight'>Settings</h1>
-							<div className='bg-primary/10 px-2 py-0.5 rounded-md flex items-center gap-1.5'>
-							</div>
+							<div className='bg-primary/10 px-2 py-0.5 rounded-md flex items-center gap-1.5'></div>
 						</div>
 						<p className='text-sm text-muted-foreground'>Manage your personal account settings</p>
 					</div>
