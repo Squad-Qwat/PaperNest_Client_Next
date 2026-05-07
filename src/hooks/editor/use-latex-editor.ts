@@ -193,7 +193,6 @@ export function useLatexEditor({
 		onUpdate,
 		undoManager,
 		yDoc,
-		initialContent,
 		// initialContent removed to prevent recreation
 	])
 
