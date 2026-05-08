@@ -26,3 +26,18 @@ export function useAddDocumentFile() {
 		},
 	})
 }
+export function useRenameDocumentFile() {
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: ({
+			documentId,
+			fileId,
+			newName,
+		}: { documentId: string; fileId: string; newName: string }) =>
+			DocumentService.renameDocumentFile(documentId, fileId, newName),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({ queryKey: DOCUMENT_FILE_KEYS.detail(variables.documentId) })
+		},
+	})
+}
