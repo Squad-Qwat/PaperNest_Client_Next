@@ -1,6 +1,7 @@
 'use client'
 
 import { Loader2 } from 'lucide-react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -55,10 +56,10 @@ export function TemplateGallery({ workspaceId }: TemplateGalleryProps) {
 	const getBrandLogo = (name: string, category: string) => {
 		const searchStr = `${name} ${category}`.toLowerCase()
 		const brands = ['elsevier', 'ieee', 'nature', 'springer']
-		const matchedBrand = brands.find(b => searchStr.includes(b))
-		
+		const matchedBrand = brands.find((b) => searchStr.includes(b))
+
 		console.log('Searching for brand in:', searchStr, 'Matched:', matchedBrand)
-		
+
 		if (matchedBrand) {
 			return `/templates/brands/${matchedBrand}.svg`
 		}
@@ -91,10 +92,7 @@ export function TemplateGallery({ workspaceId }: TemplateGalleryProps) {
 						Mulai dari awal dengan dokumen LaTeX kosong.
 					</p>
 					<div className='mt-auto'>
-						<Button
-							className='w-full'
-							onClick={() => handleSelectTemplate('', 'Blank Document')}
-						>
+						<Button className='w-full' onClick={() => handleSelectTemplate('', 'Blank Document')}>
 							Pilih
 						</Button>
 					</div>
@@ -111,7 +109,7 @@ export function TemplateGallery({ workspaceId }: TemplateGalleryProps) {
 								{template.name}
 							</h3>
 						</div>
-						
+
 						<p className='text-gray-600 text-sm mb-4 line-clamp-2 min-h-[40px]'>
 							{template.description}
 						</p>
@@ -124,9 +122,11 @@ export function TemplateGallery({ workspaceId }: TemplateGalleryProps) {
 										{template.category}
 									</span>
 									{logoUrl && (
-										<img 
-											src={logoUrl} 
-											alt={template.category} 
+										<Image
+											src={logoUrl}
+											alt={template.category}
+											width={80}
+											height={32}
 											className='h-8 w-auto'
 										/>
 									)}

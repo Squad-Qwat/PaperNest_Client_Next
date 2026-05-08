@@ -16,7 +16,7 @@ interface ProfileSettingsFormProps {
 
 export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 	const updateUser = useUpdateUser()
-	const setIsProfileUpdating = useUserStore((state) => state.setIsProfileUpdating)
+	const _setIsProfileUpdating = useUserStore((state) => state.setIsProfileUpdating)
 	const setLastUpdated = useUserStore((state) => state.setLastUpdated)
 
 	const [name, setName] = useState(user.name || '')

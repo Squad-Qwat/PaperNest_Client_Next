@@ -34,8 +34,11 @@ export function useRenameDocumentFile() {
 			documentId,
 			fileId,
 			newName,
-		}: { documentId: string; fileId: string; newName: string }) =>
-			DocumentService.renameDocumentFile(documentId, fileId, newName),
+		}: {
+			documentId: string
+			fileId: string
+			newName: string
+		}) => DocumentService.renameDocumentFile(documentId, fileId, newName),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_FILE_KEYS.detail(variables.documentId) })
 		},

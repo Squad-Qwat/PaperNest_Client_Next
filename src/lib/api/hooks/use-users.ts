@@ -12,7 +12,7 @@ export function useUpdateUser() {
 		onSuccess: (response: any) => {
 			// The response contains { user: User }
 			const updatedUser = response.user || response
-			
+
 			queryClient.setQueryData(AUTH_KEYS.user, (oldData: any) => ({
 				...oldData,
 				...updatedUser,

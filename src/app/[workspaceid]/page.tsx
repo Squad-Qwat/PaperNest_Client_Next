@@ -59,17 +59,14 @@ export default function WorkspacePage() {
 	const handleDeleteDocument = async (docId: string) => {
 		if (!workspaceId) return
 
-		toast.promise(
-			deleteDocMutate({ workspaceId, documentId: docId }),
-			{
-				loading: 'Deleting document...',
-				success: () => {
-					setDeleteConfirm(null)
-					return 'Document deleted successfully'
-				},
-				error: (err) => err instanceof Error ? err.message : 'Failed to delete document',
-			}
-		)
+		toast.promise(deleteDocMutate({ workspaceId, documentId: docId }), {
+			loading: 'Deleting document...',
+			success: () => {
+				setDeleteConfirm(null)
+				return 'Document deleted successfully'
+			},
+			error: (err) => (err instanceof Error ? err.message : 'Failed to delete document'),
+		})
 	}
 
 	const handleOpenDocument = (docId: string, title?: string) => {
@@ -165,9 +162,7 @@ export default function WorkspacePage() {
 					</div>
 
 					<div className='mb-6'>
-						<h3 className='text-lg font-semibold flex items-center gap-2'>
-							Kelola Dokumen
-						</h3>
+						<h3 className='text-lg font-semibold flex items-center gap-2'>Kelola Dokumen</h3>
 					</div>
 					{filteredDocuments.length === 0 ? (
 						<div className='text-center py-20 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200'>

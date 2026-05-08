@@ -2,7 +2,6 @@
 
 import { useQueryClient } from '@tanstack/react-query'
 import {
-	ChevronRight,
 	ExternalLink,
 	FileBox,
 	FileCode,
@@ -15,8 +14,7 @@ import {
 	Upload,
 	Wand2,
 } from 'lucide-react'
-import React from 'react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import { type TreeDataItem, TreeView } from '@/components/tree-view'
@@ -130,8 +128,9 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({
 			}}
 			onDragLeave={() => setDragOverFolder(null)}
 			onDrop={handleDrop}
-			className={`group flex items-center gap-2.5 flex-1 min-w-0 transition-all py-1 px-2 rounded-md cursor-pointer ${isBeingDraggedOver ? 'bg-primary/10 ring-1 ring-primary/20' : 'hover:bg-gray-50/80'
-				}`}
+			className={`group flex items-center gap-2.5 flex-1 min-w-0 transition-all py-1 px-2 rounded-md cursor-pointer ${
+				isBeingDraggedOver ? 'bg-primary/10 ring-1 ring-primary/20' : 'hover:bg-gray-50/80'
+			}`}
 		>
 			<div className='flex items-center gap-2 flex-1 min-w-0'>
 				{isFolder ? (
@@ -144,8 +143,9 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({
 					item.icon && <item.icon className='h-4 w-4 shrink-0 text-gray-400' />
 				)}
 				<span
-					className={`text-sm truncate ${isSelected ? 'text-primary font-medium' : 'text-gray-600'
-						} ${isBeingDraggedOver ? 'text-primary font-bold' : ''}`}
+					className={`text-sm truncate ${
+						isSelected ? 'text-primary font-medium' : 'text-gray-600'
+					} ${isBeingDraggedOver ? 'text-primary font-bold' : ''}`}
 				>
 					{item.name}
 				</span>
@@ -436,8 +436,9 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, onInsertText }) => 
 
 	return (
 		<section
-			className={`flex flex-col h-full bg-white transition-all relative ${isDragging ? 'bg-primary/5' : ''
-				}`}
+			className={`flex flex-col h-full bg-white transition-all relative ${
+				isDragging ? 'bg-primary/5' : ''
+			}`}
 			aria-label='File explorer drop zone'
 			onDragOver={handleDragOverGlobal}
 			onDragLeave={() => setIsDragging(false)}
@@ -483,10 +484,11 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, onInsertText }) => 
 							multiple
 						/>
 						<div
-							className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-semibold transition-all ${isUploading
-								? 'text-gray-400 cursor-not-allowed'
-								: 'text-primary hover:bg-primary/10'
-								}`}
+							className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-semibold transition-all ${
+								isUploading
+									? 'text-gray-400 cursor-not-allowed'
+									: 'text-primary hover:bg-primary/10'
+							}`}
 						>
 							{isUploading ? (
 								<Loader2 className='h-3.5 w-3.5 animate-spin' />
