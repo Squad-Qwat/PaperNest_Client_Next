@@ -59,17 +59,31 @@ export default function WorkspacePage() {
 	const handleDeleteDocument = async (docId: string) => {
 		if (!workspaceId) return
 
-		try {
-			await deleteDocMutate({ workspaceId, documentId: docId })
-			setDeleteConfirm(null)
-		} catch (err) {
-			console.error('Error deleting document:', err)
-			toast.error(err instanceof Error ? err.message : 'Failed to delete document')
-		}
+		toast.promise(
+			deleteDocMutate({ workspaceId, documentId: docId }),
+			{
+				loading: 'Deleting document...',
+				success: () => {
+					setDeleteConfirm(null)
+					return 'Document deleted successfully'
+				},
+				error: (err) => err instanceof Error ? err.message : 'Failed to delete document',
+			}
+		)
 	}
 
-	const handleOpenDocument = (docId: string) => {
-		router.push(`/${workspaceId}/documents/${docId}`)
+	const handleOpenDocument = (docId: string, title?: string) => {
+		toast.promise(
+			new Promise((resolve) => {
+				router.push(`/${workspaceId}/documents/${docId}`)
+				setTimeout(resolve, 800) // Small delay for visual feedback
+			}),
+			{
+				loading: `Opening ${title || 'document'}...`,
+				success: 'Redirecting to editor...',
+				error: 'Failed to open document',
+			}
+		)
 	}
 
 	if (!user) {
@@ -152,7 +166,6 @@ export default function WorkspacePage() {
 
 					<div className='mb-6'>
 						<h3 className='text-lg font-semibold flex items-center gap-2'>
-							<FileText className='h-5 w-5 text-primary' />
 							Kelola Dokumen
 						</h3>
 					</div>
@@ -174,17 +187,8 @@ export default function WorkspacePage() {
 								return (
 									// biome-ignore lint/a11y/useSemanticElements: Card needs to be clickable but cannot be a button because it contains other buttons
 									<div
-										role='button'
-										tabIndex={0}
 										key={doc.documentId}
-										className='bg-white border rounded-lg p-6 hover:border-primary transition-all group cursor-pointer relative text-left w-full'
-										onClick={() => handleOpenDocument(doc.documentId)}
-										onKeyDown={(e) => {
-											if (e.key === 'Enter' || e.key === ' ') {
-												e.preventDefault()
-												handleOpenDocument(doc.documentId)
-											}
-										}}
+										className='bg-white border rounded-lg p-6 hover:border-primary transition-all group relative text-left w-full'
 									>
 										<div className='flex items-start justify-between mb-3'>
 											<h3 className='text-lg font-semibold text-gray-900 group-hover:text-primary transition-colors line-clamp-2 flex-1'>
@@ -206,7 +210,7 @@ export default function WorkspacePage() {
 											<Button
 												onClick={(e) => {
 													e.stopPropagation()
-													handleOpenDocument(doc.documentId)
+													handleOpenDocument(doc.documentId, doc.title)
 												}}
 												className='flex-1 bg-primary hover:bg-primary/90'
 											>

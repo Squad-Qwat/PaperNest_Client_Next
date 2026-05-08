@@ -33,38 +33,46 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 		)
 	}, [name, username, photoURL, user])
 
+	// Use a ref to always have access to the latest state in stable callbacks
+	const stateRef = useRef({ name, username, photoURL })
+	useEffect(() => {
+		stateRef.current = { name, username, photoURL }
+	}, [name, username, photoURL])
+
 	const handleSaveAll = useCallback(async () => {
-		try {
-			setIsProfileUpdating(true)
-			await updateUser.mutateAsync({
-				userId: user.userId,
-				data: { name, username, photoURL },
-			})
-			setLastUpdated(new Date())
-			toast.success('Profile updated successfully')
-			if (toastIdRef.current) {
-				toast.dismiss(toastIdRef.current)
-				toastIdRef.current = null
-			}
-		} catch (_error) {
-			toast.error('Failed to update profile')
-		} finally {
-			setIsProfileUpdating(false)
+		const currentData = stateRef.current
+
+		// Dismiss the "Unsaved Changes" toast first to prevent overlap
+		if (toastIdRef.current) {
+			toast.dismiss(toastIdRef.current)
+			toastIdRef.current = null
 		}
-	}, [
-		name,
-		username,
-		photoURL,
-		user.userId,
-		setIsProfileUpdating,
-		updateUser.mutateAsync,
-		setLastUpdated,
-	])
+
+		// Use toast.promise for a unified, clean UI response
+		toast.promise(
+			updateUser.mutateAsync({
+				userId: user.userId,
+				data: currentData,
+			}),
+			{
+				loading: 'Saving your profile changes...',
+				success: () => {
+					setLastUpdated(new Date())
+					return 'Profile updated successfully!'
+				},
+				error: 'Failed to update profile. Please try again.',
+			}
+		)
+	}, [user.userId, updateUser.mutateAsync, setLastUpdated])
 
 	const handleReset = useCallback(() => {
 		setName(user.name || '')
 		setUsername(user.username || '')
 		setPhotoURL(user.photoURL || '')
+		if (toastIdRef.current) {
+			toast.dismiss(toastIdRef.current)
+			toastIdRef.current = null
+		}
 	}, [user.name, user.username, user.photoURL])
 
 	// Persistent Toast Logic for Unsaved Changes
@@ -74,6 +82,7 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 				toastIdRef.current = toast('Unsaved Changes', {
 					description: 'You have modified your profile settings.',
 					duration: Infinity,
+					position: 'bottom-right',
 					action: {
 						label: 'Save Changes',
 						onClick: () => handleSaveAll(),
@@ -82,6 +91,10 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 						label: 'Reset',
 						onClick: () => handleReset(),
 					},
+					actionButtonStyle: {
+						background: 'var(--primary)',
+						color: 'var(--primary-foreground)',
+					},
 				})
 			}
 		} else if (!isDirty && toastIdRef.current) {
@@ -89,10 +102,10 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 			toastIdRef.current = null
 		}
 
-		// Cleanup on unmount
 		return () => {
 			if (toastIdRef.current) {
 				toast.dismiss(toastIdRef.current)
+				toastIdRef.current = null
 			}
 		}
 	}, [isDirty, updateUser.isPending, handleReset, handleSaveAll])

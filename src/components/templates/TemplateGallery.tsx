@@ -1,11 +1,9 @@
 'use client'
 
-import { FilePlus, Layout, Loader2 } from 'lucide-react'
-import Image from 'next/image'
+import { Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { useCreateDocument } from '@/lib/api/hooks/use-documents'
 import { useTemplates } from '@/lib/api/hooks/use-templates'
 
@@ -23,23 +21,26 @@ export function TemplateGallery({ workspaceId }: TemplateGalleryProps) {
 	const templates = data?.templates || []
 
 	const handleSelectTemplate = async (templateId: string, templateName: string) => {
-		try {
-			const result = await createDocument({
+		toast.promise(
+			createDocument({
 				workspaceId,
 				data: {
 					title: `Untitled ${templateName}`,
 					description: `Document created from ${templateName} template`,
 					templateId: templateId,
 				},
-			})
-
-			if (result.document) {
-				router.push(`/${workspaceId}/documents/${result.document.documentId}`)
+			}).then((result) => {
+				if (result.document) {
+					router.push(`/${workspaceId}/documents/${result.document.documentId}`)
+				}
+				return result
+			}),
+			{
+				loading: `Creating document from ${templateName}...`,
+				success: 'Document created successfully!',
+				error: (err) => getErrorMessage(err),
 			}
-		} catch (err) {
-			console.error('Error creating document from template:', err)
-			toast.error(getErrorMessage(err))
-		}
+		)
 	}
 
 	if (isLoading) {
@@ -49,6 +50,19 @@ export function TemplateGallery({ workspaceId }: TemplateGalleryProps) {
 				<span className='ml-3 text-gray-500'>Memuat template...</span>
 			</div>
 		)
+	}
+
+	const getBrandLogo = (name: string, category: string) => {
+		const searchStr = `${name} ${category}`.toLowerCase()
+		const brands = ['elsevier', 'ieee', 'nature', 'springer']
+		const matchedBrand = brands.find(b => searchStr.includes(b))
+		
+		console.log('Searching for brand in:', searchStr, 'Matched:', matchedBrand)
+		
+		if (matchedBrand) {
+			return `/templates/brands/${matchedBrand}.svg`
+		}
+		return null
 	}
 
 	if (error) {
@@ -62,77 +76,74 @@ export function TemplateGallery({ workspaceId }: TemplateGalleryProps) {
 	return (
 		<div className='space-y-6'>
 			<div className='flex items-center gap-2 mb-4'>
-				<Layout className='h-5 w-5 text-primary' />
 				<h3 className='text-lg font-semibold'>Pilih Template</h3>
 			</div>
 
 			<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
 				{/* Blank Document Option */}
-				<Card
-					className='hover:border-primary transition-all cursor-pointer group flex flex-col'
-					onClick={() => handleSelectTemplate('', 'Blank Document')}
-				>
-					<div className='aspect-[4/3] bg-gray-50 flex items-center justify-center border-b group-hover:bg-primary/5 transition-colors'>
-						<FilePlus className='h-12 w-12 text-gray-300 group-hover:text-primary transition-colors' />
+				<div className='bg-white border rounded-lg p-6 hover:border-primary transition-all group relative text-left w-full flex flex-col'>
+					<div className='mb-4'>
+						<h3 className='text-lg font-semibold text-gray-900 group-hover:text-primary transition-colors'>
+							Dokumen Kosong
+						</h3>
 					</div>
-					<CardHeader className='p-4 flex-1'>
-						<CardTitle className='text-base'>Dokumen Kosong</CardTitle>
-						<CardDescription className='text-xs line-clamp-2'>
-							Mulai dari awal dengan dokumen LaTeX kosong.
-						</CardDescription>
-					</CardHeader>
-					<CardFooter className='p-4 pt-0'>
+					<p className='text-gray-600 text-sm mb-6 line-clamp-2 min-h-[40px]'>
+						Mulai dari awal dengan dokumen LaTeX kosong.
+					</p>
+					<div className='mt-auto'>
 						<Button
-							variant='ghost'
-							className='w-full text-xs h-8 group-hover:bg-primary group-hover:text-white'
+							className='w-full'
+							onClick={() => handleSelectTemplate('', 'Blank Document')}
 						>
 							Pilih
 						</Button>
-					</CardFooter>
-				</Card>
+					</div>
+				</div>
 
 				{/* Template List */}
 				{templates.map((template) => (
-					<Card
+					<div
 						key={template.id}
-						className='hover:border-primary transition-all cursor-pointer group flex flex-col'
-						onClick={() => handleSelectTemplate(template.id, template.name)}
+						className='bg-white border rounded-lg p-6 hover:border-primary transition-all group relative text-left w-full flex flex-col'
 					>
-						<div className='aspect-[4/3] bg-gray-100 border-b overflow-hidden relative'>
-							{template.thumbnail ? (
-								<Image
-									src={template.thumbnail}
-									alt={template.name}
-									fill
-									className='object-cover group-hover:scale-105 transition-transform duration-300'
-								/>
-							) : (
-								<div className='w-full h-full flex items-center justify-center bg-gray-50'>
-									<Layout className='h-12 w-12 text-gray-300' />
-								</div>
-							)}
-							<div className='absolute top-2 right-2'>
-								<span className='bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase'>
-									{template.category}
-								</span>
-							</div>
+						<div className='mb-4'>
+							<h3 className='text-lg font-semibold text-gray-900 group-hover:text-primary transition-colors line-clamp-1'>
+								{template.name}
+							</h3>
 						</div>
-						<CardHeader className='p-4 flex-1'>
-							<CardTitle className='text-base'>{template.name}</CardTitle>
-							<CardDescription className='text-xs line-clamp-2'>
-								{template.description}
-							</CardDescription>
-						</CardHeader>
-						<CardFooter className='p-4 pt-0'>
+						
+						<p className='text-gray-600 text-sm mb-4 line-clamp-2 min-h-[40px]'>
+							{template.description}
+						</p>
+
+						{(() => {
+							const logoUrl = getBrandLogo(template.name, template.category)
+							return (
+								<div className='mb-6 flex items-center justify-between w-full'>
+									<span className='bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase'>
+										{template.category}
+									</span>
+									{logoUrl && (
+										<img 
+											src={logoUrl} 
+											alt={template.category} 
+											className='h-8 w-auto'
+										/>
+									)}
+								</div>
+							)
+						})()}
+
+						<div className='mt-auto'>
 							<Button
-								variant='ghost'
-								className='w-full text-xs h-8 group-hover:bg-primary group-hover:text-white'
+								className='w-full'
+								onClick={() => handleSelectTemplate(template.id, template.name)}
 								disabled={isCreating}
 							>
 								{isCreating ? 'Membuat...' : 'Gunakan Template'}
 							</Button>
-						</CardFooter>
-					</Card>
+						</div>
+					</div>
 				))}
 			</div>
 		</div>

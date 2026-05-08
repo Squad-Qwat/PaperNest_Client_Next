@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
 import { documentsService } from '../services/documents.service'
 import type { BatchOperationRequest } from '../types/batchOperation.types'
 import type {
@@ -98,7 +97,6 @@ export function useCreateDocument() {
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.workspace(variables.workspaceId) })
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.myDocuments() })
-			toast.success('Dokumen berhasil dibuat!')
 		},
 	})
 }
@@ -119,7 +117,6 @@ export function useUpdateDocument() {
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.detail(variables.documentId) })
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.workspace(variables.workspaceId) })
-			toast.success('Perubahan dokumen berhasil disimpan.')
 		},
 	})
 }
@@ -154,7 +151,6 @@ export function useDeleteDocument() {
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.workspace(variables.workspaceId) })
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.myDocuments() })
 			queryClient.removeQueries({ queryKey: DOCUMENT_KEYS.detail(variables.documentId) })
-			toast.success('Dokumen berhasil dihapus.')
 		},
 	})
 }
@@ -168,7 +164,6 @@ export function useRevertVersion() {
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.detail(variables.documentId) })
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.versions(variables.documentId) })
-			toast.success(`Berhasil mengembalikan ke versi ${variables.versionNumber}.`)
 		},
 	})
 }
