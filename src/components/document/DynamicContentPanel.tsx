@@ -124,14 +124,17 @@ const DynamicContentPanel: React.FC<DynamicContentPanelProps> = ({
 					<h3 className='text-sm font-semibold text-gray-700 truncate'>
 						{panelLabels[activePanel] || 'Panel'}
 					</h3>
-					<button
-						type='button'
-						onClick={onClose}
-						className='p-2 hover:bg-gray-100 rounded-lg transition-colors'
-						title='Close panel'
-					>
-						<X className='h-5 w-5 text-gray-500 hover:text-gray-700' />
-					</button>
+					<div className='flex items-center gap-2'>
+						<div id='panel-header-actions' className='flex items-center' />
+						<button
+							type='button'
+							onClick={onClose}
+							className='p-2 hover:bg-gray-100 rounded-lg transition-colors'
+							title='Close panel'
+						>
+							<X className='h-5 w-5 text-gray-500 hover:text-gray-700' />
+						</button>
+					</div>
 				</div>
 
 				{/* Scrollable Content Area */}
