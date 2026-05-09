@@ -11,6 +11,8 @@ import { useAuth } from '@/context/AuthContext'
 import { useDocumentReviews } from '@/lib/api/hooks/use-documents'
 import { useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
 import { documentsService } from '@/lib/api/services/documents.service'
+import { getInitials } from '@/lib/utils'
+import { toast } from 'sonner'
 
 interface DocumentHeaderProps {
 	title: string
@@ -478,7 +480,7 @@ const DocumentHeader = ({
 													className='text-xs font-semibold text-white'
 													style={{ backgroundColor: collaborator.color }}
 												>
-													{collaborator.name.charAt(0).toUpperCase()}
+													{getInitials(collaborator.name)}
 												</AvatarFallback>
 											</Avatar>
 										))}
@@ -549,7 +551,7 @@ const DocumentHeader = ({
 							<Avatar className='h-8 w-8'>
 								<AvatarImage src={user?.photoURL || ''} alt={user?.name || 'User'} />
 								<AvatarFallback className='bg-blue-600 text-white text-xs'>
-									{user?.name?.charAt(0) || 'U'}
+									{getInitials(user?.name || 'U')}
 								</AvatarFallback>
 							</Avatar>
 						</div>
@@ -581,10 +583,13 @@ const DocumentHeader = ({
 									lecturerUserId: lecturerId,
 									message: data.message,
 								})
+								toast.success('Version committed and sent to lecturer for review!')
 							} catch (reviewErr) {
-								// Log but don't block — version was already saved
 								console.warn('Review creation failed after commit:', reviewErr)
+								toast.success('Version committed successfully')
 							}
+						} else {
+							toast.success('Version committed successfully')
 						}
 
 						setShowCommitModal(false)

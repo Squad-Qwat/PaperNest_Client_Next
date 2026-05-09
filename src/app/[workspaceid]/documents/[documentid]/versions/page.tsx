@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useDocumentReviews, useDocumentVersions } from '@/lib/api/hooks/use-documents'
+import { useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
 import type { Version } from '@/lib/api/types/document.types'
 import type { Review } from '@/lib/api/types/review.types'
 import { format, id } from '@/lib/date'
@@ -23,6 +24,9 @@ export default function VersionsPage() {
 
 	const { data: versionsResponse, isLoading: versionsLoading } = useDocumentVersions(documentId)
 	const { data: reviewsResponse, isLoading: reviewsLoading } = useDocumentReviews(documentId)
+	const { data: membersResponse } = useWorkspaceMembers(workspaceId)
+
+	const members = membersResponse?.members || []
 
 	const versions = Array.isArray(versionsResponse)
 		? versionsResponse
@@ -93,10 +97,14 @@ export default function VersionsPage() {
 					<div className='hidden md:flex items-center gap-3'>
 						<div className='flex -space-x-2'>
 							{versions.slice(0, 3).map((v: Version) => {
-								const dName = v.user?.name || v.user?.username || v.userId || 'User'
+								const member = members.find((m: any) => m.userId === v.userId || m.user?.userId === v.userId)
+								const dName = v.user?.name || member?.user?.name || 'User'
 								return (
 									<Avatar key={v.documentBodyId} className='h-8 w-8 border-2 border-background'>
-										<AvatarImage src={v.user?.photoURL || getAvatarUrl(dName, v.userId)} />
+										<AvatarImage src={v.user?.photoURL || member?.user?.photoURL || getAvatarUrl(dName, v.userId)} />
+										<AvatarFallback className='text-[10px] bg-blue-50 text-blue-600'>
+											{getInitials(dName)}
+										</AvatarFallback>
 									</Avatar>
 								)
 							})}
@@ -189,17 +197,22 @@ export default function VersionsPage() {
 														<div className='flex-1 min-w-0 flex flex-col justify-center space-y-2'>
 															<div className='flex items-center gap-2'>
 																{(() => {
+																	const member = members.find((m: any) => m.userId === version.userId || m.user?.userId === version.userId)
 																	const displayName =
 																		version.user?.name ||
-																		version.user?.username ||
-																		version.userId ||
+																		member?.user?.name ||
 																		'User'
+																	
+																	const isUid = displayName.length > 20 && !displayName.includes(' ')
+																	const finalName = isUid ? 'User' : displayName
+
 																	return (
 																		<>
 																			<Avatar className='h-5 w-5'>
 																				<AvatarImage
 																					src={
 																						version.user?.photoURL ||
+																						member?.user?.photoURL ||
 																						getAvatarUrl(displayName, version.userId)
 																					}
 																				/>
@@ -208,7 +221,7 @@ export default function VersionsPage() {
 																				</AvatarFallback>
 																			</Avatar>
 																			<span className='text-sm text-muted-foreground'>
-																				{displayName}
+																				{finalName}
 																			</span>
 																		</>
 																	)

@@ -1,4 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
+import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore'
+import { db } from '@/lib/firebase/config'
+import { useAuth } from '@/context/AuthContext'
 import { documentsService } from '../services/documents.service'
 import type { BatchOperationRequest } from '../types/batchOperation.types'
 import type {
@@ -34,19 +38,66 @@ export function useMyDocuments() {
 }
 
 export function useWorkspaceDocuments(workspaceId: string) {
-	return useQuery({
-		queryKey: DOCUMENT_KEYS.workspace(workspaceId),
-		queryFn: () => documentsService.getWorkspaceDocuments(workspaceId),
-		enabled: !!workspaceId,
-	})
+	const [documents, setDocuments] = useState<any[]>([])
+	const [isLoading, setIsLoading] = useState(true)
+
+	useEffect(() => {
+		if (!workspaceId) return
+
+		const documentsRef = collection(db, 'documents')
+		const q = query(
+			documentsRef,
+			where('workspaceId', '==', workspaceId)
+		)
+
+		const unsubscribe = onSnapshot(q, (snapshot) => {
+			const docs = snapshot.docs.map((doc) => ({
+				documentId: doc.id,
+				...doc.data(),
+				createdAt: doc.data().createdAt?.toDate?.() || doc.data().createdAt,
+				updatedAt: doc.data().updatedAt?.toDate?.() || doc.data().updatedAt,
+			}))
+			// Sort by updatedAt descending in frontend
+			docs.sort((a, b) => {
+				const dateA = new Date(a.updatedAt).getTime()
+				const dateB = new Date(b.updatedAt).getTime()
+				return dateB - dateA
+			})
+			setDocuments(docs)
+			setIsLoading(false)
+		})
+
+		return () => unsubscribe()
+	}, [workspaceId])
+
+	return { data: { documents, count: documents.length }, isLoading }
 }
 
 export function useDocument(workspaceId: string, documentId: string) {
-	return useQuery({
-		queryKey: DOCUMENT_KEYS.detail(documentId),
-		queryFn: () => documentsService.getById(workspaceId, documentId),
-		enabled: !!workspaceId && !!documentId,
-	})
+	const [document, setDocument] = useState<any>(null)
+	const [isLoading, setIsLoading] = useState(true)
+
+	useEffect(() => {
+		if (!documentId) return
+
+		const unsubscribe = onSnapshot(doc(db, 'documents', documentId), (snapshot) => {
+			if (snapshot.exists()) {
+				setDocument({
+					documentId: snapshot.id,
+					...snapshot.data(),
+					createdAt: snapshot.data().createdAt?.toDate?.() || snapshot.data().createdAt,
+					updatedAt: snapshot.data().updatedAt?.toDate?.() || snapshot.data().updatedAt,
+				})
+			} else {
+				setDocument(null)
+			}
+			setIsLoading(false)
+		})
+
+		return () => unsubscribe()
+	}, [documentId])
+
+	return { data: document, isLoading }
 }
 
 export function useSearchDocuments(workspaceId: string, params: DocumentSearchParams) {
@@ -58,33 +109,146 @@ export function useSearchDocuments(workspaceId: string, params: DocumentSearchPa
 }
 
 export function useDocumentVersions(documentId: string) {
-	return useQuery({
-		queryKey: DOCUMENT_KEYS.versions(documentId),
-		queryFn: () => documentsService.getVersions(documentId),
-		enabled: !!documentId,
-	})
+	const [versions, setVersions] = useState<any[]>([])
+	const [isLoading, setIsLoading] = useState(true)
+
+	useEffect(() => {
+		if (!documentId) return
+
+		const versionsRef = collection(db, 'documentBodies')
+		const q = query(
+			versionsRef,
+			where('documentId', '==', documentId)
+		)
+
+		const unsubscribe = onSnapshot(q, (snapshot) => {
+			const docs = snapshot.docs.map((doc) => ({
+				documentBodyId: doc.id,
+				...doc.data(),
+				createdAt: doc.data().createdAt?.toDate?.() || doc.data().createdAt,
+				updatedAt: doc.data().updatedAt?.toDate?.() || doc.data().updatedAt,
+			}))
+			// Sort by versionNumber descending
+			docs.sort((a, b) => (b.versionNumber || 0) - (a.versionNumber || 0))
+			setVersions(docs)
+			setIsLoading(false)
+		})
+
+		return () => unsubscribe()
+	}, [documentId])
+
+	return { data: { versions }, isLoading }
 }
 
 export function useDocumentReviews(documentId: string) {
-	return useQuery({
-		queryKey: DOCUMENT_KEYS.reviews(documentId),
-		queryFn: () => documentsService.getReviews(documentId),
-		enabled: !!documentId,
-	})
+	const [reviews, setReviews] = useState<any[]>([])
+	const [isLoading, setIsLoading] = useState(true)
+
+	useEffect(() => {
+		if (!documentId) return
+
+		const reviewsRef = collection(db, 'reviews')
+		const q = query(
+			reviewsRef,
+			where('documentId', '==', documentId)
+		)
+
+		const unsubscribe = onSnapshot(q, (snapshot) => {
+			const docs = snapshot.docs.map((doc) => ({
+				reviewId: doc.id,
+				...doc.data(),
+				requestedAt: doc.data().requestedAt?.toDate?.() || doc.data().requestedAt,
+				reviewedAt: doc.data().reviewedAt?.toDate?.() || doc.data().reviewedAt,
+			}))
+			// Sort by requestedAt descending
+			docs.sort((a, b) => {
+				const dateA = new Date(a.requestedAt).getTime()
+				const dateB = new Date(b.requestedAt).getTime()
+				return dateB - dateA
+			})
+			setReviews(docs)
+			setIsLoading(false)
+		})
+
+		return () => unsubscribe()
+	}, [documentId])
+
+	return { data: { reviews }, isLoading }
 }
 
 export function useLecturerPendingReviews() {
-	return useQuery({
-		queryKey: DOCUMENT_KEYS.pendingReviews(),
-		queryFn: () => documentsService.getPendingReviews(),
-	})
+	const { user } = useAuth()
+	const [reviews, setReviews] = useState<any[]>([])
+	const [isLoading, setIsLoading] = useState(true)
+
+	useEffect(() => {
+		if (!user?.uid || user?.role !== 'Lecturer') return
+
+		const reviewsRef = collection(db, 'reviews')
+		const q = query(
+			reviewsRef,
+			where('lecturerUserId', '==', user.uid),
+			where('status', '==', 'pending')
+		)
+
+		const unsubscribe = onSnapshot(q, (snapshot) => {
+			const docs = snapshot.docs.map((doc) => ({
+				reviewId: doc.id,
+				...doc.data(),
+				requestedAt: doc.data().requestedAt?.toDate?.() || doc.data().requestedAt,
+				reviewedAt: doc.data().reviewedAt?.toDate?.() || doc.data().reviewedAt,
+			}))
+			// Sort by requestedAt descending
+			docs.sort((a, b) => {
+				const dateA = new Date(a.requestedAt).getTime()
+				const dateB = new Date(b.requestedAt).getTime()
+				return dateB - dateA
+			})
+			setReviews(docs)
+			setIsLoading(false)
+		})
+
+		return () => unsubscribe()
+	}, [user?.uid, user?.role])
+
+	return { data: { reviews, count: reviews.length }, isLoading }
 }
 
 export function useStudentReviews() {
-	return useQuery({
-		queryKey: DOCUMENT_KEYS.studentReviews(),
-		queryFn: () => documentsService.getStudentReviews(),
-	})
+	const { user } = useAuth()
+	const [reviews, setReviews] = useState<any[]>([])
+	const [isLoading, setIsLoading] = useState(true)
+
+	useEffect(() => {
+		if (!user?.uid) return
+
+		const reviewsRef = collection(db, 'reviews')
+		const q = query(
+			reviewsRef,
+			where('studentUserId', '==', user.uid)
+		)
+
+		const unsubscribe = onSnapshot(q, (snapshot) => {
+			const docs = snapshot.docs.map((doc) => ({
+				reviewId: doc.id,
+				...doc.data(),
+				requestedAt: doc.data().requestedAt?.toDate?.() || doc.data().requestedAt,
+				reviewedAt: doc.data().reviewedAt?.toDate?.() || doc.data().reviewedAt,
+			}))
+			// Sort by requestedAt descending
+			docs.sort((a, b) => {
+				const dateA = new Date(a.requestedAt).getTime()
+				const dateB = new Date(b.requestedAt).getTime()
+				return dateB - dateA
+			})
+			setReviews(docs)
+			setIsLoading(false)
+		})
+
+		return () => unsubscribe()
+	}, [user?.uid])
+
+	return { data: { reviews, count: reviews.length }, isLoading }
 }
 
 // Mutations

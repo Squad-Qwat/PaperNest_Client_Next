@@ -16,10 +16,11 @@ import {
 	useDocumentVersions,
 	useRevertVersion,
 } from '@/lib/api/hooks/use-documents'
-import type { Version } from '@/lib/api/types/document.types'
 import type { Review } from '@/lib/api/types/review.types'
 import { format, id } from '@/lib/date'
 import { laTeXService } from '@/lib/latex/LaTeXService'
+import { getInitials } from '@/lib/utils'
+import { useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
 
 interface ModalVersionsProps {
 	isOpen: boolean
@@ -69,6 +70,8 @@ export default function ModalVersions({
 	const { mutateAsync: revertVersionMutate, isPending: isRollingBack } = useRevertVersion()
 	const { mutateAsync: requestReviewMutate } = useCreateReview()
 	const { data: files = [] } = useDocumentFiles(documentId)
+	const { data: membersResponse } = useWorkspaceMembers(workspaceId)
+	const members = membersResponse?.members || []
 
 	const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null)
 	const [showReviewModal, setShowReviewModal] = useState(false)
@@ -131,19 +134,25 @@ export default function ModalVersions({
 			const versionReview = reviews.find((r) => r.documentBodyId === version.documentBodyId)
 
 			// Resolve Author Name
-			// If the ID matches current user, use their name.
-			// "atau ga yang terlogin saja" -> Fallback to current user name if missing
-			let authorName = version.createdBy
-			if (user && (version.createdBy === user.userId || !version.createdBy)) {
+			const member = members.find((m: any) => m.userId === version.userId || m.user?.userId === version.userId)
+			let authorName = version.user?.name || member?.user?.name || version.createdBy
+			
+			if (user && (authorName === user.userId || !authorName)) {
 				authorName = user.name || 'User'
 			}
+
+			// If it's still a UID, show 'User'
+			const isUid = authorName && authorName.length > 20 && !authorName.includes(' ')
+			const finalName = isUid ? 'User' : authorName || 'User'
 
 			// Map to UI format
 			return {
 				id: version.documentBodyId,
 				versionNumber: version.versionNumber,
 				timestamp: format(version.createdAt, 'd MMMM yyyy, HH:mm', { locale: id }),
-				author: authorName,
+				author: finalName,
+				authorId: version.userId,
+				authorPhoto: version.user?.photoURL || member?.user?.photoURL,
 				color: index === 0 ? 'bg-purple-500' : 'bg-orange-500',
 				isCurrent: index === 0,
 				content: version.content,
