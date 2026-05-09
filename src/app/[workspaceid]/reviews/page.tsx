@@ -107,7 +107,14 @@ export default function ReviewsPage() {
 					documentReviewResults.flatMap((result) =>
 						result.status === 'fulfilled' ? toReviews(result.value) : []
 					)
-				)
+				).filter(review => {
+					const docExists = documents.some(d => d.documentId === review.documentId)
+					// Handle "empty" cases: 
+					// 1. If doc exists, always show review
+					// 2. If doc is deleted, only show if it's ALREADY reviewed (not pending)
+					// This removes orphaned pending reviews from the queue
+					return docExists || review.status !== 'pending'
+				})
 				
 				setReviews(allReviews)
 
