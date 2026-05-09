@@ -165,6 +165,38 @@ export default function ReviewDetailPage() {
 				</header>
 
 				<main className='flex-1 p-4 md:p-6 w-full overflow-y-auto space-y-6'>
+					<div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
+						<div className='space-y-1'>
+							<div className='flex items-center gap-3'>
+								<h2 className='text-2xl font-bold text-gray-900'>
+									Detail Review
+								</h2>
+								<span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full ${
+									user?.role === 'Lecturer' 
+										? 'bg-purple-100 text-purple-700' 
+										: 'bg-teal-100 text-teal-700'
+								}`}>
+									{user?.role}
+								</span>
+							</div>
+							<p className='text-sm text-gray-500'>
+								{user?.role === 'Lecturer' 
+									? `Kelola keputusan review untuk dokumen mahasiswa` 
+									: `Lihat hasil review dokumen Anda oleh dosen`}
+							</p>
+						</div>
+						
+						{/* User Identity Info */}
+						<div className='flex items-center gap-3 px-4 py-2 bg-gray-50 rounded-xl border border-gray-100'>
+							<div className='text-right hidden sm:block'>
+								<p className='text-xs font-bold text-gray-900'>{user?.name || user?.email}</p>
+								<p className='text-[10px] text-gray-500 uppercase tracking-tight'>{user?.role}</p>
+							</div>
+							<div className='h-8 w-8 rounded-full bg-white border flex items-center justify-center text-xs font-bold text-teal-600 shadow-sm'>
+								{(user?.name || user?.email || '?').charAt(0).toUpperCase()}
+							</div>
+						</div>
+					</div>
 					<ReviewHero 
 						docTitle={docTitle}
 						studentName={studentName}
