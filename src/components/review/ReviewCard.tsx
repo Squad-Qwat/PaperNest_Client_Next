@@ -165,6 +165,9 @@ export function ReviewCard({
 
 					{/* Content Box */}
 					<div className='bg-gray-50 rounded-lg p-4 text-gray-700 text-sm mb-4 leading-relaxed'>
+						<div className='text-xs font-bold text-gray-400 uppercase tracking-wider mb-2'>
+							Commit Message:
+						</div>
 						{message || 'No feedback provided.'}
 					</div>
 				</div>

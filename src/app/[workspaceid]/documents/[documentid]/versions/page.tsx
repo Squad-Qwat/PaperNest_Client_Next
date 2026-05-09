@@ -144,28 +144,42 @@ export default function VersionsPage() {
 										return (
 											<div key={version.documentBodyId} className='group'>
 												<Card
-													className={`p-4 transition-colors hover:bg-muted/50 ${isLatest ? 'border-primary' : ''}`}
+													className={`p-5 transition-all duration-300 border-l-4 ${
+														isLatest 
+															? 'border-l-blue-600 bg-blue-50/30 ring-1 ring-blue-100' 
+															: versionReview 
+																? versionReview.status === 'approved' ? 'border-l-green-500' : 'border-l-amber-500'
+																: 'border-l-gray-300'
+													} hover:shadow-md group-hover:translate-x-1`}
 												>
-													<div className='flex flex-col md:flex-row md:items-center gap-4'>
+													<div className='flex flex-col md:flex-row md:items-start gap-6'>
 														{/* Version Meta */}
 														<div className='flex items-center gap-4 md:w-48 shrink-0'>
 															<div
-																className={`h-10 w-10 shrink-0 rounded-md flex items-center justify-center ${isLatest ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+																className={`h-12 w-12 shrink-0 rounded-xl flex items-center justify-center shadow-sm ${
+																	isLatest 
+																		? 'bg-blue-600 text-white' 
+																		: 'bg-white border border-gray-200 text-gray-400'
+																}`}
 															>
-																<FileText className='w-5 h-5' />
+																<FileText className='w-6 h-6' />
 															</div>
 															<div className='flex flex-col'>
-																<span className='text-sm font-medium'>
-																	Versi #{String(version.versionNumber).padStart(3, '0')}
-																</span>
-																<div className='flex items-center gap-1.5 text-xs text-muted-foreground'>
+																<div className='flex items-center gap-2'>
+																	<span className='text-sm font-bold text-gray-900'>
+																		Versi #{String(version.versionNumber).padStart(3, '0')}
+																	</span>
+																	{!versionReview && !isLatest && (
+																		<span className='text-[10px] font-bold px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded uppercase'>Snapshot</span>
+																	)}
+																</div>
+																<div className='flex items-center gap-1.5 text-xs text-gray-500 mt-0.5'>
 																	<Clock className='w-3 h-3' />
 																	{format(version.createdAt, 'HH:mm')}
 																	{isLatest && (
-																		<>
-																			<span className='mx-1'>&bull;</span>
-																			<span className='text-primary font-medium'>Aktif</span>
-																		</>
+																		<span className='ml-1 px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-md font-bold text-[10px] uppercase tracking-wider'>
+																			Active
+																		</span>
 																	)}
 																</div>
 															</div>
@@ -202,14 +216,48 @@ export default function VersionsPage() {
 															</div>
 
 															{versionReview ? (
-																<div className='flex items-center gap-2'>
-																	<ReviewStatusBadge status={versionReview.status} />
-																	<span className='text-sm text-muted-foreground truncate'>
-																		{versionReview.message}
-																	</span>
+																<div className='flex flex-col gap-3'>
+																	{/* Student Request Message - Always from version.message (Commit Message) */}
+																	<div className='flex items-start gap-2 group/msg'>
+																		<div className='mt-1 p-1 bg-blue-50 rounded text-blue-600 shrink-0'>
+																			<MessageSquare className='w-3 h-3' />
+																		</div>
+																		<div className='flex flex-col'>
+																			<span className='text-[10px] font-bold text-blue-500 uppercase tracking-tight leading-none mb-1'>Student Request</span>
+																			<p className='text-sm text-gray-700 leading-tight'>
+																				{version.message || 'No commit message.'}
+																			</p>
+																		</div>
+																	</div>
+
+																	{/* Lecturer Feedback Message */}
+																	{versionReview.status !== 'pending' && (
+																		<div className='flex items-center gap-3 pt-1'>
+																			<ReviewStatusBadge status={versionReview.status} />
+																			{/* Logic for legacy data: if lecturerMessage is empty, use review.message as lecturer message */}
+																			{(() => {
+																				const feedback = versionReview.lecturerMessage || versionReview.message;
+																				// Only show if it's different from the version message or explicitly provided
+																				if (feedback) {
+																					return (
+																						<div className='flex items-start gap-2 border-l-2 border-gray-100 pl-3'>
+																							<div className='flex flex-col'>
+																								<span className='text-[10px] font-bold text-gray-400 uppercase tracking-tight leading-none mb-1'>Lecturer Feedback</span>
+																								<p className='text-sm text-gray-600 italic leading-tight'>
+																									"{feedback}"
+																								</p>
+																							</div>
+																						</div>
+																					);
+																				}
+																				return null;
+																			})()}
+																		</div>
+																	)}
 																</div>
 															) : (
-																<div className='text-sm text-muted-foreground italic'>
+																<div className='text-sm text-muted-foreground italic flex items-center gap-2'>
+																	<div className='w-1 h-1 bg-gray-300 rounded-full' />
 																	Belum ada catatan review
 																</div>
 															)}

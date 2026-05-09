@@ -188,45 +188,84 @@ export default function VersionDetailPage() {
 					) : null}
 				</div>
 
-				<div className='w-full lg:w-80 flex flex-col shrink-0 gap-6 overflow-y-auto'>
-					<Card className='p-5 space-y-5 rounded-lg'>
-						<div className='border-b pb-3'>
-							<h3 className='text-sm font-semibold text-foreground'>Metadata Versi</h3>
+				<div className='w-full lg:w-96 flex flex-col shrink-0 gap-6 overflow-y-auto'>
+					<Card className='p-6 space-y-6 rounded-2xl border-gray-200/60 shadow-sm'>
+						<div className='flex items-center justify-between border-b border-gray-100 pb-4'>
+							<h3 className='text-sm font-bold text-gray-900 uppercase tracking-wider'>Metadata Versi</h3>
+							<div className='px-2 py-1 bg-gray-100 rounded text-[10px] font-bold text-gray-500'>
+								V{version.versionNumber}
+							</div>
 						</div>
 
-						<div className='space-y-4'>
+						<div className='space-y-6'>
+							{/* Author Info */}
 							<div className='flex items-center gap-3'>
 								{(() => {
-									const displayName =
-										version.user?.name || version.user?.username || version.userId || 'User'
+									const displayName = version.user?.name || version.user?.username || version.userId || 'User'
 									return (
 										<>
-											<Avatar className='h-9 w-9 border'>
-												<AvatarImage
-													src={version.user?.photoURL || getAvatarUrl(displayName, version.userId)}
-												/>
-												<AvatarFallback className='text-xs'>
+											<Avatar className='h-10 w-10 border-2 border-white shadow-sm'>
+												<AvatarImage src={version.user?.photoURL || getAvatarUrl(displayName, version.userId)} />
+												<AvatarFallback className='bg-primary/5 text-primary text-xs font-bold'>
 													{getInitials(displayName)}
 												</AvatarFallback>
 											</Avatar>
 											<div className='flex flex-col'>
-												<span className='text-sm font-medium'>{displayName}</span>
-												<span className='text-xs text-muted-foreground'>Author</span>
+												<span className='text-sm font-bold text-gray-900 leading-none mb-1'>{displayName}</span>
+												<div className='flex items-center gap-1.5 text-[10px] text-gray-500 font-medium'>
+													<span className='px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-sm uppercase tracking-tight'>Author</span>
+													<span className='opacity-30'>•</span>
+													<span>{format(version.createdAt, 'HH:mm, d MMM', { locale: id })}</span>
+												</div>
 											</div>
 										</>
 									)
 								})()}
 							</div>
 
+							{/* Commit Message / Student Request */}
+							<div className='space-y-2'>
+								<div className='flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest'>
+									<MessageSquare className='w-3 h-3' />
+									Pesan Komit
+								</div>
+								<div className='bg-gray-50/80 rounded-xl p-4 border border-gray-100'>
+									<p className='text-sm text-gray-700 leading-relaxed italic'>
+										"{version.message || 'Tidak ada pesan komit.'}"
+									</p>
+								</div>
+							</div>
+
+							{/* Review Section */}
 							{versionReview && (
-								<div className='pt-3 border-t space-y-3'>
-									<div>
-										<p className='text-xs font-medium text-muted-foreground mb-2'>Status Review</p>
+								<div className='pt-6 border-t border-gray-100 space-y-4'>
+									<div className='flex items-center justify-between'>
+										<div className='text-[10px] font-bold text-gray-400 uppercase tracking-widest'>
+											Status Review
+										</div>
 										<ReviewStatusBadge status={versionReview.status} />
 									</div>
-									<div className='bg-muted/50 p-3 rounded-md'>
-										<p className='text-sm text-foreground italic'>"{versionReview.message}"</p>
-									</div>
+
+									{versionReview.status !== 'pending' && (
+										<div className='space-y-3 animate-in fade-in slide-in-from-top-2 duration-300'>
+											<div className='flex items-center gap-2'>
+												<div className='h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse' />
+												<span className='text-[10px] font-bold text-gray-500 uppercase tracking-tight'>
+													Umpan Balik Dosen
+												</span>
+											</div>
+											<div className='bg-green-50/30 rounded-xl p-4 border border-green-100/50'>
+												<p className='text-sm text-gray-800 leading-relaxed'>
+													{versionReview.lecturerMessage || versionReview.message || 'Versi telah disetujui tanpa catatan tambahan.'}
+												</p>
+											</div>
+											{versionReview.reviewedAt && (
+												<p className='text-[10px] text-gray-400 text-right'>
+													Ditinjau pada {format(versionReview.reviewedAt, 'd MMMM yyyy', { locale: id })}
+												</p>
+											)}
+										</div>
+									)}
 								</div>
 							)}
 						</div>

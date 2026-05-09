@@ -59,11 +59,16 @@ export default function ReviewDetailPage() {
 	const documents = docsRes?.documents || []
 	
 	const studentMember = reviewData ? members.find((m: any) => m.user?.userId === reviewData.studentUserId) : null
+	const lecturerMember = reviewData ? members.find((m: any) => m.user?.userId === reviewData.lecturerUserId) : null
 	const document = reviewData ? documents.find((d: any) => d.documentId === reviewData.documentId) : null
 	
 	const studentDisplayName = studentMember 
 		? `${studentMember.user.name} (@${studentMember.user.username})`
 		: 'Unknown Student'
+	
+	const lecturerDisplayName = lecturerMember
+		? `${lecturerMember.user.name} (@${lecturerMember.user.username})`
+		: 'Unknown Lecturer'
 	
 	const docTitle = document?.title || 'Untitled Document'
 	
@@ -179,18 +184,58 @@ export default function ReviewDetailPage() {
 						</div>
 					</div>
 
-					<div className='bg-white rounded-xl border border-gray-200 p-6 shadow-sm'>
-						<h3 className='text-lg font-semibold text-gray-900 mb-4'>Review Request</h3>
-						<div className='relative pl-4'>
-							<div className='absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-full' />
-							<ReviewComment
-								authorName={studentMember?.user.name || 'Student'}
-								authorInitials={studentMember?.user.name?.charAt(0) || 'S'}
-								date={formattedDate}
-								content={reviewData.message || 'No comment provided'}
-								userType='student'
-							/>
-						</div>
+					<div className='flex flex-col flex-1 gap-8'>
+						{/* Section 1: Review Request (from Student) */}
+						<section className='bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden'>
+							<div className='bg-gray-50/50 px-6 py-4 border-b border-gray-100 flex items-center justify-between'>
+								<h3 className='text-lg font-bold text-gray-900'>Review Request</h3>
+								<span className='text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-full uppercase'>
+									Student Message
+								</span>
+							</div>
+							<div className='p-6'>
+								<div className='relative pl-6'>
+									<div className='absolute left-0 top-0 bottom-0 w-1.5 bg-blue-500 rounded-full' />
+									<ReviewComment
+										authorName={studentMember?.user.name || 'Student'}
+										authorInitials={studentMember?.user.name?.charAt(0) || 'S'}
+										date={formattedDate}
+										content={reviewData.message || 'No comment provided'}
+										userType='student'
+									/>
+								</div>
+							</div>
+						</section>
+
+						{/* Section 2: Lecturer Feedback (only if reviewed) */}
+						{reviewData.status !== 'pending' && (
+							<section className='bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500'>
+								<div className='bg-gray-50/50 px-6 py-4 border-b border-gray-100 flex items-center justify-between'>
+									<h3 className='text-lg font-bold text-gray-900'>Review Feedback</h3>
+									<div className='flex items-center gap-2'>
+										<ReviewStatusBadge status={reviewData.status} />
+										<span className='text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full uppercase'>
+											Lecturer Decision
+										</span>
+									</div>
+								</div>
+								<div className='p-6'>
+									<div className='relative pl-6'>
+										<div className={`absolute left-0 top-0 bottom-0 w-1.5 rounded-full ${
+											reviewData.status === 'approved' ? 'bg-green-500' : 
+											reviewData.status === 'rejected' ? 'bg-red-500' : 'bg-amber-500'
+										}`} />
+										<ReviewComment
+											authorName={lecturerMember?.user.name || 'Lecturer'}
+											authorInitials={lecturerMember?.user.name?.charAt(0) || 'L'}
+											date={reviewData.reviewedAt ? format(reviewData.reviewedAt, 'd MMMM yyyy, HH:mm', { locale: id }) : 'Just now'}
+											content={reviewData.lecturerMessage || `The document has been marked as ${reviewData.status.replace('_', ' ')}.`}
+											userType='lecturer'
+										/>
+									</div>
+								</div>
+							</section>
+						)}
 					</div>
 					
 					{user?.role === 'Student' && (

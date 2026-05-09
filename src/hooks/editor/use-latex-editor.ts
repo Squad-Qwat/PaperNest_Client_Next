@@ -1,6 +1,3 @@
-// @ts-nocheck
-'use client'
-
 import {
 	autocompletion,
 	closeBrackets,
@@ -11,7 +8,7 @@ import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { bracketMatching, foldGutter, foldKeymap, indentOnInput } from '@codemirror/language'
 import { lintKeymap } from '@codemirror/lint'
 import { highlightSelectionMatches, searchKeymap } from '@codemirror/search'
-import { EditorState, type Extension } from '@codemirror/state'
+import { Compartment, EditorState, type Extension } from '@codemirror/state'
 import {
 	crosshairCursor,
 	drawSelection,
@@ -40,6 +37,10 @@ interface UseLatexEditorOptions {
 	readOnly?: boolean
 }
 
+// Compartments for dynamic configuration
+const collabCompartment = new Compartment()
+const readOnlyCompartment = new Compartment()
+
 export function useLatexEditor({
 	documentId = null,
 	user = null,
@@ -53,8 +54,9 @@ export function useLatexEditor({
 	const [isReady, setIsReady] = useState(false)
 	const [isSaving, setIsSaving] = useState(false)
 	const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
-	const { mutateAsync: batchUpdate } = useBatchUpdateDocument()
 	const initialContentRef = useRef(initialContent)
+
+	const { mutateAsync: batchUpdate } = useBatchUpdateDocument()
 
 	const {
 		yDoc,
@@ -70,7 +72,9 @@ export function useLatexEditor({
 
 	const onUpdate = useCallback(
 		(update: ViewUpdate) => {
-			if (update.docChanged && documentId) {
+			if (update.docChanged && documentId && !collaborationReady) {
+				// Only auto-save to Firestore manually if NOT in collaboration mode
+				// (In collaboration mode, the provider handles persistence or we have other sync logic)
 				if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
 				autoSaveTimerRef.current = setTimeout(async () => {
 					const content = update.state.doc.toString()
@@ -95,45 +99,14 @@ export function useLatexEditor({
 				}, autoSaveInterval)
 			}
 		},
-		[documentId, autoSaveInterval, batchUpdate]
+		[documentId, autoSaveInterval, batchUpdate, collaborationReady]
 	)
 
-	// Track if seeding has been attempted to avoid duplicate inserts
-	const seedingAttemptedRef = useRef(false)
-
-	// Effect 1: Handle Initial Content Seeding (Firestore -> Yjs)
+	// Effect 1: Initialize Editor once
 	useEffect(() => {
-		if (!enabled || !collaborationReady || !hasSyncedOnce || !yDoc) return
-		if (seedingAttemptedRef.current) return
+		if (!editorRef.current || viewRef.current) return
 
-		const initialText = typeof initialContent === 'string' ? initialContent : ''
-		const yText = yDoc.getText('latex')
-		const configMap = yDoc.getMap('config')
-		const isSeeded = configMap.get('isSeeded')
-
-		if (yText.length > 0 || isSeeded) {
-			seedingAttemptedRef.current = true
-			return
-		}
-
-		if (initialText !== 'Start writing here...' && initialText.trim().length > 0) {
-			yDoc.transact(() => {
-				configMap.set('isSeeded', true)
-				yText.insert(0, initialText)
-				console.log('📝 [LaTeX] Seeding template content successful')
-			})
-			seedingAttemptedRef.current = true
-		}
-	}, [enabled, collaborationReady, hasSyncedOnce, yDoc, initialContent])
-
-	// Effect 2: EditorView Lifecycle
-	useEffect(() => {
-		if (!editorRef.current || (enabled && !collaborationReady)) return
-		if (viewRef.current) return // Prevent duplicate initialization
-
-		const yText = yDoc ? yDoc.getText('latex') : null
-
-		const extensions: Extension[] = [
+		const baseExtensions: Extension[] = [
 			lineNumbers(),
 			highlightActiveLineGutter(),
 			history(),
@@ -162,35 +135,88 @@ export function useLatexEditor({
 			latex(),
 			EditorView.lineWrapping,
 			EditorView.updateListener.of(onUpdate),
-			EditorState.readOnly.of(readOnly),
+			// Initial dynamic extensions
+			collabCompartment.of([]),
+			readOnlyCompartment.of(EditorState.readOnly.of(readOnly)),
 		]
 
-		if (yText && awareness) {
-			extensions.push(yCollab(yText, awareness, { undoManager: undoManager as any }))
-		}
-
-		// Always start with empty string if collaboration is active, yCollab will sync.
-		// If not enabled, use initialContent.
 		const state = EditorState.create({
-			doc: enabled && collaborationReady ? '' : initialContentRef.current || '',
-			extensions,
+			// Start with initial content if not in collaboration mode yet
+			doc: initialContentRef.current || '',
+			extensions: baseExtensions,
 		})
 
-		const newView = new EditorView({
+		const view = new EditorView({
 			state,
 			parent: editorRef.current,
 		})
 
-		viewRef.current = newView
+		viewRef.current = view
 		setIsReady(true)
 
 		return () => {
-			newView.destroy()
+			view.destroy()
 			viewRef.current = null
 			setIsReady(false)
-			if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
 		}
-	}, [collaborationReady, enabled, awareness, onUpdate, undoManager, yDoc])
+	}, [onUpdate, readOnly])
+
+	// Effect 2: Update Collaboration Extension dynamically
+	useEffect(() => {
+		const view = viewRef.current
+		if (!view || !collaborationReady || !yDoc || !awareness) {
+			// Clear collaboration if not ready
+			if (view) {
+				view.dispatch({
+					effects: collabCompartment.reconfigure([]),
+				})
+			}
+			return
+		}
+
+		const yText = yDoc.getText('latex')
+		const extension = yCollab(yText, awareness, { undoManager: undoManager as any })
+
+		view.dispatch({
+			effects: collabCompartment.reconfigure(extension),
+		})
+	}, [collaborationReady, yDoc, awareness, undoManager])
+
+	// Effect 3: Update ReadOnly state dynamically
+	useEffect(() => {
+		const view = viewRef.current
+		if (!view) return
+
+		view.dispatch({
+			effects: readOnlyCompartment.reconfigure(EditorState.readOnly.of(readOnly)),
+		})
+	}, [readOnly])
+
+	// Effect 4: Handle Seeding (Only once per document lifecycle)
+	const seedingAttemptedRef = useRef(false)
+	useEffect(() => {
+		if (!collaborationReady || !hasSyncedOnce || !yDoc || seedingAttemptedRef.current) return
+
+		const yText = yDoc.getText('latex')
+		const configMap = yDoc.getMap('config')
+		const isSeeded = configMap.get('isSeeded')
+
+		// If there is already content or it's marked as seeded, don't seed
+		if (yText.length > 0 || isSeeded) {
+			seedingAttemptedRef.current = true
+			return
+		}
+
+		const initialText = typeof initialContent === 'string' ? initialContent : ''
+		if (initialText && initialText !== 'Start writing here...') {
+			yDoc.transact(() => {
+				configMap.set('isSeeded', true)
+				yText.insert(0, initialText)
+				console.log('📝 [LaTeX] Seeding template content successful')
+			})
+			seedingAttemptedRef.current = true
+		}
+	}, [collaborationReady, hasSyncedOnce, yDoc, initialContent])
 
 	return {
 		editorRef,
