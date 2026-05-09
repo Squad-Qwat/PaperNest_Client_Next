@@ -145,7 +145,7 @@ export function useLatexEditor({
 		const state = EditorState.create({
 			// Start with initial content ONLY if NOT in collaboration mode.
 			// If collab is enabled, start EMPTY and let Yjs sync the content to avoid duplication.
-			doc: !shouldWaitForCollab ? (initialContentRef.current || '') : '',
+			doc: !shouldWaitForCollab ? initialContentRef.current || '' : '',
 			extensions: baseExtensions,
 		})
 
@@ -162,7 +162,7 @@ export function useLatexEditor({
 			viewRef.current = null
 			setIsReady(false)
 		}
-	}, [onUpdate, readOnly])
+	}, [onUpdate, readOnly, documentId, enabled])
 
 	// Effect 2: Update Collaboration Extension dynamically
 	useEffect(() => {
@@ -220,7 +220,7 @@ export function useLatexEditor({
 
 		const yText = yDoc.getText('latex')
 		const configMap = yDoc.getMap('config')
-		
+
 		// If there is already content or it's marked as seeded in the shared map, don't seed
 		if (yText.length > 0 || configMap.get('isSeeded')) {
 			seedingAttemptedRef.current = true

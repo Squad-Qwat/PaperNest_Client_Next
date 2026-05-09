@@ -97,11 +97,17 @@ export default function VersionsPage() {
 					<div className='hidden md:flex items-center gap-3'>
 						<div className='flex -space-x-2'>
 							{versions.slice(0, 3).map((v: Version) => {
-								const member = members.find((m: any) => m.userId === v.userId || m.user?.userId === v.userId)
+								const member = members.find(
+									(m: any) => m.userId === v.userId || m.user?.userId === v.userId
+								)
 								const dName = v.user?.name || member?.user?.name || 'User'
 								return (
 									<Avatar key={v.documentBodyId} className='h-8 w-8 border-2 border-background'>
-										<AvatarImage src={v.user?.photoURL || member?.user?.photoURL || getAvatarUrl(dName, v.userId)} />
+										<AvatarImage
+											src={
+												v.user?.photoURL || member?.user?.photoURL || getAvatarUrl(dName, v.userId)
+											}
+										/>
 										<AvatarFallback className='text-[10px] bg-blue-50 text-blue-600'>
 											{getInitials(dName)}
 										</AvatarFallback>
@@ -153,10 +159,12 @@ export default function VersionsPage() {
 											<div key={version.documentBodyId} className='group'>
 												<Card
 													className={`p-5 transition-all duration-300 border-l-4 ${
-														isLatest 
-															? 'border-l-blue-600 bg-blue-50/30 ring-1 ring-blue-100' 
-															: versionReview 
-																? versionReview.status === 'approved' ? 'border-l-green-500' : 'border-l-amber-500'
+														isLatest
+															? 'border-l-blue-600 bg-blue-50/30 ring-1 ring-blue-100'
+															: versionReview
+																? versionReview.status === 'approved'
+																	? 'border-l-green-500'
+																	: 'border-l-amber-500'
 																: 'border-l-gray-300'
 													} hover:shadow-md group-hover:translate-x-1`}
 												>
@@ -165,8 +173,8 @@ export default function VersionsPage() {
 														<div className='flex items-center gap-4 md:w-48 shrink-0'>
 															<div
 																className={`h-12 w-12 shrink-0 rounded-xl flex items-center justify-center shadow-sm ${
-																	isLatest 
-																		? 'bg-blue-600 text-white' 
+																	isLatest
+																		? 'bg-blue-600 text-white'
 																		: 'bg-white border border-gray-200 text-gray-400'
 																}`}
 															>
@@ -178,7 +186,9 @@ export default function VersionsPage() {
 																		Versi #{String(version.versionNumber).padStart(3, '0')}
 																	</span>
 																	{!versionReview && !isLatest && (
-																		<span className='text-[10px] font-bold px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded uppercase'>Snapshot</span>
+																		<span className='text-[10px] font-bold px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded uppercase'>
+																			Snapshot
+																		</span>
 																	)}
 																</div>
 																<div className='flex items-center gap-1.5 text-xs text-gray-500 mt-0.5'>
@@ -197,13 +207,16 @@ export default function VersionsPage() {
 														<div className='flex-1 min-w-0 flex flex-col justify-center space-y-2'>
 															<div className='flex items-center gap-2'>
 																{(() => {
-																	const member = members.find((m: any) => m.userId === version.userId || m.user?.userId === version.userId)
+																	const member = members.find(
+																		(m: any) =>
+																			m.userId === version.userId ||
+																			m.user?.userId === version.userId
+																	)
 																	const displayName =
-																		version.user?.name ||
-																		member?.user?.name ||
-																		'User'
-																	
-																	const isUid = displayName.length > 20 && !displayName.includes(' ')
+																		version.user?.name || member?.user?.name || 'User'
+
+																	const isUid =
+																		displayName.length > 20 && !displayName.includes(' ')
 																	const finalName = isUid ? 'User' : displayName
 
 																	return (
@@ -236,7 +249,9 @@ export default function VersionsPage() {
 																			<MessageSquare className='w-3 h-3' />
 																		</div>
 																		<div className='flex flex-col'>
-																			<span className='text-[10px] font-bold text-blue-500 uppercase tracking-tight leading-none mb-1'>Student Request</span>
+																			<span className='text-[10px] font-bold text-blue-500 uppercase tracking-tight leading-none mb-1'>
+																				Student Request
+																			</span>
 																			<p className='text-sm text-gray-700 leading-tight'>
 																				{version.message || 'No commit message.'}
 																			</p>
@@ -249,21 +264,24 @@ export default function VersionsPage() {
 																			<ReviewStatusBadge status={versionReview.status} />
 																			{/* Logic for legacy data: if lecturerMessage is empty, use review.message as lecturer message */}
 																			{(() => {
-																				const feedback = versionReview.lecturerMessage || versionReview.message;
+																				const feedback =
+																					versionReview.lecturerMessage || versionReview.message
 																				// Only show if it's different from the version message or explicitly provided
 																				if (feedback) {
 																					return (
 																						<div className='flex items-start gap-2 border-l-2 border-gray-100 pl-3'>
 																							<div className='flex flex-col'>
-																								<span className='text-[10px] font-bold text-gray-400 uppercase tracking-tight leading-none mb-1'>Lecturer Feedback</span>
+																								<span className='text-[10px] font-bold text-gray-400 uppercase tracking-tight leading-none mb-1'>
+																									Lecturer Feedback
+																								</span>
 																								<p className='text-sm text-gray-600 italic leading-tight'>
 																									"{feedback}"
 																								</p>
 																							</div>
 																						</div>
-																					);
+																					)
 																				}
-																				return null;
+																				return null
 																			})()}
 																		</div>
 																	)}

@@ -1,8 +1,8 @@
-import { FileText, ChevronRight, MessageSquare, Clock } from 'lucide-react'
+import { ChevronRight, Clock, FileText } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/card'
-import { ReviewStatusBadge } from './ReviewStatusBadge'
 import { format, id } from '@/lib/date'
+import { ReviewStatusBadge } from './ReviewStatusBadge'
 
 interface ReviewCardProps {
 	reviewId: string
@@ -39,13 +39,28 @@ export function ReviewCard({
 	userRole,
 	versionNumber,
 	isDocumentDeleted = false,
-}: ReviewCardProps) {
+}: Readonly<ReviewCardProps>) {
 	const router = useRouter()
-	
+
 	const displayDate = format(requestedAt, 'd MMMM yyyy HH:mm', { locale: id })
 
 	const studentName = student?.name || 'Student'
 	const isLecturer = userRole?.toLowerCase() === 'lecturer'
+
+	const getStatusColor = (status: string) => {
+		switch (status) {
+			case 'approved':
+				return 'bg-green-500'
+			case 'rejected':
+				return 'bg-red-500'
+			case 'revision_required':
+				return 'bg-amber-500'
+			default:
+				return 'bg-teal-500'
+		}
+	}
+
+	const statusColorClass = getStatusColor(status)
 
 	const handleCardClick = () => {
 		// If lecturer OR if document is deleted, go to review detail
@@ -59,7 +74,7 @@ export function ReviewCard({
 
 	return (
 		<Card
-			className="group relative bg-white border shadow-sm transition-all duration-300 cursor-pointer overflow-hidden flex flex-col h-full hover:shadow-md hover:border-teal-500/50"
+			className='group relative bg-white border shadow-sm transition-all duration-300 cursor-pointer overflow-hidden flex flex-col h-full hover:shadow-md hover:border-teal-500/50'
 			onClick={handleCardClick}
 		>
 			<div className='p-6 space-y-4 flex-1 flex flex-col'>
@@ -69,7 +84,9 @@ export function ReviewCard({
 						<div className='flex items-center justify-between'>
 							<div className='flex items-center gap-1.5'>
 								<FileText className='w-3.5 h-3.5 text-teal-600' />
-								<span className='text-[10px] font-bold text-gray-400 uppercase tracking-widest'>Document</span>
+								<span className='text-[10px] font-bold text-gray-400 uppercase tracking-widest'>
+									Document
+								</span>
 							</div>
 							{versionNumber && (
 								<span className='text-[10px] font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full'>
@@ -77,10 +94,14 @@ export function ReviewCard({
 								</span>
 							)}
 						</div>
-						<h3 className={`text-lg font-bold line-clamp-2 leading-tight transition-colors ${
-							isDocumentDeleted ? 'text-gray-400 italic' : 'text-gray-900 group-hover:text-teal-600'
-						}`}>
-							{isDocumentDeleted ? 'Deleted Document' : (title || 'Untitled Document')}
+						<h3
+							className={`text-lg font-bold line-clamp-2 leading-tight transition-colors ${
+								isDocumentDeleted
+									? 'text-gray-400 italic'
+									: 'text-gray-900 group-hover:text-teal-600'
+							}`}
+						>
+							{isDocumentDeleted ? 'Deleted Document' : title || 'Untitled Document'}
 						</h3>
 					</div>
 					<div className='shrink-0'>
@@ -90,7 +111,9 @@ export function ReviewCard({
 
 				{/* Message Snippet */}
 				<div className='bg-gray-50/50 rounded-lg p-4 border border-gray-100 relative flex-1'>
-					<div className='text-[9px] font-bold text-gray-400 uppercase tracking-tight mb-2'>Request:</div>
+					<div className='text-[9px] font-bold text-gray-400 uppercase tracking-tight mb-2'>
+						Request:
+					</div>
 					<p className='text-sm text-gray-600 line-clamp-3 italic leading-relaxed'>
 						"{message || 'Tidak ada pesan pengantar.'}"
 					</p>
@@ -100,11 +123,7 @@ export function ReviewCard({
 				<div className='pt-4 flex items-center justify-between border-t border-gray-50 mt-auto'>
 					<div className='flex flex-col gap-1'>
 						<div className='flex items-center gap-2'>
-							<div className={`w-1.5 h-1.5 rounded-full ${
-								status === 'approved' ? 'bg-green-500' : 
-								status === 'rejected' ? 'bg-red-500' : 
-								status === 'revision_required' ? 'bg-amber-500' : 'bg-teal-500'
-							}`} />
+							<div className={`w-1.5 h-1.5 rounded-full ${statusColorClass}`} />
 							<span className='text-sm font-bold text-gray-900'>{studentName}</span>
 						</div>
 						<div className='flex items-center gap-1.5 text-[10px] text-gray-400 pl-3'>
@@ -112,7 +131,7 @@ export function ReviewCard({
 							<span>{displayDate}</span>
 						</div>
 					</div>
-					
+
 					<div className='h-8 w-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-teal-500 group-hover:text-white transition-all duration-300 shadow-inner'>
 						<ChevronRight className='w-4 h-4' />
 					</div>

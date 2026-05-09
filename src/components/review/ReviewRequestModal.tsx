@@ -20,7 +20,11 @@ interface ReviewRequestModalProps {
 	onSubmit: (data: { lecturerId: string; message: string }) => Promise<void>
 }
 
-export function ReviewRequestModal({ isOpen, onClose, onSubmit }: ReviewRequestModalProps) {
+export function ReviewRequestModal({
+	isOpen,
+	onClose,
+	onSubmit,
+}: Readonly<ReviewRequestModalProps>) {
 	const [lecturerId, setLecturerId] = useState('')
 	const [message, setMessage] = useState('')
 	const [loading, setLoading] = useState(false)

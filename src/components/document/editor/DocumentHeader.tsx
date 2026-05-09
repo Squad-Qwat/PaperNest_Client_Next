@@ -2,6 +2,7 @@ import { ChevronLeft, GitCommit, History, MessageSquare, Share2 } from 'lucide-r
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import LatexToolbar from '@/components/document/latex/LatexToolbar'
 import { CommitModal } from '@/components/document/mergeview/CommitModal'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -12,7 +13,6 @@ import { useDocumentReviews } from '@/lib/api/hooks/use-documents'
 import { useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
 import { documentsService } from '@/lib/api/services/documents.service'
 import { getInitials } from '@/lib/utils'
-import { toast } from 'sonner'
 
 interface DocumentHeaderProps {
 	title: string

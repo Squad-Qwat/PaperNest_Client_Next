@@ -16,10 +16,14 @@ import { Textarea } from '@/components/ui/textarea'
 interface CreateReviewModalProps {
 	isOpen: boolean
 	onClose: () => void
-	onSubmit: (data: { content: string; status: string }) => void
+	onSubmit: (data: { content: string; status: string }) => Promise<void> | void
 }
 
-export default function CreateReviewModal({ isOpen, onClose, onSubmit }: CreateReviewModalProps) {
+export default function CreateReviewModal({
+	isOpen,
+	onClose,
+	onSubmit,
+}: Readonly<CreateReviewModalProps>) {
 	const [content, setContent] = useState('')
 	const [status, setStatus] = useState('approved')
 	const [errors, setErrors] = useState<Record<string, string>>({})

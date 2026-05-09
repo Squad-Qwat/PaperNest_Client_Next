@@ -10,7 +10,11 @@ interface ReviewStatusBadgeProps {
 	showIcon?: boolean
 }
 
-export function ReviewStatusBadge({ status, className, showIcon = true }: ReviewStatusBadgeProps) {
+export function ReviewStatusBadge({
+	status,
+	className,
+	showIcon = true,
+}: Readonly<ReviewStatusBadgeProps>) {
 	// Normalize status to match display logic (or handle mapping)
 	const getStatusConfig = (rawStatus: string) => {
 		// Map backend status to Display String if needed, or just handle keys

@@ -191,7 +191,9 @@ export default function VersionDetailPage() {
 				<div className='w-full lg:w-96 flex flex-col shrink-0 gap-6 overflow-y-auto'>
 					<Card className='p-6 space-y-6 rounded-2xl border-gray-200/60 shadow-sm'>
 						<div className='flex items-center justify-between border-b border-gray-100 pb-4'>
-							<h3 className='text-sm font-bold text-gray-900 uppercase tracking-wider'>Metadata Versi</h3>
+							<h3 className='text-sm font-bold text-gray-900 uppercase tracking-wider'>
+								Metadata Versi
+							</h3>
 							<div className='px-2 py-1 bg-gray-100 rounded text-[10px] font-bold text-gray-500'>
 								V{version.versionNumber}
 							</div>
@@ -201,19 +203,26 @@ export default function VersionDetailPage() {
 							{/* Author Info */}
 							<div className='flex items-center gap-3'>
 								{(() => {
-									const displayName = version.user?.name || version.user?.username || version.userId || 'User'
+									const displayName =
+										version.user?.name || version.user?.username || version.userId || 'User'
 									return (
 										<>
 											<Avatar className='h-10 w-10 border-2 border-white shadow-sm'>
-												<AvatarImage src={version.user?.photoURL || getAvatarUrl(displayName, version.userId)} />
+												<AvatarImage
+													src={version.user?.photoURL || getAvatarUrl(displayName, version.userId)}
+												/>
 												<AvatarFallback className='bg-primary/5 text-primary text-xs font-bold'>
 													{getInitials(displayName)}
 												</AvatarFallback>
 											</Avatar>
 											<div className='flex flex-col'>
-												<span className='text-sm font-bold text-gray-900 leading-none mb-1'>{displayName}</span>
+												<span className='text-sm font-bold text-gray-900 leading-none mb-1'>
+													{displayName}
+												</span>
 												<div className='flex items-center gap-1.5 text-[10px] text-gray-500 font-medium'>
-													<span className='px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-sm uppercase tracking-tight'>Author</span>
+													<span className='px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-sm uppercase tracking-tight'>
+														Author
+													</span>
 													<span className='opacity-30'>•</span>
 													<span>{format(version.createdAt, 'HH:mm, d MMM', { locale: id })}</span>
 												</div>
@@ -256,12 +265,15 @@ export default function VersionDetailPage() {
 											</div>
 											<div className='bg-green-50/30 rounded-xl p-4 border border-green-100/50'>
 												<p className='text-sm text-gray-800 leading-relaxed'>
-													{versionReview.lecturerMessage || versionReview.message || 'Versi telah disetujui tanpa catatan tambahan.'}
+													{versionReview.lecturerMessage ||
+														versionReview.message ||
+														'Versi telah disetujui tanpa catatan tambahan.'}
 												</p>
 											</div>
 											{versionReview.reviewedAt && (
 												<p className='text-[10px] text-gray-400 text-right'>
-													Ditinjau pada {format(versionReview.reviewedAt, 'd MMMM yyyy', { locale: id })}
+													Ditinjau pada{' '}
+													{format(versionReview.reviewedAt, 'd MMMM yyyy', { locale: id })}
 												</p>
 											)}
 										</div>

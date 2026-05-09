@@ -20,7 +20,7 @@ export class LaTeXConverter {
 	static splitDocument(latex: string): LaTeXParts {
 		const beginRegex = /\\begin\{document\}/
 		const endRegex = /\\end\{document\}/
-		
+
 		const beginMatch = latex.match(beginRegex)
 		const endMatch = latex.match(endRegex)
 
@@ -30,7 +30,7 @@ export class LaTeXConverter {
 
 		const beginIndex = beginMatch.index!
 		const beginTagLength = beginMatch[0].length
-		
+
 		const bodyStart = beginIndex + beginTagLength
 		const bodyEnd = endMatch ? endMatch.index! : latex.length
 		const postambleStart = endMatch ? endMatch.index! + endMatch[0].length : latex.length

@@ -1,8 +1,8 @@
-import { Separator } from '@/components/ui/separator'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { ArrowRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
 
 interface ReviewInfoCardProps {
 	lecturerName: string
@@ -18,7 +18,7 @@ export function ReviewInfoCard({
 	documentId,
 	workspaceId,
 	isDeleted = false,
-}: ReviewInfoCardProps) {
+}: Readonly<ReviewInfoCardProps>) {
 	const router = useRouter()
 
 	return (
@@ -40,10 +40,10 @@ export function ReviewInfoCard({
 					<span className='font-mono text-[10px] text-gray-400 truncate ml-4'>{documentId}</span>
 				</div>
 			</div>
-			<Button 
+			<Button
 				className={`w-full mt-6 border rounded-lg font-bold shadow-sm ${
-					isDeleted 
-						? 'bg-gray-50 text-gray-400 cursor-not-allowed opacity-70' 
+					isDeleted
+						? 'bg-gray-50 text-gray-400 cursor-not-allowed opacity-70'
 						: 'bg-white hover:bg-gray-50 text-gray-900'
 				}`}
 				onClick={() => !isDeleted && router.push(`/${workspaceId}/documents/${documentId}`)}

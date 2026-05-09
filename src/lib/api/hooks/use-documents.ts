@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { collection, doc, onSnapshot, orderBy, query, where } from 'firebase/firestore'
+import { collection, doc, onSnapshot, query, where } from 'firebase/firestore'
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { db } from '@/lib/firebase/config'
@@ -78,7 +78,7 @@ export function useWorkspaceDocuments(workspaceId: string) {
 	return { data: { documents, count: documents.length }, isLoading }
 }
 
-export function useDocument(workspaceId: string, documentId: string) {
+export function useDocument(_workspaceId: string, documentId: string) {
 	const [document, setDocument] = useState<any>(null)
 	const [isLoading, setIsLoading] = useState(true)
 
@@ -133,12 +133,15 @@ export function useDocumentVersions(documentId: string) {
 		const unsubscribe = onSnapshot(
 			q,
 			(snapshot) => {
-				const docs = snapshot.docs.map((doc) => ({
-					documentBodyId: doc.id,
-					...doc.data(),
-					createdAt: doc.data().createdAt?.toDate?.() || doc.data().createdAt,
-					updatedAt: doc.data().updatedAt?.toDate?.() || doc.data().updatedAt,
-				} as unknown as Version))
+				const docs = snapshot.docs.map(
+					(doc) =>
+						({
+							documentBodyId: doc.id,
+							...doc.data(),
+							createdAt: doc.data().createdAt?.toDate?.() || doc.data().createdAt,
+							updatedAt: doc.data().updatedAt?.toDate?.() || doc.data().updatedAt,
+						}) as unknown as Version
+				)
 				// Sort by versionNumber descending
 				docs.sort((a, b) => (b.versionNumber || 0) - (a.versionNumber || 0))
 				setVersions(docs)

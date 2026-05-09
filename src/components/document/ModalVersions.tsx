@@ -16,11 +16,10 @@ import {
 	useDocumentVersions,
 	useRevertVersion,
 } from '@/lib/api/hooks/use-documents'
+import { useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
 import type { Review } from '@/lib/api/types/review.types'
 import { format, id } from '@/lib/date'
 import { laTeXService } from '@/lib/latex/LaTeXService'
-import { getInitials } from '@/lib/utils'
-import { useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
 
 interface ModalVersionsProps {
 	isOpen: boolean
@@ -134,9 +133,11 @@ export default function ModalVersions({
 			const versionReview = reviews.find((r) => r.documentBodyId === version.documentBodyId)
 
 			// Resolve Author Name
-			const member = members.find((m: any) => m.userId === version.userId || m.user?.userId === version.userId)
+			const member = members.find(
+				(m: any) => m.userId === version.userId || m.user?.userId === version.userId
+			)
 			let authorName = version.user?.name || member?.user?.name || version.createdBy
-			
+
 			if (user && (authorName === user.userId || !authorName)) {
 				authorName = user.name || 'User'
 			}
@@ -171,7 +172,7 @@ export default function ModalVersions({
 					: undefined,
 			}
 		})
-	}, [versions, reviews, user])
+	}, [versions, reviews, user, members.find])
 
 	// Compile when version selection changes
 	useEffect(() => {

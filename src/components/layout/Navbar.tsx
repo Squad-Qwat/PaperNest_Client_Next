@@ -1,6 +1,6 @@
 'use client'
 
-import { Bell, Check, Clock, Info, LogOut, MessageSquare, Settings, Slash, User } from 'lucide-react'
+import { LogOut, Settings, Slash, User } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -14,22 +14,15 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher'
 import { useAuth } from '@/context/AuthContext'
-import {
-	useNotifications,
-	useUnreadNotifications,
-	useMarkNotificationAsRead,
-	useMarkAllNotificationsAsRead,
-} from '@/lib/api/hooks/use-notifications'
 import { useLogout } from '@/lib/api/hooks/use-auth'
 import { cn } from '@/lib/utils'
-import { formatDistanceToNow } from 'date-fns'
 
 interface NavbarProps {
 	mode?: 'workspace' | 'document'
 	documentId?: string
 }
 
-export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
+export function Navbar({ mode = 'workspace', documentId }: Readonly<NavbarProps>) {
 	const pathname = usePathname()
 	const router = useRouter()
 	const params = useParams()
@@ -37,28 +30,6 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 	const { mutate: logout } = useLogout()
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 	const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
-
-	const { data: unreadResponse } = useUnreadNotifications()
-	const unreadCount = unreadResponse?.notifications?.length || 0
-
-	const { data: recentResponse } = useNotifications({ limit: 5 })
-	const recentNotifications = recentResponse?.notifications || []
-
-	const { mutate: markAsRead } = useMarkNotificationAsRead()
-	const { mutate: markAllAsRead } = useMarkAllNotificationsAsRead()
-
-	const getNotificationIcon = (type: string) => {
-		switch (type) {
-			case 'review_request':
-				return <Clock className='w-4 h-4 text-blue-500' />
-			case 'review_completed':
-				return <Check className='w-4 h-4 text-green-500' />
-			case 'comment':
-				return <MessageSquare className='w-4 h-4 text-purple-500' />
-			default:
-				return <Info className='w-4 h-4 text-gray-400' />
-		}
-	}
 
 	const workspaceId = params.workspaceid as string
 
@@ -143,92 +114,6 @@ export function Navbar({ mode = 'workspace', documentId }: NavbarProps) {
 
 						{/* User Actions */}
 						<div className='hidden md:flex items-center gap-3'>
-							{/* Notifications Dropdown */}
-							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<button
-										type='button'
-										className='p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors relative'
-										aria-label='Notifications'
-										title='Notifications'
-									>
-										<Bell className='w-5 h-5' />
-										{unreadCount > 0 && (
-											<span className='absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white ring-2 ring-white'>
-												{unreadCount > 9 ? '9+' : unreadCount}
-											</span>
-										)}
-									</button>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent align='end' className='w-80 p-0'>
-									<div className='flex items-center justify-between p-4 border-b'>
-										<h3 className='font-semibold text-sm'>Notifications</h3>
-										{unreadCount > 0 && (
-											<button
-												onClick={() => markAllAsRead()}
-												className='text-xs text-primary hover:underline font-medium'
-											>
-												Mark all as read
-											</button>
-										)}
-									</div>
-									<div className='max-h-96 overflow-y-auto'>
-										{recentNotifications.length === 0 ? (
-											<div className='p-8 text-center'>
-												<Bell className='w-8 h-8 text-gray-200 mx-auto mb-2' />
-												<p className='text-xs text-gray-500'>No notifications yet</p>
-											</div>
-										) : (
-											recentNotifications.map((notification) => (
-												<div
-													key={notification.notificationId}
-													onClick={() => {
-														if (!notification.isRead)
-															markAsRead(notification.notificationId)
-														router.push(`/reviews/${notification.relatedId}`)
-													}}
-													className={cn(
-														'p-4 flex items-start gap-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50 transition-colors',
-														!notification.isRead && 'bg-blue-50/50'
-													)}
-												>
-													<div className='mt-0.5'>
-														{getNotificationIcon(notification.type)}
-													</div>
-													<div className='flex-1 min-w-0'>
-														<p
-															className={cn(
-																'text-xs font-semibold text-gray-900 truncate',
-																!notification.isRead && 'text-blue-900'
-															)}
-														>
-															{notification.title}
-														</p>
-														<p className='text-xs text-gray-500 line-clamp-2 mt-0.5'>
-															{notification.message}
-														</p>
-														<p className='text-[10px] text-gray-400 mt-1'>
-															{formatDistanceToNow(new Date(notification.createdAt), {
-																addSuffix: true,
-															})}
-														</p>
-													</div>
-													{!notification.isRead && (
-														<div className='mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-600' />
-													)}
-												</div>
-											))
-										)}
-									</div>
-									<Link
-										href='/notifications'
-										className='block p-3 text-center text-xs font-medium text-primary hover:bg-gray-50 transition-colors'
-									>
-										View all notifications
-									</Link>
-								</DropdownMenuContent>
-							</DropdownMenu>
-
 							{/* User Menu Dropdown */}
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>

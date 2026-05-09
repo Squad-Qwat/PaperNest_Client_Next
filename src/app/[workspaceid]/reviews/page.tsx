@@ -13,6 +13,8 @@ import {
 	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
+import { Button } from '@/components/ui/button'
+import { ButtonGroup } from '@/components/ui/button-group'
 import { Input } from '@/components/ui/input'
 import {
 	Select,
@@ -25,16 +27,13 @@ import { Separator } from '@/components/ui/separator'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/context/AuthContext'
-import { useWorkspace } from '@/lib/api/hooks/use-workspaces'
 import { useWorkspaceDocuments } from '@/lib/api/hooks/use-documents'
+import { useWorkspace } from '@/lib/api/hooks/use-workspaces'
 import { documentsService } from '@/lib/api/services/documents.service'
-import type { Document, Version } from '@/lib/api/types/document.types'
+import type { Version } from '@/lib/api/types/document.types'
 import type { Review } from '@/lib/api/types/review.types'
-import { format, id } from '@/lib/date'
-import { Button } from '@/components/ui/button'
-import { ButtonGroup } from '@/components/ui/button-group'
 
-const normalizeReviewStatus = (status?: string) =>
+const _normalizeReviewStatus = (status?: string) =>
 	(status || '').toLowerCase().replace(/\s+/g, '_')
 
 const toReviews = (response: unknown): Review[] => {
@@ -59,14 +58,14 @@ const mergeReviews = (...reviewGroups: Review[][]) => {
 
 export default function ReviewsPage() {
 	const params = useParams()
-	const router = useRouter()
+	const _router = useRouter()
 	const { user } = useAuth()
 	const workspaceId = params.workspaceid as string
 	const { data: workspace } = useWorkspace(workspaceId)
 
 	const { data: docsRes, isLoading: docsLoading } = useWorkspaceDocuments(workspaceId)
 	const documents = docsRes?.documents || []
-	
+
 	const [reviews, setReviews] = useState<Review[]>([])
 	const [versions, setVersions] = useState<Record<string, Version>>({})
 	const [loading, setLoading] = useState(true)
@@ -94,12 +93,10 @@ export default function ReviewsPage() {
 					user.role?.toLowerCase() === 'student'
 						? documentsService.getStudentReviews()
 						: documentsService.getPendingReviews()
-						
+
 				const [roleReviewsRes, documentReviewResults] = await Promise.all([
 					roleReviewsRequest,
-					Promise.allSettled(
-						documents.map((doc) => documentsService.getReviews(doc.documentId))
-					),
+					Promise.allSettled(documents.map((doc) => documentsService.getReviews(doc.documentId))),
 				])
 
 				const allReviews = mergeReviews(
@@ -107,31 +104,31 @@ export default function ReviewsPage() {
 					documentReviewResults.flatMap((result) =>
 						result.status === 'fulfilled' ? toReviews(result.value) : []
 					)
-				).filter(review => {
-					const docExists = documents.some(d => d.documentId === review.documentId)
+				).filter((review) => {
+					const docExists = documents.some((d) => d.documentId === review.documentId)
 					const isLecturer = user?.role?.toLowerCase() === 'lecturer'
 
 					// 1. If doc exists, always show review to everyone
 					if (docExists) return true
-					
+
 					// 2. If doc is deleted:
 					// - Lecturers see historical records (anything not pending)
 					// - Students see nothing (their dashboard stays clean of deleted work)
 					return isLecturer && review.status !== 'pending'
 				})
-				
+
 				setReviews(allReviews)
 
 				// 3. Fetch Versions for all reviews to sync dates
-				const uniqueDocIds = Array.from(new Set(allReviews.map(r => r.documentId)))
+				const uniqueDocIds = Array.from(new Set(allReviews.map((r) => r.documentId)))
 				const versionsMap: Record<string, Version> = {}
-				
+
 				await Promise.allSettled(
 					uniqueDocIds.map(async (docId) => {
 						try {
 							const vRes = await documentsService.getVersions(docId)
 							if (vRes.versions) {
-								vRes.versions.forEach(v => {
+								vRes.versions.forEach((v) => {
 									versionsMap[v.documentBodyId] = v
 								})
 							}
@@ -143,7 +140,7 @@ export default function ReviewsPage() {
 						}
 					})
 				)
-				
+
 				setVersions(versionsMap)
 			} catch (error) {
 				console.error('Failed to fetch data:', error)
@@ -153,7 +150,7 @@ export default function ReviewsPage() {
 		}
 
 		fetchData()
-	}, [user, workspaceId, documents.length]) // Re-run if docs list changes to get their reviews
+	}, [user, workspaceId, documents.map, documents.some]) // Re-run if docs list changes to get their reviews
 
 	// Derive visible reviews
 	const filteredReviews = reviews
@@ -163,7 +160,7 @@ export default function ReviewsPage() {
 
 			// 2. Status Filter
 			if (statusFilter !== 'all') {
-				const currentStatus = (review.status || '').toLowerCase().replace(/\s+/g, '_')
+				const currentStatus = (review.status || '').toLowerCase().replaceAll(/\s+/g, '_')
 				if (currentStatus !== statusFilter) return false
 			}
 
@@ -173,7 +170,7 @@ export default function ReviewsPage() {
 				const title = doc?.title?.toLowerCase() || ''
 				const msg = (review.message || '').toLowerCase()
 				const query = searchQuery.toLowerCase()
-				
+
 				if (!title.includes(query) && !msg.includes(query)) return false
 			}
 
@@ -182,17 +179,83 @@ export default function ReviewsPage() {
 		.sort((a, b) => {
 			const verA = versions[a.documentBodyId]
 			const verB = versions[b.documentBodyId]
-			
+
 			const dateA = new Date(verA?.createdAt || a.requestedAt || 0).getTime()
 			const dateB = new Date(verB?.createdAt || b.requestedAt || 0).getTime()
-			
-			if (isNaN(dateA) || isNaN(dateB)) return 0
+
+			if (Number.isNaN(dateA) || Number.isNaN(dateB)) return 0
 			return sortOrder === 'newest' ? dateB - dateA : dateA - dateB
 		})
 
+	const renderReviewsContent = () => {
+		if (loading || docsLoading) {
+			return (
+				<div
+					className={
+						viewMode === 'list'
+							? 'grid gap-4'
+							: 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4'
+					}
+				>
+					{[1, 2, 3, 4, 5, 6].map((i) => (
+						<Skeleton
+							key={`review-skeleton-item-${i}`}
+							className={viewMode === 'list' ? 'h-24 rounded-lg' : 'h-64 rounded-lg'}
+						/>
+					))}
+				</div>
+			)
+		}
+
+		if (filteredReviews.length === 0) {
+			return (
+				<div className='text-center py-16 bg-white rounded-lg border border-dashed border-gray-300'>
+					<div className='inline-flex items-center justify-center h-12 w-12 rounded-full bg-gray-100 mb-4'>
+						<Search className='h-6 w-6 text-gray-400' />
+					</div>
+					<p className='text-gray-600 font-medium mb-1'>No reviews found</p>
+					<p className='text-gray-500 text-sm'>Try adjusting your search or filter criteria</p>
+				</div>
+			)
+		}
+
+		return (
+			<div
+				className={
+					viewMode === 'list'
+						? 'grid gap-4'
+						: 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4'
+				}
+			>
+				{filteredReviews.map((review, _index) => {
+					const version = versions[review.documentBodyId]
+					const doc = documents.find((d) => d.documentId === review.documentId)
+					return (
+						<ReviewCard
+							key={review.reviewId}
+							reviewId={review.reviewId}
+							documentId={review.documentId}
+							lecturerUserId={review.lecturerUserId || 'Unknown Reviewer'}
+							student={review.student}
+							lecturer={review.lecturer}
+							message={review.message}
+							status={review.status}
+							requestedAt={version?.createdAt || review.requestedAt}
+							versionNumber={version?.versionNumber}
+							title={doc?.title}
+							isDocumentDeleted={!doc}
+							workspaceId={workspaceId}
+							userRole={user?.role}
+						/>
+					)
+				})}
+			</div>
+		)
+	}
+
 	return (
 		<SidebarProvider>
-			<AppSidebar/>
+			<AppSidebar />
 			<SidebarInset className='flex flex-col min-h-0 overflow-hidden border border-gray-200/50 transition-all duration-300 isolate rounded-2xl m-2'>
 				<header className='flex h-16 shrink-0 items-center gap-2 px-4 bg-white border-b sticky top-0 z-30 rounded-t-2xl'>
 					<SidebarTrigger className='-ml-1' />
@@ -221,22 +284,24 @@ export default function ReviewsPage() {
 								<h2 className='text-2xl font-bold text-gray-900'>
 									{user?.role === 'Lecturer' ? 'Review Mahasiswa' : 'Reviews Saya'}
 								</h2>
-								<span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full ${
-									user?.role === 'Lecturer' 
-										? 'bg-purple-100 text-purple-700' 
-										: 'bg-teal-100 text-teal-700'
-								}`}>
+								<span
+									className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full ${
+										user?.role === 'Lecturer'
+											? 'bg-purple-100 text-purple-700'
+											: 'bg-teal-100 text-teal-700'
+									}`}
+								>
 									{user?.role}
 								</span>
 							</div>
 							<p className='text-sm text-gray-500'>
-								{user?.role === 'Lecturer' 
-									? `Kelola daftar review mahasiswa di workspace ` 
+								{user?.role === 'Lecturer'
+									? `Kelola daftar review mahasiswa di workspace `
 									: `Pantau status review dokumen Anda di workspace `}
 								<b>{workspace?.title}</b>
 							</p>
 						</div>
-						
+
 						{/* User Identity Info */}
 						<div className='flex items-center gap-3 px-4 py-2 bg-gray-50 rounded-xl border border-gray-100'>
 							<div className='text-right hidden sm:block'>
@@ -302,13 +367,13 @@ export default function ReviewsPage() {
 							</Select>
 
 							{(docFilter !== 'all' || statusFilter !== 'all' || searchQuery) && (
-								<Button 
-									variant="ghost" 
-									size="sm" 
+								<Button
+									variant='ghost'
+									size='sm'
 									onClick={() => {
-										setDocFilter('all');
-										setStatusFilter('all');
-										setSearchQuery('');
+										setDocFilter('all')
+										setStatusFilter('all')
+										setSearchQuery('')
 									}}
 									className='text-gray-500 hover:text-teal-600 px-2'
 								>
@@ -316,77 +381,38 @@ export default function ReviewsPage() {
 								</Button>
 							)}
 
-							<Separator orientation="vertical" className="h-6 mx-1 hidden sm:block" />
+							<Separator orientation='vertical' className='h-6 mx-1 hidden sm:block' />
 
-							<ButtonGroup orientation="horizontal">
-								<Button 
-									variant={viewMode === 'list' ? 'default' : 'outline'} 
-									size="sm" 
+							<ButtonGroup orientation='horizontal'>
+								<Button
+									variant={viewMode === 'list' ? 'default' : 'outline'}
+									size='sm'
 									onClick={() => setViewMode('list')}
-									className="px-2.5"
+									className='px-2.5'
 								>
-									<LayoutList className="w-4 h-4" />
+									<LayoutList className='w-4 h-4' />
 								</Button>
-								<Button 
-									variant={viewMode === 'grid' ? 'default' : 'outline'} 
-									size="sm" 
+								<Button
+									variant={viewMode === 'grid' ? 'default' : 'outline'}
+									size='sm'
 									onClick={() => setViewMode('grid')}
-									className="px-2.5"
+									className='px-2.5'
 								>
-									<LayoutGrid className="w-4 h-4" />
+									<LayoutGrid className='w-4 h-4' />
 								</Button>
 							</ButtonGroup>
 						</div>
 					</div>
 
 					{/* List Header */}
-					<div className="flex items-center justify-between mb-4">
+					<div className='flex items-center justify-between mb-4'>
 						<h2 className='text-lg font-bold text-gray-900'>
 							Semua Review ({filteredReviews.length})
 						</h2>
 					</div>
 
 					{/* Reviews List */}
-					{loading || docsLoading ? (
-						<div className={viewMode === 'list' ? 'grid gap-4' : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4'}>
-							{[1, 2, 3, 4, 5, 6].map((i) => (
-								<Skeleton key={`review-skeleton-item-${i}`} className={viewMode === 'list' ? 'h-24 rounded-lg' : 'h-64 rounded-lg'} />
-							))}
-						</div>
-					) : filteredReviews.length === 0 ? (
-						<div className='text-center py-16 bg-white rounded-lg border border-dashed border-gray-300'>
-							<div className='inline-flex items-center justify-center h-12 w-12 rounded-full bg-gray-100 mb-4'>
-								<Search className='h-6 w-6 text-gray-400' />
-							</div>
-							<p className='text-gray-600 font-medium mb-1'>No reviews found</p>
-							<p className='text-gray-500 text-sm'>Try adjusting your search or filter criteria</p>
-						</div>
-					) : (
-						<div className={viewMode === 'list' ? 'grid gap-4' : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4'}>
-							{filteredReviews.map((review, index) => {
-								const version = versions[review.documentBodyId]
-								const doc = documents.find(d => d.documentId === review.documentId)
-								return (
-									<ReviewCard
-										key={review.reviewId}
-										reviewId={review.reviewId}
-										documentId={review.documentId}
-										lecturerUserId={review.lecturerUserId || 'Unknown Reviewer'}
-										student={review.student}
-										lecturer={review.lecturer}
-										message={review.message}
-										status={review.status}
-										requestedAt={version?.createdAt || review.requestedAt}
-										versionNumber={version?.versionNumber}
-										title={doc?.title}
-										isDocumentDeleted={!doc}
-										workspaceId={workspaceId}
-										userRole={user?.role}
-									/>
-								)
-							})}
-						</div>
-					)}
+					{renderReviewsContent()}
 				</main>
 			</SidebarInset>
 		</SidebarProvider>
