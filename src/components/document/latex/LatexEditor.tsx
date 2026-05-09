@@ -21,6 +21,7 @@ interface LatexEditorProps {
 	onEditorReady?: (functions: any) => void
 	onAutoSaveStateChange?: (isSaving: boolean, lastSavedAt: Date | null) => void
 	isPdfHidden?: boolean
+	readOnly?: boolean
 }
 
 type PendingMergeChange = {
@@ -61,6 +62,7 @@ export function LatexEditor({
 	onEditorReady,
 	onAutoSaveStateChange,
 	isPdfHidden = false,
+	readOnly = false,
 }: LatexEditorProps) {
 	const others = useOthers()
 	const [isCompiling, setIsCompiling] = useState(false)
@@ -138,6 +140,7 @@ export function LatexEditor({
 		documentId,
 		user,
 		initialContent,
+		readOnly,
 	})
 
 	/**

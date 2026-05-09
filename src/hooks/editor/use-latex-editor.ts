@@ -37,6 +37,7 @@ interface UseLatexEditorOptions {
 	initialContent?: string
 	enabled?: boolean
 	autoSaveInterval?: number
+	readOnly?: boolean
 }
 
 export function useLatexEditor({
@@ -45,6 +46,7 @@ export function useLatexEditor({
 	initialContent = '',
 	enabled = true,
 	autoSaveInterval = 2000,
+	readOnly = false,
 }: UseLatexEditorOptions = {}) {
 	const editorRef = useRef<HTMLDivElement>(null)
 	const viewRef = useRef<EditorView | null>(null)
@@ -160,6 +162,7 @@ export function useLatexEditor({
 			latex(),
 			EditorView.lineWrapping,
 			EditorView.updateListener.of(onUpdate),
+			EditorState.readOnly.of(readOnly),
 		]
 
 		if (yText && awareness) {

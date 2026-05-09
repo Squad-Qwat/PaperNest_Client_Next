@@ -17,38 +17,31 @@ import { Separator } from '@/components/ui/separator'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/context/AuthContext'
-import { useWorkspace } from '@/lib/api/hooks/use-workspaces'
+import { useWorkspaceMembers, useWorkspace } from '@/lib/api/hooks/use-workspaces'
+import { useWorkspaceDocuments } from '@/lib/api/hooks/use-documents'
 import { documentsService } from '@/lib/api/services/documents.service'
+import { format, id } from '@/lib/date'
 
 export default function ReviewDetailPage() {
 	const params = useParams()
 	const router = useRouter()
 	const { workspaceid, reviewId } = params
 	const workspaceId = workspaceid as string
+	
 	const { user, loading: authLoading } = useAuth()
 	const { data: workspace } = useWorkspace(workspaceId)
-	const [review, setReview] = useState<any | null>(null)
+	const { data: membersRes } = useWorkspaceMembers(workspaceId)
+	const { data: docsRes } = useWorkspaceDocuments(workspaceId)
+	
+	const [reviewData, setReviewData] = useState<any | null>(null)
 	const [loading, setLoading] = useState(true)
 
 	useEffect(() => {
 		const fetchReview = async () => {
 			if (!reviewId || authLoading) return
 			try {
-				const { review: reviewData } = await documentsService.getReview(reviewId as string)
-				// Fetch document title if needed, or use generic
-				// For now mapping to UI shape
-				setReview({
-					id: reviewData.reviewId,
-					title: 'Review Details',
-					lecturerName: 'Lecturer',
-					status: reviewData.status,
-					requestBy: 'Student',
-					createdAt: new Date(reviewData.requestedAt).toLocaleDateString(),
-					description: reviewData.message,
-					documentName: 'Document',
-					documentId: reviewData.documentId,
-					lecturerUserId: reviewData.lecturerUserId,
-				})
+				const res = await documentsService.getReview(reviewId as string)
+				setReviewData(res.review)
 			} catch (e) {
 				console.error('Failed to fetch review:', e)
 			} finally {
@@ -60,6 +53,21 @@ export default function ReviewDetailPage() {
 			fetchReview()
 		}
 	}, [reviewId, authLoading])
+
+	// Derived data
+	const members = membersRes?.members || []
+	const documents = docsRes?.documents || []
+	
+	const studentMember = reviewData ? members.find((m: any) => m.user?.userId === reviewData.studentUserId) : null
+	const document = reviewData ? documents.find((d: any) => d.documentId === reviewData.documentId) : null
+	
+	const studentDisplayName = studentMember 
+		? `${studentMember.user.name} (@${studentMember.user.username})`
+		: 'Unknown Student'
+	
+	const docTitle = document?.title || 'Untitled Document'
+	
+	const formattedDate = format(reviewData?.requestedAt, 'd MMMM yyyy, HH:mm', { locale: id })
 
 	if (authLoading || loading) {
 		return (
@@ -80,7 +88,7 @@ export default function ReviewDetailPage() {
 		)
 	}
 
-	if (!review) {
+	if (!reviewData) {
 		return (
 			<SidebarProvider>
 				<AppSidebar />
@@ -140,7 +148,7 @@ export default function ReviewDetailPage() {
 							</BreadcrumbItem>
 							<BreadcrumbSeparator className='hidden md:block' />
 							<BreadcrumbItem>
-								<BreadcrumbPage>Detail</BreadcrumbPage>
+								<BreadcrumbPage>{docTitle}</BreadcrumbPage>
 							</BreadcrumbItem>
 						</BreadcrumbList>
 					</Breadcrumb>
@@ -150,37 +158,37 @@ export default function ReviewDetailPage() {
 					<div className='mb-8'>
 						<div className='flex flex-col gap-4'>
 							<div className='flex items-center justify-between'>
-								<h1 className='text-2xl font-bold text-gray-900'>{review.title}</h1>
-								<ReviewStatusBadge status={review.status} />
+								<h1 className='text-2xl font-bold text-gray-900'>Detail Review: {docTitle}</h1>
+								<ReviewStatusBadge status={reviewData.status} />
 							</div>
 
 							<div className='flex flex-wrap items-center gap-3 text-sm text-gray-600'>
 								<span>
-									Requested by <span className='font-semibold text-gray-900'>{review.requestBy}</span>
+									Requested by <span className='font-semibold text-gray-900'>{studentDisplayName}</span>
 								</span>
 								<span className='mx-1 text-gray-300'>•</span>
 								<span>
 									Document:{' '}
 									<span className='font-mono text-blue-600 bg-blue-50 px-1 py-0.5 rounded'>
-										{review.documentName}
+										{docTitle}
 									</span>
 								</span>
 								<span className='mx-1 text-gray-300'>•</span>
-								<span>{review.createdAt}</span>
+								<span>{formattedDate}</span>
 							</div>
 						</div>
 					</div>
 
 					<div className='bg-white rounded-xl border border-gray-200 p-6 shadow-sm'>
-						<h3 className='text-lg font-semibold text-gray-900 mb-4'>Feedback</h3>
+						<h3 className='text-lg font-semibold text-gray-900 mb-4'>Review Request</h3>
 						<div className='relative pl-4'>
 							<div className='absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-full' />
 							<ReviewComment
-								authorName={review.lecturerName}
-								authorInitials='LC'
-								date={review.createdAt}
-								content={review.description || 'No comment provided'}
-								userType='lecturer'
+								authorName={studentMember?.user.name || 'Student'}
+								authorInitials={studentMember?.user.name?.charAt(0) || 'S'}
+								date={formattedDate}
+								content={reviewData.message || 'No comment provided'}
+								userType='student'
 							/>
 						</div>
 					</div>
@@ -189,7 +197,7 @@ export default function ReviewDetailPage() {
 						<div className='mt-6 flex justify-end'>
 							<button
 								type="button"
-								onClick={() => router.push(`/${workspaceId}/documents/${review.documentId}`)}
+								onClick={() => router.push(`/${workspaceId}/documents/${reviewData.documentId}`)}
 								className='px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm'
 							>
 								Open Document

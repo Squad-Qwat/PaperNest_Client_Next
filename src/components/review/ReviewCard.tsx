@@ -179,7 +179,7 @@ export function ReviewCard({
 					aria-label='Card footer actions'
 				>
 					<Link
-						href={`/${workspaceId}/documents/${documentId}`}
+						href={`/${workspaceId}/documents/${documentId}?mode=review`}
 						className='flex items-center gap-2 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded text-xs font-medium transition-colors'
 						onClick={(e) => e.stopPropagation()}
 					>

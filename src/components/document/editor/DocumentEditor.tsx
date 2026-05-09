@@ -11,6 +11,7 @@ interface DocumentEditorProps {
 	onEditorReady: (functions: any) => void
 	isPdfHidden?: boolean
 	initialContent?: string
+	readOnly?: boolean
 }
 
 // Komponen Editor yang ada di dalam Room
@@ -21,6 +22,7 @@ export default function DocumentEditor({
 	onEditorReady,
 	isPdfHidden,
 	initialContent,
+	readOnly,
 }: DocumentEditorProps) {
 	return (
 		<div className='w-full h-full flex-1 overflow-hidden bg-white'>
@@ -31,6 +33,7 @@ export default function DocumentEditor({
 				title={title}
 				onEditorReady={onEditorReady}
 				isPdfHidden={isPdfHidden}
+				readOnly={readOnly}
 			/>
 		</div>
 	)
