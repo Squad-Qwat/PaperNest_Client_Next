@@ -13,32 +13,42 @@ export interface LaTeXParts {
 export class LaTeXConverter {
 	/**
 	 * Splits a LaTeX document into preamble, body, and postamble.
+	 * preamble: everything before \begin{document}
+	 * body: everything between \begin{document} and \end{document}
+	 * postamble: everything after \end{document}
 	 */
 	static splitDocument(latex: string): LaTeXParts {
-		const beginMatch = latex.match(/\\begin\{document\}/)
-		const endMatch = latex.match(/\\end\{document\}/)
+		const beginRegex = /\\begin\{document\}/
+		const endRegex = /\\end\{document\}/
+		
+		const beginMatch = latex.match(beginRegex)
+		const endMatch = latex.match(endRegex)
 
 		if (!beginMatch) {
 			return { preamble: '', body: latex, postamble: '' }
 		}
 
 		const beginIndex = beginMatch.index!
-		const beginTag = beginMatch[0]
-		const endIndex = endMatch ? endMatch.index! : latex.length
-		const _endTag = endMatch ? endMatch[0] : ''
+		const beginTagLength = beginMatch[0].length
+		
+		const bodyStart = beginIndex + beginTagLength
+		const bodyEnd = endMatch ? endMatch.index! : latex.length
+		const postambleStart = endMatch ? endMatch.index! + endMatch[0].length : latex.length
 
 		return {
-			preamble: latex.substring(0, beginIndex + beginTag.length),
-			body: latex.substring(beginIndex + beginTag.length, endIndex),
-			postamble: latex.substring(endIndex),
+			preamble: latex.substring(0, beginIndex).trim(),
+			body: latex.substring(bodyStart, bodyEnd).trim(),
+			postamble: latex.substring(postambleStart).trim(),
 		}
 	}
 
 	/**
-	 * Joins document parts back together.
+	 * Joins document parts back together safely.
 	 */
 	static joinDocument(parts: LaTeXParts): string {
-		return parts.preamble + parts.body + parts.postamble
+		const preamble = parts.preamble ? `${parts.preamble}\n\n` : ''
+		const postamble = parts.postamble ? `\n\n${parts.postamble}` : ''
+		return `${preamble}\\begin{document}\n\n${parts.body}\n\n\\end{document}${postamble}`
 	}
 
 	/**

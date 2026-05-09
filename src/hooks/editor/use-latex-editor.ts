@@ -65,7 +65,7 @@ export function useLatexEditor({
 		hasSyncedOnce,
 		awareness,
 	} = useLatexCollaboration({
-		enabled: !!documentId && enabled,
+		enabled: !!documentId && enabled && !readOnly,
 		user,
 		documentId,
 	})
@@ -140,9 +140,12 @@ export function useLatexEditor({
 			readOnlyCompartment.of(EditorState.readOnly.of(readOnly)),
 		]
 
+		const shouldWaitForCollab = !!documentId && enabled && !readOnly
+
 		const state = EditorState.create({
-			// Start with initial content if not in collaboration mode yet
-			doc: initialContentRef.current || '',
+			// Start with initial content ONLY if NOT in collaboration mode.
+			// If collab is enabled, start EMPTY and let Yjs sync the content to avoid duplication.
+			doc: !shouldWaitForCollab ? (initialContentRef.current || '') : '',
 			extensions: baseExtensions,
 		})
 
@@ -192,27 +195,48 @@ export function useLatexEditor({
 		})
 	}, [readOnly])
 
-	// Effect 4: Handle Seeding (Only once per document lifecycle)
+	// Effect 4: Update content if collaboration is NOT being used and initialContent changes
+	// CRITICAL: We only do this manual update if collaboration is disabled.
+	// If collaboration is enabled, we MUST wait for Yjs to sync to avoid duplication.
+	const shouldWaitForCollab = !!documentId && enabled && !readOnly
+
+	useEffect(() => {
+		const view = viewRef.current
+		if (!view || collaborationReady || shouldWaitForCollab || !initialContent) return
+
+		// Only update if the current content is different to avoid cursor jumps
+		const currentContent = view.state.doc.toString()
+		if (currentContent !== initialContent) {
+			view.dispatch({
+				changes: { from: 0, to: currentContent.length, insert: initialContent },
+			})
+		}
+	}, [initialContent, collaborationReady, shouldWaitForCollab])
+
+	// Effect 5: Handle Seeding (Only once per document lifecycle when collaboration is active)
 	const seedingAttemptedRef = useRef(false)
 	useEffect(() => {
 		if (!collaborationReady || !hasSyncedOnce || !yDoc || seedingAttemptedRef.current) return
 
 		const yText = yDoc.getText('latex')
 		const configMap = yDoc.getMap('config')
-		const isSeeded = configMap.get('isSeeded')
-
-		// If there is already content or it's marked as seeded, don't seed
-		if (yText.length > 0 || isSeeded) {
+		
+		// If there is already content or it's marked as seeded in the shared map, don't seed
+		if (yText.length > 0 || configMap.get('isSeeded')) {
 			seedingAttemptedRef.current = true
 			return
 		}
 
 		const initialText = typeof initialContent === 'string' ? initialContent : ''
+		// If it's a new document and we have a template/initial content
 		if (initialText && initialText !== 'Start writing here...') {
 			yDoc.transact(() => {
-				configMap.set('isSeeded', true)
-				yText.insert(0, initialText)
-				console.log('📝 [LaTeX] Seeding template content successful')
+				// Re-check inside transaction to be safer
+				if (!configMap.get('isSeeded') && yText.length === 0) {
+					configMap.set('isSeeded', true)
+					yText.insert(0, initialText)
+					console.log('📝 [LaTeX] Seeding template content successful')
+				}
 			})
 			seedingAttemptedRef.current = true
 		}
