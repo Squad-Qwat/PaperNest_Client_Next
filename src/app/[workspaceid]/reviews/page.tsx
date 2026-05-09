@@ -109,11 +109,15 @@ export default function ReviewsPage() {
 					)
 				).filter(review => {
 					const docExists = documents.some(d => d.documentId === review.documentId)
-					// Handle "empty" cases: 
-					// 1. If doc exists, always show review
-					// 2. If doc is deleted, only show if it's ALREADY reviewed (not pending)
-					// This removes orphaned pending reviews from the queue
-					return docExists || review.status !== 'pending'
+					const isLecturer = user?.role?.toLowerCase() === 'lecturer'
+
+					// 1. If doc exists, always show review to everyone
+					if (docExists) return true
+					
+					// 2. If doc is deleted:
+					// - Lecturers see historical records (anything not pending)
+					// - Students see nothing (their dashboard stays clean of deleted work)
+					return isLecturer && review.status !== 'pending'
 				})
 				
 				setReviews(allReviews)
