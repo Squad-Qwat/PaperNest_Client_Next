@@ -52,17 +52,22 @@ export function ReviewCard({
 	const handleReviewSubmit = async (data: { content: string; status: string }) => {
 		try {
 			setIsUpdating(true)
-			const payload = { message: data.content }
 			let newStatus = status
-
 			if (data.status === 'approved') {
-				await documentsService.approveReview(reviewId, payload)
+				// Approve endpoint doesn't strictly require status in body but works with message
+				await documentsService.approveReview(reviewId, { message: data.content })
 				newStatus = 'approved'
 			} else if (data.status === 'rejected') {
-				await documentsService.rejectReview(reviewId, payload)
+				await documentsService.rejectReview(reviewId, { 
+					status: 'rejected', 
+					message: data.content 
+				})
 				newStatus = 'rejected'
-			} else if (data.status === 'revision') {
-				await documentsService.requestRevision(reviewId, payload)
+			} else if (data.status === 'revision_required') {
+				await documentsService.requestRevision(reviewId, { 
+					status: 'revision_required', 
+					message: data.content 
+				})
 				newStatus = 'revision_required'
 			}
 

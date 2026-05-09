@@ -72,7 +72,7 @@ export default function CreateReviewModal({ isOpen, onClose, onSubmit }: CreateR
 						</SelectTrigger>
 						<SelectContent>
 							<SelectItem value='approved'>Approved</SelectItem>
-							<SelectItem value='revision'>Revision Required</SelectItem>
+							<SelectItem value='revision_required'>Revision Required</SelectItem>
 							<SelectItem value='rejected'>Rejected</SelectItem>
 						</SelectContent>
 					</Select>
