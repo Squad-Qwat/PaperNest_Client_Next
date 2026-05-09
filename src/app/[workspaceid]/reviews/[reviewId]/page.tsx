@@ -1,26 +1,40 @@
 'use client'
 
 import { useParams, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { toast } from 'sonner'
 import { AppSidebar } from '@/components/app-sidebar'
 import { ReviewComment } from '@/components/review/ReviewComment'
-import { ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
-import {
-	Breadcrumb,
-	BreadcrumbItem,
-	BreadcrumbLink,
-	BreadcrumbList,
-	BreadcrumbPage,
-	BreadcrumbSeparator,
+import { ReviewHero } from '@/components/review/ReviewHero'
+import { ReviewDetailSection } from '@/components/review/ReviewDetailSection'
+import { ReviewInfoCard } from '@/components/review/ReviewInfoCard'
+import { ReviewActionCard } from '@/components/review/ReviewActionCard'
+import { 
+	Breadcrumb, 
+	BreadcrumbItem, 
+	BreadcrumbLink, 
+	BreadcrumbList, 
+	BreadcrumbPage, 
+	BreadcrumbSeparator 
 } from '@/components/ui/breadcrumb'
+import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/context/AuthContext'
 import { useWorkspaceMembers, useWorkspace } from '@/lib/api/hooks/use-workspaces'
-import { useWorkspaceDocuments } from '@/lib/api/hooks/use-documents'
-import { documentsService } from '@/lib/api/services/documents.service'
+import { useDocument, useReviewDetail, useUpdateReviewStatus } from '@/lib/api/hooks/use-documents'
 import { format, id } from '@/lib/date'
+import { Textarea } from '@/components/ui/textarea'
+import { 
+	Dialog, 
+	DialogContent, 
+	DialogDescription, 
+	DialogFooter, 
+	DialogHeader, 
+	DialogTitle 
+} from '@/components/ui/dialog'
+import { CheckCircle2, XCircle, AlertCircle, ChevronLeft, MessageSquare } from 'lucide-react'
 
 export default function ReviewDetailPage() {
 	const params = useParams()
@@ -31,62 +45,68 @@ export default function ReviewDetailPage() {
 	const { user, loading: authLoading } = useAuth()
 	const { data: workspace } = useWorkspace(workspaceId)
 	const { data: membersRes } = useWorkspaceMembers(workspaceId)
-	const { data: docsRes } = useWorkspaceDocuments(workspaceId)
+	const { data: reviewRes, isLoading: reviewLoading } = useReviewDetail(reviewId as string)
+	const reviewData = reviewRes?.review
 	
-	const [reviewData, setReviewData] = useState<any | null>(null)
-	const [loading, setLoading] = useState(true)
-
-	useEffect(() => {
-		const fetchReview = async () => {
-			if (!reviewId || authLoading) return
-			try {
-				const res = await documentsService.getReview(reviewId as string)
-				setReviewData(res.review)
-			} catch (e) {
-				console.error('Failed to fetch review:', e)
-			} finally {
-				setLoading(false)
-			}
-		}
-
-		if (!authLoading) {
-			fetchReview()
-		}
-	}, [reviewId, authLoading])
+	const { data: documentRes } = useDocument(workspaceId, reviewData?.documentId)
+	const document = documentRes?.document || documentRes 
+	
+	const { mutateAsync: updateStatus, isPending: isUpdating } = useUpdateReviewStatus()
+	
+	// Feedback Modal State
+	const [isModalOpen, setIsModalOpen] = useState(false)
+	const [decision, setDecision] = useState<'approved' | 'rejected' | 'revision_required'>('approved')
+	const [feedback, setFeedback] = useState('')
 
 	// Derived data
 	const members = membersRes?.members || []
-	const documents = docsRes?.documents || []
+	const studentMember = reviewData ? members.find((m: any) => m.userId === reviewData.studentUserId || m.user?.userId === reviewData.studentUserId) : null
+	const lecturerMember = reviewData ? members.find((m: any) => m.userId === reviewData.lecturerUserId || m.user?.userId === reviewData.lecturerUserId) : null
 	
-	const studentMember = reviewData ? members.find((m: any) => m.user?.userId === reviewData.studentUserId) : null
-	const lecturerMember = reviewData ? members.find((m: any) => m.user?.userId === reviewData.lecturerUserId) : null
-	const document = reviewData ? documents.find((d: any) => d.documentId === reviewData.documentId) : null
-	
-	const studentDisplayName = studentMember 
-		? `${studentMember.user.name} (@${studentMember.user.username})`
-		: 'Unknown Student'
-	
-	const lecturerDisplayName = lecturerMember
-		? `${lecturerMember.user.name} (@${lecturerMember.user.username})`
-		: 'Unknown Lecturer'
+	const studentName = reviewData?.student?.name || studentMember?.user?.name || 'Student'
+	const lecturerName = reviewData?.lecturer?.name || lecturerMember?.user?.name || 'Lecturer'
 	
 	const docTitle = document?.title || 'Untitled Document'
-	
-	const formattedDate = format(reviewData?.requestedAt, 'd MMMM yyyy, HH:mm', { locale: id })
+	const formattedDate = format(reviewData?.requestedAt || new Date(), 'd MMMM yyyy, HH:mm', { locale: id })
 
-	if (authLoading || loading) {
+	const handleAction = async () => {
+		if (!reviewId) return
+		
+		try {
+			await updateStatus({
+				reviewId: reviewId as string,
+				data: { status: decision, message: feedback }
+			})
+			toast.success(`Review ${decision.replace('_', ' ')} successfully`)
+			setIsModalOpen(false)
+			setFeedback('')
+		} catch (error: any) {
+			toast.error(error.message || 'Failed to update review')
+		}
+	}
+
+	const openDecisionModal = (type: 'approved' | 'rejected' | 'revision_required') => {
+		setDecision(type)
+		setFeedback('')
+		setIsModalOpen(true)
+	}
+
+	if (authLoading || reviewLoading) {
 		return (
 			<SidebarProvider>
 				<AppSidebar />
-				<SidebarInset className='flex flex-col min-h-0 overflow-hidden border border-gray-200/50 transition-all duration-300 isolate rounded-2xl m-2'>
-					<header className='flex h-16 shrink-0 items-center gap-2 px-4 bg-white border-b sticky top-0 z-30 rounded-t-2xl'>
+				<SidebarInset className='flex flex-col min-h-0 bg-sidebar rounded-xl m-2 overflow-hidden border'>
+					<header className='flex h-16 shrink-0 items-center gap-2 px-4 bg-white border-b sticky top-0 z-30'>
 						<SidebarTrigger className='-ml-1' />
 						<Separator orientation='vertical' className='mr-2 h-4' />
 						<Skeleton className='h-4 w-64' />
 					</header>
-					<main className='flex-1 p-6'>
-						<Skeleton className='h-8 w-1/3 mb-4' />
-						<Skeleton className='h-32 w-full' />
+					<main className='flex-1 p-6 space-y-6'>
+						<Skeleton className='h-64 w-full rounded-xl' />
+						<div className='grid grid-cols-3 gap-8'>
+							<Skeleton className='col-span-2 h-64 rounded-xl' />
+							<Skeleton className='h-64 rounded-xl' />
+						</div>
 					</main>
 				</SidebarInset>
 			</SidebarProvider>
@@ -97,160 +117,142 @@ export default function ReviewDetailPage() {
 		return (
 			<SidebarProvider>
 				<AppSidebar />
-				<SidebarInset className='flex flex-col min-h-0 overflow-hidden border border-gray-200/50 transition-all duration-300 isolate rounded-2xl m-2'>
-					<header className='flex h-16 shrink-0 items-center gap-2 px-4 bg-white border-b sticky top-0 z-30 rounded-t-2xl'>
+				<SidebarInset className='flex flex-col min-h-0 bg-sidebar rounded-xl m-2 border overflow-hidden'>
+					<header className='flex h-16 shrink-0 items-center gap-2 px-4 bg-white border-b'>
 						<SidebarTrigger className='-ml-1' />
 						<Separator orientation='vertical' className='mr-2 h-4' />
 						<Breadcrumb>
 							<BreadcrumbList>
-								<BreadcrumbItem>
-									<BreadcrumbLink href={`/${workspaceId}`}>Workspace</BreadcrumbLink>
-								</BreadcrumbItem>
+								<BreadcrumbItem><BreadcrumbLink href={`/${workspaceId}`}>Workspace</BreadcrumbLink></BreadcrumbItem>
 								<BreadcrumbSeparator />
-								<BreadcrumbItem>
-									<BreadcrumbLink href={`/${workspaceId}/reviews`}>Reviews</BreadcrumbLink>
-								</BreadcrumbItem>
+								<BreadcrumbItem><BreadcrumbPage>Review Not Found</BreadcrumbPage></BreadcrumbItem>
 							</BreadcrumbList>
 						</Breadcrumb>
 					</header>
-					<main className='flex-1 p-6 flex items-center justify-center'>
-						<div className='text-center'>
-							<h2 className='text-xl font-semibold text-gray-900'>Review not found</h2>
-							<p className='text-gray-500 mt-2'>The review you are looking for does not exist or has been removed.</p>
-							<button 
-								type="button"
-								onClick={() => router.push(`/${workspaceId}/reviews`)}
-								className='mt-4 text-blue-600 hover:underline font-medium'
-							>
-								Back to Reviews
-							</button>
-						</div>
+					<main className='flex-1 p-6 flex flex-col items-center justify-center text-center'>
+						<div className='bg-red-50 p-6 rounded-full mb-4'><AlertCircle className='w-12 h-12 text-red-500' /></div>
+						<h2 className='text-2xl font-bold text-gray-900'>Review tidak ditemukan</h2>
+						<Button variant="outline" className='mt-6' onClick={() => router.push(`/${workspaceId}/reviews`)}>
+							<ChevronLeft className='w-4 h-4 mr-2' /> Kembali ke Daftar Review
+						</Button>
 					</main>
 				</SidebarInset>
 			</SidebarProvider>
 		)
 	}
 
+	const isLecturer = user?.role === 'Lecturer'
+	const isPending = reviewData.status === 'pending'
+
 	return (
 		<SidebarProvider>
 			<AppSidebar />
-			<SidebarInset className='flex flex-col min-h-0 overflow-hidden border border-gray-200/50 transition-all duration-300 isolate rounded-2xl m-2'>
-				<header className='flex h-16 shrink-0 items-center gap-2 px-4 bg-white border-b sticky top-0 z-30 rounded-t-2xl'>
+			<SidebarInset className='flex flex-col min-h-0 bg-sidebar rounded-xl m-2 border overflow-hidden'>
+				<header className='flex h-16 shrink-0 items-center gap-2 px-4 bg-white border-b sticky top-0 z-30'>
 					<SidebarTrigger className='-ml-1' />
 					<Separator orientation='vertical' className='mr-2 h-4' />
 					<Breadcrumb>
 						<BreadcrumbList>
-							<BreadcrumbItem className='hidden md:block'>
-								<BreadcrumbLink href='#'>PaperNest</BreadcrumbLink>
-							</BreadcrumbItem>
+							<BreadcrumbItem className='hidden md:block'><BreadcrumbLink href='/'>PaperNest</BreadcrumbLink></BreadcrumbItem>
 							<BreadcrumbSeparator className='hidden md:block' />
-							<BreadcrumbItem>
-								<BreadcrumbLink href={`/${workspaceId}`}>{workspace?.title || 'Workspace'}</BreadcrumbLink>
-							</BreadcrumbItem>
+							<BreadcrumbItem><BreadcrumbLink href={`/${workspaceId}`}>{workspace?.title || 'Workspace'}</BreadcrumbLink></BreadcrumbItem>
 							<BreadcrumbSeparator className='hidden md:block' />
-							<BreadcrumbItem>
-								<BreadcrumbLink href={`/${workspaceId}/reviews`}>Reviews</BreadcrumbLink>
-							</BreadcrumbItem>
+							<BreadcrumbItem><BreadcrumbLink href={`/${workspaceId}/reviews`}>Reviews</BreadcrumbLink></BreadcrumbItem>
 							<BreadcrumbSeparator className='hidden md:block' />
-							<BreadcrumbItem>
-								<BreadcrumbPage>{docTitle}</BreadcrumbPage>
-							</BreadcrumbItem>
+							<BreadcrumbItem><BreadcrumbPage>{docTitle}</BreadcrumbPage></BreadcrumbItem>
 						</BreadcrumbList>
 					</Breadcrumb>
 				</header>
 
-				<main className='flex-1 p-6 w-full overflow-y-auto'>
-					<div className='mb-8'>
-						<div className='flex flex-col gap-4'>
-							<div className='flex items-center justify-between'>
-								<h1 className='text-2xl font-bold text-gray-900'>Detail Review: {docTitle}</h1>
-								<ReviewStatusBadge status={reviewData.status} />
-							</div>
+				<main className='flex-1 p-4 md:p-6 w-full overflow-y-auto space-y-6'>
+					<ReviewHero 
+						docTitle={docTitle}
+						studentName={studentName}
+						formattedDate={formattedDate}
+						status={reviewData.status}
+						documentId={reviewData.documentId}
+						workspaceId={workspaceId}
+					/>
 
-							<div className='flex flex-wrap items-center gap-3 text-sm text-gray-600'>
-								<span>
-									Requested by <span className='font-semibold text-gray-900'>{studentDisplayName}</span>
-								</span>
-								<span className='mx-1 text-gray-300'>•</span>
-								<span>
-									Document:{' '}
-									<span className='font-mono text-blue-600 bg-blue-50 px-1 py-0.5 rounded'>
-										{docTitle}
-									</span>
-								</span>
-								<span className='mx-1 text-gray-300'>•</span>
-								<span>{formattedDate}</span>
-							</div>
-						</div>
-					</div>
+					<div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
+						<div className='lg:col-span-2 space-y-6'>
+							<ReviewDetailSection title="Review Request" badgeText="Student Message" icon={MessageSquare} variant="teal">
+								<ReviewComment
+									authorName={studentName}
+									date={formattedDate}
+									content={reviewData.message || 'Tidak ada pesan pengantar.'}
+									userType='student'
+								/>
+							</ReviewDetailSection>
 
-					<div className='flex flex-col flex-1 gap-8'>
-						{/* Section 1: Review Request (from Student) */}
-						<section className='bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden'>
-							<div className='bg-gray-50/50 px-6 py-4 border-b border-gray-100 flex items-center justify-between'>
-								<h3 className='text-lg font-bold text-gray-900'>Review Request</h3>
-								<span className='text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-full uppercase'>
-									Student Message
-								</span>
-							</div>
-							<div className='p-6'>
-								<div className='relative pl-6'>
-									<div className='absolute left-0 top-0 bottom-0 w-1.5 bg-blue-500 rounded-full' />
+							{!isPending && (
+								<ReviewDetailSection 
+									title="Review Feedback" 
+									badgeText="Decision Reached" 
+									icon={CheckCircle2} 
+									variant={reviewData.status === 'approved' ? 'green' : reviewData.status === 'rejected' ? 'red' : 'amber'}
+								>
 									<ReviewComment
-										authorName={studentMember?.user.name || 'Student'}
-										authorInitials={studentMember?.user.name?.charAt(0) || 'S'}
-										date={formattedDate}
-										content={reviewData.message || 'No comment provided'}
-										userType='student'
+										authorName={lecturerName}
+										date={format(reviewData.reviewedAt || new Date(), 'd MMMM yyyy, HH:mm', { locale: id })}
+										content={reviewData.lecturerMessage || `Dokumen telah ditandai sebagai ${reviewData.status.replace('_', ' ')}.`}
+										userType='lecturer'
 									/>
-								</div>
-							</div>
-						</section>
-
-						{/* Section 2: Lecturer Feedback (only if reviewed) */}
-						{reviewData.status !== 'pending' && (
-							<section className='bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500'>
-								<div className='bg-gray-50/50 px-6 py-4 border-b border-gray-100 flex items-center justify-between'>
-									<h3 className='text-lg font-bold text-gray-900'>Review Feedback</h3>
-									<div className='flex items-center gap-2'>
-										<ReviewStatusBadge status={reviewData.status} />
-										<span className='text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full uppercase'>
-											Lecturer Decision
-										</span>
-									</div>
-								</div>
-								<div className='p-6'>
-									<div className='relative pl-6'>
-										<div className={`absolute left-0 top-0 bottom-0 w-1.5 rounded-full ${
-											reviewData.status === 'approved' ? 'bg-green-500' : 
-											reviewData.status === 'rejected' ? 'bg-red-500' : 'bg-amber-500'
-										}`} />
-										<ReviewComment
-											authorName={lecturerMember?.user.name || 'Lecturer'}
-											authorInitials={lecturerMember?.user.name?.charAt(0) || 'L'}
-											date={reviewData.reviewedAt ? format(reviewData.reviewedAt, 'd MMMM yyyy, HH:mm', { locale: id }) : 'Just now'}
-											content={reviewData.lecturerMessage || `The document has been marked as ${reviewData.status.replace('_', ' ')}.`}
-											userType='lecturer'
-										/>
-									</div>
-								</div>
-							</section>
-						)}
-					</div>
-					
-					{user?.role === 'Student' && (
-						<div className='mt-6 flex justify-end'>
-							<button
-								type="button"
-								onClick={() => router.push(`/${workspaceId}/documents/${reviewData.documentId}`)}
-								className='px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm'
-							>
-								Open Document
-							</button>
+								</ReviewDetailSection>
+							)}
 						</div>
-					)}
+
+						<div className='space-y-6'>
+							{isLecturer && isPending ? (
+								<ReviewActionCard onAction={openDecisionModal} />
+							) : (
+								<ReviewInfoCard 
+									lecturerName={lecturerName}
+									studentName={studentName}
+									documentId={reviewData.documentId}
+									workspaceId={workspaceId}
+								/>
+							)}
+						</div>
+					</div>
 				</main>
 			</SidebarInset>
+
+			{/* Decision Modal */}
+			<Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+				<DialogContent className='sm:max-w-[500px]'>
+					<DialogHeader>
+						<DialogTitle>
+							Konfirmasi {decision.replace('_', ' ').charAt(0).toUpperCase() + decision.replace('_', ' ').slice(1)}
+						</DialogTitle>
+						<DialogDescription>
+							Berikan catatan atau masukan tambahan untuk mahasiswa mengenai keputusan ini.
+						</DialogDescription>
+					</DialogHeader>
+					
+					<div className='py-4'>
+						<Textarea
+							placeholder='Tulis pesan masukan Anda di sini (opsional)...'
+							value={feedback}
+							onChange={(e) => setFeedback(e.target.value)}
+							className='min-h-[120px]'
+						/>
+					</div>
+					
+					<DialogFooter className='flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2'>
+						<Button variant='outline' onClick={() => setIsModalOpen(false)} className='px-6'>
+							Batal
+						</Button>
+						<Button 
+							onClick={handleAction} 
+							disabled={isUpdating}
+							className='font-bold px-8'
+						>
+							{isUpdating ? 'Memproses...' : 'Kirim Keputusan'}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 		</SidebarProvider>
 	)
 }

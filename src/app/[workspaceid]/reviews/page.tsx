@@ -1,6 +1,6 @@
 'use client'
 
-import { Search } from 'lucide-react'
+import { LayoutGrid, LayoutList, Search } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { AppSidebar } from '@/components/app-sidebar'
@@ -27,9 +27,11 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/context/AuthContext'
 import { useWorkspace } from '@/lib/api/hooks/use-workspaces'
 import { documentsService } from '@/lib/api/services/documents.service'
-import type { Document } from '@/lib/api/types/document.types'
+import type { Document, Version } from '@/lib/api/types/document.types'
 import type { Review } from '@/lib/api/types/review.types'
 import { format, id } from '@/lib/date'
+import { Button } from '@/components/ui/button'
+import { ButtonGroup } from '@/components/ui/button-group'
 
 const normalizeReviewStatus = (status?: string) =>
 	(status || '').toLowerCase().replace(/\s+/g, '_')
@@ -63,6 +65,7 @@ export default function ReviewsPage() {
 
 	const [reviews, setReviews] = useState<Review[]>([])
 	const [documents, setDocuments] = useState<Document[]>([])
+	const [versions, setVersions] = useState<Record<string, Version>>({})
 	const [loading, setLoading] = useState(true)
 
 	// Filters
@@ -70,6 +73,8 @@ export default function ReviewsPage() {
 	const [searchQuery, setSearchQuery] = useState('')
 	const [statusFilter, setStatusFilter] = useState<string>('all')
 	const [sortOrder, setSortOrder] = useState<string>('newest')
+
+	const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -81,13 +86,12 @@ export default function ReviewsPage() {
 			try {
 				setLoading(true)
 
-				// Fetch Documents for titles and filter
+				// 1. Fetch Documents
 				const docsRes = await documentsService.getWorkspaceDocuments(workspaceId)
 				const workspaceDocuments = docsRes.documents || []
 				setDocuments(workspaceDocuments)
 
-				// Role endpoints can be scoped to pending/student views only. Fetching per-document
-				// reviews keeps the list visible after status changes and aligned with the document filter.
+				// 2. Fetch Role-based Reviews
 				const roleReviewsRequest =
 					user.role?.toLowerCase() === 'student'
 						? documentsService.getStudentReviews()
@@ -100,11 +104,35 @@ export default function ReviewsPage() {
 					),
 				])
 
-				const documentReviews = documentReviewResults.flatMap((result) =>
-					result.status === 'fulfilled' ? toReviews(result.value) : []
+				const allReviews = mergeReviews(
+					toReviews(roleReviewsRes),
+					documentReviewResults.flatMap((result) =>
+						result.status === 'fulfilled' ? toReviews(result.value) : []
+					)
 				)
+				
+				setReviews(allReviews)
 
-				setReviews(mergeReviews(toReviews(roleReviewsRes), documentReviews))
+				// 3. Fetch Versions for all reviews to sync dates
+				const uniqueDocIds = Array.from(new Set(allReviews.map(r => r.documentId)))
+				const versionsMap: Record<string, Version> = {}
+				
+				await Promise.allSettled(
+					uniqueDocIds.map(async (docId) => {
+						try {
+							const vRes = await documentsService.getVersions(docId)
+							if (vRes.versions) {
+								vRes.versions.forEach(v => {
+									versionsMap[v.documentBodyId] = v
+								})
+							}
+						} catch (e) {
+							console.error(`Failed to fetch versions for doc ${docId}:`, e)
+						}
+					})
+				)
+				
+				setVersions(versionsMap)
 			} catch (error) {
 				console.error('Failed to fetch data:', error)
 			} finally {
@@ -118,28 +146,35 @@ export default function ReviewsPage() {
 	// Derive visible reviews
 	const filteredReviews = reviews
 		.filter((review) => {
-			// Document Filter
+			// 1. Document Filter
 			if (docFilter !== 'all' && review.documentId !== docFilter) return false
 
-			// Status Filter
+			// 2. Status Filter
 			if (statusFilter !== 'all') {
-				if (normalizeReviewStatus(review.status) !== statusFilter) return false
+				const currentStatus = (review.status || '').toLowerCase().replace(/\s+/g, '_')
+				if (currentStatus !== statusFilter) return false
 			}
 
-			// Search Query (Title or Message)
+			// 3. Search Query (Title or Message)
 			if (searchQuery) {
 				const doc = documents.find((d) => d.documentId === review.documentId)
 				const title = doc?.title?.toLowerCase() || ''
-				const msg = review.message?.toLowerCase() || ''
+				const msg = (review.message || '').toLowerCase()
 				const query = searchQuery.toLowerCase()
-				return title.includes(query) || msg.includes(query)
+				
+				if (!title.includes(query) && !msg.includes(query)) return false
 			}
 
 			return true
 		})
 		.sort((a, b) => {
-			const dateA = new Date(a.requestedAt).getTime()
-			const dateB = new Date(b.requestedAt).getTime()
+			const verA = versions[a.documentBodyId]
+			const verB = versions[b.documentBodyId]
+			
+			const dateA = new Date(verA?.createdAt || a.requestedAt || 0).getTime()
+			const dateB = new Date(verB?.createdAt || b.requestedAt || 0).getTime()
+			
+			if (isNaN(dateA) || isNaN(dateB)) return 0
 			return sortOrder === 'newest' ? dateB - dateA : dateA - dateB
 		})
 
@@ -171,8 +206,8 @@ export default function ReviewsPage() {
 					</Breadcrumb>
 				</header>
 
-				<main className='flex-1 p-6 w-full overflow-y-auto'>
-					<div className='mb-8 flex items-center justify-between'>
+				<main className='flex-1 p-4 md:p-6 w-full overflow-y-auto'>
+					<div className='mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4'>
 						<div>
 							<h2 className='text-2xl font-bold text-gray-900'>Reviews</h2>
 							<p className='text-sm text-gray-500 mt-1'>
@@ -181,13 +216,24 @@ export default function ReviewsPage() {
 						</div>
 					</div>
 
-					{/* Filters Row */}
-					<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8'>
-						{/* Document Filter */}
-						<div>
+					{/* Unified Controls Row */}
+					<div className='flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-8'>
+						{/* Search - Left Side */}
+						<div className='relative w-full xl:max-w-md'>
+							<Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400' />
+							<Input
+								placeholder='Cari review...'
+								className='pl-9 bg-white'
+								value={searchQuery}
+								onChange={(e) => setSearchQuery(e.target.value)}
+							/>
+						</div>
+
+						{/* Filters & View Toggle - Right Side */}
+						<div className='flex flex-wrap items-center gap-2 md:justify-end'>
 							<Select value={docFilter} onValueChange={setDocFilter}>
-								<SelectTrigger className='bg-white'>
-									<SelectValue placeholder='Semua Dokumen' />
+								<SelectTrigger className='bg-white w-full md:w-auto md:min-w-[160px]'>
+									<SelectValue placeholder='Dokumen' />
 								</SelectTrigger>
 								<SelectContent>
 									<SelectItem value='all'>Semua Dokumen</SelectItem>
@@ -198,24 +244,10 @@ export default function ReviewsPage() {
 									))}
 								</SelectContent>
 							</Select>
-						</div>
 
-						{/* Search */}
-						<div className='lg:col-span-2 relative'>
-							<Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400' />
-							<Input
-								placeholder='Cari review...'
-								className='pl-9 bg-white'
-								value={searchQuery}
-								onChange={(e) => setSearchQuery(e.target.value)}
-							/>
-						</div>
-
-						{/* Status Filter */}
-						<div>
 							<Select value={statusFilter} onValueChange={setStatusFilter}>
-								<SelectTrigger className='bg-white'>
-									<SelectValue placeholder='Semua Status' />
+								<SelectTrigger className='bg-white w-full md:w-auto md:min-w-[140px]'>
+									<SelectValue placeholder='Status' />
 								</SelectTrigger>
 								<SelectContent>
 									<SelectItem value='all'>Semua Status</SelectItem>
@@ -225,91 +257,99 @@ export default function ReviewsPage() {
 									<SelectItem value='rejected'>Rejected</SelectItem>
 								</SelectContent>
 							</Select>
-						</div>
 
-						{/* Sort */}
-						<div>
 							<Select value={sortOrder} onValueChange={setSortOrder}>
-								<SelectTrigger className='bg-white'>
-									<SelectValue placeholder='Sort Order' />
+								<SelectTrigger className='bg-white w-full md:w-auto md:min-w-[140px]'>
+									<SelectValue placeholder='Urutkan' />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value='newest'>Newest First</SelectItem>
-									<SelectItem value='oldest'>Oldest First</SelectItem>
+									<SelectItem value='newest'>Paling Baru</SelectItem>
+									<SelectItem value='oldest'>Paling Lama</SelectItem>
 								</SelectContent>
 							</Select>
+
+							{(docFilter !== 'all' || statusFilter !== 'all' || searchQuery) && (
+								<Button 
+									variant="ghost" 
+									size="sm" 
+									onClick={() => {
+										setDocFilter('all');
+										setStatusFilter('all');
+										setSearchQuery('');
+									}}
+									className='text-gray-500 hover:text-teal-600 px-2'
+								>
+									Reset
+								</Button>
+							)}
+
+							<Separator orientation="vertical" className="h-6 mx-1 hidden sm:block" />
+
+							<ButtonGroup orientation="horizontal">
+								<Button 
+									variant={viewMode === 'list' ? 'default' : 'outline'} 
+									size="sm" 
+									onClick={() => setViewMode('list')}
+									className="px-2.5"
+								>
+									<LayoutList className="w-4 h-4" />
+								</Button>
+								<Button 
+									variant={viewMode === 'grid' ? 'default' : 'outline'} 
+									size="sm" 
+									onClick={() => setViewMode('grid')}
+									className="px-2.5"
+								>
+									<LayoutGrid className="w-4 h-4" />
+								</Button>
+							</ButtonGroup>
 						</div>
 					</div>
 
 					{/* List Header */}
-					<h2 className='text-lg font-bold text-gray-900 mb-4'>
-						Semua Review ({filteredReviews.length})
-					</h2>
+					<div className="flex items-center justify-between mb-4">
+						<h2 className='text-lg font-bold text-gray-900'>
+							Semua Review ({filteredReviews.length})
+						</h2>
+					</div>
 
 					{/* Reviews List */}
 					{loading ? (
-						<div className='grid gap-4'>
-							{[1, 2, 3, 4, 5].map((i) => (
-								<Skeleton key={`review-skeleton-item-${i}`} className='h-24 rounded-lg' />
+						<div className={viewMode === 'list' ? 'grid gap-4' : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4'}>
+							{[1, 2, 3, 4, 5, 6].map((i) => (
+								<Skeleton key={`review-skeleton-item-${i}`} className={viewMode === 'list' ? 'h-24 rounded-lg' : 'h-64 rounded-lg'} />
 							))}
 						</div>
 					) : filteredReviews.length === 0 ? (
 						<div className='text-center py-16 bg-white rounded-lg border border-dashed border-gray-300'>
 							<div className='inline-flex items-center justify-center h-12 w-12 rounded-full bg-gray-100 mb-4'>
-								<svg
-									className='h-6 w-6 text-gray-400'
-									fill='none'
-									stroke='currentColor'
-									viewBox='0 0 24 24'
-								>
-									<path
-										strokeLinecap='round'
-										strokeLinejoin='round'
-										strokeWidth={2}
-										d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
-									/>
-								</svg>
+								<Search className='h-6 w-6 text-gray-400' />
 							</div>
 							<p className='text-gray-600 font-medium mb-1'>No reviews found</p>
 							<p className='text-gray-500 text-sm'>Try adjusting your search or filter criteria</p>
 						</div>
 					) : (
-						<div className='grid gap-4'>
-							{filteredReviews.map((review, index) => (
-								<ReviewCard
-									key={review.reviewId}
-									reviewId={review.reviewId}
-									documentId={review.documentId}
-									documentBodyId={review.documentBodyId || review.documentId}
-									lecturerUserId={review.lecturerUserId || 'Unknown Reviewer'}
-									message={review.message}
-									status={review.status}
-									date={format(review.requestedAt, 'd MMMM yyyy', { locale: id })}
-									title={getDocTitle(review.documentId)}
-									workspaceId={workspaceId}
-									isLatest={index === 0 && sortOrder === 'newest'}
-									onAddReview={
-										user?.role === 'Student'
-											? () => {
-												router.push(`/${workspaceId}/documents/${review.documentId}`)
-											}
-											: undefined
-									}
-									onReviewUpdate={(newStatus, newMessage) => {
-										setReviews((prev) =>
-											prev.map((r) =>
-												r.reviewId === review.reviewId
-													? {
-														...r,
-														status: newStatus as Review['status'],
-														message: newMessage || r.message,
-													}
-													: r
-											)
-										)
-									}}
-								/>
-							))}
+						<div className={viewMode === 'list' ? 'grid gap-4' : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4'}>
+							{filteredReviews.map((review, index) => {
+								const version = versions[review.documentBodyId]
+								return (
+									<ReviewCard
+										key={review.reviewId}
+										reviewId={review.reviewId}
+										documentId={review.documentId}
+										lecturerUserId={review.lecturerUserId || 'Unknown Reviewer'}
+										student={review.student}
+										lecturer={review.lecturer}
+										message={review.message}
+										status={review.status}
+										requestedAt={version?.createdAt || review.requestedAt}
+										versionNumber={version?.versionNumber}
+										title={getDocTitle(review.documentId)}
+										workspaceId={workspaceId}
+										userRole={user?.role}
+									/>
+								)
+							})}
 						</div>
 					)}
 				</main>

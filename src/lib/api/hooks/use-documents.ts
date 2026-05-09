@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
-import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore'
+import { collection, query, where, orderBy, onSnapshot, doc } from 'firebase/firestore'
 import { db } from '@/lib/firebase/config'
 import { useAuth } from '@/context/AuthContext'
 import { documentsService } from '../services/documents.service'
@@ -174,6 +174,33 @@ export function useDocumentReviews(documentId: string) {
 	}, [documentId])
 
 	return { data: { reviews }, isLoading }
+}
+
+export function useReviewDetail(reviewId: string) {
+	const [review, setReview] = useState<any>(null)
+	const [isLoading, setIsLoading] = useState(true)
+
+	useEffect(() => {
+		if (!reviewId) return
+
+		const unsubscribe = onSnapshot(doc(db, 'reviews', reviewId), (snapshot) => {
+			if (snapshot.exists()) {
+				setReview({
+					reviewId: snapshot.id,
+					...snapshot.data(),
+					requestedAt: snapshot.data().requestedAt?.toDate?.() || snapshot.data().requestedAt,
+					reviewedAt: snapshot.data().reviewedAt?.toDate?.() || snapshot.data().reviewedAt,
+				})
+			} else {
+				setReview(null)
+			}
+			setIsLoading(false)
+		})
+
+		return () => unsubscribe()
+	}, [reviewId])
+
+	return { data: { review }, isLoading }
 }
 
 export function useLecturerPendingReviews() {
@@ -362,6 +389,30 @@ export function useCreateReview() {
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.reviews(variables.documentId) })
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.studentReviews() })
+		},
+	})
+}
+
+export function useUpdateReviewStatus() {
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: ({
+			reviewId,
+			data,
+		}: {
+			reviewId: string
+			data: UpdateReviewStatusDto & { status: 'approved' | 'rejected' | 'revision_required' }
+		}) => {
+			const { status, ...rest } = data
+			if (status === 'approved') return documentsService.approveReview(reviewId, rest)
+			if (status === 'rejected') return documentsService.rejectReview(reviewId, rest)
+			return documentsService.requestRevision(reviewId, rest)
+		},
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.pendingReviews() })
+			queryClient.invalidateQueries({ queryKey: ['reviews'] })
+			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.reviewDetail(variables.reviewId) })
 		},
 	})
 }

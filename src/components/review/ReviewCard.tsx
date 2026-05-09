@@ -1,232 +1,117 @@
-import { Calendar, FileText, Plus, Trash2 } from 'lucide-react'
-import Link from 'next/link'
+import { FileText, ChevronRight, MessageSquare, Clock } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
-import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
-import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { documentsService } from '@/lib/api/services/documents.service'
-import CreateReviewModal from './CreateReviewModal'
+import { Card } from '@/components/ui/card'
 import { ReviewStatusBadge } from './ReviewStatusBadge'
+import { format, id } from '@/lib/date'
 
 interface ReviewCardProps {
 	reviewId: string
 	documentId: string
-	documentBodyId: string
 	lecturerUserId: string
+	studentUserId?: string
+	userRole?: string
+	student?: {
+		name: string
+		photoURL: string | null
+	}
+	lecturer?: {
+		name: string
+		photoURL: string | null
+	}
 	message: string
-	status: 'Pending' | 'Approved' | 'Revision Required' | 'Open' | string
-	date: string
+	status: string
+	requestedAt: string | Date
 	title: string
 	workspaceId: string
-	onDelete?: () => void
-	isLatest?: boolean
-	onAddReview?: () => void
-
-	onReviewUpdate?: (status: string, message?: string) => void
+	versionNumber?: number
 }
 
 export function ReviewCard({
 	reviewId,
 	documentId,
-	lecturerUserId,
+	student,
 	message,
 	status,
-	date,
+	requestedAt,
 	title,
 	workspaceId,
-	onDelete,
-	isLatest,
-	onAddReview,
-
-	onReviewUpdate,
+	userRole,
+	versionNumber,
 }: ReviewCardProps) {
 	const router = useRouter()
-	// const { toast } = useToast()
-	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-	const [isModalOpen, setIsModalOpen] = useState(false)
+	
+	const displayDate = format(requestedAt, 'd MMMM yyyy HH:mm', { locale: id })
 
-	// Local optimistic status could be used, but better to rely on parent update or simple refresh
-	const [isUpdating, setIsUpdating] = useState(false)
+	const studentName = student?.name || 'Student'
+	const isLecturer = userRole?.toLowerCase() === 'lecturer'
 
-	const handleReviewSubmit = async (data: { content: string; status: string }) => {
-		try {
-			setIsUpdating(true)
-			let newStatus = status
-			if (data.status === 'approved') {
-				// Approve endpoint doesn't strictly require status in body but works with message
-				await documentsService.approveReview(reviewId, { message: data.content })
-				newStatus = 'approved'
-			} else if (data.status === 'rejected') {
-				await documentsService.rejectReview(reviewId, { 
-					status: 'rejected', 
-					message: data.content 
-				})
-				newStatus = 'rejected'
-			} else if (data.status === 'revision_required') {
-				await documentsService.requestRevision(reviewId, { 
-					status: 'revision_required', 
-					message: data.content 
-				})
-				newStatus = 'revision_required'
-			}
-
-			toast.success('Review Updated', {
-				description: `Review status changed to ${data.status}`,
-			})
-
-			if (onReviewUpdate) {
-				onReviewUpdate(newStatus, data.content)
-			} else {
-				router.refresh()
-			}
-		} catch (error: any) {
-			console.error('Failed to submit review decision:', error)
-			if (error?.errors) {
-				console.error('Validation errors:', error.errors)
-			}
-			toast.error('Validation Error', {
-				description: error.errors
-					? JSON.stringify(error.errors)
-					: error.message || 'Failed to update review status',
-			})
-		} finally {
-			setIsUpdating(false)
+	const handleCardClick = () => {
+		if (isLecturer) {
+			router.push(`/${workspaceId}/reviews/${reviewId}`)
+		} else {
+			router.push(`/${workspaceId}/documents/${documentId}`)
 		}
 	}
 
 	return (
-		<>
-			<ConfirmDialog
-				isOpen={showDeleteConfirm}
-				onClose={() => setShowDeleteConfirm(false)}
-				onConfirm={() => {
-					if (onDelete) onDelete()
-					setShowDeleteConfirm(false)
-				}}
-				title='Delete Review'
-				message='Are you sure you want to delete this review? This action cannot be undone.'
-				confirmText='Delete'
-				cancelText='Cancel'
-				variant='danger'
-			/>
-
-			<CreateReviewModal
-				isOpen={isModalOpen}
-				onClose={() => setIsModalOpen(false)}
-				onSubmit={handleReviewSubmit}
-			/>
-
-			{/* biome-ignore lint/a11y/useSemanticElements: Card is interactive but contains nested links, so it cannot be a button */}
-			<div
-				className='relative bg-white rounded-xl border border-gray-200 transition-all hover:shadow-md group cursor-pointer'
-				onClick={() => router.push(`/${workspaceId}/reviews/${reviewId}`)}
-				onKeyDown={(e) => {
-					if (e.key === 'Enter' || e.key === ' ') {
-						router.push(`/${workspaceId}/reviews/${reviewId}`)
-					}
-				}}
-				role='button'
-				tabIndex={0}
-			>
-				{/* Delete Button - Absolute Positioned */}
-				{onDelete && (
-					<div className='absolute top-6 right-6 z-10'>
-						<button
-							type='button'
-							className='text-gray-400 hover:text-red-500 transition-colors bg-white rounded-full p-1 opacity-0 group-hover:opacity-100 shadow-sm border border-gray-100'
-							onClick={(e) => {
-								e.stopPropagation()
-								setShowDeleteConfirm(true)
-							}}
-						>
-							<Trash2 className='w-4 h-4' />
-						</button>
-					</div>
-				)}
-
-				<div className='p-6 pb-2'>
-					{/* Header: Title */}
-					<div className='mb-2 pr-8'>
-						<h3 className='text-lg font-semibold text-gray-900 mb-1'>
+		<Card
+			className="group relative bg-white border shadow-sm transition-all duration-300 cursor-pointer overflow-hidden flex flex-col h-full hover:shadow-md hover:border-teal-500/50"
+			onClick={handleCardClick}
+		>
+			<div className='p-6 space-y-4 flex-1 flex flex-col'>
+				{/* Top Info */}
+				<div className='flex items-start justify-between gap-4'>
+					<div className='space-y-1'>
+						<div className='flex items-center justify-between'>
+							<div className='flex items-center gap-1.5'>
+								<FileText className='w-3.5 h-3.5 text-teal-600' />
+								<span className='text-[10px] font-bold text-gray-400 uppercase tracking-widest'>Document</span>
+							</div>
+							{versionNumber && (
+								<span className='text-[10px] font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full'>
+									Versi #{versionNumber.toString().padStart(3, '0')}
+								</span>
+							)}
+						</div>
+						<h3 className='text-lg font-bold text-gray-900 line-clamp-2 leading-tight group-hover:text-teal-600 transition-colors'>
 							{title || 'Untitled Document'}
 						</h3>
-						<p className='text-sm text-gray-500'>Reviewer: {lecturerUserId}</p>
 					</div>
-
-					{/* Meta: Date & Status */}
-					<div className='flex items-center gap-3 mb-6'>
-						<div className='flex items-center gap-2 text-sm text-gray-500'>
-							<Calendar className='w-4 h-4' />
-							<span>{date}</span>
-						</div>
+					<div className='shrink-0'>
 						<ReviewStatusBadge status={status as any} />
-					</div>
-
-					{/* Content Box */}
-					<div className='bg-gray-50 rounded-lg p-4 text-gray-700 text-sm mb-4 leading-relaxed'>
-						<div className='text-xs font-bold text-gray-400 uppercase tracking-wider mb-2'>
-							Commit Message:
-						</div>
-						{message || 'No feedback provided.'}
 					</div>
 				</div>
 
-				{/* Footer: Doc Link & Buttons */}
-				{/* biome-ignore lint/a11y/useSemanticElements: Footer is a group of actions but contains nested links/buttons */}
-				<div
-					className='px-6 pb-6 pt-2 flex items-center justify-between'
-					onClick={(e) => e.stopPropagation()}
-					onKeyDown={(e) => {
-						if (e.key === 'Enter' || e.key === ' ') {
-							e.stopPropagation()
-						}
-					}}
-					role='button'
-					tabIndex={-1}
-					aria-label='Card footer actions'
-				>
-					<Link
-						href={`/${workspaceId}/documents/${documentId}?mode=review`}
-						className='flex items-center gap-2 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded text-xs font-medium transition-colors'
-						onClick={(e) => e.stopPropagation()}
-					>
-						<FileText className='w-3.5 h-3.5' />
-						<span>Untuk: {title}</span>
-					</Link>
+				{/* Message Snippet */}
+				<div className='bg-gray-50/50 rounded-lg p-4 border border-gray-100 relative flex-1'>
+					<div className='text-[9px] font-bold text-gray-400 uppercase tracking-tight mb-2'>Request:</div>
+					<p className='text-sm text-gray-600 line-clamp-3 italic leading-relaxed'>
+						"{message || 'Tidak ada pesan pengantar.'}"
+					</p>
+				</div>
 
-					<div className='flex gap-2'>
-						{/* New Review / Review Decision Button */}
-						{isLatest && (
-							<Button
-								size='sm'
-								onClick={(e) => {
-									e.stopPropagation()
-									setIsModalOpen(true)
-								}}
-								disabled={isUpdating}
-							>
-								<Plus className='w-4 h-4 mr-1.5' />
-								Review Action
-							</Button>
-						)}
-
-						{/* Legacy onAddReview pass-through if needed */}
-						{!isLatest && onAddReview && (
-							<Button
-								size='sm'
-								onClick={(e) => {
-									e.stopPropagation()
-									onAddReview()
-								}}
-							>
-								<Plus className='w-4 h-4 mr-1.5' />
-								New Review
-							</Button>
-						)}
+				{/* Footer */}
+				<div className='pt-4 flex items-center justify-between border-t border-gray-50 mt-auto'>
+					<div className='flex flex-col gap-1'>
+						<div className='flex items-center gap-2'>
+							<div className={`w-1.5 h-1.5 rounded-full ${
+								status === 'approved' ? 'bg-green-500' : 
+								status === 'rejected' ? 'bg-red-500' : 
+								status === 'revision_required' ? 'bg-amber-500' : 'bg-teal-500'
+							}`} />
+							<span className='text-sm font-bold text-gray-900'>{studentName}</span>
+						</div>
+						<div className='flex items-center gap-1.5 text-[10px] text-gray-400 pl-3'>
+							<Clock className='w-3 h-3' />
+							<span>{displayDate}</span>
+						</div>
+					</div>
+					
+					<div className='h-8 w-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-teal-500 group-hover:text-white transition-all duration-300 shadow-inner'>
+						<ChevronRight className='w-4 h-4' />
 					</div>
 				</div>
 			</div>
-		</>
+		</Card>
 	)
 }

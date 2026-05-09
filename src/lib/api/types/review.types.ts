@@ -20,6 +20,14 @@ export interface Review {
 	documentId: string
 	lecturerUserId: string
 	studentUserId: string
+	student?: {
+		name: string
+		photoURL: string | null
+	}
+	lecturer?: {
+		name: string
+		photoURL: string | null
+	}
 	message: string
 	lecturerMessage?: string
 	status: ReviewStatus
