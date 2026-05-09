@@ -26,6 +26,7 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/s
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/context/AuthContext'
 import { useWorkspace } from '@/lib/api/hooks/use-workspaces'
+import { useWorkspaceDocuments } from '@/lib/api/hooks/use-documents'
 import { documentsService } from '@/lib/api/services/documents.service'
 import type { Document, Version } from '@/lib/api/types/document.types'
 import type { Review } from '@/lib/api/types/review.types'
@@ -63,8 +64,10 @@ export default function ReviewsPage() {
 	const workspaceId = params.workspaceid as string
 	const { data: workspace } = useWorkspace(workspaceId)
 
+	const { data: docsRes, isLoading: docsLoading } = useWorkspaceDocuments(workspaceId)
+	const documents = docsRes?.documents || []
+	
 	const [reviews, setReviews] = useState<Review[]>([])
-	const [documents, setDocuments] = useState<Document[]>([])
 	const [versions, setVersions] = useState<Record<string, Version>>({})
 	const [loading, setLoading] = useState(true)
 
@@ -86,21 +89,16 @@ export default function ReviewsPage() {
 			try {
 				setLoading(true)
 
-				// 1. Fetch Documents
-				const docsRes = await documentsService.getWorkspaceDocuments(workspaceId)
-				const workspaceDocuments = docsRes.documents || []
-				setDocuments(workspaceDocuments)
-
-				// 2. Fetch Role-based Reviews
+				// 1. Fetch Role-based Reviews
 				const roleReviewsRequest =
 					user.role?.toLowerCase() === 'student'
 						? documentsService.getStudentReviews()
 						: documentsService.getPendingReviews()
-
+						
 				const [roleReviewsRes, documentReviewResults] = await Promise.all([
 					roleReviewsRequest,
 					Promise.allSettled(
-						workspaceDocuments.map((doc) => documentsService.getReviews(doc.documentId))
+						documents.map((doc) => documentsService.getReviews(doc.documentId))
 					),
 				])
 
@@ -144,7 +142,7 @@ export default function ReviewsPage() {
 		}
 
 		fetchData()
-	}, [user, workspaceId])
+	}, [user, workspaceId, documents.length]) // Re-run if docs list changes to get their reviews
 
 	// Derive visible reviews
 	const filteredReviews = reviews
@@ -313,7 +311,7 @@ export default function ReviewsPage() {
 					</div>
 
 					{/* Reviews List */}
-					{loading ? (
+					{loading || docsLoading ? (
 						<div className={viewMode === 'list' ? 'grid gap-4' : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4'}>
 							{[1, 2, 3, 4, 5, 6].map((i) => (
 								<Skeleton key={`review-skeleton-item-${i}`} className={viewMode === 'list' ? 'h-24 rounded-lg' : 'h-64 rounded-lg'} />
