@@ -21,9 +21,10 @@ interface ReviewCardProps {
 	message: string
 	status: string
 	requestedAt: string | Date
-	title: string
+	title?: string
 	workspaceId: string
 	versionNumber?: number
+	isDocumentDeleted?: boolean
 }
 
 export function ReviewCard({
@@ -37,6 +38,7 @@ export function ReviewCard({
 	workspaceId,
 	userRole,
 	versionNumber,
+	isDocumentDeleted = false,
 }: ReviewCardProps) {
 	const router = useRouter()
 	
@@ -46,7 +48,9 @@ export function ReviewCard({
 	const isLecturer = userRole?.toLowerCase() === 'lecturer'
 
 	const handleCardClick = () => {
-		if (isLecturer) {
+		// If lecturer OR if document is deleted, go to review detail
+		// Students should only go to document if it exists
+		if (isLecturer || isDocumentDeleted) {
 			router.push(`/${workspaceId}/reviews/${reviewId}`)
 		} else {
 			router.push(`/${workspaceId}/documents/${documentId}`)
@@ -73,8 +77,10 @@ export function ReviewCard({
 								</span>
 							)}
 						</div>
-						<h3 className='text-lg font-bold text-gray-900 line-clamp-2 leading-tight group-hover:text-teal-600 transition-colors'>
-							{title || 'Untitled Document'}
+						<h3 className={`text-lg font-bold line-clamp-2 leading-tight transition-colors ${
+							isDocumentDeleted ? 'text-gray-400 italic' : 'text-gray-900 group-hover:text-teal-600'
+						}`}>
+							{isDocumentDeleted ? 'Deleted Document' : (title || 'Untitled Document')}
 						</h3>
 					</div>
 					<div className='shrink-0'>

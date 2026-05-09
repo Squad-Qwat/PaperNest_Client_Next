@@ -9,6 +9,7 @@ interface ReviewInfoCardProps {
 	studentName: string
 	documentId: string
 	workspaceId: string
+	isDeleted?: boolean
 }
 
 export function ReviewInfoCard({
@@ -16,6 +17,7 @@ export function ReviewInfoCard({
 	studentName,
 	documentId,
 	workspaceId,
+	isDeleted = false,
 }: ReviewInfoCardProps) {
 	const router = useRouter()
 
@@ -39,10 +41,15 @@ export function ReviewInfoCard({
 				</div>
 			</div>
 			<Button 
-				className='w-full mt-6 bg-white hover:bg-gray-50 text-gray-900 border rounded-lg font-bold shadow-sm'
-				onClick={() => router.push(`/${workspaceId}/documents/${documentId}`)}
+				className={`w-full mt-6 border rounded-lg font-bold shadow-sm ${
+					isDeleted 
+						? 'bg-gray-50 text-gray-400 cursor-not-allowed opacity-70' 
+						: 'bg-white hover:bg-gray-50 text-gray-900'
+				}`}
+				onClick={() => !isDeleted && router.push(`/${workspaceId}/documents/${documentId}`)}
+				disabled={isDeleted}
 			>
-				Buka Editor <ArrowRight className='w-4 h-4 ml-2' />
+				{isDeleted ? 'Dokumen Terhapus' : 'Buka Editor'} <ArrowRight className='w-4 h-4 ml-2' />
 			</Button>
 		</Card>
 	)

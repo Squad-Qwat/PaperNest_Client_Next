@@ -65,8 +65,8 @@ export default function ReviewDetailPage() {
 	
 	const studentName = reviewData?.student?.name || studentMember?.user?.name || 'Student'
 	const lecturerName = reviewData?.lecturer?.name || lecturerMember?.user?.name || 'Lecturer'
-	
-	const docTitle = document?.title || 'Untitled Document'
+	const isDocumentDeleted = !documentRes && !reviewLoading && !!reviewData
+	const docTitle = document?.title
 	const formattedDate = format(reviewData?.requestedAt || new Date(), 'd MMMM yyyy, HH:mm', { locale: id })
 
 	const handleAction = async () => {
@@ -172,6 +172,7 @@ export default function ReviewDetailPage() {
 						status={reviewData.status}
 						documentId={reviewData.documentId}
 						workspaceId={workspaceId}
+						isDeleted={isDocumentDeleted}
 					/>
 
 					<div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
@@ -211,6 +212,7 @@ export default function ReviewDetailPage() {
 									studentName={studentName}
 									documentId={reviewData.documentId}
 									workspaceId={workspaceId}
+									isDeleted={isDocumentDeleted}
 								/>
 							)}
 						</div>

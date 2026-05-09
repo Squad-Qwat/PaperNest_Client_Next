@@ -127,7 +127,10 @@ export default function ReviewsPage() {
 								})
 							}
 						} catch (e) {
-							console.error(`Failed to fetch versions for doc ${docId}:`, e)
+							// Handle missing documents (404) gracefully without noisy console errors
+							if ((e as any).status !== 404) {
+								console.error(`Failed to fetch versions for doc ${docId}:`, e)
+							}
 						}
 					})
 				)
@@ -177,10 +180,6 @@ export default function ReviewsPage() {
 			if (isNaN(dateA) || isNaN(dateB)) return 0
 			return sortOrder === 'newest' ? dateB - dateA : dateA - dateB
 		})
-
-	const getDocTitle = (docId: string) => {
-		return documents.find((d) => d.documentId === docId)?.title || 'Untitled Document'
-	}
 
 	return (
 		<SidebarProvider>
@@ -332,6 +331,7 @@ export default function ReviewsPage() {
 						<div className={viewMode === 'list' ? 'grid gap-4' : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4'}>
 							{filteredReviews.map((review, index) => {
 								const version = versions[review.documentBodyId]
+								const doc = documents.find(d => d.documentId === review.documentId)
 								return (
 									<ReviewCard
 										key={review.reviewId}
@@ -344,7 +344,8 @@ export default function ReviewsPage() {
 										status={review.status}
 										requestedAt={version?.createdAt || review.requestedAt}
 										versionNumber={version?.versionNumber}
-										title={getDocTitle(review.documentId)}
+										title={doc?.title}
+										isDocumentDeleted={!doc}
 										workspaceId={workspaceId}
 										userRole={user?.role}
 									/>

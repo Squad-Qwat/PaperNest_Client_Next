@@ -11,6 +11,7 @@ interface ReviewHeroProps {
 	status: string
 	documentId: string
 	workspaceId: string
+	isDeleted?: boolean
 }
 
 export function ReviewHero({
@@ -20,6 +21,7 @@ export function ReviewHero({
 	status,
 	documentId,
 	workspaceId,
+	isDeleted = false,
 }: ReviewHeroProps) {
 	const router = useRouter()
 
@@ -35,8 +37,10 @@ export function ReviewHero({
 						<div className='p-1.5 bg-teal-50 rounded-lg'>
 							<FileText className='w-5 h-5 text-teal-600' />
 						</div>
-						<h1 className='text-xl md:text-2xl font-bold text-gray-900 tracking-tight'>
-							{docTitle}
+						<h1 className={`text-xl md:text-2xl font-bold tracking-tight ${
+							isDeleted ? 'text-gray-400 italic' : 'text-gray-900'
+						}`}>
+							{isDeleted ? 'Deleted Document' : (docTitle || 'Untitled Document')}
 						</h1>
 					</div>
 					
@@ -52,10 +56,11 @@ export function ReviewHero({
 						<Button 
 							variant="link" 
 							size="sm" 
-							className='h-auto p-0 text-teal-600 hover:text-teal-700 font-bold'
-							onClick={() => router.push(`/${workspaceId}/documents/${documentId}`)}
+							className={`h-auto p-0 font-bold ${isDeleted ? 'text-gray-400 cursor-not-allowed' : 'text-teal-600 hover:text-teal-700'}`}
+							onClick={() => !isDeleted && router.push(`/${workspaceId}/documents/${documentId}`)}
+							disabled={isDeleted}
 						>
-							<ExternalLink className='w-3.5 h-3.5 mr-1' /> Lihat Dokumen
+							<ExternalLink className='w-3.5 h-3.5 mr-1' /> {isDeleted ? 'Dokumen Terhapus' : 'Lihat Dokumen'}
 						</Button>
 					</div>
 				</div>
