@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAuth } from '@/context/AuthContext'
 import { useDocumentReviews } from '@/lib/api/hooks/use-documents'
+import { useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
 import { documentsService } from '@/lib/api/services/documents.service'
 
 interface DocumentHeaderProps {
@@ -86,11 +87,14 @@ const DocumentHeader = ({
 	onCompilerModeChange,
 	aiAssistantOpen,
 	toggleAiAssistant,
+	workspace,
 }: DocumentHeaderProps) => {
 	const router = useRouter()
 	const { user } = useAuth()
 	const [showCommitModal, setShowCommitModal] = useState(false)
 	const { data: reviewsResponse } = useDocumentReviews(documentId)
+
+	const { data: membersResponse } = useWorkspaceMembers(workspaceId)
 
 	// Safely determine pending reviews
 	const reviews = Array.isArray(reviewsResponse)
@@ -100,6 +104,11 @@ const DocumentHeader = ({
 
 	const canCommit = !pendingReview
 	const commitBlockReason = pendingReview ? 'Waiting for pending review' : null
+
+	// Find a lecturer to assign the review to
+	const members = membersResponse?.members || []
+	const lecturerMember = members.find((m: any) => m.user?.role === 'Lecturer')
+	const actualLecturerId = lecturerMember?.user?.userId || workspace?.ownerId
 
 	return (
 		<header className='bg-white border-b border-gray-200 sticky top-0 z-[1001] transition-all duration-300'>
@@ -554,17 +563,31 @@ const DocumentHeader = ({
 				onClose={() => setShowCommitModal(false)}
 				onCommit={async (data) => {
 					try {
-						// We also need content usually, but the API doc says content string.
-						// If editor content is available, pass it.
 						const content = getCurrentContent ? getCurrentContent() : ''
-						await documentsService.createVersion(documentId, {
+						const versionRes = await documentsService.createVersion(documentId, {
 							message: data.message,
 							content: content,
 						})
-						// Refresh versions or notify success
+
+						// Automatically create a review request after committing,
+						// so it appears in the lecturer's review list.
+						const isStudent = user?.role?.toLowerCase() === 'student'
+						const lecturerId = actualLecturerId
+						const documentBodyId = versionRes?.version?.documentBodyId
+
+						if (isStudent && lecturerId && documentBodyId) {
+							try {
+								await documentsService.createReview(documentId, documentBodyId, {
+									lecturerUserId: lecturerId,
+									message: data.message,
+								})
+							} catch (reviewErr) {
+								// Log but don't block — version was already saved
+								console.warn('Review creation failed after commit:', reviewErr)
+							}
+						}
+
 						setShowCommitModal(false)
-						// TODO: trigger version refresh if needed
-						// Maybe toast.success('Version created')
 					} catch (error) {
 						console.error('Failed to commit version:', error)
 						throw error // Re-throw so Modal can handle it/show error

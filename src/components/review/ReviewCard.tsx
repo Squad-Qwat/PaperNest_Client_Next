@@ -11,6 +11,7 @@ import { ReviewStatusBadge } from './ReviewStatusBadge'
 
 interface ReviewCardProps {
 	reviewId: string
+	documentId: string
 	documentBodyId: string
 	lecturerUserId: string
 	message: string
@@ -27,7 +28,7 @@ interface ReviewCardProps {
 
 export function ReviewCard({
 	reviewId,
-	documentBodyId,
+	documentId,
 	lecturerUserId,
 	message,
 	status,
@@ -178,7 +179,7 @@ export function ReviewCard({
 					aria-label='Card footer actions'
 				>
 					<Link
-						href={`/${workspaceId}/documents/${documentBodyId}`}
+						href={`/${workspaceId}/documents/${documentId}`}
 						className='flex items-center gap-2 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded text-xs font-medium transition-colors'
 						onClick={(e) => e.stopPropagation()}
 					>
