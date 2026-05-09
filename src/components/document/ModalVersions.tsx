@@ -17,6 +17,7 @@ import {
 	useRevertVersion,
 } from '@/lib/api/hooks/use-documents'
 import { useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
+import type { Version } from '@/lib/api/types/document.types'
 import type { Review } from '@/lib/api/types/review.types'
 import { format, id } from '@/lib/date'
 import { laTeXService } from '@/lib/latex/LaTeXService'
@@ -41,6 +42,7 @@ export default function ModalVersions({
 	// So let's extract it from params if prop is missing OR to be safe.
 	// Actually, let's trust the prop if passed, but if not, use param.
 	const documentId = propDocumentId || (params?.documentid as string)
+	const workspaceId = params?.workspaceid as string
 
 	const { user } = useAuth()
 
