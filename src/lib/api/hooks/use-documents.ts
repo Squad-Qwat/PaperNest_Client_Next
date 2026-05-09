@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { collection, doc, onSnapshot, orderBy, query, where } from 'firebase/firestore'
 import { useEffect, useState } from 'react'
-import { collection, query, where, orderBy, onSnapshot, doc } from 'firebase/firestore'
-import { db } from '@/lib/firebase/config'
 import { useAuth } from '@/context/AuthContext'
+import { db } from '@/lib/firebase/config'
 import { documentsService } from '../services/documents.service'
 import type { BatchOperationRequest } from '../types/batchOperation.types'
 import type {
@@ -10,6 +10,7 @@ import type {
 	DocumentSearchParams,
 	UpdateDocumentContentDto,
 	UpdateDocumentDto,
+	Version,
 } from '../types/document.types'
 import type { CreateReviewDto, UpdateReviewStatusDto } from '../types/review.types'
 
@@ -45,27 +46,31 @@ export function useWorkspaceDocuments(workspaceId: string) {
 		if (!workspaceId) return
 
 		const documentsRef = collection(db, 'documents')
-		const q = query(
-			documentsRef,
-			where('workspaceId', '==', workspaceId)
-		)
+		const q = query(documentsRef, where('workspaceId', '==', workspaceId))
 
-		const unsubscribe = onSnapshot(q, (snapshot) => {
-			const docs = snapshot.docs.map((doc) => ({
-				documentId: doc.id,
-				...doc.data(),
-				createdAt: doc.data().createdAt?.toDate?.() || doc.data().createdAt,
-				updatedAt: doc.data().updatedAt?.toDate?.() || doc.data().updatedAt,
-			}))
-			// Sort by updatedAt descending in frontend
-			docs.sort((a, b) => {
-				const dateA = new Date(a.updatedAt).getTime()
-				const dateB = new Date(b.updatedAt).getTime()
-				return dateB - dateA
-			})
-			setDocuments(docs)
-			setIsLoading(false)
-		})
+		const unsubscribe = onSnapshot(
+			q,
+			(snapshot) => {
+				const docs = snapshot.docs.map((doc) => ({
+					documentId: doc.id,
+					...doc.data(),
+					createdAt: doc.data().createdAt?.toDate?.() || doc.data().createdAt,
+					updatedAt: doc.data().updatedAt?.toDate?.() || doc.data().updatedAt,
+				}))
+				// Sort by updatedAt descending in frontend
+				docs.sort((a, b) => {
+					const dateA = new Date(a.updatedAt).getTime()
+					const dateB = new Date(b.updatedAt).getTime()
+					return dateB - dateA
+				})
+				setDocuments(docs)
+				setIsLoading(false)
+			},
+			(error) => {
+				console.error('Error listening to workspace documents:', error)
+				setIsLoading(false)
+			}
+		)
 
 		return () => unsubscribe()
 	}, [workspaceId])
@@ -80,19 +85,26 @@ export function useDocument(workspaceId: string, documentId: string) {
 	useEffect(() => {
 		if (!documentId) return
 
-		const unsubscribe = onSnapshot(doc(db, 'documents', documentId), (snapshot) => {
-			if (snapshot.exists()) {
-				setDocument({
-					documentId: snapshot.id,
-					...snapshot.data(),
-					createdAt: snapshot.data().createdAt?.toDate?.() || snapshot.data().createdAt,
-					updatedAt: snapshot.data().updatedAt?.toDate?.() || snapshot.data().updatedAt,
-				})
-			} else {
-				setDocument(null)
+		const unsubscribe = onSnapshot(
+			doc(db, 'documents', documentId),
+			(snapshot) => {
+				if (snapshot.exists()) {
+					setDocument({
+						documentId: snapshot.id,
+						...snapshot.data(),
+						createdAt: snapshot.data().createdAt?.toDate?.() || snapshot.data().createdAt,
+						updatedAt: snapshot.data().updatedAt?.toDate?.() || snapshot.data().updatedAt,
+					})
+				} else {
+					setDocument(null)
+				}
+				setIsLoading(false)
+			},
+			(error) => {
+				console.error('Error listening to document:', error)
+				setIsLoading(false)
 			}
-			setIsLoading(false)
-		})
+		)
 
 		return () => unsubscribe()
 	}, [documentId])
@@ -116,23 +128,27 @@ export function useDocumentVersions(documentId: string) {
 		if (!documentId) return
 
 		const versionsRef = collection(db, 'documentBodies')
-		const q = query(
-			versionsRef,
-			where('documentId', '==', documentId)
-		)
+		const q = query(versionsRef, where('documentId', '==', documentId))
 
-		const unsubscribe = onSnapshot(q, (snapshot) => {
-			const docs = snapshot.docs.map((doc) => ({
-				documentBodyId: doc.id,
-				...doc.data(),
-				createdAt: doc.data().createdAt?.toDate?.() || doc.data().createdAt,
-				updatedAt: doc.data().updatedAt?.toDate?.() || doc.data().updatedAt,
-			}))
-			// Sort by versionNumber descending
-			docs.sort((a, b) => (b.versionNumber || 0) - (a.versionNumber || 0))
-			setVersions(docs)
-			setIsLoading(false)
-		})
+		const unsubscribe = onSnapshot(
+			q,
+			(snapshot) => {
+				const docs = snapshot.docs.map((doc) => ({
+					documentBodyId: doc.id,
+					...doc.data(),
+					createdAt: doc.data().createdAt?.toDate?.() || doc.data().createdAt,
+					updatedAt: doc.data().updatedAt?.toDate?.() || doc.data().updatedAt,
+				} as unknown as Version))
+				// Sort by versionNumber descending
+				docs.sort((a, b) => (b.versionNumber || 0) - (a.versionNumber || 0))
+				setVersions(docs)
+				setIsLoading(false)
+			},
+			(error) => {
+				console.error('Error listening to document versions:', error)
+				setIsLoading(false)
+			}
+		)
 
 		return () => unsubscribe()
 	}, [documentId])
@@ -148,27 +164,31 @@ export function useDocumentReviews(documentId: string) {
 		if (!documentId) return
 
 		const reviewsRef = collection(db, 'reviews')
-		const q = query(
-			reviewsRef,
-			where('documentId', '==', documentId)
-		)
+		const q = query(reviewsRef, where('documentId', '==', documentId))
 
-		const unsubscribe = onSnapshot(q, (snapshot) => {
-			const docs = snapshot.docs.map((doc) => ({
-				reviewId: doc.id,
-				...doc.data(),
-				requestedAt: doc.data().requestedAt?.toDate?.() || doc.data().requestedAt,
-				reviewedAt: doc.data().reviewedAt?.toDate?.() || doc.data().reviewedAt,
-			}))
-			// Sort by requestedAt descending
-			docs.sort((a, b) => {
-				const dateA = new Date(a.requestedAt).getTime()
-				const dateB = new Date(b.requestedAt).getTime()
-				return dateB - dateA
-			})
-			setReviews(docs)
-			setIsLoading(false)
-		})
+		const unsubscribe = onSnapshot(
+			q,
+			(snapshot) => {
+				const docs = snapshot.docs.map((doc) => ({
+					reviewId: doc.id,
+					...doc.data(),
+					requestedAt: doc.data().requestedAt?.toDate?.() || doc.data().requestedAt,
+					reviewedAt: doc.data().reviewedAt?.toDate?.() || doc.data().reviewedAt,
+				}))
+				// Sort by requestedAt descending
+				docs.sort((a, b) => {
+					const dateA = new Date(a.requestedAt).getTime()
+					const dateB = new Date(b.requestedAt).getTime()
+					return dateB - dateA
+				})
+				setReviews(docs)
+				setIsLoading(false)
+			},
+			(error) => {
+				console.error('Error listening to document reviews:', error)
+				setIsLoading(false)
+			}
+		)
 
 		return () => unsubscribe()
 	}, [documentId])
@@ -183,19 +203,26 @@ export function useReviewDetail(reviewId: string) {
 	useEffect(() => {
 		if (!reviewId) return
 
-		const unsubscribe = onSnapshot(doc(db, 'reviews', reviewId), (snapshot) => {
-			if (snapshot.exists()) {
-				setReview({
-					reviewId: snapshot.id,
-					...snapshot.data(),
-					requestedAt: snapshot.data().requestedAt?.toDate?.() || snapshot.data().requestedAt,
-					reviewedAt: snapshot.data().reviewedAt?.toDate?.() || snapshot.data().reviewedAt,
-				})
-			} else {
-				setReview(null)
+		const unsubscribe = onSnapshot(
+			doc(db, 'reviews', reviewId),
+			(snapshot) => {
+				if (snapshot.exists()) {
+					setReview({
+						reviewId: snapshot.id,
+						...snapshot.data(),
+						requestedAt: snapshot.data().requestedAt?.toDate?.() || snapshot.data().requestedAt,
+						reviewedAt: snapshot.data().reviewedAt?.toDate?.() || snapshot.data().reviewedAt,
+					})
+				} else {
+					setReview(null)
+				}
+				setIsLoading(false)
+			},
+			(error) => {
+				console.error('Error listening to review detail:', error)
+				setIsLoading(false)
 			}
-			setIsLoading(false)
-		})
+		)
 
 		return () => unsubscribe()
 	}, [reviewId])
@@ -209,34 +236,44 @@ export function useLecturerPendingReviews() {
 	const [isLoading, setIsLoading] = useState(true)
 
 	useEffect(() => {
-		if (!user?.uid || user?.role !== 'Lecturer') return
+		if (!user?.userId || user?.role !== 'Lecturer') {
+			setIsLoading(false)
+			return
+		}
 
 		const reviewsRef = collection(db, 'reviews')
 		const q = query(
 			reviewsRef,
-			where('lecturerUserId', '==', user.uid),
+			where('lecturerUserId', '==', user.userId),
 			where('status', '==', 'pending')
 		)
 
-		const unsubscribe = onSnapshot(q, (snapshot) => {
-			const docs = snapshot.docs.map((doc) => ({
-				reviewId: doc.id,
-				...doc.data(),
-				requestedAt: doc.data().requestedAt?.toDate?.() || doc.data().requestedAt,
-				reviewedAt: doc.data().reviewedAt?.toDate?.() || doc.data().reviewedAt,
-			}))
-			// Sort by requestedAt descending
-			docs.sort((a, b) => {
-				const dateA = new Date(a.requestedAt).getTime()
-				const dateB = new Date(b.requestedAt).getTime()
-				return dateB - dateA
-			})
-			setReviews(docs)
-			setIsLoading(false)
-		})
+		const unsubscribe = onSnapshot(
+			q,
+			(snapshot) => {
+				const docs = snapshot.docs.map((doc) => ({
+					reviewId: doc.id,
+					...doc.data(),
+					requestedAt: doc.data().requestedAt?.toDate?.() || doc.data().requestedAt,
+					reviewedAt: doc.data().reviewedAt?.toDate?.() || doc.data().reviewedAt,
+				}))
+				// Sort by requestedAt descending
+				docs.sort((a, b) => {
+					const dateA = new Date(a.requestedAt).getTime()
+					const dateB = new Date(b.requestedAt).getTime()
+					return dateB - dateA
+				})
+				setReviews(docs)
+				setIsLoading(false)
+			},
+			(error) => {
+				console.error('Error listening to pending reviews:', error)
+				setIsLoading(false)
+			}
+		)
 
 		return () => unsubscribe()
-	}, [user?.uid, user?.role])
+	}, [user?.userId, user?.role])
 
 	return { data: { reviews, count: reviews.length }, isLoading }
 }
@@ -247,33 +284,40 @@ export function useStudentReviews() {
 	const [isLoading, setIsLoading] = useState(true)
 
 	useEffect(() => {
-		if (!user?.uid) return
+		if (!user?.userId) {
+			setIsLoading(false)
+			return
+		}
 
 		const reviewsRef = collection(db, 'reviews')
-		const q = query(
-			reviewsRef,
-			where('studentUserId', '==', user.uid)
+		const q = query(reviewsRef, where('studentUserId', '==', user.userId))
+
+		const unsubscribe = onSnapshot(
+			q,
+			(snapshot) => {
+				const docs = snapshot.docs.map((doc) => ({
+					reviewId: doc.id,
+					...doc.data(),
+					requestedAt: doc.data().requestedAt?.toDate?.() || doc.data().requestedAt,
+					reviewedAt: doc.data().reviewedAt?.toDate?.() || doc.data().reviewedAt,
+				}))
+				// Sort by requestedAt descending
+				docs.sort((a, b) => {
+					const dateA = new Date(a.requestedAt).getTime()
+					const dateB = new Date(b.requestedAt).getTime()
+					return dateB - dateA
+				})
+				setReviews(docs)
+				setIsLoading(false)
+			},
+			(error) => {
+				console.error('Error listening to student reviews:', error)
+				setIsLoading(false)
+			}
 		)
 
-		const unsubscribe = onSnapshot(q, (snapshot) => {
-			const docs = snapshot.docs.map((doc) => ({
-				reviewId: doc.id,
-				...doc.data(),
-				requestedAt: doc.data().requestedAt?.toDate?.() || doc.data().requestedAt,
-				reviewedAt: doc.data().reviewedAt?.toDate?.() || doc.data().reviewedAt,
-			}))
-			// Sort by requestedAt descending
-			docs.sort((a, b) => {
-				const dateA = new Date(a.requestedAt).getTime()
-				const dateB = new Date(b.requestedAt).getTime()
-				return dateB - dateA
-			})
-			setReviews(docs)
-			setIsLoading(false)
-		})
-
 		return () => unsubscribe()
-	}, [user?.uid])
+	}, [user?.userId])
 
 	return { data: { reviews, count: reviews.length }, isLoading }
 }
