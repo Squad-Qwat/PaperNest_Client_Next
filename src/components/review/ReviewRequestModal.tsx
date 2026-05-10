@@ -60,7 +60,7 @@ export function ReviewRequestModal({
 
 	return (
 		<Dialog open={isOpen} onOpenChange={onClose}>
-			<DialogContent className='sm:max-w-[425px] z-[70]'>
+			<DialogContent className='sm:max-w-[425px] z-70'>
 				<DialogHeader>
 					<DialogTitle>Request Review</DialogTitle>
 					<DialogDescription>

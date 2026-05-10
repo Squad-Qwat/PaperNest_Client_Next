@@ -34,7 +34,7 @@ import type { Version } from '@/lib/api/types/document.types'
 import type { Review } from '@/lib/api/types/review.types'
 
 const _normalizeReviewStatus = (status?: string) =>
-	(status || '').toLowerCase().replace(/\s+/g, '_')
+	(status || '').toLowerCase().replaceAll(/\s+/g, '_')
 
 const toReviews = (response: unknown): Review[] => {
 	if (Array.isArray(response)) return response as Review[]
@@ -77,8 +77,29 @@ export default function ReviewsPage() {
 	const [sortOrder, setSortOrder] = useState<string>('newest')
 
 	const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
+	const isLecturer = user?.role?.toLowerCase() === 'lecturer'
+
+	const containerClass =
+		viewMode === 'list' ? 'grid gap-4' : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4'
+
 
 	useEffect(() => {
+		const fetchVersionsForDoc = async (docId: string, versionsMap: Record<string, Version>) => {
+			try {
+				const vRes = await documentsService.getVersions(docId)
+				if (vRes.versions) {
+					for (const v of vRes.versions) {
+						versionsMap[v.documentBodyId] = v
+					}
+				}
+			} catch (e) {
+				const is404 = e && typeof e === 'object' && 'status' in e && e.status === 404
+				if (!is404) {
+					console.error(`Failed to fetch versions for doc ${docId}:`, e)
+				}
+			}
+		}
+
 		const fetchData = async () => {
 			if (!user || !workspaceId) {
 				setLoading(false)
@@ -94,10 +115,17 @@ export default function ReviewsPage() {
 						? documentsService.getStudentReviews()
 						: documentsService.getPendingReviews()
 
+				const docReviewPromises = []
+				for (const doc of documents) {
+					docReviewPromises.push(documentsService.getReviews(doc.documentId))
+				}
+
 				const [roleReviewsRes, documentReviewResults] = await Promise.all([
 					roleReviewsRequest,
-					Promise.allSettled(documents.map((doc) => documentsService.getReviews(doc.documentId))),
+					Promise.allSettled(docReviewPromises),
 				])
+
+				const docIds = new Set(documents.map((d) => d.documentId))
 
 				const allReviews = mergeReviews(
 					toReviews(roleReviewsRes),
@@ -105,8 +133,7 @@ export default function ReviewsPage() {
 						result.status === 'fulfilled' ? toReviews(result.value) : []
 					)
 				).filter((review) => {
-					const docExists = documents.some((d) => d.documentId === review.documentId)
-					const isLecturer = user?.role?.toLowerCase() === 'lecturer'
+					const docExists = docIds.has(review.documentId)
 
 					// 1. If doc exists, always show review to everyone
 					if (docExists) return true
@@ -123,23 +150,11 @@ export default function ReviewsPage() {
 				const uniqueDocIds = Array.from(new Set(allReviews.map((r) => r.documentId)))
 				const versionsMap: Record<string, Version> = {}
 
-				await Promise.allSettled(
-					uniqueDocIds.map(async (docId) => {
-						try {
-							const vRes = await documentsService.getVersions(docId)
-							if (vRes.versions) {
-								vRes.versions.forEach((v) => {
-									versionsMap[v.documentBodyId] = v
-								})
-							}
-						} catch (e) {
-							// Handle missing documents (404) gracefully without noisy console errors
-							if ((e as any).status !== 404) {
-								console.error(`Failed to fetch versions for doc ${docId}:`, e)
-							}
-						}
-					})
-				)
+				const versionPromises = []
+				for (const docId of uniqueDocIds) {
+					versionPromises.push(fetchVersionsForDoc(docId, versionsMap))
+				}
+				await Promise.allSettled(versionPromises)
 
 				setVersions(versionsMap)
 			} catch (error) {
@@ -150,7 +165,7 @@ export default function ReviewsPage() {
 		}
 
 		fetchData()
-	}, [user, workspaceId, documents.map, documents.some]) // Re-run if docs list changes to get their reviews
+	}, [user, workspaceId, documents, isLecturer]) // Re-run if docs list changes to get their reviews
 
 	// Derive visible reviews
 	const filteredReviews = reviews
@@ -190,13 +205,7 @@ export default function ReviewsPage() {
 	const renderReviewsContent = () => {
 		if (loading || docsLoading) {
 			return (
-				<div
-					className={
-						viewMode === 'list'
-							? 'grid gap-4'
-							: 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4'
-					}
-				>
+				<div className={containerClass}>
 					{[1, 2, 3, 4, 5, 6].map((i) => (
 						<Skeleton
 							key={`review-skeleton-item-${i}`}
@@ -220,13 +229,7 @@ export default function ReviewsPage() {
 		}
 
 		return (
-			<div
-				className={
-					viewMode === 'list'
-						? 'grid gap-4'
-						: 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4'
-				}
-			>
+			<div className={containerClass}>
 				{filteredReviews.map((review, _index) => {
 					const version = versions[review.documentBodyId]
 					const doc = documents.find((d) => d.documentId === review.documentId)
@@ -278,15 +281,16 @@ export default function ReviewsPage() {
 				</header>
 
 				<main className='flex-1 p-4 md:p-6 w-full overflow-y-auto'>
-					<div className='mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4'>
+					{/* Header Content */}
+					<div className='mb-8 flex items-center justify-between'>
 						<div className='space-y-1'>
 							<div className='flex items-center gap-3'>
 								<h2 className='text-2xl font-bold text-gray-900'>
-									{user?.role === 'Lecturer' ? 'Review Mahasiswa' : 'Reviews Saya'}
+									{isLecturer ? 'Review Mahasiswa' : 'Reviews Saya'}
 								</h2>
 								<span
 									className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full ${
-										user?.role === 'Lecturer'
+										isLecturer
 											? 'bg-purple-100 text-purple-700'
 											: 'bg-teal-100 text-teal-700'
 									}`}
@@ -295,7 +299,7 @@ export default function ReviewsPage() {
 								</span>
 							</div>
 							<p className='text-sm text-gray-500'>
-								{user?.role === 'Lecturer'
+								{isLecturer
 									? `Kelola daftar review mahasiswa di workspace `
 									: `Pantau status review dokumen Anda di workspace `}
 								<b>{workspace?.title}</b>

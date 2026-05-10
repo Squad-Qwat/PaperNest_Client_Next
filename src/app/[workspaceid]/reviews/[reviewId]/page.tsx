@@ -132,7 +132,7 @@ export default function ReviewDetailPage() {
 			<SidebarProvider>
 				<AppSidebar />
 				<SidebarInset className='flex flex-col min-h-0 bg-sidebar rounded-xl m-2 border overflow-hidden'>
-					<header className='flex h-16 shrink-0 items-center gap-2 px-4 bg-white border-b'>
+					<header className='flex h-16 shrink-0 items-center gap-2 px-4 bg-white border-b sticky top-0 z-30'>
 						<SidebarTrigger className='-ml-1' />
 						<Separator orientation='vertical' className='mr-2 h-4' />
 						<Breadcrumb>
@@ -203,7 +203,7 @@ export default function ReviewDetailPage() {
 							</BreadcrumbItem>
 							<BreadcrumbSeparator className='hidden md:block' />
 							<BreadcrumbItem>
-								<BreadcrumbPage>{docTitle}</BreadcrumbPage>
+								<BreadcrumbPage>{docTitle || 'Detail Review'}</BreadcrumbPage>
 							</BreadcrumbItem>
 						</BreadcrumbList>
 					</Breadcrumb>
@@ -216,7 +216,7 @@ export default function ReviewDetailPage() {
 								<h2 className='text-2xl font-bold text-gray-900'>Detail Review</h2>
 								<span
 									className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full ${
-										user?.role === 'Lecturer'
+										isLecturer
 											? 'bg-purple-100 text-purple-700'
 											: 'bg-teal-100 text-teal-700'
 									}`}
@@ -225,7 +225,7 @@ export default function ReviewDetailPage() {
 								</span>
 							</div>
 							<p className='text-sm text-gray-500'>
-								{user?.role === 'Lecturer'
+								{isLecturer
 									? `Kelola keputusan review untuk dokumen mahasiswa`
 									: `Lihat hasil review dokumen Anda oleh dosen`}
 							</p>
@@ -242,66 +242,69 @@ export default function ReviewDetailPage() {
 							</div>
 						</div>
 					</div>
-					<ReviewHero
-						docTitle={docTitle}
-						studentName={studentName}
-						formattedDate={formattedDate}
-						status={reviewData.status}
-						documentId={reviewData.documentId}
-						workspaceId={workspaceId}
-						isDeleted={isDocumentDeleted}
-					/>
 
-					<div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
-						<div className='lg:col-span-2 space-y-6'>
-							<ReviewDetailSection
-								title='Review Request'
-								badgeText='Student Message'
-								icon={MessageSquare}
-								variant='teal'
-							>
-								<ReviewComment
-									authorName={studentName}
-									date={formattedDate}
-									content={reviewData.message || 'Tidak ada pesan pengantar.'}
-									userType='student'
-								/>
-							</ReviewDetailSection>
+					<div className='space-y-6'>
+						<ReviewHero
+							docTitle={docTitle}
+							studentName={studentName}
+							formattedDate={formattedDate}
+							status={reviewData.status}
+							documentId={reviewData.documentId}
+							workspaceId={workspaceId}
+							isDeleted={isDocumentDeleted}
+						/>
 
-							{!isPending && (
+						<div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
+							<div className='lg:col-span-2 space-y-6'>
 								<ReviewDetailSection
-									title='Review Feedback'
-									badgeText='Decision Reached'
-									icon={CheckCircle2}
-									variant={statusVariant}
+									title='Review Request'
+									badgeText='Student Message'
+									icon={MessageSquare}
+									variant='teal'
 								>
 									<ReviewComment
-										authorName={lecturerName}
-										date={format(reviewData.reviewedAt || new Date(), 'd MMMM yyyy, HH:mm', {
-											locale: id,
-										})}
-										content={
-											reviewData.lecturerMessage ||
-											`Dokumen telah ditandai sebagai ${reviewData.status.replace('_', ' ')}.`
-										}
-										userType='lecturer'
+										authorName={studentName}
+										date={formattedDate}
+										content={reviewData.message || 'Tidak ada pesan pengantar.'}
+										userType='student'
 									/>
 								</ReviewDetailSection>
-							)}
-						</div>
 
-						<div className='space-y-6'>
-							{isLecturer && isPending ? (
-								<ReviewActionCard onAction={openDecisionModal} />
-							) : (
-								<ReviewInfoCard
-									lecturerName={lecturerName}
-									studentName={studentName}
-									documentId={reviewData.documentId}
-									workspaceId={workspaceId}
-									isDeleted={isDocumentDeleted}
-								/>
-							)}
+								{!isPending && (
+									<ReviewDetailSection
+										title='Review Feedback'
+										badgeText='Decision Reached'
+										icon={CheckCircle2}
+										variant={statusVariant}
+									>
+										<ReviewComment
+											authorName={lecturerName}
+											date={format(reviewData.reviewedAt || new Date(), 'd MMMM yyyy, HH:mm', {
+												locale: id,
+											})}
+											content={
+												reviewData.lecturerMessage ||
+												`Dokumen telah ditandai sebagai ${reviewData.status.replace('_', ' ')}.`
+											}
+											userType='lecturer'
+										/>
+									</ReviewDetailSection>
+								)}
+							</div>
+
+							<div className='space-y-6'>
+								{isLecturer && isPending ? (
+									<ReviewActionCard onAction={openDecisionModal} />
+								) : (
+									<ReviewInfoCard
+										lecturerName={lecturerName}
+										studentName={studentName}
+										documentId={reviewData.documentId}
+										workspaceId={workspaceId}
+										isDeleted={isDocumentDeleted}
+									/>
+								)}
+							</div>
 						</div>
 					</div>
 				</main>

@@ -2,7 +2,7 @@ import { ChevronRight, Clock, FileText } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { format, id } from '@/lib/date'
-import { ReviewStatusBadge } from './ReviewStatusBadge'
+import { getStatusConfig, ReviewStatusBadge } from './ReviewStatusBadge'
 
 interface ReviewCardProps {
 	reviewId: string
@@ -47,20 +47,8 @@ export function ReviewCard({
 	const studentName = student?.name || 'Student'
 	const isLecturer = userRole?.toLowerCase() === 'lecturer'
 
-	const getStatusColor = (status: string) => {
-		switch (status) {
-			case 'approved':
-				return 'bg-green-500'
-			case 'rejected':
-				return 'bg-red-500'
-			case 'revision_required':
-				return 'bg-amber-500'
-			default:
-				return 'bg-teal-500'
-		}
-	}
-
-	const statusColorClass = getStatusColor(status)
+	const statusConfig = getStatusConfig(status)
+	const statusColorClass = statusConfig.dotColor
 
 	const handleCardClick = () => {
 		// If lecturer OR if document is deleted, go to review detail
