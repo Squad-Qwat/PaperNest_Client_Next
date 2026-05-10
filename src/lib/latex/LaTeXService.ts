@@ -225,7 +225,8 @@ export class LaTeXService {
 				}
 			}
 
-			const data = await response.json()
+			const responseData = await response.json()
+			const data = responseData.data || responseData
 
 			// If PDF exists, convert base64 to Uint8Array
 			let pdfArrayBuffer: Uint8Array | undefined
