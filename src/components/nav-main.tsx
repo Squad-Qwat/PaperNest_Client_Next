@@ -10,6 +10,8 @@ import {
 	SidebarMenuItem,
 } from '@/components/ui/sidebar'
 
+import Link from 'next/link'
+
 export function NavMain({
 	onCreateDocument,
 	items,
@@ -29,7 +31,7 @@ export function NavMain({
 						<SidebarMenuButton
 							tooltip='Create Document'
 							onClick={onCreateDocument}
-							className='min-w-8 bg-primary text-primary-foreground duration-200 ease-linear hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground group-data-[collapsible=icon]:justify-center'
+							className='min-w-8 bg-primary text-primary-foreground duration-200 ease-linear hover:bg-primary/90 hover:text-primary/10 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground group-data-[collapsible=icon]:justify-center'
 						>
 							<IconCirclePlusFilled className='shrink-0' />
 							<span className='group-data-[collapsible=icon]:hidden'>Create Document</span>
@@ -39,9 +41,11 @@ export function NavMain({
 				<SidebarMenu>
 					{items.map((item) => (
 						<SidebarMenuItem key={item.title}>
-							<SidebarMenuButton tooltip={item.title}>
-								{item.icon && <item.icon />}
-								<span>{item.title}</span>
+							<SidebarMenuButton asChild tooltip={item.title}>
+								<Link href={item.url}>
+									{item.icon && <item.icon />}
+									<span>{item.title}</span>
+								</Link>
 							</SidebarMenuButton>
 						</SidebarMenuItem>
 					))}

@@ -73,19 +73,22 @@ export function useDocumentReviews(documentId: string) {
 	})
 }
 
-export function useLecturerPendingReviews() {
+export function useLecturerPendingReviews(enabled = true) {
 	return useQuery({
 		queryKey: DOCUMENT_KEYS.pendingReviews(),
 		queryFn: () => documentsService.getPendingReviews(),
+		enabled,
 	})
 }
 
-export function useStudentReviews() {
+export function useStudentReviews(enabled = true) {
 	return useQuery({
 		queryKey: DOCUMENT_KEYS.studentReviews(),
 		queryFn: () => documentsService.getStudentReviews(),
+		enabled,
 	})
 }
+
 
 // Mutations
 export function useCreateDocument() {

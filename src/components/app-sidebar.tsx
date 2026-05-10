@@ -11,6 +11,7 @@ import {
 import { useParams } from 'next/navigation'
 import * as React from 'react'
 import { CreateDocumentModal } from '@/components/document/CreateDocumentModal'
+import { SidebarSkeleton } from '@/components/layout/DashboardSkeleton'
 import { NavMain } from '@/components/nav-main'
 import { NavSecondary } from '@/components/nav-secondary'
 import { NavUser } from '@/components/nav-user'
@@ -18,15 +19,20 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from '@/compone
 import { WorkspaceSettingsModal } from '@/components/workspace/WorkspaceSettingsModal'
 import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher'
 import { useAuth } from '@/context/AuthContext'
-import { useWorkspace } from '@/lib/api/hooks/use-workspaces'
+import { useWorkspace, useWorkspaces } from '@/lib/api/hooks/use-workspaces'
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-	const { user } = useAuth()
+	const { user, loading: authLoading } = useAuth()
 	const params = useParams()
 	const workspaceId = params.workspaceid as string
-	const { data: workspace } = useWorkspace(workspaceId)
+	const { data: workspace, isLoading: workspaceLoading } = useWorkspace(workspaceId)
+	const { isLoading: workspacesLoading } = useWorkspaces()
 	const [showSettingsModal, setShowSettingsModal] = React.useState(false)
 	const [showCreateModal, setShowCreateModal] = React.useState(false)
+
+	if (authLoading || (workspaceId && workspaceLoading) || workspacesLoading) {
+		return <SidebarSkeleton />
+	}
 
 	const data = {
 		user: {
@@ -99,3 +105,5 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 		</Sidebar>
 	)
 }
+
+
