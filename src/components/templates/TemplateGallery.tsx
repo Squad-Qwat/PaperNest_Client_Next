@@ -55,13 +55,20 @@ export function TemplateGallery({ workspaceId }: TemplateGalleryProps) {
 
 	const getBrandLogo = (name: string, category: string) => {
 		const searchStr = `${name} ${category}`.toLowerCase()
-		const brands = ['elsevier', 'ieee', 'nature', 'springer']
-		const matchedBrand = brands.find((b) => searchStr.includes(b))
+		const brands = [
+			{ key: 'elsevier', ext: 'svg' },
+			{ key: 'ieee', ext: 'svg' },
+			{ key: 'nature', ext: 'svg' },
+			{ key: 'springer', ext: 'svg' },
+			{ key: 'telkom', ext: 'png', file: 'telkomu' },
+		]
+		const matched = brands.find((b) => searchStr.includes(b.key))
 
-		console.log('Searching for brand in:', searchStr, 'Matched:', matchedBrand)
+		console.log('Searching for brand in:', searchStr, 'Matched:', matched)
 
-		if (matchedBrand) {
-			return `/templates/brands/${matchedBrand}.svg`
+		if (matched) {
+			const fileName = matched.file || matched.key
+			return `/templates/brands/${fileName}.${matched.ext}`
 		}
 		return null
 	}
