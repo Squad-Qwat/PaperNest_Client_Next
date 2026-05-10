@@ -10,10 +10,10 @@ export const API_CONFIG = {
 		typeof window !== 'undefined'
 			? '/api'
 			: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
-	
+
 	// Direct URL to the backend API, useful for streaming or bypassing the Next.js proxy
 	directBackendURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
-	
+
 	timeout: 10000, // 10 seconds
 	retryAttempts: 3,
 	headers: {

@@ -1,15 +1,16 @@
 'use client'
 
 import { redo as cmRedo, undo as cmUndo } from '@codemirror/commands'
-import { useOthers } from '@liveblocks/react/suspense'
 import { FileText } from 'lucide-react'
 import type React from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { toast } from 'sonner'
+import { useCollaborators } from '@/hooks/editor/use-collaborators'
+import { useLatexCompilation } from '@/hooks/editor/use-latex-compilation'
 import { useLatexEditor } from '@/hooks/editor/use-latex-editor'
 import { useDocumentFiles } from '@/lib/api/hooks/use-document-files'
 import { laTeXService } from '@/lib/latex/LaTeXService'
 import { computeCodeMirrorChanges } from '@/lib/utils/diff'
+import { applyRangesToText, getMergeSignature, normalizeText } from '@/lib/utils/latex-merge-utils'
 import { MergePreview } from '../mergeview/MergePreview'
 import { LatexVisualEditor } from './LatexVisualEditor'
 
@@ -36,24 +37,6 @@ type PendingMergeChange = {
 
 const MAX_PENDING_MERGES = 50
 
-const getMergeSignature = (data: PendingMergeChange): string => {
-	const search = Array.isArray(data.searchBlock) ? data.searchBlock.join('\u241f') : ''
-	const replace = Array.isArray(data.replaceBlock) ? data.replaceBlock.join('\u241f') : ''
-	return `${data.description || ''}\u241e${data.original}\u241e${data.modified}\u241e${search}\u241e${replace}`
-}
-
-const applyRangesToText = (
-	text: string,
-	ranges: Array<{ from: number; to: number; insert: string }>
-): string => {
-	let next = text
-	const sortedDesc = [...ranges].sort((a, b) => b.from - a.from)
-	for (const range of sortedDesc) {
-		next = next.slice(0, range.from) + range.insert + next.slice(range.to)
-	}
-	return next
-}
-
 export function LatexEditor({
 	documentId,
 	user,
@@ -62,12 +45,7 @@ export function LatexEditor({
 	onAutoSaveStateChange,
 	isPdfHidden = false,
 }: LatexEditorProps) {
-	const others = useOthers()
-	const [isCompiling, setIsCompiling] = useState(false)
-	const [compileResult, setCompileResult] = useState<any>(null)
-	const [pdfUrl, setPdfUrl] = useState<string | null>(null)
-	const [showLog, setShowLog] = useState(false)
-	const [editorPdfSplitWidth, setEditorPdfSplitWidth] = useState(55) // Editor width as percentage
+	const [editorPdfSplitWidth, setEditorPdfSplitWidth] = useState(55)
 	const [isEditorPdfResizing, setIsEditorPdfResizing] = useState(false)
 	const [viewMode, setViewMode] = useState<'source' | 'visual'>('source')
 	const [compilerMode, setCompilerMode] = useState<'client' | 'server' | 'server_pdflatex'>(
@@ -79,7 +57,12 @@ export function LatexEditor({
 		applied: number
 		failed: number
 	} | null>(null)
+
 	const { data: files = [], refetch: refetchFiles } = useDocumentFiles(documentId)
+	const { visibleCollaborators, hiddenCollaboratorsCount } = useCollaborators()
+	const { isCompiling, compileResult, pdfUrl, showLog, setShowLog, handleCompile } =
+		useLatexCompilation({ documentId, files, refetchFiles })
+
 	const containerRef = useRef<HTMLDivElement>(null)
 	const activePendingMerge = pendingMerges[0] ?? null
 
@@ -87,22 +70,13 @@ export function LatexEditor({
 		if (!data) return
 
 		setPendingMerges((prev) => {
-			if (prev.length >= MAX_PENDING_MERGES) {
-				console.warn(
-					`[Merge Queue] Max queue size (${MAX_PENDING_MERGES}) reached. Ignoring new staged change.`
-				)
-				return prev
-			}
+			if (prev.length >= MAX_PENDING_MERGES) return prev
 
 			const incomingSignature = getMergeSignature(data)
 			const hasDuplicate = prev.some((item) => getMergeSignature(item) === incomingSignature)
-			if (hasDuplicate) {
-				console.warn('[Merge Queue] Duplicate staged change ignored.')
-				return prev
-			}
+			if (hasDuplicate) return prev
 
 			setLastBatchSummary(null)
-
 			return [...prev, data]
 		})
 	}, [])
@@ -111,49 +85,11 @@ export function LatexEditor({
 		setPendingMerges((prev) => prev.slice(1))
 	}, [])
 
-	const collaborators = useMemo(() => {
-		return others.map((other) => {
-			const info = other.info as any
-			const name =
-				info?.name || (typeof info?.email === 'string' ? info.email.split('@')[0] : 'Guest')
-
-			return {
-				id: String(other.connectionId),
-				name,
-				avatar: info?.avatar,
-				color: info?.color || '#6b7280',
-			}
-		})
-	}, [others])
-
-	const { visibleCollaborators, hiddenCollaboratorsCount } = useMemo(() => {
-		const visible = collaborators.slice(0, 4)
-		return {
-			visibleCollaborators: visible,
-			hiddenCollaboratorsCount: Math.max(collaborators.length - visible.length, 0),
-		}
-	}, [collaborators])
-
-	const { editorRef, view, isSaving, collaborationReady } = useLatexEditor({
+	const { editorRef, view, isSaving } = useLatexEditor({
 		documentId,
 		user,
 		initialContent,
 	})
-
-	/**
-	 * Normalizes text for resilient comparison by:
-	 * 1. Converting CRLF to LF
-	 * 2. Trimming trailing whitespace on every line
-	 * 3. Trimming the overall document
-	 */
-	const normalizeText = useCallback((text: string): string => {
-		return text
-			.replace(/\r\n/g, '\n')
-			.split('\n')
-			.map((line) => line.trimEnd())
-			.join('\n')
-			.trim()
-	}, [])
 
 	const getRebasedPreview = useCallback(
 		(merge: PendingMergeChange): { modified: string; isRebased: boolean; reason?: string } => {
@@ -169,7 +105,6 @@ export function LatexEditor({
 			const hasAtomicBlocks = searchBlock.length > 0 && searchBlock.length === replaceBlock.length
 
 			if (!hasAtomicBlocks) {
-				// Identity Fallback: if user made no content changes (ignoring whitespace/line-endings)
 				if (normalizedOriginal === normalizedCurrent) {
 					return { modified: merge.modified, isRebased: true, reason: undefined }
 				}
@@ -186,11 +121,9 @@ export function LatexEditor({
 					return { modified: merge.modified, isRebased: false, reason: 'invalid_anchor' }
 				}
 
-				// 1. Try strict match first
 				let index = currentDoc.indexOf(search, searchFrom)
 				let matchedLength = search.length
 
-				// 2. Try fuzzy match (regex-based, whitespace agnostic)
 				if (index === -1) {
 					const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 					const fuzzyPattern = escaped.replace(/\s+/g, '[\\s\\r\\n]+')
@@ -205,7 +138,6 @@ export function LatexEditor({
 				}
 
 				if (index === -1) {
-					// Identity Fallback: if searching fails but doc is semantically identical to original
 					if (normalizedOriginal === normalizedCurrent) {
 						return { modified: merge.modified, isRebased: true, reason: undefined }
 					}
@@ -222,7 +154,7 @@ export function LatexEditor({
 				reason: undefined,
 			}
 		},
-		[view, normalizeText]
+		[view]
 	)
 
 	const activeMergePreview = useMemo(() => {
@@ -273,23 +205,16 @@ export function LatexEditor({
 
 					if (batchValid) {
 						ranges.sort((a, b) => b.from - a.from)
-						view.dispatch({
-							changes: ranges,
-							scrollIntoView: false,
-						})
+						view.dispatch({ changes: ranges, scrollIntoView: false })
 						applied = true
 					}
 				}
 			}
 
-			// FALLBACK: If surgical replace failed or not applicable, try granular diffing
 			if (!applied && allowFallback && typeof fallbackContent === 'string') {
 				const changes = computeCodeMirrorChanges(currentDoc, fallbackContent)
 				if (changes.length > 0) {
-					view.dispatch({
-						changes,
-						scrollIntoView: false,
-					})
+					view.dispatch({ changes, scrollIntoView: false })
 					applied = true
 				}
 			}
@@ -299,8 +224,6 @@ export function LatexEditor({
 		[view]
 	)
 
-	// Files are now fetched by useDocumentFiles hook based on documentId.
-
 	const handleInsertSnippet = useCallback(
 		(snippet: string, selectionOffset: number = 0) => {
 			if (!view) return
@@ -308,15 +231,10 @@ export function LatexEditor({
 			const selection = view.state.selection.main
 			const text = view.state.doc.toString()
 			const selectedText = text.slice(selection.from, selection.to)
-
 			const insertText = snippet.replace('$SELECTION$', selectedText)
 
 			view.dispatch({
-				changes: {
-					from: selection.from,
-					to: selection.to,
-					insert: insertText,
-				},
+				changes: { from: selection.from, to: selection.to, insert: insertText },
 				selection: {
 					anchor: selection.from + selectionOffset + (selectedText ? selectedText.length : 0),
 				},
@@ -328,7 +246,6 @@ export function LatexEditor({
 		[view]
 	)
 
-	// Sync compiler mode with service
 	useEffect(() => {
 		const unsubscribe = laTeXService.addStatusListener(() => {
 			setCompilerMode(laTeXService.getCompilerMode())
@@ -336,101 +253,35 @@ export function LatexEditor({
 		return unsubscribe
 	}, [])
 
-	const handleCompile = useCallback(async () => {
+	const onCompile = useCallback(() => {
 		if (!view) return
+		const content = activePendingMerge ? activePendingMerge.modified : view.state.doc.toString()
+		handleCompile(content)
+	}, [view, activePendingMerge, handleCompile])
 
-		setIsCompiling(true)
-		try {
-			const content = activePendingMerge ? activePendingMerge.modified : view.state.doc.toString()
-
-			let currentFiles = files
-			if (documentId) {
-				const refreshed = await refetchFiles()
-				if (refreshed.data) currentFiles = refreshed.data
-			}
-
-			const result = await laTeXService.compileWithAssets(
-				'main.tex',
-				content,
-				currentFiles,
-				undefined,
-				documentId ?? undefined
-			)
-			setCompileResult(result)
-
-			if (result.pdf) {
-				const blob = new Blob([result.pdf as any], { type: 'application/pdf' })
-				if (pdfUrl) URL.revokeObjectURL(pdfUrl)
-				setPdfUrl(URL.createObjectURL(blob))
-
-				if (result.status !== 0) {
-					toast.warning('Kompilasi selesai dengan peringatan.')
-					setShowLog(true)
-				}
-			} else {
-				toast.error('Gagal membuat PDF. Periksa log untuk detailnya.')
-				setShowLog(true)
-			}
-		} catch (error: any) {
-			console.error('Compilation error:', error)
-			toast.error(`Kompilasi gagal: ${error.message || 'Terjadi kesalahan internal'}`)
-		} finally {
-			setIsCompiling(false)
-		}
-	}, [view, activePendingMerge, files, documentId, refetchFiles, pdfUrl])
-
-	// Report editor functions back to parent
 	useEffect(() => {
 		if (view && onEditorReady) {
-			const functionalInterface = {
+			onEditorReady({
 				getCurrentContent: () => view.state.doc.toString(),
-				getCurrentHTML: () => view.state.doc.toString(),
 				undo: () => cmUndo(view),
 				redo: () => cmRedo(view),
-				canUndo: true,
-				canRedo: true,
-				insertTable: () => {
-					handleInsertSnippet(
-						'\\begin{tabular}{|l|l|}\n\\hline\n  $SELECTION$ &  \\\\\n\\hline\n\\end{tabular}',
-						16
-					)
-				},
 				insertSnippet: handleInsertSnippet,
-				handleCompile,
+				handleCompile: onCompile,
 				isCompiling,
 				compileResult,
 				visibleCollaborators,
 				hiddenCollaboratorsCount,
 				viewMode,
-				toggleViewMode: () => {
-					setViewMode((v) => (v === 'source' ? 'visual' : 'source'))
-				},
-				setCompilerMode: (mode: 'client' | 'server' | 'server_pdflatex') => {
+				toggleViewMode: () => setViewMode((v) => (v === 'source' ? 'visual' : 'source')),
+				setCompilerMode: (mode: any) => {
 					laTeXService.setCompilerMode(mode)
 					setCompilerMode(mode)
 				},
 				compilerMode,
 				setPendingMerge: enqueuePendingMerge,
-				// Provide getters for internal instances but keep them non-enumerable
-				// to prevent React/DevTools from deep-inspecting them and hitting the PDF iframe window.
 				getInternalView: () => view,
-				getInternalVisualEditor: () => visualEditor,
-			}
-
-			// Backward compatibility for executeEditorTool
-			Object.defineProperty(functionalInterface, 'editor', {
-				get: () => view,
-				enumerable: false,
-				configurable: true,
+				visualEditor,
 			})
-
-			Object.defineProperty(functionalInterface, 'visualEditor', {
-				get: () => visualEditor,
-				enumerable: false,
-				configurable: true,
-			})
-
-			onEditorReady(functionalInterface)
 		}
 	}, [
 		view,
@@ -439,43 +290,29 @@ export function LatexEditor({
 		visibleCollaborators,
 		hiddenCollaboratorsCount,
 		viewMode,
-		visualEditor,
 		enqueuePendingMerge,
 		compilerMode,
-		handleCompile,
+		onCompile,
 		compileResult,
 		handleInsertSnippet,
+		visualEditor,
 	])
 
-	// Report auto-save state back to parent
 	useEffect(() => {
-		if (onAutoSaveStateChange) {
-			onAutoSaveStateChange(isSaving, null)
-		}
+		if (onAutoSaveStateChange) onAutoSaveStateChange(isSaving, null)
 	}, [isSaving, onAutoSaveStateChange])
 
-	// Cleanup PDF URL on unmount
-	useEffect(() => {
-		return () => {
-			if (pdfUrl) URL.revokeObjectURL(pdfUrl)
-		}
-	}, [pdfUrl])
-
-	// Handle resize between editor and PDF viewer
 	const handleSplitMouseDown = useCallback(
 		(e: React.MouseEvent) => {
 			e.preventDefault()
 			setIsEditorPdfResizing(true)
-
 			const startX = e.clientX
 			const startWidth = editorPdfSplitWidth
-			const containerWidth = containerRef.current?.offsetWidth || 0
+			const containerWidth = containerRef.current?.offsetWidth || 1
 
 			const handleMouseMove = (moveEvent: MouseEvent) => {
-				const deltaX = moveEvent.clientX - startX
-				const deltaPercent = (deltaX / containerWidth) * 100
-				const newWidth = Math.min(Math.max(startWidth + deltaPercent, 30), 70) // 30-70% for editor
-				setEditorPdfSplitWidth(newWidth)
+				const deltaPercent = ((moveEvent.clientX - startX) / containerWidth) * 100
+				setEditorPdfSplitWidth(Math.min(Math.max(startWidth + deltaPercent, 30), 70))
 			}
 
 			const handleMouseUp = () => {
@@ -493,7 +330,6 @@ export function LatexEditor({
 	return (
 		<div className='flex flex-col h-full w-full bg-white overflow-hidden'>
 			<div className='flex flex-1 overflow-hidden' ref={containerRef}>
-				{/* Editor Container - Resizable Width */}
 				<div
 					className='overflow-hidden relative bg-white border-r border-gray-100'
 					style={{ width: `${editorPdfSplitWidth}%` }}
@@ -509,61 +345,23 @@ export function LatexEditor({
 							modified={activeMergePreview?.modified ?? activePendingMerge.modified}
 							queuePosition={pendingMerges.length > 0 ? 1 : 0}
 							queueTotal={pendingMerges.length}
-							onAccept={(_content) => {
-								const mergeToApply = activePendingMerge
-								if (!mergeToApply) return
-
-								if (activeMergePreview?.isRebased !== true) {
-									console.warn(
-										'Accept This blocked: current queue item is stale and could reintroduce previously accepted content. Use Discard or Accept All (best-effort).'
-									)
-									return
-								}
-
-								const applied = applyPendingMerge(mergeToApply, activeMergePreview?.modified, {
-									allowFallback: activeMergePreview?.isRebased === true,
-								})
-								if (!applied) {
-									console.warn(
-										'Merge preview apply failed: staged change no longer matches current document. Please review/discard this queue item.'
-									)
-									return
-								}
-
-								setLastBatchSummary(null)
-								consumePendingMerge()
+							onAccept={() => {
+								if (activeMergePreview?.isRebased !== true) return
+								const applied = applyPendingMerge(activePendingMerge, activeMergePreview.modified)
+								if (applied) consumePendingMerge()
 							}}
 							onAcceptAll={() => {
-								if (!view) return
-
-								const queueSnapshot = [...pendingMerges]
 								let appliedCount = 0
 								const failedItems: PendingMergeChange[] = []
-								for (let index = 0; index < queueSnapshot.length; index++) {
-									const merge = queueSnapshot[index]
+								for (const merge of pendingMerges) {
 									const applied = applyPendingMerge(merge, undefined, { allowFallback: false })
-
-									if (!applied) {
-										console.warn(
-											`Accept All: Merge ${index + 1} failed - staged diff no longer matches current document. Keeping item in queue for manual review.`
-										)
-										failedItems.push(merge)
-										continue
-									}
-
-									appliedCount++
+									if (applied) appliedCount++
+									else failedItems.push(merge)
 								}
-
 								setPendingMerges(failedItems)
-								setLastBatchSummary({
-									applied: appliedCount,
-									failed: failedItems.length,
-								})
+								setLastBatchSummary({ applied: appliedCount, failed: failedItems.length })
 							}}
-							onDiscard={() => {
-								setLastBatchSummary(null)
-								consumePendingMerge()
-							}}
+							onDiscard={consumePendingMerge}
 							batchSummary={lastBatchSummary}
 							rebaseStatus={{
 								isRebased: activeMergePreview?.isRebased === true,
@@ -579,44 +377,21 @@ export function LatexEditor({
 							onChange={(newContent) => {
 								if (view) {
 									view.dispatch({
-										changes: {
-											from: 0,
-											to: view.state.doc.length,
-											insert: newContent,
-										},
+										changes: { from: 0, to: view.state.doc.length, insert: newContent },
 									})
 								}
 							}}
 						/>
 					)}
-
-					{/* Cloud Sync Indicator */}
-					{!isSaving && collaborationReady && (
-						<div className='absolute bottom-3 right-3 text-[10px] font-medium text-gray-400 bg-white/50 px-2 py-1 rounded opacity-0 hover:opacity-100 transition-opacity'>
-							Synced
-						</div>
-					)}
 				</div>
 
-				{/* Resize Handle */}
 				<hr
 					className={`w-1 cursor-col-resize hover:bg-blue-400 transition-colors border-none ${
-						isEditorPdfResizing ? 'bg-blue-500' : 'bg-gray-200 hover:bg-blue-300'
+						isEditorPdfResizing ? 'bg-blue-500' : 'bg-gray-200'
 					}`}
 					onMouseDown={handleSplitMouseDown}
-					style={{
-						userSelect: 'none',
-						flex: '0 0 auto',
-					}}
-					aria-orientation='vertical'
-					aria-valuenow={editorPdfSplitWidth}
-					aria-valuemin={30}
-					aria-valuemax={70}
-					tabIndex={0}
-					title='Drag to resize editor and PDF viewer'
 				/>
 
-				{/* Preview Container - Resizable Width */}
 				<div
 					className={`overflow-hidden relative transition-all duration-200 ${pdfUrl ? 'bg-[#525659]' : 'bg-gray-50'}`}
 					style={{
@@ -625,30 +400,24 @@ export function LatexEditor({
 					}}
 				>
 					{pdfUrl ? (
-						<div className='w-full h-full flex flex-col'>
-							<iframe
-								src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
-								className='w-full h-full border-none'
-								title='PDF Preview'
-							/>
-						</div>
+						<iframe
+							src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+							className='w-full h-full border-none'
+							title='PDF Preview'
+						/>
 					) : (
 						<div className='absolute inset-0 flex flex-col items-center justify-center text-gray-400 p-4 text-center text-sm'>
 							<FileText className='w-10 h-10 mb-3 opacity-20' />
 							<p className='font-medium'>Ready to compile</p>
-							<p className='text-xs text-gray-500 mt-1'>Press "Compile" to see preview</p>
 						</div>
 					)}
 
-					{/* Logs Toggle */}
 					{compileResult && (
 						<button
 							type='button'
 							onClick={() => setShowLog(!showLog)}
 							className={`absolute bottom-3 left-3 z-20 px-2.5 py-1 rounded text-[10px] font-bold uppercase transition-all ${
-								compileResult.status === 0
-									? 'bg-green-500/90 hover:bg-green-600 text-white'
-									: 'bg-red-500/90 hover:bg-red-600 text-white'
+								compileResult.status === 0 ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
 							}`}
 						>
 							{showLog ? 'Hide' : 'Logs'}
@@ -657,27 +426,15 @@ export function LatexEditor({
 				</div>
 			</div>
 
-			{/* Compilation Log Overlay - Compact */}
 			{compileResult && showLog && (
 				<div className='absolute bottom-0 left-0 right-0 h-1/3 bg-[#0d1117]/95 text-gray-300 p-4 font-mono text-[10px] overflow-auto border-t border-white/10 z-30'>
 					<div className='flex items-center justify-between mb-3 border-b border-white/10 pb-2'>
-						<div className='flex items-center gap-2'>
-							<div
-								className={`w-2 h-2 rounded-full ${compileResult.status === 0 ? 'bg-green-500' : 'bg-red-500'}`}
-							/>
-							<span className='font-bold text-white'>Build Output</span>
-						</div>
-						<button
-							type='button'
-							onClick={() => setShowLog(false)}
-							className='text-gray-500 hover:text-white'
-						>
+						<span className='font-bold text-white'>Build Output</span>
+						<button type='button' onClick={() => setShowLog(false)} className='text-gray-500'>
 							✕
 						</button>
 					</div>
-					<pre className='whitespace-pre-wrap leading-relaxed selection:bg-blue-500/30'>
-						{compileResult.log}
-					</pre>
+					<pre className='whitespace-pre-wrap'>{compileResult.log}</pre>
 				</div>
 			)}
 		</div>

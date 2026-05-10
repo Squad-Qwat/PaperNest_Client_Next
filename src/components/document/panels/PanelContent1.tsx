@@ -14,10 +14,10 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import { type TreeDataItem, TreeView } from '@/components/tree-view'
+import { useFileOperations } from '@/hooks/editor/use-file-operations'
 import { useDocumentFiles } from '@/lib/api/hooks/use-document-files'
 import type { DocumentFile } from '@/lib/api/types/document.types'
 import { buildFileTree } from '@/lib/utils/file-tree-utils'
-import { useFileOperations } from '@/hooks/editor/use-file-operations'
 
 // --- Types ---
 
@@ -245,6 +245,7 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, onInsertText }) => 
 
 	return (
 		<section
+			aria-label='File explorer drop zone'
 			className={`flex flex-col h-full bg-white transition-all relative ${
 				isDragging ? 'bg-primary/5' : ''
 			}`}

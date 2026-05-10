@@ -56,7 +56,7 @@ export const aiService = {
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ documentId, fileKey }),
 			})
-			
+
 			if (!response.ok) {
 				const errorData = await response.json()
 				throw new Error(errorData.error || 'Failed to index PDF')

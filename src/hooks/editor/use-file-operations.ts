@@ -1,12 +1,12 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
-import { useQueryClient } from '@tanstack/react-query'
-import { apiClient } from '@/lib/api/clients/api-client'
 import { aiService } from '@/lib/ai/services/ai.service'
-import { 
-    DOCUMENT_FILE_KEYS, 
-    useAddDocumentFile, 
-    useRenameDocumentFile 
+import { apiClient } from '@/lib/api/clients/api-client'
+import {
+	DOCUMENT_FILE_KEYS,
+	useAddDocumentFile,
+	useRenameDocumentFile,
 } from '@/lib/api/hooks/use-document-files'
 import type { DocumentFile } from '@/lib/api/types/document.types'
 
@@ -74,8 +74,7 @@ export function useFileOperations(documentId: string | null | undefined, files: 
 
 	const handleDeleteFile = useCallback(
 		async (fileId: string) => {
-			if (!documentId || !confirm('Are you sure you want to delete this file?'))
-				return
+			if (!documentId || !confirm('Are you sure you want to delete this file?')) return
 
 			try {
 				await apiClient.delete(`/upload/file/${documentId}/${fileId}`)

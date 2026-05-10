@@ -1,6 +1,6 @@
-import { type TreeDataItem } from '@/components/tree-view'
-import { type DocumentFile } from '@/lib/api/types/document.types'
 import { FileBox, FileCode, FileImage, FileText, Folder, FolderOpen } from 'lucide-react'
+import type { TreeDataItem } from '@/components/tree-view'
+import type { DocumentFile } from '@/lib/api/types/document.types'
 
 /**
  * Gets the appropriate icon for a file based on its extension or mime type
