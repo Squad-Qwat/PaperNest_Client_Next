@@ -89,7 +89,6 @@ export function useStudentReviews(enabled = true) {
 	})
 }
 
-
 // Mutations
 export function useCreateDocument() {
 	const queryClient = useQueryClient()

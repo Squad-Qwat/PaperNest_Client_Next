@@ -3,11 +3,7 @@
 import { AppSidebar } from '@/components/app-sidebar'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 
-export default function WorkspaceMainLayout({
-	children,
-}: {
-	children: React.ReactNode
-}) {
+export default function WorkspaceMainLayout({ children }: { children: React.ReactNode }) {
 	return (
 		<SidebarProvider className='h-svh overflow-hidden bg-sidebar'>
 			<AppSidebar />

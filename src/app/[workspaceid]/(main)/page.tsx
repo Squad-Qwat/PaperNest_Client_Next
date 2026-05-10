@@ -4,8 +4,7 @@ import { FileText, Trash2 } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { AppSidebar } from '@/components/app-sidebar'
-import { DashboardContentSkeleton, DashboardSkeleton } from '@/components/layout/DashboardSkeleton'
+import { DashboardContentSkeleton } from '@/components/layout/DashboardSkeleton'
 import { TemplateGallery } from '@/components/templates/TemplateGallery'
 import {
 	Breadcrumb,
@@ -237,4 +236,3 @@ export default function WorkspacePage() {
 		</>
 	)
 }
-

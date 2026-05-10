@@ -2,18 +2,9 @@
 
 import { Search } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
-import { useState, useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { ReviewContentSkeleton } from '@/components/layout/DashboardSkeleton'
 import { ReviewCard } from '@/components/review/ReviewCard'
-import { Input } from '@/components/ui/input'
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from '@/components/ui/select'
-import { SidebarTrigger } from '@/components/ui/sidebar'
-import { Separator } from '@/components/ui/separator'
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -22,15 +13,23 @@ import {
 	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
+import { Input } from '@/components/ui/input'
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
+import { SidebarTrigger } from '@/components/ui/sidebar'
 import { useAuth } from '@/context/AuthContext'
-import { useWorkspace } from '@/lib/api/hooks/use-workspaces'
 import {
 	useLecturerPendingReviews,
 	useStudentReviews,
 	useWorkspaceDocuments,
 } from '@/lib/api/hooks/use-documents'
-import { ReviewContentSkeleton } from '@/components/layout/DashboardSkeleton'
-import type { Review } from '@/lib/api/types/review.types'
+import { useWorkspace } from '@/lib/api/hooks/use-workspaces'
 import { format, id } from '@/lib/date'
 
 export default function ReviewsPage() {
@@ -43,11 +42,13 @@ export default function ReviewsPage() {
 	const isStudent = user?.role?.toLowerCase() === 'student'
 	const hasUser = !!user
 
-	const { data: studentReviewsRes, isLoading: studentLoading } = useStudentReviews(hasUser && isStudent)
-	const { data: lecturerReviewsRes, isLoading: lecturerLoading } = useLecturerPendingReviews(hasUser && !isStudent)
+	const { data: studentReviewsRes, isLoading: studentLoading } = useStudentReviews(
+		hasUser && isStudent
+	)
+	const { data: lecturerReviewsRes, isLoading: lecturerLoading } = useLecturerPendingReviews(
+		hasUser && !isStudent
+	)
 	const { data: docsRes, isLoading: docsLoading } = useWorkspaceDocuments(workspaceId)
-
-
 
 	const reviews = (isStudent ? studentReviewsRes?.reviews : lecturerReviewsRes?.reviews) || []
 	const documents = docsRes?.documents || []
@@ -227,8 +228,8 @@ export default function ReviewsPage() {
 								onAddReview={
 									user?.role === 'Student'
 										? () => {
-											router.push(`/${workspaceId}/documents/${review.documentId}`)
-										}
+												router.push(`/${workspaceId}/documents/${review.documentId}`)
+											}
 										: undefined
 								}
 							/>
@@ -239,5 +240,3 @@ export default function ReviewsPage() {
 		</>
 	)
 }
-
-

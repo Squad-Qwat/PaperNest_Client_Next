@@ -172,7 +172,3 @@ export function DashboardSkeleton() {
 		</SidebarProvider>
 	)
 }
-
-
-
-

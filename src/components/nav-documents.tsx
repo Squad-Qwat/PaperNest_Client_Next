@@ -1,7 +1,7 @@
 'use client'
 
 import { type Icon, IconDots, IconFolder, IconShare3, IconTrash } from '@tabler/icons-react'
-
+import Link from 'next/link'
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -18,8 +18,6 @@ import {
 	SidebarMenuItem,
 	useSidebar,
 } from '@/components/ui/sidebar'
-
-import Link from 'next/link'
 
 export function NavDocuments({
 	items,
