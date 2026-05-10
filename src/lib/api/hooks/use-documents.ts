@@ -30,6 +30,46 @@ export const DOCUMENT_KEYS = {
 	reviewDetail: (reviewId: string) => ['reviews', 'detail', reviewId] as const,
 }
 
+// Internal helpers to reduce duplication
+const mapFirestoreDoc = (docSnap: any, idField: string) => {
+	const data = docSnap.data()
+	const result = { [idField]: docSnap.id, ...data }
+	const dateFields = ['createdAt', 'updatedAt', 'requestedAt', 'reviewedAt']
+	dateFields.forEach((field) => {
+		if (data[field]?.toDate) result[field] = data[field].toDate()
+	})
+	return result
+}
+
+const useFirestoreListener = (
+	queryRef: any,
+	idField: string,
+	sortFn?: (a: any, b: any) => number
+) => {
+	const [data, setData] = useState<any[]>([])
+	const [isLoading, setIsLoading] = useState(true)
+
+	useEffect(() => {
+		if (!queryRef) return
+		const unsubscribe = onSnapshot(
+			queryRef,
+			(snapshot: { docs: any[] }) => {
+				let docs = snapshot.docs.map((d: any) => mapFirestoreDoc(d, idField))
+				if (sortFn) docs = [...docs].sort(sortFn)
+				setData(docs)
+				setIsLoading(false)
+			},
+			(error) => {
+				console.error(`Error in firestore listener (${idField}):`, error)
+				setIsLoading(false)
+			}
+		)
+		return () => unsubscribe()
+	}, [idField, queryRef, sortFn]) // queryRef.toString() as a proxy for the query identity
+
+	return { data, isLoading }
+}
+
 // Queries
 export function useMyDocuments() {
 	return useQuery({
@@ -39,43 +79,13 @@ export function useMyDocuments() {
 }
 
 export function useWorkspaceDocuments(workspaceId: string) {
-	const [documents, setDocuments] = useState<any[]>([])
-	const [isLoading, setIsLoading] = useState(true)
-
-	useEffect(() => {
-		if (!workspaceId) return
-
-		const documentsRef = collection(db, 'documents')
-		const q = query(documentsRef, where('workspaceId', '==', workspaceId))
-
-		const unsubscribe = onSnapshot(
-			q,
-			(snapshot) => {
-				const docs = snapshot.docs.map((doc) => ({
-					documentId: doc.id,
-					...doc.data(),
-					createdAt: doc.data().createdAt?.toDate?.() || doc.data().createdAt,
-					updatedAt: doc.data().updatedAt?.toDate?.() || doc.data().updatedAt,
-				}))
-				// Sort by updatedAt descending in frontend
-				docs.sort((a, b) => {
-					const dateA = new Date(a.updatedAt).getTime()
-					const dateB = new Date(b.updatedAt).getTime()
-					return dateB - dateA
-				})
-				setDocuments(docs)
-				setIsLoading(false)
-			},
-			(error) => {
-				console.error('Error listening to workspace documents:', error)
-				setIsLoading(false)
-			}
-		)
-
-		return () => unsubscribe()
-	}, [workspaceId])
-
-	return { data: { documents, count: documents.length }, isLoading }
+	const q = workspaceId
+		? query(collection(db, 'documents'), where('workspaceId', '==', workspaceId))
+		: null
+	const { data, isLoading } = useFirestoreListener(q, 'documentId', (a, b) => {
+		return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+	})
+	return { data: { documents: data, count: data.length }, isLoading }
 }
 
 export function useDocument(_workspaceId: string, documentId: string) {
@@ -84,20 +94,10 @@ export function useDocument(_workspaceId: string, documentId: string) {
 
 	useEffect(() => {
 		if (!documentId) return
-
 		const unsubscribe = onSnapshot(
 			doc(db, 'documents', documentId),
 			(snapshot) => {
-				if (snapshot.exists()) {
-					setDocument({
-						documentId: snapshot.id,
-						...snapshot.data(),
-						createdAt: snapshot.data().createdAt?.toDate?.() || snapshot.data().createdAt,
-						updatedAt: snapshot.data().updatedAt?.toDate?.() || snapshot.data().updatedAt,
-					})
-				} else {
-					setDocument(null)
-				}
+				setDocument(snapshot.exists() ? mapFirestoreDoc(snapshot, 'documentId') : null)
 				setIsLoading(false)
 			},
 			(error) => {
@@ -105,7 +105,6 @@ export function useDocument(_workspaceId: string, documentId: string) {
 				setIsLoading(false)
 			}
 		)
-
 		return () => unsubscribe()
 	}, [documentId])
 
@@ -121,82 +120,23 @@ export function useSearchDocuments(workspaceId: string, params: DocumentSearchPa
 }
 
 export function useDocumentVersions(documentId: string) {
-	const [versions, setVersions] = useState<any[]>([])
-	const [isLoading, setIsLoading] = useState(true)
-
-	useEffect(() => {
-		if (!documentId) return
-
-		const versionsRef = collection(db, 'documentBodies')
-		const q = query(versionsRef, where('documentId', '==', documentId))
-
-		const unsubscribe = onSnapshot(
-			q,
-			(snapshot) => {
-				const docs = snapshot.docs.map(
-					(doc) =>
-						({
-							documentBodyId: doc.id,
-							...doc.data(),
-							createdAt: doc.data().createdAt?.toDate?.() || doc.data().createdAt,
-							updatedAt: doc.data().updatedAt?.toDate?.() || doc.data().updatedAt,
-						}) as unknown as Version
-				)
-				// Sort by versionNumber descending
-				docs.sort((a, b) => (b.versionNumber || 0) - (a.versionNumber || 0))
-				setVersions(docs)
-				setIsLoading(false)
-			},
-			(error) => {
-				console.error('Error listening to document versions:', error)
-				setIsLoading(false)
-			}
-		)
-
-		return () => unsubscribe()
-	}, [documentId])
-
-	return { data: { versions }, isLoading }
+	const q = documentId
+		? query(collection(db, 'documentBodies'), where('documentId', '==', documentId))
+		: null
+	const { data, isLoading } = useFirestoreListener(q, 'documentBodyId', (a, b) => {
+		return (b.versionNumber || 0) - (a.versionNumber || 0)
+	})
+	return { data: { versions: data as unknown as Version[] }, isLoading }
 }
 
 export function useDocumentReviews(documentId: string) {
-	const [reviews, setReviews] = useState<any[]>([])
-	const [isLoading, setIsLoading] = useState(true)
-
-	useEffect(() => {
-		if (!documentId) return
-
-		const reviewsRef = collection(db, 'reviews')
-		const q = query(reviewsRef, where('documentId', '==', documentId))
-
-		const unsubscribe = onSnapshot(
-			q,
-			(snapshot) => {
-				const docs = snapshot.docs.map((doc) => ({
-					reviewId: doc.id,
-					...doc.data(),
-					requestedAt: doc.data().requestedAt?.toDate?.() || doc.data().requestedAt,
-					reviewedAt: doc.data().reviewedAt?.toDate?.() || doc.data().reviewedAt,
-				}))
-				// Sort by requestedAt descending
-				docs.sort((a, b) => {
-					const dateA = new Date(a.requestedAt).getTime()
-					const dateB = new Date(b.requestedAt).getTime()
-					return dateB - dateA
-				})
-				setReviews(docs)
-				setIsLoading(false)
-			},
-			(error) => {
-				console.error('Error listening to document reviews:', error)
-				setIsLoading(false)
-			}
-		)
-
-		return () => unsubscribe()
-	}, [documentId])
-
-	return { data: { reviews }, isLoading }
+	const q = documentId
+		? query(collection(db, 'reviews'), where('documentId', '==', documentId))
+		: null
+	const { data, isLoading } = useFirestoreListener(q, 'reviewId', (a, b) => {
+		return new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
+	})
+	return { data: { reviews: data }, isLoading }
 }
 
 export function useReviewDetail(reviewId: string) {
@@ -205,20 +145,10 @@ export function useReviewDetail(reviewId: string) {
 
 	useEffect(() => {
 		if (!reviewId) return
-
 		const unsubscribe = onSnapshot(
 			doc(db, 'reviews', reviewId),
 			(snapshot) => {
-				if (snapshot.exists()) {
-					setReview({
-						reviewId: snapshot.id,
-						...snapshot.data(),
-						requestedAt: snapshot.data().requestedAt?.toDate?.() || snapshot.data().requestedAt,
-						reviewedAt: snapshot.data().reviewedAt?.toDate?.() || snapshot.data().reviewedAt,
-					})
-				} else {
-					setReview(null)
-				}
+				setReview(snapshot.exists() ? mapFirestoreDoc(snapshot, 'reviewId') : null)
 				setIsLoading(false)
 			},
 			(error) => {
@@ -226,7 +156,6 @@ export function useReviewDetail(reviewId: string) {
 				setIsLoading(false)
 			}
 		)
-
 		return () => unsubscribe()
 	}, [reviewId])
 
@@ -235,94 +164,29 @@ export function useReviewDetail(reviewId: string) {
 
 export function useLecturerPendingReviews() {
 	const { user } = useAuth()
-	const [reviews, setReviews] = useState<any[]>([])
-	const [isLoading, setIsLoading] = useState(true)
-
-	useEffect(() => {
-		if (!user?.userId || user?.role !== 'Lecturer') {
-			setIsLoading(false)
-			return
-		}
-
-		const reviewsRef = collection(db, 'reviews')
-		const q = query(
-			reviewsRef,
-			where('lecturerUserId', '==', user.userId),
-			where('status', '==', 'pending')
-		)
-
-		const unsubscribe = onSnapshot(
-			q,
-			(snapshot) => {
-				const docs = snapshot.docs.map((doc) => ({
-					reviewId: doc.id,
-					...doc.data(),
-					requestedAt: doc.data().requestedAt?.toDate?.() || doc.data().requestedAt,
-					reviewedAt: doc.data().reviewedAt?.toDate?.() || doc.data().reviewedAt,
-				}))
-				// Sort by requestedAt descending
-				docs.sort((a, b) => {
-					const dateA = new Date(a.requestedAt).getTime()
-					const dateB = new Date(b.requestedAt).getTime()
-					return dateB - dateA
-				})
-				setReviews(docs)
-				setIsLoading(false)
-			},
-			(error) => {
-				console.error('Error listening to pending reviews:', error)
-				setIsLoading(false)
-			}
-		)
-
-		return () => unsubscribe()
-	}, [user?.userId, user?.role])
-
-	return { data: { reviews, count: reviews.length }, isLoading }
+	const q =
+		user?.userId && user?.role === 'Lecturer'
+			? query(
+					collection(db, 'reviews'),
+					where('lecturerUserId', '==', user.userId),
+					where('status', '==', 'pending')
+				)
+			: null
+	const { data, isLoading } = useFirestoreListener(q, 'reviewId', (a, b) => {
+		return new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
+	})
+	return { data: { reviews: data, count: data.length }, isLoading }
 }
 
 export function useStudentReviews() {
 	const { user } = useAuth()
-	const [reviews, setReviews] = useState<any[]>([])
-	const [isLoading, setIsLoading] = useState(true)
-
-	useEffect(() => {
-		if (!user?.userId) {
-			setIsLoading(false)
-			return
-		}
-
-		const reviewsRef = collection(db, 'reviews')
-		const q = query(reviewsRef, where('studentUserId', '==', user.userId))
-
-		const unsubscribe = onSnapshot(
-			q,
-			(snapshot) => {
-				const docs = snapshot.docs.map((doc) => ({
-					reviewId: doc.id,
-					...doc.data(),
-					requestedAt: doc.data().requestedAt?.toDate?.() || doc.data().requestedAt,
-					reviewedAt: doc.data().reviewedAt?.toDate?.() || doc.data().reviewedAt,
-				}))
-				// Sort by requestedAt descending
-				docs.sort((a, b) => {
-					const dateA = new Date(a.requestedAt).getTime()
-					const dateB = new Date(b.requestedAt).getTime()
-					return dateB - dateA
-				})
-				setReviews(docs)
-				setIsLoading(false)
-			},
-			(error) => {
-				console.error('Error listening to student reviews:', error)
-				setIsLoading(false)
-			}
-		)
-
-		return () => unsubscribe()
-	}, [user?.userId])
-
-	return { data: { reviews, count: reviews.length }, isLoading }
+	const q = user?.userId
+		? query(collection(db, 'reviews'), where('studentUserId', '==', user.userId))
+		: null
+	const { data, isLoading } = useFirestoreListener(q, 'reviewId', (a, b) => {
+		return new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
+	})
+	return { data: { reviews: data, count: data.length }, isLoading }
 }
 
 // Mutations

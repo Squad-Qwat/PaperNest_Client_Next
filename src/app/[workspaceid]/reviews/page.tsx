@@ -82,7 +82,6 @@ export default function ReviewsPage() {
 	const containerClass =
 		viewMode === 'list' ? 'grid gap-4' : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4'
 
-
 	useEffect(() => {
 		const fetchVersionsForDoc = async (docId: string, versionsMap: Record<string, Version>) => {
 			try {
@@ -281,7 +280,6 @@ export default function ReviewsPage() {
 				</header>
 
 				<main className='flex-1 p-4 md:p-6 w-full overflow-y-auto'>
-					{/* Header Content */}
 					<div className='mb-8 flex items-center justify-between'>
 						<div className='space-y-1'>
 							<div className='flex items-center gap-3'>
@@ -290,9 +288,7 @@ export default function ReviewsPage() {
 								</h2>
 								<span
 									className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full ${
-										isLecturer
-											? 'bg-purple-100 text-purple-700'
-											: 'bg-teal-100 text-teal-700'
+										isLecturer ? 'bg-purple-100 text-purple-700' : 'bg-teal-100 text-teal-700'
 									}`}
 								>
 									{user?.role}
@@ -304,17 +300,6 @@ export default function ReviewsPage() {
 									: `Pantau status review dokumen Anda di workspace `}
 								<b>{workspace?.title}</b>
 							</p>
-						</div>
-
-						{/* User Identity Info */}
-						<div className='flex items-center gap-3 px-4 py-2 bg-gray-50 rounded-xl border border-gray-100'>
-							<div className='text-right hidden sm:block'>
-								<p className='text-xs font-bold text-gray-900'>{user?.name || user?.email}</p>
-								<p className='text-[10px] text-gray-500 uppercase tracking-tight'>{user?.role}</p>
-							</div>
-							<div className='h-8 w-8 rounded-full bg-white border flex items-center justify-center text-xs font-bold text-teal-600 shadow-sm'>
-								{(user?.name || user?.email || '?').charAt(0).toUpperCase()}
-							</div>
 						</div>
 					</div>
 

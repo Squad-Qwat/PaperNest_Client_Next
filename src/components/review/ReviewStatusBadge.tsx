@@ -65,7 +65,6 @@ export function ReviewStatusBadge({
 	className,
 	showIcon = true,
 }: Readonly<ReviewStatusBadgeProps>) {
-
 	const config = getStatusConfig(status || 'pending')
 	const Icon = config.icon
 

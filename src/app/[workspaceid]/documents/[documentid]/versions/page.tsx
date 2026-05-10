@@ -156,14 +156,12 @@ export default function VersionsPage() {
 															{(() => {
 																const member = members.find(
 																	(m: any) =>
-																		m.userId === version.userId ||
-																		m.user?.userId === version.userId
+																		m.userId === version.userId || m.user?.userId === version.userId
 																)
 																const displayName =
 																	version.user?.name || member?.user?.name || 'User'
 
-																const isUid =
-																	displayName.length > 20 && !displayName.includes(' ')
+																const isUid = displayName.length > 20 && !displayName.includes(' ')
 																const finalName = isUid ? 'User' : displayName
 
 																return (
