@@ -4,11 +4,16 @@
  */
 
 export const API_CONFIG = {
-	// On client side, we use the local /api proxy. On the server side, we can safely hit the API directly.
+	// On client side, we use the local /api proxy for standard requests to avoid CORS issues.
+	// For streaming (SSE), we may need to hit the backend directly to avoid proxy buffering.
 	baseURL:
 		typeof window !== 'undefined'
 			? '/api'
 			: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
+
+	// Direct URL to the backend API, useful for streaming or bypassing the Next.js proxy
+	directBackendURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
+
 	timeout: 10000, // 10 seconds
 	retryAttempts: 3,
 	headers: {

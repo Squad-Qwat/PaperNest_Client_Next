@@ -532,7 +532,7 @@ const TreeIcon = ({
 	} else if (item.icon) {
 		Icon = item.icon
 	}
-	return Icon ? <Icon className='h-4 w-4 shrink-0 mr-2' /> : <></>
+	return Icon ? <Icon className='h-4 w-4 shrink-0 mr-2' /> : null
 }
 
 const TreeActions = ({

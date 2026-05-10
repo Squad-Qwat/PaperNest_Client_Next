@@ -180,7 +180,6 @@ export default function WorkspacePage() {
 						<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
 							{filteredDocuments.map((doc) => {
 								return (
-									// biome-ignore lint/a11y/useSemanticElements: Card needs to be clickable but cannot be a button because it contains other buttons
 									<div
 										key={doc.documentId}
 										className='bg-white border rounded-lg p-6 hover:border-primary transition-all group relative text-left w-full'
