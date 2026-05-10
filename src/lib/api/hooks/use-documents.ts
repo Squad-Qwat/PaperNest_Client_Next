@@ -1,4 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { collection, doc, onSnapshot, query, where } from 'firebase/firestore'
+import { useEffect, useState } from 'react'
+import { useAuth } from '@/context/AuthContext'
+import { db } from '@/lib/firebase/config'
 import { documentsService } from '../services/documents.service'
 import type { BatchOperationRequest } from '../types/batchOperation.types'
 import type {
@@ -6,6 +10,7 @@ import type {
 	DocumentSearchParams,
 	UpdateDocumentContentDto,
 	UpdateDocumentDto,
+	Version,
 } from '../types/document.types'
 import type { CreateReviewDto, UpdateReviewStatusDto } from '../types/review.types'
 
@@ -25,6 +30,46 @@ export const DOCUMENT_KEYS = {
 	reviewDetail: (reviewId: string) => ['reviews', 'detail', reviewId] as const,
 }
 
+// Internal helpers to reduce duplication
+const mapFirestoreDoc = (docSnap: any, idField: string) => {
+	const data = docSnap.data()
+	const result = { [idField]: docSnap.id, ...data }
+	const dateFields = ['createdAt', 'updatedAt', 'requestedAt', 'reviewedAt']
+	dateFields.forEach((field) => {
+		if (data[field]?.toDate) result[field] = data[field].toDate()
+	})
+	return result
+}
+
+const useFirestoreListener = (
+	queryRef: any,
+	idField: string,
+	sortFn?: (a: any, b: any) => number
+) => {
+	const [data, setData] = useState<any[]>([])
+	const [isLoading, setIsLoading] = useState(true)
+
+	useEffect(() => {
+		if (!queryRef) return
+		const unsubscribe = onSnapshot(
+			queryRef,
+			(snapshot: { docs: any[] }) => {
+				let docs = snapshot.docs.map((d: any) => mapFirestoreDoc(d, idField))
+				if (sortFn) docs = [...docs].sort(sortFn)
+				setData(docs)
+				setIsLoading(false)
+			},
+			(error) => {
+				console.error(`Error in firestore listener (${idField}):`, error)
+				setIsLoading(false)
+			}
+		)
+		return () => unsubscribe()
+	}, [idField, queryRef, sortFn]) // queryRef.toString() as a proxy for the query identity
+
+	return { data, isLoading }
+}
+
 // Queries
 export function useMyDocuments() {
 	return useQuery({
@@ -34,19 +79,36 @@ export function useMyDocuments() {
 }
 
 export function useWorkspaceDocuments(workspaceId: string) {
-	return useQuery({
-		queryKey: DOCUMENT_KEYS.workspace(workspaceId),
-		queryFn: () => documentsService.getWorkspaceDocuments(workspaceId),
-		enabled: !!workspaceId,
+	const q = workspaceId
+		? query(collection(db, 'documents'), where('workspaceId', '==', workspaceId))
+		: null
+	const { data, isLoading } = useFirestoreListener(q, 'documentId', (a, b) => {
+		return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
 	})
+	return { data: { documents: data, count: data.length }, isLoading }
 }
 
-export function useDocument(workspaceId: string, documentId: string) {
-	return useQuery({
-		queryKey: DOCUMENT_KEYS.detail(documentId),
-		queryFn: () => documentsService.getById(workspaceId, documentId),
-		enabled: !!workspaceId && !!documentId,
-	})
+export function useDocument(_workspaceId: string, documentId: string) {
+	const [document, setDocument] = useState<any>(null)
+	const [isLoading, setIsLoading] = useState(true)
+
+	useEffect(() => {
+		if (!documentId) return
+		const unsubscribe = onSnapshot(
+			doc(db, 'documents', documentId),
+			(snapshot) => {
+				setDocument(snapshot.exists() ? mapFirestoreDoc(snapshot, 'documentId') : null)
+				setIsLoading(false)
+			},
+			(error) => {
+				console.error('Error listening to document:', error)
+				setIsLoading(false)
+			}
+		)
+		return () => unsubscribe()
+	}, [documentId])
+
+	return { data: document, isLoading }
 }
 
 export function useSearchDocuments(workspaceId: string, params: DocumentSearchParams) {
@@ -58,33 +120,73 @@ export function useSearchDocuments(workspaceId: string, params: DocumentSearchPa
 }
 
 export function useDocumentVersions(documentId: string) {
-	return useQuery({
-		queryKey: DOCUMENT_KEYS.versions(documentId),
-		queryFn: () => documentsService.getVersions(documentId),
-		enabled: !!documentId,
+	const q = documentId
+		? query(collection(db, 'documentBodies'), where('documentId', '==', documentId))
+		: null
+	const { data, isLoading } = useFirestoreListener(q, 'documentBodyId', (a, b) => {
+		return (b.versionNumber || 0) - (a.versionNumber || 0)
 	})
+	return { data: { versions: data as unknown as Version[] }, isLoading }
 }
 
 export function useDocumentReviews(documentId: string) {
-	return useQuery({
-		queryKey: DOCUMENT_KEYS.reviews(documentId),
-		queryFn: () => documentsService.getReviews(documentId),
-		enabled: !!documentId,
+	const q = documentId
+		? query(collection(db, 'reviews'), where('documentId', '==', documentId))
+		: null
+	const { data, isLoading } = useFirestoreListener(q, 'reviewId', (a, b) => {
+		return new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
 	})
+	return { data: { reviews: data }, isLoading }
+}
+
+export function useReviewDetail(reviewId: string) {
+	const [review, setReview] = useState<any>(null)
+	const [isLoading, setIsLoading] = useState(true)
+
+	useEffect(() => {
+		if (!reviewId) return
+		const unsubscribe = onSnapshot(
+			doc(db, 'reviews', reviewId),
+			(snapshot) => {
+				setReview(snapshot.exists() ? mapFirestoreDoc(snapshot, 'reviewId') : null)
+				setIsLoading(false)
+			},
+			(error) => {
+				console.error('Error listening to review detail:', error)
+				setIsLoading(false)
+			}
+		)
+		return () => unsubscribe()
+	}, [reviewId])
+
+	return { data: { review }, isLoading }
 }
 
 export function useLecturerPendingReviews() {
-	return useQuery({
-		queryKey: DOCUMENT_KEYS.pendingReviews(),
-		queryFn: () => documentsService.getPendingReviews(),
+	const { user } = useAuth()
+	const q =
+		user?.userId && user?.role === 'Lecturer'
+			? query(
+					collection(db, 'reviews'),
+					where('lecturerUserId', '==', user.userId),
+					where('status', '==', 'pending')
+				)
+			: null
+	const { data, isLoading } = useFirestoreListener(q, 'reviewId', (a, b) => {
+		return new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
 	})
+	return { data: { reviews: data, count: data.length }, isLoading }
 }
 
 export function useStudentReviews() {
-	return useQuery({
-		queryKey: DOCUMENT_KEYS.studentReviews(),
-		queryFn: () => documentsService.getStudentReviews(),
+	const { user } = useAuth()
+	const q = user?.userId
+		? query(collection(db, 'reviews'), where('studentUserId', '==', user.userId))
+		: null
+	const { data, isLoading } = useFirestoreListener(q, 'reviewId', (a, b) => {
+		return new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
 	})
+	return { data: { reviews: data, count: data.length }, isLoading }
 }
 
 // Mutations
@@ -198,6 +300,30 @@ export function useCreateReview() {
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.reviews(variables.documentId) })
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.studentReviews() })
+		},
+	})
+}
+
+export function useUpdateReviewStatus() {
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: ({
+			reviewId,
+			data,
+		}: {
+			reviewId: string
+			data: UpdateReviewStatusDto & { status: 'approved' | 'rejected' | 'revision_required' }
+		}) => {
+			const { status, ...rest } = data
+			if (status === 'approved') return documentsService.approveReview(reviewId, rest)
+			if (status === 'rejected') return documentsService.rejectReview(reviewId, rest)
+			return documentsService.requestRevision(reviewId, rest)
+		},
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.pendingReviews() })
+			queryClient.invalidateQueries({ queryKey: ['reviews'] })
+			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.reviewDetail(variables.reviewId) })
 		},
 	})
 }

@@ -13,6 +13,13 @@ export function getInitials(name: string): string {
 	if (!name) return 'U'
 	const words = name.trim().split(/\s+/)
 	if (words.length === 0 || words[0] === '') return 'U'
+
+	// If it's a single word and looks like a UID (long, no spaces, starts with X or other common Firebase ID chars)
+	// many Firebase IDs start with X3 or other patterns that look bad as initials
+	if (words.length === 1 && words[0].length > 20) {
+		return words[0].charAt(0).toUpperCase()
+	}
+
 	if (words.length === 1) return words[0].substring(0, 2).toUpperCase()
 	return (words[0][0] + words[words.length - 1][0]).toUpperCase()
 }
