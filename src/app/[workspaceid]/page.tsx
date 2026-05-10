@@ -20,6 +20,7 @@ import { useWorkspace } from '@/hooks/useWorkspace'
 import { documentsService } from '@/lib/api/services/documents.service'
 import { format, id } from '@/lib/date'
 
+// implementasi data binding firestore
 export default function WorkspacePage() {
 	const params = useParams()
 	const router = useRouter()
