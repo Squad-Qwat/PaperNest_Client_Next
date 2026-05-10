@@ -20,7 +20,16 @@ export interface Review {
 	documentId: string
 	lecturerUserId: string
 	studentUserId: string
+	student?: {
+		name: string
+		photoURL: string | null
+	}
+	lecturer?: {
+		name: string
+		photoURL: string | null
+	}
 	message: string
+	lecturerMessage?: string
 	status: ReviewStatus
 	requestedAt: string // ISO Date String
 	reviewedAt: string | null // ISO Date String
@@ -42,6 +51,7 @@ export interface CreateReviewDto {
  * Payload for POST approve/reject/request-revision
  */
 export interface UpdateReviewStatusDto {
+	status?: string // Required by backend validation schema
 	message?: string // Optional feedback message
 }
 
