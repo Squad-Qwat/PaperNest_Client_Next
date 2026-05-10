@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
+// implemntasi dari auth firebase
 export default function LoginPage() {
 	const router = useRouter()
 	const { loginEmail, loading, error: authError, clearError } = useAuthContext()
