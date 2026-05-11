@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { collection, doc, onSnapshot, query, where } from 'firebase/firestore'
 import { useEffect, useState } from 'react'
-import { useAuth } from '@/context/AuthContext'
 import { db } from '@/lib/firebase/config'
 import { documentsService } from '../services/documents.service'
 import type { BatchOperationRequest } from '../types/batchOperation.types'

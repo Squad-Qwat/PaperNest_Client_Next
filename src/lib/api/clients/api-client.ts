@@ -11,7 +11,9 @@ class ApiClient extends HttpClient {
 	}
 
 	private onRefreshed(token: string) {
-		this.refreshSubscribers.map((callback) => callback(token))
+		this.refreshSubscribers.forEach((callback) => {
+			callback(token)
+		})
 		this.refreshSubscribers = []
 	}
 
