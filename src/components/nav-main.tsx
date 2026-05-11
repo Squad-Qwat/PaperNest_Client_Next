@@ -14,7 +14,7 @@ import {
 export function NavMain({
 	onCreateDocument,
 	items,
-}: {
+}: Readonly<{
 	onCreateDocument?: () => void
 	items: {
 		title: string
@@ -22,7 +22,7 @@ export function NavMain({
 		icon?: Icon
 		isActive?: boolean
 	}[]
-}) {
+}>) {
 	return (
 		<SidebarGroup>
 			<SidebarGroupContent className='flex flex-col gap-2'>
