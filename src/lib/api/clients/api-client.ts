@@ -1,6 +1,6 @@
-import { API_CONFIG } from '../config'
-import { HttpClient, ApiError } from './http-client'
 import { useAuthStore } from '@/lib/store/auth-store'
+import { API_CONFIG } from '../config'
+import { ApiError, HttpClient } from './http-client'
 
 class ApiClient extends HttpClient {
 	private isRefreshing = false
@@ -55,7 +55,7 @@ class ApiClient extends HttpClient {
 				setAccessToken(newToken)
 				this.setAuthToken(newToken)
 				this.onRefreshed(newToken)
-				
+
 				return await super.request<T>(endpoint, options)
 			} catch (err) {
 				clearAuth()

@@ -158,12 +158,18 @@ async function performAccountLinking(linkingSession: any) {
 	const existingResult = await signInWithPopup(auth, existingProvider)
 	const result: any = await linkWithCredential(existingResult.user, linkingSession.pendingCred)
 	const idToken = await result.user.getIdToken()
-	const accessToken = providerConfig.getAccessToken ? providerConfig.getAccessToken(result) : undefined
+	const accessToken = providerConfig.getAccessToken
+		? providerConfig.getAccessToken(result)
+		: undefined
 	const response = await authService.loginSocial({ firebaseToken: idToken, accessToken })
 	return { response, idToken }
 }
 
-export function useSignInWithSocial({ setOnboardingData }: { setOnboardingData?: (data: any) => void } = {}) {
+export function useSignInWithSocial({
+	setOnboardingData,
+}: {
+	setOnboardingData?: (data: any) => void
+} = {}) {
 	const queryClient = useQueryClient()
 	const router = useRouter()
 	const [linkingSession, setLinkingSession] = useState<any>(null)
@@ -206,7 +212,11 @@ export function useSignInWithSocial({ setOnboardingData }: { setOnboardingData?:
 	}
 }
 
-export function useCompleteSocialRegistration({ clearOnboardingData }: { clearOnboardingData?: () => void } = {}) {
+export function useCompleteSocialRegistration({
+	clearOnboardingData,
+}: {
+	clearOnboardingData?: () => void
+} = {}) {
 	const queryClient = useQueryClient()
 	return useMutation({
 		mutationFn: (data: { firebaseToken: string; username: string; role: string; email?: string }) =>

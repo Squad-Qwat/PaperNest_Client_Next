@@ -1,6 +1,6 @@
+import { useAuthStore } from '@/lib/store/auth-store'
 import { apiClient } from '../clients/api-client'
 import { API_ENDPOINTS } from '../config'
-import { useAuthStore } from '@/lib/store/auth-store'
 import type {
 	AuthResponse,
 	CheckEmailResponse,
