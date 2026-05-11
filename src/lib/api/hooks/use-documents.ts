@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { collection, doc, onSnapshot, query, where } from 'firebase/firestore'
 import { useEffect, useState } from 'react'
-import { useAuth } from '@/context/AuthContext'
 import { db } from '@/lib/firebase/config'
 import { documentsService } from '../services/documents.service'
 import type { BatchOperationRequest } from '../types/batchOperation.types'
@@ -162,31 +161,20 @@ export function useReviewDetail(reviewId: string) {
 	return { data: { review }, isLoading }
 }
 
-export function useLecturerPendingReviews() {
-	const { user } = useAuth()
-	const q =
-		user?.userId && user?.role === 'Lecturer'
-			? query(
-					collection(db, 'reviews'),
-					where('lecturerUserId', '==', user.userId),
-					where('status', '==', 'pending')
-				)
-			: null
-	const { data, isLoading } = useFirestoreListener(q, 'reviewId', (a, b) => {
-		return new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
+export function useLecturerPendingReviews(enabled = true) {
+	return useQuery({
+		queryKey: DOCUMENT_KEYS.pendingReviews(),
+		queryFn: () => documentsService.getPendingReviews(),
+		enabled,
 	})
-	return { data: { reviews: data, count: data.length }, isLoading }
 }
 
-export function useStudentReviews() {
-	const { user } = useAuth()
-	const q = user?.userId
-		? query(collection(db, 'reviews'), where('studentUserId', '==', user.userId))
-		: null
-	const { data, isLoading } = useFirestoreListener(q, 'reviewId', (a, b) => {
-		return new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
+export function useStudentReviews(enabled = true) {
+	return useQuery({
+		queryKey: DOCUMENT_KEYS.studentReviews(),
+		queryFn: () => documentsService.getStudentReviews(),
+		enabled,
 	})
-	return { data: { reviews: data, count: data.length }, isLoading }
 }
 
 // Mutations

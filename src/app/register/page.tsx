@@ -45,7 +45,7 @@ const workspaceIcons = ['📚', '🎓', '📖', '✍️', '🔬', '💼', '📊'
 
 export default function RegisterPage() {
 	const _router = useRouter()
-	const { setOnboardingData, error: authError } = useAuth()
+	const { setOnboardingData } = useAuth()
 
 	const { mutateAsync: registerUser, isPending: isRegisterPending } = useRegister()
 	const { mutateAsync: verifyEmail, isPending: checkingEmail } = useCheckEmail()
@@ -275,7 +275,7 @@ export default function RegisterPage() {
 		return 'Strong'
 	}
 
-	const displayError = authError || errors.submit
+	const displayError = errors.submit
 
 	const variants: any = {
 		initial: (direction: number) => ({

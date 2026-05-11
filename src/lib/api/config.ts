@@ -1,32 +1,17 @@
-/**
- * API Configuration
- * Centralized configuration for API client
- */
-
 export const API_CONFIG = {
-	// On client side, we use the local /api proxy for standard requests to avoid CORS issues.
-	// For streaming (SSE), we may need to hit the backend directly to avoid proxy buffering.
 	baseURL:
 		typeof window !== 'undefined'
 			? '/api'
 			: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
-
-	// Direct URL to the backend API, useful for streaming or bypassing the Next.js proxy
 	directBackendURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
-
-	timeout: 10000, // 10 seconds
+	timeout: 10000,
 	retryAttempts: 3,
 	headers: {
 		'Content-Type': 'application/json',
 	},
 } as const
 
-/**
- * API Endpoints
- * Centralized endpoint paths
- */
 export const API_ENDPOINTS = {
-	// Authentication
 	auth: {
 		register: '/auth/register',
 		login: '/auth/login',
@@ -36,18 +21,13 @@ export const API_ENDPOINTS = {
 		me: '/auth/me',
 		deleteAccount: '/auth/account',
 		updateEmail: '/auth/email',
-		// sonar: intentional - API endpoint path, not a secret password
 		passwordReset: '/auth/password/reset',
 	},
-
-	// Users
 	users: {
 		base: '/users',
 		search: '/users/search',
 		byId: (userId: string) => `/users/${userId}`,
 	},
-
-	// Workspaces
 	workspaces: {
 		base: '/workspaces',
 		byId: (workspaceId: string) => `/workspaces/${workspaceId}`,
@@ -56,14 +36,10 @@ export const API_ENDPOINTS = {
 		member: (workspaceId: string, userWorkspaceId: string) =>
 			`/workspaces/${workspaceId}/members/${userWorkspaceId}`,
 	},
-
-	// Invitations
 	invitations: {
 		base: '/invitations',
 		byId: (userWorkspaceId: string) => `/invitations/${userWorkspaceId}`,
 	},
-
-	// Documents
 	documents: {
 		myDocuments: '/documents/my-documents',
 		byWorkspace: (workspaceId: string) => `/workspaces/${workspaceId}/documents`,
@@ -79,11 +55,9 @@ export const API_ENDPOINTS = {
 		revert: (documentId: string, versionNumber: number) =>
 			`/documents/${documentId}/versions/${versionNumber}/revert`,
 	},
-
-	// Reviews
 	reviews: {
-		student: '/reviews', // Endpoint for Student
-		lecturer: '/reviews/pending', // Endpoint for Lecturer (Pending Reviews)
+		student: '/reviews',
+		lecturer: '/reviews/pending',
 		byDocument: (documentId: string) => `/documents/${documentId}/reviews`,
 		create: (documentId: string, documentBodyId: string) =>
 			`/documents/${documentId}/versions/${documentBodyId}/reviews`,
@@ -91,8 +65,6 @@ export const API_ENDPOINTS = {
 		reject: (reviewId: string) => `/reviews/${reviewId}/reject`,
 		requestRevision: (reviewId: string) => `/reviews/${reviewId}/request-revision`,
 	},
-
-	// Templates
 	templates: {
 		base: '/templates',
 		byId: (templateId: string) => `/templates/${templateId}`,
