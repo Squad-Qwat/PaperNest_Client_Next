@@ -8,7 +8,7 @@ import {
 	IconQuote,
 	IconSettings,
 } from '@tabler/icons-react'
-import { useParams } from 'next/navigation'
+import { useParams, usePathname } from 'next/navigation'
 import * as React from 'react'
 import { CreateDocumentModal } from '@/components/document/CreateDocumentModal'
 import { NavMain } from '@/components/nav-main'
@@ -23,11 +23,12 @@ import { useWorkspace } from '@/lib/api/hooks/use-workspaces'
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const { user } = useAuth()
 	const params = useParams()
-	const workspaceId = params.workspaceid as string
+	const workspaceId = (params.workspaceid as string) || ''
 	const { data: workspace } = useWorkspace(workspaceId)
 	const [showSettingsModal, setShowSettingsModal] = React.useState(false)
 	const [showCreateModal, setShowCreateModal] = React.useState(false)
 
+	const pathname = usePathname()
 	const data = {
 		user: {
 			name: user?.name || user?.email?.split('@')[0] || 'User',
@@ -39,17 +40,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 				title: 'Documents',
 				url: `/${workspaceId}`,
 				icon: IconFileDescription,
-				isActive: true,
+				isActive: pathname === `/${workspaceId}`,
 			},
 			{
 				title: 'Reviews',
 				url: `/${workspaceId}/reviews`,
 				icon: IconMessage2,
+				isActive: pathname === `/${workspaceId}/reviews`,
 			},
 			{
 				title: 'Citations',
 				url: `/${workspaceId}/citations`,
 				icon: IconQuote,
+				isActive: pathname === `/${workspaceId}/citations`,
 			},
 		],
 		navSecondary: [
@@ -63,6 +66,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 				title: 'Guide',
 				url: '/guide',
 				icon: IconBook,
+				isActive: pathname === '/guide',
 			},
 			{
 				title: 'Help',

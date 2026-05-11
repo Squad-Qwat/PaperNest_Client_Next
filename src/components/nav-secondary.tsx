@@ -1,6 +1,7 @@
 'use client'
 
 import type { Icon } from '@tabler/icons-react'
+import Link from 'next/link'
 import type * as React from 'react'
 
 import {
@@ -20,6 +21,7 @@ export function NavSecondary({
 		url: string
 		icon: Icon
 		onClick?: () => void
+		isActive?: boolean
 	}[]
 } & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
 	return (
@@ -28,17 +30,17 @@ export function NavSecondary({
 				<SidebarMenu>
 					{items.map((item) => (
 						<SidebarMenuItem key={item.title}>
-							<SidebarMenuButton onClick={item.onClick} asChild={!item.onClick}>
+							<SidebarMenuButton onClick={item.onClick} asChild={!item.onClick} isActive={item.isActive}>
 								{item.onClick ? (
 									<div className='flex items-center gap-2 w-full cursor-pointer'>
 										<item.icon className='size-4' />
 										<span>{item.title}</span>
 									</div>
 								) : (
-									<a href={item.url}>
+									<Link href={item.url}>
 										<item.icon className='size-4' />
 										<span>{item.title}</span>
-									</a>
+									</Link>
 								)}
 							</SidebarMenuButton>
 						</SidebarMenuItem>
