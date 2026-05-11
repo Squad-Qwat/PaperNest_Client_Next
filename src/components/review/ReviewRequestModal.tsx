@@ -20,7 +20,11 @@ interface ReviewRequestModalProps {
 	onSubmit: (data: { lecturerId: string; message: string }) => Promise<void>
 }
 
-export function ReviewRequestModal({ isOpen, onClose, onSubmit }: ReviewRequestModalProps) {
+export function ReviewRequestModal({
+	isOpen,
+	onClose,
+	onSubmit,
+}: Readonly<ReviewRequestModalProps>) {
 	const [lecturerId, setLecturerId] = useState('')
 	const [message, setMessage] = useState('')
 	const [loading, setLoading] = useState(false)
@@ -56,7 +60,7 @@ export function ReviewRequestModal({ isOpen, onClose, onSubmit }: ReviewRequestM
 
 	return (
 		<Dialog open={isOpen} onOpenChange={onClose}>
-			<DialogContent className='sm:max-w-[425px] z-[70]'>
+			<DialogContent className='sm:max-w-[425px] z-70'>
 				<DialogHeader>
 					<DialogTitle>Request Review</DialogTitle>
 					<DialogDescription>
