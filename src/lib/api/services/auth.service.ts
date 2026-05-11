@@ -45,9 +45,10 @@ class AuthService {
 
 	async refresh(data: RefreshTokenDto): Promise<RefreshTokenResponse> {
 		const response = await apiClient.post<RefreshTokenResponse>(API_ENDPOINTS.auth.refresh, data)
-		if (response.accessToken) {
-			apiClient.setAuthToken(response.accessToken)
-			useAuthStore.getState().setAccessToken(response.accessToken)
+		const newToken = response.token || response.accessToken
+		if (newToken) {
+			apiClient.setAuthToken(newToken)
+			useAuthStore.getState().setAccessToken(newToken)
 		}
 		return response
 	}

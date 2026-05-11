@@ -30,11 +30,10 @@ import {
 	useWorkspaceDocuments,
 } from '@/lib/api/hooks/use-documents'
 import { useWorkspace } from '@/lib/api/hooks/use-workspaces'
-import { format, id } from '@/lib/date'
 
 export default function ReviewsPage() {
 	const params = useParams()
-	const router = useRouter()
+	const _router = useRouter()
 	const { user, loading: authLoading } = useAuth()
 	const workspaceId = params.workspaceid as string
 
@@ -213,25 +212,19 @@ export default function ReviewsPage() {
 					</div>
 				) : (
 					<div className='grid gap-4'>
-						{filteredReviews.map((review, index) => (
+						{filteredReviews.map((review, _index) => (
 							<ReviewCard
 								key={review.reviewId}
 								reviewId={review.reviewId}
-								documentBodyId={review.documentBodyId || review.documentId}
+								documentId={review.documentId}
 								lecturerUserId={review.lecturerUserId || 'Unknown Reviewer'}
 								message={review.message}
 								status={review.status}
-								date={format(review.requestedAt, 'd MMMM yyyy', { locale: id })}
+								requestedAt={review.requestedAt}
 								title={getDocTitle(review.documentId)}
 								workspaceId={workspaceId}
-								isLatest={index === 0 && sortOrder === 'newest'}
-								onAddReview={
-									user?.role === 'Student'
-										? () => {
-												router.push(`/${workspaceId}/documents/${review.documentId}`)
-											}
-										: undefined
-								}
+								student={review.student}
+								versionNumber={review.versionNumber}
 							/>
 						))}
 					</div>
