@@ -60,7 +60,9 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 					setLastUpdated(new Date())
 					return 'Profile updated successfully!'
 				},
-				error: 'Failed to update profile. Please try again.',
+				error: (err: any) => {
+					return err?.message || 'Failed to update profile. Please try again.'
+				},
 			}
 		)
 	}, [user.userId, updateUser.mutateAsync, setLastUpdated])

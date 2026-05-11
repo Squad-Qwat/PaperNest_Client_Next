@@ -1,84 +1,114 @@
-/**
- * API Client - Wrapper around HTTP client with REST methods
- * Provides GET, POST, PUT, PATCH, DELETE methods
- */
-
 import { API_CONFIG } from '../config'
-import { HttpClient } from './http-client'
+import { HttpClient, ApiError } from './http-client'
+import { useAuthStore } from '@/lib/store/auth-store'
 
 class ApiClient extends HttpClient {
+	private isRefreshing = false
+	private refreshSubscribers: ((token: string) => void)[] = []
+
 	constructor() {
 		super(API_CONFIG.baseURL, API_CONFIG.timeout)
 	}
 
-	/**
-	 * GET request
-	 * @param endpoint - API endpoint
-	 * @param cache - Next.js cache strategy
-	 */
+	private onRefreshed(token: string) {
+		this.refreshSubscribers.map((callback) => callback(token))
+		this.refreshSubscribers = []
+	}
+
+	private addRefreshSubscriber(callback: (token: string) => void) {
+		this.refreshSubscribers.push(callback)
+	}
+
+	async request<T>(endpoint: string, options: any = {}): Promise<T> {
+		try {
+			return await super.request<T>(endpoint, options)
+		} catch (error) {
+			if (error instanceof ApiError && error.status === 401 && endpoint !== '/auth/refresh') {
+				return this.handle401<T>(endpoint, options)
+			}
+			throw error
+		}
+	}
+
+	private async handle401<T>(endpoint: string, options: any): Promise<T> {
+		const { refreshToken, setAccessToken, clearAuth } = useAuthStore.getState()
+
+		if (!refreshToken) {
+			clearAuth()
+			throw new ApiError('Unauthorized', 401)
+		}
+
+		if (!this.isRefreshing) {
+			this.isRefreshing = true
+			try {
+				const response = await fetch(`${API_CONFIG.baseURL}/auth/refresh`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ refreshToken }),
+				})
+
+				if (!response.ok) throw new Error('Refresh failed')
+
+				const data = await response.json()
+				const newToken = data.data.token || data.data.accessToken
+
+				setAccessToken(newToken)
+				this.setAuthToken(newToken)
+				this.onRefreshed(newToken)
+				
+				return await super.request<T>(endpoint, options)
+			} catch (err) {
+				clearAuth()
+				throw err
+			} finally {
+				this.isRefreshing = false
+			}
+		}
+
+		return new Promise((resolve) => {
+			this.addRefreshSubscriber((token: string) => {
+				options.headers = {
+					...options.headers,
+					Authorization: `Bearer ${token}`,
+				}
+				resolve(super.request<T>(endpoint, options))
+			})
+		})
+	}
+
 	async get<T>(endpoint: string, cache?: RequestCache): Promise<T> {
 		return this.request<T>(endpoint, {
 			method: 'GET',
 			cache: cache || 'no-store',
-			next: { revalidate: 0 }, // Disable cache by default for real-time updates
-			headers: {
-				'Cache-Control': 'no-cache, no-store, must-revalidate',
-				Pragma: 'no-cache',
-				Expires: '0',
-			},
 		})
 	}
 
-	/**
-	 * POST request
-	 * @param endpoint - API endpoint
-	 * @param data - Request body
-	 */
 	async post<T>(endpoint: string, data?: unknown): Promise<T> {
 		return this.request<T>(endpoint, {
 			method: 'POST',
 			body: data ? JSON.stringify(data) : undefined,
-			cache: 'no-store', // Don't cache POST requests
 		})
 	}
 
-	/**
-	 * PUT request
-	 * @param endpoint - API endpoint
-	 * @param data - Request body
-	 */
 	async put<T>(endpoint: string, data: unknown): Promise<T> {
 		return this.request<T>(endpoint, {
 			method: 'PUT',
 			body: JSON.stringify(data),
-			cache: 'no-store',
 		})
 	}
 
-	/**
-	 * PATCH request
-	 * @param endpoint - API endpoint
-	 * @param data - Request body
-	 */
 	async patch<T>(endpoint: string, data: unknown): Promise<T> {
 		return this.request<T>(endpoint, {
 			method: 'PATCH',
 			body: JSON.stringify(data),
-			cache: 'no-store',
 		})
 	}
 
-	/**
-	 * DELETE request
-	 * @param endpoint - API endpoint
-	 */
 	async delete<T>(endpoint: string): Promise<T> {
 		return this.request<T>(endpoint, {
 			method: 'DELETE',
-			cache: 'no-store',
 		})
 	}
 }
 
-// Export singleton instance
 export const apiClient = new ApiClient()

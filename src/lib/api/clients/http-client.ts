@@ -1,8 +1,3 @@
-/**
- * HTTP Client - Base layer for making HTTP requests
- * Handles timeouts, retries, and response parsing
- */
-
 export interface RequestConfig extends RequestInit {
 	timeout?: number
 	retry?: number
@@ -10,7 +5,7 @@ export interface RequestConfig extends RequestInit {
 
 export class ApiError extends Error {
 	constructor(
-		message: string,
+		public message: string,
 		public status: number,
 		public errors?: Record<string, string[]>
 	) {
@@ -20,9 +15,9 @@ export class ApiError extends Error {
 }
 
 export class HttpClient {
-	private baseURL: string
-	private defaultHeaders: HeadersInit
-	private timeout: number
+	protected baseURL: string
+	protected defaultHeaders: HeadersInit
+	protected timeout: number
 
 	constructor(baseURL: string, timeout = 10000) {
 		this.baseURL = baseURL
@@ -33,19 +28,15 @@ export class HttpClient {
 		}
 	}
 
-	/**
-	 * Fetch with timeout support using AbortController
-	 */
 	private async fetchWithTimeout(url: string, options: RequestInit): Promise<Response> {
 		const controller = new AbortController()
 		const timeoutId = setTimeout(() => controller.abort(), this.timeout)
 
 		try {
-			const response = await fetch(url, {
+			return await fetch(url, {
 				...options,
 				signal: controller.signal,
 			})
-			return response
 		} catch (error) {
 			if ((error as Error).name === 'AbortError') {
 				throw new ApiError('Request timeout', 408)
@@ -56,21 +47,15 @@ export class HttpClient {
 		}
 	}
 
-	/**
-	 * Handle and parse API response
-	 */
-	private async handleResponse<T>(response: Response): Promise<T> {
+	protected async handleResponse<T>(response: Response): Promise<T> {
 		if (!response.ok) {
 			let errorData: any = {}
-
 			try {
 				errorData = await response.json()
 			} catch {
-				// If response is not JSON, use status text
 				throw new ApiError(response.statusText || 'An error occurred', response.status)
 			}
 
-			// Backend error format: { success: false, error: string, errors?: [] }
 			throw new ApiError(
 				errorData.error || errorData.message || 'An error occurred',
 				response.status,
@@ -78,26 +63,16 @@ export class HttpClient {
 			)
 		}
 
-		// If status is 204 No Content, return empty object (as T)
-		if (response.status === 204) {
-			return {} as T
-		}
+		if (response.status === 204) return {} as T
 
-		// Parse JSON response
 		try {
 			const data = await response.json()
-
-			// Backend success format: { success: true, data: {...}, message?: string }
 			return data.data ?? data
-		} catch (_error) {
-			// If body is empty but status was ok (and not 204), handle it gracefully
+		} catch {
 			return {} as T
 		}
 	}
 
-	/**
-	 * Make HTTP request
-	 */
 	async request<T>(endpoint: string, options: RequestConfig = {}): Promise<T> {
 		const url = `${this.baseURL}${endpoint}`
 		const { timeout: _timeout, retry: _retry, ...fetchOptions } = options
@@ -114,9 +89,6 @@ export class HttpClient {
 		return this.handleResponse<T>(response)
 	}
 
-	/**
-	 * Set authentication token
-	 */
 	setAuthToken(token: string): void {
 		this.defaultHeaders = {
 			...this.defaultHeaders,
@@ -124,17 +96,11 @@ export class HttpClient {
 		}
 	}
 
-	/**
-	 * Remove authentication token
-	 */
 	removeAuthToken(): void {
 		const { Authorization: _Authorization, ...rest } = this.defaultHeaders as any
 		this.defaultHeaders = rest
 	}
 
-	/**
-	 * Get current headers
-	 */
 	getHeaders(): HeadersInit {
 		return this.defaultHeaders
 	}
