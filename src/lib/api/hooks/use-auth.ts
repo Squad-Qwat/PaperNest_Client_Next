@@ -176,6 +176,7 @@ export function useSignInWithSocial({
 
 	const socialSignin = useMutation({
 		mutationFn: (providerName: SocialProviderName) => performSocialSignIn(providerName),
+		meta: { errorMessage: false },
 		onError: (error: any) => {
 			if (error.message === 'ACCOUNT_EXISTS_CONFLICT' && error.payload) {
 				setLinkingSession(error.payload)
