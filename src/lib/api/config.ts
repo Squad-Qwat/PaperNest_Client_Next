@@ -101,8 +101,11 @@ export const API_ENDPOINTS = {
 	// Citations
 	citations: {
 		base: (documentId: string) => `/documents/${documentId}/citations`,
-		byId: (documentId: string, citationId: string) => `/documents/${documentId}/citations/${citationId}`,
+		byId: (documentId: string, citationId: string) =>
+			`/documents/${documentId}/citations/${citationId}`,
 		search: (documentId: string) => `/documents/${documentId}/citations/search`,
 		byDoi: (documentId: string, doi: string) => `/documents/${documentId}/citations/doi/${doi}`,
+		workspace: (workspaceId: string) => `/workspaces/${workspaceId}/citations`,
+		directById: (citationId: string) => `/citations/${citationId}`,
 	},
 } as const

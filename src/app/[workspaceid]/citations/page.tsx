@@ -35,7 +35,7 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { useWorkspace } from '@/lib/api/hooks/use-workspaces'
-import { useCitations, useCreateCitation, useDeleteCitation, useUpdateCitation } from '@/lib/api/hooks/use-citations'
+import { useWorkspaceCitations, useCreateCitation, useDeleteCitation, useUpdateCitation } from '@/lib/api/hooks/use-citations'
 import { useWorkspaceDocuments } from '@/lib/api/hooks/use-documents'
 
 export default function Page() {
@@ -48,12 +48,13 @@ export default function Page() {
 	const [editingCitation, setEditingCitation] = useState<Partial<CitationType> | undefined>()
 	const [viewingCitation, setViewingCitation] = useState<CitationDisplay | undefined>()
 
-	// Fetch documents to get a documentId for citations
+	// Get citations for the entire workspace
+	const { data: citationsData, isLoading: isCitationsLoading } = useWorkspaceCitations(workspaceId)
+	const citations = useMemo(() => (citationsData?.citation as CitationDisplay[]) || [], [citationsData])
+
+	// Still need documents to assign new citations to a document
 	const { data: documentsData } = useWorkspaceDocuments(workspaceId)
 	const documentId = documentsData?.documents?.[0]?.documentId
-	
-	const { data: citationsData, isLoading: isCitationsLoading } = useCitations(documentId)
-	const citations = useMemo(() => (citationsData?.citation as CitationDisplay[]) || [], [citationsData])
 
 	const { mutate: createCitation } = useCreateCitation()
 	const { mutate: updateCitation } = useUpdateCitation()
@@ -65,28 +66,26 @@ export default function Page() {
 	}
 
 	const handleSave = (data: Partial<CitationType>) => {
-		if (!documentId) return
-
 		if (viewingCitation?.citationId) {
 			updateCitation({
-				documentId,
 				citationId: viewingCitation.citationId,
 				data: data as any,
 			})
 		} else {
 			createCitation({
-				documentId,
-				data: data as any,
+				workspaceId,
+				documentId, // This might be undefined, which is now allowed
+				...data as any,
 			})
 		}
 	}
 
 	const handleDelete = useCallback((citationId: string) => {
-		if (!documentId || !citationId) return
+		if (!citationId) return
 		if (window.confirm('Apakah Anda yakin ingin menghapus sitasi ini?')) {
-			deleteCitation({ documentId, citationId })
+			deleteCitation(citationId)
 		}
-	}, [documentId, deleteCitation])
+	}, [deleteCitation])
 
 	const handleRowClick = useCallback((citation: CitationDisplay) => {
 		setViewingCitation(citation)

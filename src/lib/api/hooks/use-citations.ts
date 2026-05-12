@@ -5,9 +5,10 @@ import type { CitationData, CitationResponse, CitationsResponse } from '../types
 export const CITATION_KEYS = {
 	all: ['citations'] as const,
 	lists: () => [...CITATION_KEYS.all, 'list'] as const,
-	list: (documentId: string, type?: string) => [...CITATION_KEYS.lists(), documentId, { type }] as const,
+	workspaceList: (workspaceId: string) => [...CITATION_KEYS.lists(), 'workspace', workspaceId] as const,
+	list: (documentId: string, type?: string) => [...CITATION_KEYS.lists(), 'document', documentId, { type }] as const,
 	details: () => [...CITATION_KEYS.all, 'detail'] as const,
-	detail: (documentId: string, citationId: string) => [...CITATION_KEYS.details(), documentId, citationId] as const,
+	detail: (citationId: string) => [...CITATION_KEYS.details(), citationId] as const,
 	search: (documentId: string, query: string) => [...CITATION_KEYS.all, 'search', documentId, { query }] as const,
 	doi: (documentId: string, doi: string) => [...CITATION_KEYS.all, 'doi', documentId, doi] as const,
 }
@@ -21,11 +22,20 @@ export function useCitations(documentId: string, type?: string) {
 	})
 }
 
-export function useCitation(documentId: string, citationId: string) {
+export function useWorkspaceCitations(workspaceId: string) {
+	return useQuery<CitationsResponse>({
+		queryKey: CITATION_KEYS.workspaceList(workspaceId),
+		queryFn: () => citationsService.getWorkspaceCitations(workspaceId),
+		enabled: !!workspaceId,
+		staleTime: 5 * 60 * 1000,
+	})
+}
+
+export function useCitation(citationId: string) {
 	return useQuery<CitationResponse>({
-		queryKey: CITATION_KEYS.detail(documentId, citationId),
-		queryFn: () => citationsService.getById(documentId, citationId),
-		enabled: !!documentId && !!citationId,
+		queryKey: CITATION_KEYS.detail(citationId),
+		queryFn: () => citationsService.getById(citationId),
+		enabled: !!citationId,
 		staleTime: 5 * 60 * 1000,
 	})
 }
@@ -34,13 +44,13 @@ export function useCreateCitation() {
 	const queryClient = useQueryClient()
 
 	return useMutation({
-		mutationFn: ({ documentId, data }: { documentId: string; data: CitationData }) =>
-			citationsService.create(documentId, data),
-		onSuccess: (response, variables) => {
+		mutationFn: (data: CitationData & { workspaceId?: string; documentId?: string }) =>
+			citationsService.create(data),
+		onSuccess: (response) => {
 			queryClient.invalidateQueries({ queryKey: CITATION_KEYS.lists() })
 			if (response.citation?.citationId) {
 				queryClient.setQueryData(
-					CITATION_KEYS.detail(variables.documentId, response.citation.citationId),
+					CITATION_KEYS.detail(response.citation.citationId),
 					response
 				)
 			}
@@ -53,18 +63,16 @@ export function useUpdateCitation() {
 
 	return useMutation({
 		mutationFn: ({
-			documentId,
 			citationId,
 			data,
 		}: {
-			documentId: string
 			citationId: string
 			data: Partial<CitationData>
-		}) => citationsService.update(documentId, citationId, data),
+		}) => citationsService.update(citationId, data),
 		onSuccess: (response, variables) => {
-			queryClient.invalidateQueries({ queryKey: CITATION_KEYS.list(variables.documentId) })
+			queryClient.invalidateQueries({ queryKey: CITATION_KEYS.lists() })
 			queryClient.setQueryData(
-				CITATION_KEYS.detail(variables.documentId, variables.citationId),
+				CITATION_KEYS.detail(variables.citationId),
 				response
 			)
 		},
@@ -75,12 +83,11 @@ export function useDeleteCitation() {
 	const queryClient = useQueryClient()
 
 	return useMutation({
-		mutationFn: ({ documentId, citationId }: { documentId: string; citationId: string }) =>
-			citationsService.delete(documentId, citationId),
-		onSuccess: (_, variables) => {
-			queryClient.invalidateQueries({ queryKey: CITATION_KEYS.list(variables.documentId) })
+		mutationFn: (citationId: string) => citationsService.delete(citationId),
+		onSuccess: (_, citationId) => {
+			queryClient.invalidateQueries({ queryKey: CITATION_KEYS.lists() })
 			queryClient.removeQueries({
-				queryKey: CITATION_KEYS.detail(variables.documentId, variables.citationId),
+				queryKey: CITATION_KEYS.detail(citationId),
 			})
 		},
 	})
