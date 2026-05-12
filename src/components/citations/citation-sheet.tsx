@@ -47,6 +47,7 @@ interface CitationSheetProps {
 	onOpenChange: (open: boolean) => void
 	onSave: (data: Partial<Citation>) => void
 	initialData?: Partial<Citation>
+	documentId?: string
 }
 
 export function CitationSheet({
@@ -54,6 +55,7 @@ export function CitationSheet({
 	onOpenChange,
 	onSave,
 	initialData,
+	documentId,
 }: Readonly<CitationSheetProps>) {
 	const [type, setType] = useState('article')
 	const [title, setTitle] = useState('')
@@ -67,6 +69,8 @@ export function CitationSheet({
 	const [doi, setDoi] = useState('')
 	const [identifier, setIdentifier] = useState('')
 	const [url, setUrl] = useState('')
+
+	const [isSearching, setIsSearching] = useState(false)
 
 	useEffect(() => {
 		if (initialData && open) {
@@ -115,6 +119,48 @@ export function CitationSheet({
 			setUrl('')
 		}
 	}, [initialData, open])
+
+	const handleSearch = async () => {
+		if (!identifier.trim() || !documentId) return
+
+		setIsSearching(true)
+		try {
+			const { citationsService } = await import('@/lib/api/services/citations.service')
+			const response = await citationsService.getByDoi(documentId, identifier)
+			
+			if (response.data?.citation) {
+				const c = response.data.citation
+				setTitle(c.title || '')
+				setDoi(c.doi || identifier)
+				setYear(c.publicationDate || '')
+				setUrl(c.url || '')
+				
+				if (c.author) {
+					const authorList = c.author.split('; ').map((name: string, index: number) => ({
+						id: Math.random().toString(36).slice(2, 11),
+						name,
+					}))
+					setAuthors(authorList.length > 0 ? authorList : [{ id: '1', name: '' }])
+				}
+
+				if (c.cslJson) {
+					const csl = c.cslJson
+					setJournal(csl.containerTitle || '')
+					setVolume(csl.volume || '')
+					setIssue(csl.issue || '')
+					if (csl.page) {
+						const [from, to] = String(csl.page).split('-')
+						setPageFrom(from || '')
+						setPageTo(to || '')
+					}
+				}
+			}
+		} catch (error) {
+			console.error('Error searching identifier:', error)
+		} finally {
+			setIsSearching(false)
+		}
+	}
 
 	const addAuthor = () => {
 		setAuthors([...authors, { id: Math.random().toString(36).slice(2, 11), name: '' }])
@@ -212,8 +258,14 @@ export function CitationSheet({
 									value={identifier}
 									onChange={(e) => setIdentifier(e.target.value)}
 								/>
-								<Button size='icon' variant='outline' className='shrink-0 bg-white border-gray-200 hover:bg-gray-50'>
-									<Search className='h-4 w-4' />
+								<Button 
+									size='icon' 
+									variant='outline' 
+									className='shrink-0 bg-white border-gray-200 hover:bg-gray-50'
+									onClick={handleSearch}
+									disabled={isSearching || !identifier.trim()}
+								>
+									{isSearching ? <Search className='h-4 w-4 animate-spin' /> : <Search className='h-4 w-4' />}
 								</Button>
 							</div>
 							<p className='text-[13px] text-gray-500'>
