@@ -37,7 +37,6 @@ interface UseLatexEditorOptions {
 	readOnly?: boolean
 }
 
-// Compartments for dynamic configuration
 const collabCompartment = new Compartment()
 const readOnlyCompartment = new Compartment()
 
@@ -73,8 +72,6 @@ export function useLatexEditor({
 	const onUpdate = useCallback(
 		(update: ViewUpdate) => {
 			if (update.docChanged && documentId && !collaborationReady) {
-				// Only auto-save to Firestore manually if NOT in collaboration mode
-				// (In collaboration mode, the provider handles persistence or we have other sync logic)
 				if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
 				autoSaveTimerRef.current = setTimeout(async () => {
 					const content = update.state.doc.toString()
@@ -102,7 +99,6 @@ export function useLatexEditor({
 		[documentId, autoSaveInterval, batchUpdate, collaborationReady]
 	)
 
-	// Effect 1: Initialize Editor once
 	useEffect(() => {
 		if (!editorRef.current || viewRef.current) return
 
@@ -135,7 +131,6 @@ export function useLatexEditor({
 			latex(),
 			EditorView.lineWrapping,
 			EditorView.updateListener.of(onUpdate),
-			// Initial dynamic extensions
 			collabCompartment.of([]),
 			readOnlyCompartment.of(EditorState.readOnly.of(readOnly)),
 		]
@@ -143,8 +138,6 @@ export function useLatexEditor({
 		const shouldWaitForCollab = !!documentId && enabled && !readOnly
 
 		const state = EditorState.create({
-			// Start with initial content ONLY if NOT in collaboration mode.
-			// If collab is enabled, start EMPTY and let Yjs sync the content to avoid duplication.
 			doc: !shouldWaitForCollab ? initialContentRef.current || '' : '',
 			extensions: baseExtensions,
 		})
@@ -164,11 +157,9 @@ export function useLatexEditor({
 		}
 	}, [onUpdate, readOnly, documentId, enabled])
 
-	// Effect 2: Update Collaboration Extension dynamically
 	useEffect(() => {
 		const view = viewRef.current
 		if (!view || !collaborationReady || !yDoc || !awareness) {
-			// Clear collaboration if not ready
 			if (view) {
 				view.dispatch({
 					effects: collabCompartment.reconfigure([]),
@@ -185,7 +176,6 @@ export function useLatexEditor({
 		})
 	}, [collaborationReady, yDoc, awareness, undoManager])
 
-	// Effect 3: Update ReadOnly state dynamically
 	useEffect(() => {
 		const view = viewRef.current
 		if (!view) return
@@ -195,16 +185,12 @@ export function useLatexEditor({
 		})
 	}, [readOnly])
 
-	// Effect 4: Update content if collaboration is NOT being used and initialContent changes
-	// CRITICAL: We only do this manual update if collaboration is disabled.
-	// If collaboration is enabled, we MUST wait for Yjs to sync to avoid duplication.
 	const shouldWaitForCollab = !!documentId && enabled && !readOnly
 
 	useEffect(() => {
 		const view = viewRef.current
 		if (!view || collaborationReady || shouldWaitForCollab || !initialContent) return
 
-		// Only update if the current content is different to avoid cursor jumps
 		const currentContent = view.state.doc.toString()
 		if (currentContent !== initialContent) {
 			view.dispatch({
@@ -213,7 +199,6 @@ export function useLatexEditor({
 		}
 	}, [initialContent, collaborationReady, shouldWaitForCollab])
 
-	// Effect 5: Handle Seeding (Only once per document lifecycle when collaboration is active)
 	const seedingAttemptedRef = useRef(false)
 	useEffect(() => {
 		if (!collaborationReady || !hasSyncedOnce || !yDoc || seedingAttemptedRef.current) return
@@ -221,21 +206,17 @@ export function useLatexEditor({
 		const yText = yDoc.getText('latex')
 		const configMap = yDoc.getMap('config')
 
-		// If there is already content or it's marked as seeded in the shared map, don't seed
 		if (yText.length > 0 || configMap.get('isSeeded')) {
 			seedingAttemptedRef.current = true
 			return
 		}
 
 		const initialText = typeof initialContent === 'string' ? initialContent : ''
-		// If it's a new document and we have a template/initial content
 		if (initialText && initialText !== 'Start writing here...') {
 			yDoc.transact(() => {
-				// Re-check inside transaction to be safer
 				if (!configMap.get('isSeeded') && yText.length === 0) {
 					configMap.set('isSeeded', true)
 					yText.insert(0, initialText)
-					console.log('📝 [LaTeX] Seeding template content successful')
 				}
 			})
 			seedingAttemptedRef.current = true

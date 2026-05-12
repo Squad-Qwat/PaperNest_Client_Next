@@ -2,46 +2,33 @@
 
 import { Loader2 } from 'lucide-react'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
+import * as React from 'react'
 import { Button } from '@/components/ui/button'
-import { useCreateDocument } from '@/lib/api/hooks/use-documents'
 import { useTemplates } from '@/lib/api/hooks/use-templates'
 
-import { getErrorMessage } from '@/lib/api/utils/error-handler'
+import { CreateDocumentModal } from '../document/CreateDocumentModal'
 
 interface TemplateGalleryProps {
 	workspaceId: string
 }
 
 export function TemplateGallery({ workspaceId }: TemplateGalleryProps) {
-	const router = useRouter()
 	const { data, isLoading, error } = useTemplates()
-	const { mutateAsync: createDocument, isPending: isCreating } = useCreateDocument()
+	const [isModalOpen, setIsModalOpen] = React.useState(false)
+	const [selectedTemplate, setSelectedTemplate] = React.useState<{
+		id: string
+		name: string
+		logoUrl?: string
+	}>({
+		id: '',
+		name: '',
+	})
 
 	const templates = data?.templates || []
 
-	const handleSelectTemplate = async (templateId: string, templateName: string) => {
-		toast.promise(
-			createDocument({
-				workspaceId,
-				data: {
-					title: `Untitled ${templateName}`,
-					description: `Document created from ${templateName} template`,
-					templateId: templateId,
-				},
-			}).then((result) => {
-				if (result.document) {
-					router.push(`/${workspaceId}/documents/${result.document.documentId}`)
-				}
-				return result
-			}),
-			{
-				loading: `Creating document from ${templateName}...`,
-				success: 'Document created successfully!',
-				error: (err) => getErrorMessage(err),
-			}
-		)
+	const handleSelectTemplate = (templateId: string, templateName: string, logoUrl?: string) => {
+		setSelectedTemplate({ id: templateId, name: templateName, logoUrl })
+		setIsModalOpen(true)
 	}
 
 	if (isLoading) {
@@ -88,7 +75,6 @@ export function TemplateGallery({ workspaceId }: TemplateGalleryProps) {
 			</div>
 
 			<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
-				{/* Blank Document Option */}
 				<div className='bg-white border rounded-lg p-6 hover:border-primary transition-all group relative text-left w-full flex flex-col'>
 					<div className='mb-4'>
 						<h3 className='text-lg font-semibold text-gray-900 group-hover:text-primary transition-colors'>
@@ -105,54 +91,61 @@ export function TemplateGallery({ workspaceId }: TemplateGalleryProps) {
 					</div>
 				</div>
 
-				{/* Template List */}
-				{templates.map((template) => (
-					<div
-						key={template.id}
-						className='bg-white border rounded-lg p-6 hover:border-primary transition-all group relative text-left w-full flex flex-col'
-					>
-						<div className='mb-4'>
-							<h3 className='text-lg font-semibold text-gray-900 group-hover:text-primary transition-colors line-clamp-1'>
-								{template.name}
-							</h3>
+				{templates.map((template) => {
+					const logoUrl = getBrandLogo(template.name, template.category)
+					return (
+						<div
+							key={template.id}
+							className='bg-white border rounded-lg p-6 hover:border-primary transition-all group relative text-left w-full flex flex-col'
+						>
+							<div className='mb-4'>
+								<h3 className='text-lg font-semibold text-gray-900 group-hover:text-primary transition-colors line-clamp-1'>
+									{template.name}
+								</h3>
+							</div>
+
+							<p className='text-gray-600 text-sm mb-4 line-clamp-2 min-h-[40px]'>
+								{template.description}
+							</p>
+
+							<div className='mb-6 flex items-center justify-between w-full'>
+								<span className='bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase'>
+									{template.category}
+								</span>
+								{logoUrl && (
+									<Image
+										src={logoUrl}
+										alt={template.category}
+										width={80}
+										height={32}
+										className='h-8 w-auto'
+									/>
+								)}
+							</div>
+
+							<div className='mt-auto'>
+								<Button
+									className='w-full'
+									onClick={() =>
+										handleSelectTemplate(template.id, template.name, logoUrl || undefined)
+									}
+								>
+									Gunakan Template
+								</Button>
+							</div>
 						</div>
-
-						<p className='text-gray-600 text-sm mb-4 line-clamp-2 min-h-[40px]'>
-							{template.description}
-						</p>
-
-						{(() => {
-							const logoUrl = getBrandLogo(template.name, template.category)
-							return (
-								<div className='mb-6 flex items-center justify-between w-full'>
-									<span className='bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase'>
-										{template.category}
-									</span>
-									{logoUrl && (
-										<Image
-											src={logoUrl}
-											alt={template.category}
-											width={80}
-											height={32}
-											className='h-8 w-auto'
-										/>
-									)}
-								</div>
-							)
-						})()}
-
-						<div className='mt-auto'>
-							<Button
-								className='w-full'
-								onClick={() => handleSelectTemplate(template.id, template.name)}
-								disabled={isCreating}
-							>
-								{isCreating ? 'Membuat...' : 'Gunakan Template'}
-							</Button>
-						</div>
-					</div>
-				))}
+					)
+				})}
 			</div>
+
+			<CreateDocumentModal
+				isOpen={isModalOpen}
+				onClose={() => setIsModalOpen(false)}
+				workspaceId={workspaceId}
+				templateId={selectedTemplate.id}
+				templateName={selectedTemplate.name}
+				logoUrl={selectedTemplate.logoUrl}
+			/>
 		</div>
 	)
 }
