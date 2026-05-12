@@ -35,7 +35,6 @@ export function CreateDocumentModal({
 		description: '',
 	})
 
-
 	React.useEffect(() => {
 		if (isOpen) {
 			const isBlank = !templateId || templateName === 'Blank Document'
@@ -66,8 +65,7 @@ export function CreateDocumentModal({
 			})
 
 			handleClose()
-		} catch (_error) {
-		}
+		} catch (_error) {}
 	}
 
 	const handleClose = () => {

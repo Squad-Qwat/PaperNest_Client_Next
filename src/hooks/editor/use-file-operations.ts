@@ -1,5 +1,4 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useCallback } from 'react'
 import { toast } from 'sonner'
 import { aiService } from '@/lib/ai/services/ai.service'
 import { apiClient } from '@/lib/api/clients/api-client'
@@ -18,9 +17,7 @@ export function useFileOperations(documentId: string | null | undefined, files: 
 	const uploadMutation = useMutation({
 		mutationFn: async ({ file, folderPath }: { file: File; folderPath?: string }) => {
 			if (!documentId) return
-			const fileName = folderPath
-				? `${folderPath.replace(/^folder-/, '')}/${file.name}`
-				: file.name
+			const fileName = folderPath ? `${folderPath.replace(/^folder-/, '')}/${file.name}` : file.name
 
 			const { presignedUrl, publicUrl, key } = await apiClient.post<{
 				presignedUrl: string

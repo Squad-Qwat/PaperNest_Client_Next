@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { collection, doc, onSnapshot, query, where } from 'firebase/firestore'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { db } from '@/lib/firebase/config'
 import { documentsService } from '../services/documents.service'
 import type { BatchOperationRequest } from '../types/batchOperation.types'
@@ -9,7 +9,6 @@ import type {
 	DocumentSearchParams,
 	UpdateDocumentContentDto,
 	UpdateDocumentDto,
-	Version,
 } from '../types/document.types'
 import type { CreateReviewDto, UpdateReviewStatusDto } from '../types/review.types'
 
@@ -28,7 +27,6 @@ export const DOCUMENT_KEYS = {
 	studentReviews: () => ['reviews', 'student'] as const,
 	reviewDetail: (reviewId: string) => ['reviews', 'detail', reviewId] as const,
 }
-
 
 const mapFirestoreDoc = (docSnap: any, idField: string) => {
 	const data = docSnap.data()
@@ -84,7 +82,6 @@ const useFirestoreQuery = <T>(
 
 	return query
 }
-
 
 export function useMyDocuments() {
 	return useQuery({
@@ -157,7 +154,6 @@ export function useStudentReviews(enabled = true) {
 		enabled,
 	})
 }
-
 
 export function useCreateDocument() {
 	const queryClient = useQueryClient()
@@ -251,7 +247,6 @@ export function useBatchUpdateDocument() {
 		},
 	})
 }
-
 
 export function useCreateReview() {
 	const queryClient = useQueryClient()
