@@ -38,9 +38,9 @@ export function useCreateCitation() {
 			citationsService.create(documentId, data),
 		onSuccess: (response, variables) => {
 			queryClient.invalidateQueries({ queryKey: CITATION_KEYS.lists() })
-			if (response.data?.citation?.citationId) {
+			if (response.citation?.citationId) {
 				queryClient.setQueryData(
-					CITATION_KEYS.detail(variables.documentId, response.data.citation.citationId),
+					CITATION_KEYS.detail(variables.documentId, response.citation.citationId),
 					response
 				)
 			}

@@ -53,7 +53,7 @@ export default function Page() {
 	const documentId = documentsData?.documents?.[0]?.documentId
 	
 	const { data: citationsData, isLoading: isCitationsLoading } = useCitations(documentId)
-	const citations = useMemo(() => (citationsData?.data?.citations as CitationDisplay[]) || [], [citationsData])
+	const citations = useMemo(() => (citationsData?.citation as CitationDisplay[]) || [], [citationsData])
 
 	const { mutate: createCitation } = useCreateCitation()
 	const { mutate: updateCitation } = useUpdateCitation()
