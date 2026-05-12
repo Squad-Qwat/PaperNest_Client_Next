@@ -30,6 +30,8 @@ import {
 	useWorkspaceDocuments,
 } from '@/lib/api/hooks/use-documents'
 import { useWorkspace } from '@/lib/api/hooks/use-workspaces'
+import type { Document, DocumentsResponse } from '@/lib/api/types/document.types'
+import type { ReviewsResponse } from '@/lib/api/types/review.types'
 
 export default function ReviewsPage() {
 	const params = useParams()
@@ -49,8 +51,11 @@ export default function ReviewsPage() {
 	)
 	const { data: docsRes, isLoading: docsLoading } = useWorkspaceDocuments(workspaceId)
 
-	const reviews = (isStudent ? studentReviewsRes?.reviews : lecturerReviewsRes?.reviews) || []
-	const documents = docsRes?.documents || []
+	const reviews =
+		(isStudent
+			? (studentReviewsRes as ReviewsResponse)?.reviews
+			: (lecturerReviewsRes as ReviewsResponse)?.reviews) || []
+	const documents = (docsRes as DocumentsResponse)?.documents || []
 	const isLoading = studentLoading || lecturerLoading || docsLoading
 
 	const [docFilter, setDocFilter] = useState<string>('all')
@@ -72,7 +77,7 @@ export default function ReviewsPage() {
 				}
 
 				if (searchQuery) {
-					const doc = documents.find((d) => d.documentId === review.documentId)
+					const doc = documents.find((d: Document) => d.documentId === review.documentId)
 					const title = doc?.title?.toLowerCase() || ''
 					const msg = review.message?.toLowerCase() || ''
 					const query = searchQuery.toLowerCase()
@@ -89,7 +94,7 @@ export default function ReviewsPage() {
 	}, [reviews, documents, docFilter, statusFilter, searchQuery, sortOrder])
 
 	const getDocTitle = (docId: string) => {
-		return documents.find((d) => d.documentId === docId)?.title || 'Untitled Document'
+		return documents.find((d: Document) => d.documentId === docId)?.title || 'Untitled Document'
 	}
 
 	if (authLoading || (isLoading && reviews.length === 0)) {
@@ -148,7 +153,7 @@ export default function ReviewsPage() {
 								</SelectTrigger>
 								<SelectContent>
 									<SelectItem value='all'>Semua Dokumen</SelectItem>
-									{documents.map((doc) => (
+									{documents.map((doc: Document) => (
 										<SelectItem key={doc.documentId} value={doc.documentId}>
 											{doc.title}
 										</SelectItem>
