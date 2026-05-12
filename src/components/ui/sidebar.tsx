@@ -146,13 +146,23 @@ function Sidebar({
 	side = 'left',
 	variant = 'sidebar',
 	collapsible = 'offcanvas',
+	mobileWidth,
+	mobileSide,
+	showMobileFloatingTrigger = false,
+	mobileClassName,
+	modal = true,
 	className,
 	children,
 	...props
 }: React.ComponentProps<'div'> & {
-	side?: 'left' | 'right'
+	side?: 'left' | 'right' | 'top' | 'bottom'
 	variant?: 'sidebar' | 'floating' | 'inset'
 	collapsible?: 'offcanvas' | 'icon' | 'none'
+	mobileWidth?: string
+	mobileSide?: 'top' | 'right' | 'bottom' | 'left'
+	showMobileFloatingTrigger?: boolean
+	mobileClassName?: string
+	modal?: boolean
 }) {
 	const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
 
@@ -173,18 +183,22 @@ function Sidebar({
 
 	if (isMobile) {
 		return (
-			<Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
+			<Sheet open={openMobile} onOpenChange={setOpenMobile} modal={modal} {...props}>
 				<SheetContent
 					data-sidebar='sidebar'
 					data-slot='sidebar'
 					data-mobile='true'
-					className='w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden'
+					className={cn(
+						'w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden',
+						(mobileSide === 'bottom' || side === 'bottom') && 'h-[80vh]',
+						mobileClassName
+					)}
 					style={
 						{
-							'--sidebar-width': SIDEBAR_WIDTH_MOBILE,
+							'--sidebar-width': mobileWidth || SIDEBAR_WIDTH_MOBILE,
 						} as React.CSSProperties
 					}
-					side={side}
+					side={mobileSide || side}
 				>
 					<SheetHeader className='sr-only'>
 						<SheetTitle>Sidebar</SheetTitle>
@@ -260,7 +274,7 @@ function SidebarTrigger({ className, onClick, ...props }: React.ComponentProps<t
 			}}
 			{...props}
 		>
-			<PanelLeftIcon />
+			<PanelLeftIcon className='size-4' />
 			<span className='sr-only'>Toggle Sidebar</span>
 		</Button>
 	)
