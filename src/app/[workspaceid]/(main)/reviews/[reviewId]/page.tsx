@@ -34,6 +34,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/context/AuthContext'
 import { useDocument, useReviewDetail, useUpdateReviewStatus } from '@/lib/api/hooks/use-documents'
 import { useWorkspace, useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
+import type { Document } from '@/lib/api/types/document.types'
+import type { Review } from '@/lib/api/types/review.types'
 import { format, id } from '@/lib/date'
 
 export default function ReviewDetailPage() {
@@ -46,10 +48,10 @@ export default function ReviewDetailPage() {
 	const { data: workspace } = useWorkspace(workspaceId)
 	const { data: membersRes } = useWorkspaceMembers(workspaceId)
 	const { data: reviewRes, isLoading: reviewLoading } = useReviewDetail(reviewId as string)
-	const reviewData = reviewRes?.review
+	const reviewData = reviewRes as Review
 
-	const { data: documentRes } = useDocument(workspaceId, reviewData?.documentId)
-	const document = documentRes?.document || documentRes
+	const { data: documentRes } = useDocument(workspaceId, reviewData?.documentId as string)
+	const document = (documentRes as Document) || null
 
 	const { mutateAsync: updateStatus, isPending: isUpdating } = useUpdateReviewStatus()
 

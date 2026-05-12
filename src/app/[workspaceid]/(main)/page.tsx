@@ -22,6 +22,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar'
 import { useAuth } from '@/context/AuthContext'
 import { useDeleteDocument, useWorkspaceDocuments } from '@/lib/api/hooks/use-documents'
 import { useWorkspace } from '@/lib/api/hooks/use-workspaces'
+import type { Document, DocumentsResponse } from '@/lib/api/types/document.types'
 import { format, id } from '@/lib/date'
 
 export default function WorkspacePage() {
@@ -38,7 +39,7 @@ export default function WorkspacePage() {
 
 	const { data: documentsResponse, isLoading: documentsLoading } =
 		useWorkspaceDocuments(workspaceId)
-	const documents = documentsResponse?.documents || []
+	const documents = (documentsResponse as DocumentsResponse)?.documents || []
 
 	const { mutateAsync: deleteDocMutate, isPending: isDeleting } = useDeleteDocument()
 
@@ -50,7 +51,7 @@ export default function WorkspacePage() {
 
 		const query = searchQuery.toLowerCase()
 		return documents.filter(
-			(doc) =>
+			(doc: Document) =>
 				doc.title.toLowerCase().includes(query) || doc.description?.toLowerCase().includes(query)
 		)
 	}, [documents, searchQuery])
@@ -172,7 +173,7 @@ export default function WorkspacePage() {
 					</div>
 				) : (
 					<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-						{filteredDocuments.map((doc) => {
+						{filteredDocuments.map((doc: Document) => {
 							return (
 								<div
 									key={doc.documentId}

@@ -6,11 +6,20 @@ import { documentsService } from '../services/documents.service'
 import type { BatchOperationRequest } from '../types/batchOperation.types'
 import type {
 	CreateDocumentDto,
+	Document,
 	DocumentSearchParams,
+	DocumentsResponse,
+	DocumentWithRoomStateResponse,
 	UpdateDocumentContentDto,
 	UpdateDocumentDto,
+	VersionsResponse,
 } from '../types/document.types'
-import type { CreateReviewDto, UpdateReviewStatusDto } from '../types/review.types'
+import type {
+	CreateReviewDto,
+	Review,
+	ReviewsResponse,
+	UpdateReviewStatusDto,
+} from '../types/review.types'
 
 export const DOCUMENT_KEYS = {
 	all: ['documents'] as const,
@@ -95,7 +104,7 @@ export function useWorkspaceDocuments(workspaceId: string) {
 		? query(collection(db, 'documents'), where('workspaceId', '==', workspaceId))
 		: null
 
-	return useFirestoreQuery(
+	return useFirestoreQuery<DocumentsResponse>(
 		DOCUMENT_KEYS.workspace(workspaceId),
 		q,
 		'documentId',
@@ -105,7 +114,7 @@ export function useWorkspaceDocuments(workspaceId: string) {
 
 export function useDocument(_workspaceId: string, documentId: string) {
 	const q = documentId ? doc(db, 'documents', documentId) : null
-	return useFirestoreQuery(DOCUMENT_KEYS.detail(documentId), q, 'documentId')
+	return useFirestoreQuery<Document>(DOCUMENT_KEYS.detail(documentId), q, 'documentId')
 }
 
 export function useSearchDocuments(workspaceId: string, params: DocumentSearchParams) {
@@ -120,23 +129,33 @@ export function useDocumentVersions(documentId: string) {
 	const q = documentId
 		? query(collection(db, 'documentBodies'), where('documentId', '==', documentId))
 		: null
-	return useFirestoreQuery(DOCUMENT_KEYS.versions(documentId), q, 'documentBodyId', (a, b) => {
-		return (b.versionNumber || 0) - (a.versionNumber || 0)
-	})
+	return useFirestoreQuery<VersionsResponse>(
+		DOCUMENT_KEYS.versions(documentId),
+		q,
+		'documentBodyId',
+		(a, b) => {
+			return (b.versionNumber || 0) - (a.versionNumber || 0)
+		}
+	)
 }
 
 export function useDocumentReviews(documentId: string) {
 	const q = documentId
 		? query(collection(db, 'reviews'), where('documentId', '==', documentId))
 		: null
-	return useFirestoreQuery(DOCUMENT_KEYS.reviews(documentId), q, 'reviewId', (a, b) => {
-		return new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
-	})
+	return useFirestoreQuery<ReviewsResponse>(
+		DOCUMENT_KEYS.reviews(documentId),
+		q,
+		'reviewId',
+		(a, b) => {
+			return new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
+		}
+	)
 }
 
 export function useReviewDetail(reviewId: string) {
 	const q = reviewId ? doc(db, 'reviews', reviewId) : null
-	return useFirestoreQuery(DOCUMENT_KEYS.reviewDetail(reviewId), q, 'reviewId')
+	return useFirestoreQuery<Review>(DOCUMENT_KEYS.reviewDetail(reviewId), q, 'reviewId')
 }
 
 export function useLecturerPendingReviews(enabled = true) {
@@ -319,7 +338,10 @@ export function useReviewAction() {
 export function useDocumentWithRoomState(documentId: string) {
 	return useQuery({
 		queryKey: [...DOCUMENT_KEYS.detail(documentId), 'room-state'] as const,
-		queryFn: () => documentsService.getDocumentWithRoomState(documentId),
+		queryFn: () =>
+			documentsService.getDocumentWithRoomState(
+				documentId
+			) as Promise<DocumentWithRoomStateResponse>,
 		enabled: !!documentId,
 		retry: 1,
 	})
