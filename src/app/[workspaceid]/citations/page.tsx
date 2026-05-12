@@ -10,8 +10,6 @@ import {
 	Settings2,
 	Tag,
 	User,
-	Edit,
-	Trash2,
 } from 'lucide-react'
 import { useParams } from 'next/navigation'
 import { useState } from 'react'
@@ -26,6 +24,7 @@ import {
 } from '@tanstack/react-table'
 import { AppSidebar } from '@/components/app-sidebar'
 import { CitationSheet, type Citation as CitationType } from '@/components/citations/citation-sheet'
+import { CitationDetailsSheet } from '@/components/citations/citation-details-sheet'
 import {
 	Table,
 	TableBody,
@@ -68,19 +67,21 @@ type Citation = {
 	date: string
 	year: string
 	url: string
+	annotationsCount?: number
 }
 
 const data: Citation[] = [
 	{
 		id: '1',
 		type: 'article',
-		title: 'A Study of AI in EducationA Study of AI in EducationA Study of AI in EducationA Study of AI in EducationA Study of AI in EducationA Study of AI in EducationA Study of AI in EducationA Study of AI in EducationA Study of AI in EducationA Study of AI in EducationA Study of AI in EducationA Study of AI in EducationA Study of AI in EducationA Study of AI in EducationA Study of AI in EducationA Study of AI in EducationA Study of AI in EducationA Study of AI in EducationA Study of AI in EducationA Study of AI in EducationA Study of AI in EducationA Study of AI in EducationA Study of AI in Education',
+		title: 'A Study of AI in Education',
 		author: 'John Doe',
 		publicationInfo: 'International Journal of Science',
 		doi: '10.1000/xyz123',
 		date: '10 Mei',
 		year: '2023',
 		url: 'https://example.com/paper',
+		annotationsCount: 3,
 	},
 	{
 		id: '2',
@@ -92,6 +93,7 @@ const data: Citation[] = [
 		date: '15 Mar',
 		year: '2022',
 		url: 'https://example.com/ml-book',
+		annotationsCount: 0,
 	},
 ]
 
@@ -106,11 +108,14 @@ const columns: ColumnDef<Citation>[] = [
 			/>
 		),
 		cell: ({ row }) => (
-			<Checkbox
-				checked={row.getIsSelected()}
-				onCheckedChange={(value) => row.toggleSelected(!!value)}
-				aria-label='Select row'
-			/>
+			<div className='flex items-center justify-center'>
+				<Checkbox
+					checked={row.getIsSelected()}
+					onCheckedChange={(value) => row.toggleSelected(!!value)}
+					aria-label='Select row'
+					onClick={(e) => e.stopPropagation()}
+				/>
+			</div>
 		),
 		enableResizing: false,
 		size: 40,
@@ -194,11 +199,30 @@ const columns: ColumnDef<Citation>[] = [
 		minSize: 80,
 	},
 	{
+		accessorKey: 'annotationsCount',
+		header: 'Anotasi',
+		cell: ({ row }) => {
+			const count = row.getValue('annotationsCount') as number
+			return (
+				<div className='flex items-center justify-center bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs font-bold w-fit'>
+					{count || 0}
+				</div>
+			)
+		},
+		minSize: 80,
+	},
+	{
 		id: 'actions',
 		header: () => <div className='text-right'>Link</div>,
 		cell: ({ row }) => (
 			<div className='text-right'>
-				<Button variant='ghost' size='icon' asChild className='h-8 w-8'>
+				<Button 
+					variant='ghost' 
+					size='icon' 
+					asChild 
+					className='h-8 w-8'
+					onClick={(e) => e.stopPropagation()}
+				>
 					<a href={row.original.url} target='_blank' rel='noopener noreferrer'>
 						<ExternalLink className='h-4 w-4' />
 					</a>
@@ -218,7 +242,9 @@ export default function Page() {
 	const [sorting, setSorting] = useState<SortingState>([])
 	const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([])
 	const [isSheetOpen, setIsSheetOpen] = useState(false)
+	const [isDetailsSheetOpen, setIsDetailsSheetOpen] = useState(false)
 	const [editingCitation, setEditingCitation] = useState<Partial<CitationType> | undefined>()
+	const [viewingCitation, setViewingCitation] = useState<Citation | undefined>()
 
 	const handleAdd = () => {
 		setEditingCitation(undefined)
@@ -228,6 +254,11 @@ export default function Page() {
 	const handleSave = (data: Partial<CitationType>) => {
 		console.log('Saving citation:', data)
 		// API call would go here
+	}
+
+	const handleRowClick = (citation: Citation) => {
+		setViewingCitation(citation)
+		setIsDetailsSheetOpen(true)
 	}
 
 	const table = useReactTable({
@@ -288,6 +319,12 @@ export default function Page() {
 						onOpenChange={setIsSheetOpen}
 						onSave={handleSave}
 						initialData={editingCitation}
+					/>
+
+					<CitationDetailsSheet
+						open={isDetailsSheetOpen}
+						onOpenChange={setIsDetailsSheetOpen}
+						citation={viewingCitation}
 					/>
 
 					<div className='flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8'>
@@ -398,7 +435,12 @@ export default function Page() {
 							<TableBody>
 								{table.getRowModel().rows.length ? (
 									table.getRowModel().rows.map((row) => (
-										<TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
+										<TableRow 
+											key={row.id} 
+											data-state={row.getIsSelected() && 'selected'}
+											className='cursor-pointer hover:bg-gray-50/50 transition-colors'
+											onClick={() => handleRowClick(row.original)}
+										>
 											{row.getVisibleCells().map((cell) => (
 												<TableCell 
 													key={cell.id} 
