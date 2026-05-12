@@ -317,6 +317,9 @@ importers:
       react-resizable-panels:
         specifier: ^4.0.15
         version: 4.0.15(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      react-turnstile:
+        specifier: ^1.1.5
+        version: 1.1.5(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       recharts:
         specifier: 3.8.0
         version: 3.8.0(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react-is@19.2.4)(react@19.2.0)(redux@5.0.1)
@@ -4917,6 +4920,12 @@ packages:
       '@types/react':
         optional: true
 
+  react-turnstile@1.1.5:
+    resolution: {integrity: sha512-VTL5OeHAatzCEVQxAZox70/TPmhKxEbNgtr++dg+8zm9QrWKuoU9E0+7gqmycOSCDZuJFzvMMLKQb5PVUPLV6w==}
+    peerDependencies:
+      react: '>= 16.13.1'
+      react-dom: '>= 16.13.1'
+
   react@19.2.0:
     resolution: {integrity: sha512-tmbWg6W31tQLeB5cdIBOicJDJRR2KzXsV7uSK9iNfLWQ5bIZfxuPEHp7M8wiHyHnn0DD1i7w3Zmin0FtkrwoCQ==}
     engines: {node: '>=0.10.0'}
@@ -9146,7 +9155,7 @@ snapshots:
       jsonwebtoken: 9.0.3
       load-esm: 1.0.3
       mime-types: 2.1.35
-      retry-axios: 2.6.0(axios@1.13.6)
+      retry-axios: 2.6.0(axios@1.13.6(debug@4.4.3))
       tough-cookie: 4.1.4
     transitivePeerDependencies:
       - supports-color
@@ -10363,6 +10372,11 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.2.7
 
+  react-turnstile@1.1.5(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
+    dependencies:
+      react: 19.2.0
+      react-dom: 19.2.0(react@19.2.0)
+
   react@19.2.0: {}
 
   readable-stream@3.6.2:
@@ -10503,7 +10517,7 @@ snapshots:
 
   reselect@5.1.1: {}
 
-  retry-axios@2.6.0(axios@1.13.6):
+  retry-axios@2.6.0(axios@1.13.6(debug@4.4.3)):
     dependencies:
       axios: 1.13.6(debug@4.4.3)
 

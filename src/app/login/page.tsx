@@ -8,6 +8,7 @@ import type React from 'react'
 import { useState } from 'react'
 import { FaGithub } from 'react-icons/fa'
 import { FcGoogle } from 'react-icons/fc'
+import { TurnstileWidget } from '@/components/auth/TurnstileWidget'
 import { MicrosoftIconIcon } from '@/components/icons/logos-microsoft-icon'
 import { Button } from '@/components/ui/button'
 import {
@@ -40,6 +41,7 @@ export default function LoginPage() {
 	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
 	const [localError, setLocalError] = useState('')
+	const [turnstileToken, setTurnstileToken] = useState('')
 
 	const isLinking = linkMutation.isPending
 	const loading = isEmailPending || isSocialPending || isLinking
@@ -59,18 +61,27 @@ export default function LoginPage() {
 			return
 		}
 
+		if (!turnstileToken) {
+			setLocalError('Please complete the captcha verification')
+			return
+		}
+
 		try {
-			await loginEmailMutate({ email, password })
+			await loginEmailMutate({ email, password, turnstileToken })
 		} catch (err) {
 			setLocalError(getErrorMessage(err))
 		}
 	}
 
 	const handleSocialLogin = async (provider: 'google' | 'github' | 'microsoft') => {
+		if (!turnstileToken) {
+			setLocalError('Please complete the captcha verification first')
+			return
+		}
 		setLocalError('')
 		resetLinking()
 		try {
-			await socialMutate(provider)
+			await socialMutate({ providerName: provider, turnstileToken })
 		} catch (err: any) {
 			if (err.message === 'ACCOUNT_EXISTS_CONFLICT') {
 				return // Handled by linkingSession UI
@@ -146,8 +157,8 @@ export default function LoginPage() {
 							<div className='grid gap-2 mt-4'>
 								<Button
 									className='w-full'
-									onClick={() => linkMutation.mutate()}
-									disabled={isLinking}
+									onClick={() => linkMutation.mutate(turnstileToken)}
+									disabled={isLinking || !turnstileToken}
 								>
 									{isLinking ? 'Sedang Menghubungkan...' : `Hubungkan Sekarang`}
 								</Button>
@@ -243,6 +254,8 @@ export default function LoginPage() {
 								</Link>
 							</div>
 						</div>
+
+						<TurnstileWidget onVerify={setTurnstileToken} />
 
 						{/* Login Button */}
 						<Button type='submit' className='w-full' disabled={loading}>
