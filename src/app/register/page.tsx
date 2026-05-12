@@ -366,7 +366,7 @@ export default function RegisterPage() {
 									</div>
 
 									{/* Social Sign Up */}
-									<div className='grid gap-3'>
+									<div className='grid grid-cols-3 gap-3 sm:grid-cols-1'>
 										<Button
 											type='button'
 											variant='outline'
@@ -374,7 +374,7 @@ export default function RegisterPage() {
 											disabled={loading}
 										>
 											<FcGoogle />
-											Continue with Google
+											<span className='hidden sm:inline'>Continue with Google</span>
 										</Button>
 										<Button
 											type='button'
@@ -383,7 +383,7 @@ export default function RegisterPage() {
 											disabled={loading}
 										>
 											<FaGithub />
-											Continue with GitHub
+											<span className='hidden sm:inline'>Continue with GitHub</span>
 										</Button>
 										<Button
 											type='button'
@@ -392,7 +392,7 @@ export default function RegisterPage() {
 											disabled={loading}
 										>
 											<MicrosoftIconIcon />
-											Continue with Microsoft
+											<span className='hidden sm:inline'>Continue with Microsoft</span>
 										</Button>
 									</div>
 
