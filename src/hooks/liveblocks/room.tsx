@@ -3,6 +3,7 @@
 import { ClientSideSuspense, LiveblocksProvider, RoomProvider } from '@liveblocks/react/suspense'
 import { type ReactNode, useCallback } from 'react'
 import { getDocumentRoomId } from '@/lib/liveblocks/config'
+import { useAuthStore } from '@/lib/store/auth-store'
 
 type RoomProps = {
 	readonly documentId: string
@@ -15,7 +16,7 @@ export function Room({ documentId, children, fallback }: RoomProps) {
 
 	const authEndpoint = useCallback(
 		async (room?: string) => {
-			const token = localStorage.getItem('accessToken')
+			const token = useAuthStore.getState().accessToken
 
 			if (!token) {
 				throw new Error('No authentication token found')
