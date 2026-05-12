@@ -97,4 +97,12 @@ export const API_ENDPOINTS = {
 		base: '/templates',
 		byId: (templateId: string) => `/templates/${templateId}`,
 	},
+
+	// Citations
+	citations: {
+		base: (documentId: string) => `/documents/${documentId}/citations`,
+		byId: (documentId: string, citationId: string) => `/documents/${documentId}/citations/${citationId}`,
+		search: (documentId: string) => `/documents/${documentId}/citations/search`,
+		byDoi: (documentId: string, doi: string) => `/documents/${documentId}/citations/doi/${doi}`,
+	},
 } as const

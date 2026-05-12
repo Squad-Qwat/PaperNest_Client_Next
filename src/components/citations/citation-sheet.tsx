@@ -178,6 +178,14 @@ export function CitationSheet({
 		onOpenChange(false)
 	}
 
+	const isFormValid = Boolean(
+		title.trim() &&
+		type.trim() &&
+		authors.some((a) => a.name.trim()) &&
+		journal.trim() &&
+		year.trim()
+	)
+
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>
 			<SheetContent className='sm:max-w-md md:max-w-lg overflow-hidden flex flex-col p-0 gap-0'>
@@ -216,7 +224,9 @@ export function CitationSheet({
 						{/* Reference Section */}
 						<div className='space-y-6 px-6 pb-6'>
 							<Field>
-								<FieldLabel className='text-sm font-semibold text-gray-700'>Reference Type</FieldLabel>
+								<FieldLabel className='text-sm font-semibold text-gray-700'>
+									Reference Type <span className='text-red-500'>*</span>
+								</FieldLabel>
 								<Select value={type} onValueChange={setType}>
 									<SelectTrigger className='bg-white border-gray-200'>
 										<SelectValue placeholder='Journal Article' />
@@ -233,7 +243,9 @@ export function CitationSheet({
 							</Field>
 
 							<Field>
-								<FieldLabel className='text-sm font-semibold text-gray-700'>Title</FieldLabel>
+								<FieldLabel className='text-sm font-semibold text-gray-700'>
+									Title <span className='text-red-500'>*</span>
+								</FieldLabel>
 								<Input
 									placeholder='Citation title'
 									className='bg-white border-gray-200'
@@ -243,7 +255,9 @@ export function CitationSheet({
 							</Field>
 
 							<div className='space-y-3'>
-								<FieldLabel className='text-sm font-semibold text-gray-700'>Authors</FieldLabel>
+								<FieldLabel className='text-sm font-semibold text-gray-700'>
+									Authors <span className='text-red-500'>*</span>
+								</FieldLabel>
 								<p className='text-[13px] text-gray-500'>
 									Please enter author names as 'last name, first name' (e.g. 'Smith, Jane').
 								</p>
@@ -281,7 +295,9 @@ export function CitationSheet({
 							</div>
 
 							<Field>
-								<FieldLabel className='text-sm font-semibold text-gray-700'>Journal / Publication</FieldLabel>
+								<FieldLabel className='text-sm font-semibold text-gray-700'>
+									Journal / Publication <span className='text-red-500'>*</span>
+								</FieldLabel>
 								<Input
 									className='bg-white border-gray-200'
 									placeholder='e.g. Nature, Science, etc.'
@@ -292,7 +308,9 @@ export function CitationSheet({
 
 							<div className='grid grid-cols-2 gap-6'>
 								<Field>
-									<FieldLabel className='text-sm font-semibold text-gray-700'>Year</FieldLabel>
+									<FieldLabel className='text-sm font-semibold text-gray-700'>
+										Year <span className='text-red-500'>*</span>
+									</FieldLabel>
 									<Input
 										className='bg-white border-gray-200'
 										placeholder='e.g. 2023'
@@ -363,7 +381,7 @@ export function CitationSheet({
 					<Button 
 						className='flex-1 sm:flex-none bg-primary shadow-sm hover:bg-primary/90' 
 						onClick={handleSave}
-						disabled={!title}
+						disabled={!isFormValid}
 					>
 						{initialData ? 'Update entry' : 'Add entry'}
 					</Button>

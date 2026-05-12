@@ -10,6 +10,7 @@ import {
 	Settings2,
 	Tag,
 	User,
+	Trash2,
 } from 'lucide-react'
 import { useParams } from 'next/navigation'
 import { useState } from 'react'
@@ -25,6 +26,7 @@ import {
 import { AppSidebar } from '@/components/app-sidebar'
 import { CitationSheet, type Citation as CitationType } from '@/components/citations/citation-sheet'
 import { CitationDetailsSheet } from '@/components/citations/citation-details-sheet'
+import type { Citation } from '@/lib/api/types/citation.types'
 import {
 	Table,
 	TableBody,
@@ -57,47 +59,44 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/s
 import { Checkbox } from '@/components/ui/checkbox'
 import { useWorkspace } from '@/lib/api/hooks/use-workspaces'
 
-type Citation = {
-	id: string
-	type: string
-	title: string
-	author: string
-	publicationInfo: string
-	doi: string
-	date: string
-	year: string
-	url: string
-	annotationsCount?: number
+type CitationDisplay = Citation & { 
+	annotationsCount?: number 
 }
 
-const data: Citation[] = [
+const data: CitationDisplay[] = [
 	{
-		id: '1',
+		citationId: '1',
+		documentId: 'doc1',
 		type: 'article',
 		title: 'A Study of AI in Education',
 		author: 'John Doe',
 		publicationInfo: 'International Journal of Science',
 		doi: '10.1000/xyz123',
-		date: '10 Mei',
-		year: '2023',
+		publicationDate: '2023',
 		url: 'https://example.com/paper',
 		annotationsCount: 3,
+		createdAt: new Date().toISOString(),
+		updatedAt: new Date().toISOString(),
+		cslJson: {},
 	},
 	{
-		id: '2',
+		citationId: '2',
+		documentId: 'doc1',
 		type: 'book',
 		title: 'Introduction to Machine Learning',
 		author: 'Jane Smith',
 		publicationInfo: 'Academic Press',
 		doi: '10.1001/ml2022',
-		date: '15 Mar',
-		year: '2022',
+		publicationDate: '2022',
 		url: 'https://example.com/ml-book',
 		annotationsCount: 0,
+		createdAt: new Date().toISOString(),
+		updatedAt: new Date().toISOString(),
+		cslJson: {},
 	},
 ]
 
-const columns: ColumnDef<Citation>[] = [
+const columns: ColumnDef<CitationDisplay>[] = [
 	{
 		id: 'select',
 		header: ({ table }) => (
@@ -174,12 +173,7 @@ const columns: ColumnDef<Citation>[] = [
 		minSize: 120,
 	},
 	{
-		accessorKey: 'date',
-		header: 'Tanggal',
-		minSize: 80,
-	},
-	{
-		accessorKey: 'year',
+		accessorKey: 'publicationDate',
 		header: ({ column }) => {
 			const isSorted = column.getIsSorted()
 			let SortIcon = ArrowUpDown
@@ -212,7 +206,7 @@ const columns: ColumnDef<Citation>[] = [
 		minSize: 80,
 	},
 	{
-		id: 'actions',
+		id: 'link',
 		header: () => <div className='text-right'>Link</div>,
 		cell: ({ row }) => (
 			<div className='text-right'>
@@ -223,9 +217,31 @@ const columns: ColumnDef<Citation>[] = [
 					className='h-8 w-8'
 					onClick={(e) => e.stopPropagation()}
 				>
-					<a href={row.original.url} target='_blank' rel='noopener noreferrer'>
+					<a href={row.original.url || '#'} target='_blank' rel='noopener noreferrer'>
 						<ExternalLink className='h-4 w-4' />
 					</a>
+				</Button>
+			</div>
+		),
+		enableResizing: false,
+		size: 60,
+	},
+	{
+		id: 'actions',
+		header: () => <div className='text-right'>Aksi</div>,
+		cell: ({ row }) => (
+			<div className='text-right'>
+				<Button 
+					variant='ghost' 
+					size='icon' 
+					className='h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10'
+					onClick={(e) => {
+						e.stopPropagation()
+						// handleDelete(row.original.citationId)
+						console.log('Delete citation:', row.original.citationId)
+					}}
+				>
+					<Trash2 className='h-4 w-4' />
 				</Button>
 			</div>
 		),
@@ -244,7 +260,7 @@ export default function Page() {
 	const [isSheetOpen, setIsSheetOpen] = useState(false)
 	const [isDetailsSheetOpen, setIsDetailsSheetOpen] = useState(false)
 	const [editingCitation, setEditingCitation] = useState<Partial<CitationType> | undefined>()
-	const [viewingCitation, setViewingCitation] = useState<Citation | undefined>()
+	const [viewingCitation, setViewingCitation] = useState<CitationDisplay | undefined>()
 
 	const handleAdd = () => {
 		setEditingCitation(undefined)
@@ -256,7 +272,7 @@ export default function Page() {
 		// API call would go here
 	}
 
-	const handleRowClick = (citation: Citation) => {
+	const handleRowClick = (citation: CitationDisplay) => {
 		setViewingCitation(citation)
 		setIsDetailsSheetOpen(true)
 	}
