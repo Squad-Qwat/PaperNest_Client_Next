@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { FaGithub } from 'react-icons/fa'
 import { FcGoogle } from 'react-icons/fc'
+import { TurnstileWidget } from '@/components/auth/TurnstileWidget'
 import { MicrosoftIconIcon } from '@/components/icons/logos-microsoft-icon'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -75,6 +76,7 @@ export default function RegisterPage() {
 	})
 	const [errors, setErrors] = useState<Record<string, string>>({})
 	const [passwordStrength, setPasswordStrength] = useState(0)
+	const [turnstileToken, setTurnstileToken] = useState('')
 
 	const totalSteps = 4
 
@@ -186,18 +188,23 @@ export default function RegisterPage() {
 			case 1:
 				isValid = validateStep1()
 				if (isValid) {
-					// Check email availability early
-					try {
-						const result = await verifyEmail(formData.email)
-						if (!result.available) {
-							setErrors({
-								email: 'This email is already registered. Please use another one or log in.',
-							})
+					if (!turnstileToken) {
+						setErrors({ email: 'Please complete the captcha verification' })
+						isValid = false
+					} else {
+						// Check email availability early
+						try {
+							const result = await verifyEmail(formData.email)
+							if (!result.available) {
+								setErrors({
+									email: 'This email is already registered. Please use another one or log in.',
+								})
+								isValid = false
+							}
+						} catch (_err) {
+							setErrors({ email: 'Failed to verify email. Please try again.' })
 							isValid = false
 						}
-					} catch (_err) {
-						setErrors({ email: 'Failed to verify email. Please try again.' })
-						isValid = false
 					}
 				}
 				break
@@ -239,6 +246,7 @@ export default function RegisterPage() {
 				name: formData.name,
 				username: formData.username,
 				role: formData.role,
+				turnstileToken,
 				workspaceData: {
 					title: formData.workspaceTitle,
 					description: formData.workspaceDescription || undefined,
@@ -254,9 +262,13 @@ export default function RegisterPage() {
 	}
 
 	const handleSocialSignup = async (provider: 'google' | 'github' | 'microsoft') => {
+		if (!turnstileToken) {
+			setErrors({ submit: 'Please complete the captcha verification first' })
+			return
+		}
 		setErrors({})
 		try {
-			await socialMutate(provider)
+			await socialMutate({ providerName: provider, turnstileToken })
 		} catch (error) {
 			setErrors({ submit: getErrorMessage(error) })
 		}
@@ -410,6 +422,8 @@ export default function RegisterPage() {
 										/>
 										{errors.email && <p className='text-sm text-red-600'>{errors.email}</p>}
 									</div>
+
+									<TurnstileWidget onVerify={setTurnstileToken} />
 								</div>
 							)}
 

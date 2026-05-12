@@ -6,6 +6,7 @@ export interface RegisterDto {
 	name: string
 	username: string
 	role: UserRole
+	turnstileToken?: string
 	workspaceData?: {
 		title: string
 		description?: string
@@ -21,6 +22,7 @@ export interface FinalizeRegistrationDto {
 
 export interface LoginDto {
 	firebaseToken: string
+	turnstileToken?: string
 }
 
 export interface LoginEmailDto {

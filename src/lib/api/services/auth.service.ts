@@ -37,7 +37,11 @@ class AuthService {
 		return response
 	}
 
-	async loginSocial(data: { firebaseToken: string; accessToken?: string }): Promise<AuthResponse> {
+	async loginSocial(data: {
+		firebaseToken: string
+		accessToken?: string
+		turnstileToken?: string
+	}): Promise<AuthResponse> {
 		const response = await apiClient.post<AuthResponse>('/auth/social', data)
 		this.handleAuthResponse(response)
 		return response
