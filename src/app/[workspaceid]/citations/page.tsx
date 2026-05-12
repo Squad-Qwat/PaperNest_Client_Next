@@ -10,6 +10,8 @@ import {
 	Settings2,
 	Tag,
 	User,
+	Edit,
+	Trash2,
 } from 'lucide-react'
 import { useParams } from 'next/navigation'
 import { useState } from 'react'
@@ -23,6 +25,7 @@ import {
 	useReactTable,
 } from '@tanstack/react-table'
 import { AppSidebar } from '@/components/app-sidebar'
+import { CitationSheet, type Citation as CitationType } from '@/components/citations/citation-sheet'
 import {
 	Table,
 	TableBody,
@@ -214,6 +217,18 @@ export default function Page() {
 	const [searchQuery, setSearchQuery] = useState('')
 	const [sorting, setSorting] = useState<SortingState>([])
 	const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([])
+	const [isSheetOpen, setIsSheetOpen] = useState(false)
+	const [editingCitation, setEditingCitation] = useState<Partial<CitationType> | undefined>()
+
+	const handleAdd = () => {
+		setEditingCitation(undefined)
+		setIsSheetOpen(true)
+	}
+
+	const handleSave = (data: Partial<CitationType>) => {
+		console.log('Saving citation:', data)
+		// API call would go here
+	}
 
 	const table = useReactTable({
 		data,
@@ -262,11 +277,18 @@ export default function Page() {
 							</p>
 						</div>
 
-						<Button>
+						<Button onClick={handleAdd}>
 							Tambah referensi
 							<Plus />
 						</Button>
 					</div>
+
+					<CitationSheet
+						open={isSheetOpen}
+						onOpenChange={setIsSheetOpen}
+						onSave={handleSave}
+						initialData={editingCitation}
+					/>
 
 					<div className='flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8'>
 						<div className='flex-1 w-full lg:max-w-md'>
