@@ -131,13 +131,20 @@ const columns: ColumnDef<Citation>[] = [
 				<Button
 					variant='ghost'
 					onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-					className='-ml-4 h-8 flex items-center gap-1 w-full justify-start'
 				>
 					<span className='truncate'>Judul</span>
-					<SortIcon className='ml-1 h-3 w-3 shrink-0' />
+					<SortIcon  />
 				</Button>
 			)
 		},
+		cell: ({ row }) => (
+			<div
+				className='whitespace-normal wrap-break-word line-clamp-2 py-1'
+				title={row.getValue('title')}
+			>
+				{row.getValue('title')}
+			</div>
+		),
 		minSize: 150,
 	},
 	{
@@ -175,7 +182,6 @@ const columns: ColumnDef<Citation>[] = [
 				<Button
 					variant='ghost'
 					onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-					className='-ml-4 h-8 flex items-center gap-1 w-full justify-start'
 				>
 					<span className='truncate'>Tahun</span>
 					<SortIcon className='ml-1 h-3 w-3 shrink-0' />
