@@ -51,6 +51,7 @@ const useFirestoreQuery = <T>(
 	queryKey: readonly any[],
 	queryRef: any,
 	idField: string,
+	dataKey = 'documents',
 	sortFn?: (a: any, b: any) => number
 ) => {
 	const queryClient = useQueryClient()
@@ -74,7 +75,7 @@ const useFirestoreQuery = <T>(
 				if (snapshot.docs) {
 					docs = snapshot.docs.map((d: any) => mapFirestoreDoc(d, idField))
 					if (sortFn) docs = [...docs].sort(sortFn)
-					queryClient.setQueryData(queryKey, { documents: docs, count: docs.length })
+					queryClient.setQueryData(queryKey, { [dataKey]: docs, count: docs.length })
 				} else if (snapshot.exists()) {
 					const docData = mapFirestoreDoc(snapshot, idField)
 					queryClient.setQueryData(queryKey, docData)
@@ -87,7 +88,7 @@ const useFirestoreQuery = <T>(
 			}
 		)
 		return () => unsubscribe()
-	}, [idField, queryRef, sortFn, queryKey, queryClient])
+	}, [idField, queryRef, sortFn, queryKey, queryClient, dataKey])
 
 	return query
 }
@@ -108,6 +109,7 @@ export function useWorkspaceDocuments(workspaceId: string) {
 		DOCUMENT_KEYS.workspace(workspaceId),
 		q,
 		'documentId',
+		'documents',
 		(a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
 	)
 }
@@ -133,6 +135,7 @@ export function useDocumentVersions(documentId: string) {
 		DOCUMENT_KEYS.versions(documentId),
 		q,
 		'documentBodyId',
+		'versions',
 		(a, b) => {
 			return (b.versionNumber || 0) - (a.versionNumber || 0)
 		}
@@ -147,6 +150,7 @@ export function useDocumentReviews(documentId: string) {
 		DOCUMENT_KEYS.reviews(documentId),
 		q,
 		'reviewId',
+		'reviews',
 		(a, b) => {
 			return new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
 		}
