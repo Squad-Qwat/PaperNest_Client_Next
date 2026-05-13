@@ -24,6 +24,7 @@ import { useAuth } from '@/context/AuthContext'
 import { useLoginEmail, useSignInWithSocial } from '@/lib/api/hooks/use-auth'
 import { getErrorMessage } from '@/lib/api/utils/error-handler'
 
+// implemntasi dari auth firebase
 export default function LoginPage() {
 	const _router = useRouter()
 	const { setOnboardingData } = useAuth()

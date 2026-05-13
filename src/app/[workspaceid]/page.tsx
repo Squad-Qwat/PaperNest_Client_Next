@@ -24,6 +24,7 @@ import { useDeleteDocument, useWorkspaceDocuments } from '@/lib/api/hooks/use-do
 import { useWorkspace } from '@/lib/api/hooks/use-workspaces'
 import { format, id } from '@/lib/date'
 
+// implementasi data binding firestore
 export default function WorkspacePage() {
 	const params = useParams()
 	const router = useRouter()
