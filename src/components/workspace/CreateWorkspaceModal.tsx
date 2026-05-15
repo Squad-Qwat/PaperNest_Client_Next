@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Modal, ModalFooter } from '@/components/ui/modal'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Textarea } from '@/components/ui/textarea'
 import { apiClient } from '@/lib/api/clients/api-client'
 import { workspacesService } from '@/lib/api/services/workspaces.service'
@@ -114,11 +113,7 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
 	}
 
 	return (
-		<Modal
-			isOpen={isOpen}
-			onClose={handleClose}
-			title='Create New Workspace'
-		>
+		<Modal isOpen={isOpen} onClose={handleClose} title='Create New Workspace'>
 			<form onSubmit={handleSubmit} className='space-y-4'>
 				{error && (
 					<div className='p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm'>

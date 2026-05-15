@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import AIAssistant from '@/components/document/ai/AIAssistant'
 import DynamicContentPanel from '@/components/document/DynamicContentPanel'
-// UI Components
 import DocumentEditor from '@/components/document/editor/DocumentEditor'
 import DocumentHeader from '@/components/document/editor/DocumentHeader'
 import SidenavPanel from '@/components/document/SidenavPanel'
@@ -13,13 +12,14 @@ import { Room } from '@/hooks/liveblocks/room'
 import { useBatchUpdateDocument, useDocumentWithRoomState } from '@/lib/api/hooks/use-documents'
 import { useWorkspace } from '@/lib/api/hooks/use-workspaces'
 import '@/components/document/editor/EditorStyles.css'
+import { Suspense } from 'react'
 import { DocumentEditorSkeleton } from '@/components/document/editor/DocumentEditorSkeleton'
 import { DesktopOnlyGuard } from '@/components/layout/DesktopOnlyGuard'
 import { useAuth } from '@/context/AuthContext'
 import { useIsMobile } from '@/hooks/use-mobile'
 import type { BatchOperation, OperationType } from '@/lib/api/types/batchOperation.types'
 
-export default function DocumentPage() {
+function DocumentPageContent() {
 	const router = useRouter()
 	const params = useParams()
 	const workspaceId = params.workspaceid as string
@@ -335,5 +335,13 @@ export default function DocumentPage() {
 				</Room>
 			</div>
 		</div>
+	)
+}
+
+export default function DocumentPage() {
+	return (
+		<Suspense fallback={<DocumentEditorSkeleton />}>
+			<DocumentPageContent />
+		</Suspense>
 	)
 }

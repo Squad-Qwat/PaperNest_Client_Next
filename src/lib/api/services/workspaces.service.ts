@@ -8,7 +8,6 @@ import { API_ENDPOINTS } from '../config'
 import type { Invitation } from '../types/invitation.types'
 import type {
 	CreateWorkspaceDto,
-	InviteMemberDto,
 	UpdateMemberRoleDto,
 	UpdateWorkspaceDto,
 	Workspace,
@@ -119,6 +118,14 @@ class WorkspacesService {
 	 */
 	async removeMember(workspaceId: string, userWorkspaceId: string): Promise<void> {
 		await apiClient.delete<void>(API_ENDPOINTS.workspaces.member(workspaceId, userWorkspaceId))
+	}
+
+	/**
+	 * Join workspace by ID (Placeholder for future implementation)
+	 */
+	async joinByWorkspaceId(_workspaceId: string): Promise<void> {
+		// This endpoint does not exist yet in backend
+		throw new Error('Join by ID not implemented yet. Please use an invitation link.')
 	}
 }
 

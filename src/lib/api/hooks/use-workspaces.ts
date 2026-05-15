@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { workspacesService } from '../services/workspaces.service'
 import type {
 	CreateWorkspaceDto,
-	InviteMemberDto,
 	UpdateMemberRoleDto,
 	UpdateWorkspaceDto,
 } from '../types/workspace.types'
@@ -99,6 +98,9 @@ export function useAcceptInvitation() {
 		},
 	})
 }
+
+// Alias for onboarding page
+export const useJoinWorkspace = useAcceptInvitation
 
 export function useUpdateMemberRole() {
 	const queryClient = useQueryClient()

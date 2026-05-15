@@ -2,7 +2,7 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, Suspense, useContext, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { AUTH_KEYS } from '@/lib/api/hooks/use-auth'
 import { authService } from '@/lib/api/services/auth.service'
@@ -29,7 +29,7 @@ const PUBLIC_ROUTES = [
 	'/auth/verify-email',
 ]
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+function AuthProviderInner({ children }: { children: React.ReactNode }) {
 	const queryClient = useQueryClient()
 	const [onboardingData, setOnboardingData] = useState<any | null>(null)
 	const { isAuthenticated, clearAuth, _hasHydrated, isInitializing, setInitializing } =
@@ -80,7 +80,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 	useEffect(() => {
 		if (!_hasHydrated || isLoading || isInitializing) return
 
-		const isPublicRoute = PUBLIC_ROUTES.includes(pathname) || pathname.startsWith('/invitations/accept/')
+		const isPublicRoute =
+			PUBLIC_ROUTES.includes(pathname) || pathname.startsWith('/invitations/accept/')
 		const firebaseUser = auth.currentUser
 
 		if (pathname === '/auth/verify-email') {
@@ -118,6 +119,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		>
 			{children}
 		</AuthContext.Provider>
+	)
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+	return (
+		<Suspense fallback={null}>
+			<AuthProviderInner>{children}</AuthProviderInner>
+		</Suspense>
 	)
 }
 

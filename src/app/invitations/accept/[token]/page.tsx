@@ -105,18 +105,17 @@ export default function AcceptInvitationPage() {
 				</CardHeader>
 				<CardContent className='px-8'>
 					<div className='py-4 px-5 bg-gray-50/50 rounded-lg border border-gray-100 text-center mb-2'>
-						<h3 className='text-base font-semibold text-gray-900'>
-							{invitation.workspaceTitle}
-						</h3>
+						<h3 className='text-base font-semibold text-gray-900'>{invitation.workspaceTitle}</h3>
 						<p className='text-xs text-gray-500 uppercase tracking-wider mt-0.5 font-medium'>
 							Role: {invitation.role}
 						</p>
 					</div>
-					
+
 					{isAuthenticated && user?.email !== invitation.email && (
 						<div className='mt-4 p-3 bg-amber-50/50 border border-amber-100 rounded-md text-amber-800 text-[13px] leading-relaxed'>
 							<p>
-								Warning: You are logged in as <strong>{user.email}</strong>, but this invitation was sent to <strong>{invitation.email}</strong>.
+								Warning: You are logged in as <strong>{user?.email}</strong>, but this invitation
+								was sent to <strong>{invitation.email}</strong>.
 							</p>
 						</div>
 					)}
@@ -127,7 +126,11 @@ export default function AcceptInvitationPage() {
 						onClick={handleAccept}
 						disabled={isAccepting}
 					>
-						{isAuthenticated ? (isAccepting ? 'Accepting...' : 'Accept Invitation') : 'Log in to Join'}
+						{isAuthenticated
+							? isAccepting
+								? 'Accepting...'
+								: 'Accept Invitation'
+							: 'Log in to Join'}
 					</Button>
 					<Button
 						variant='ghost'

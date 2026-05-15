@@ -39,11 +39,13 @@ export const API_ENDPOINTS = {
 		members: (workspaceId: string) => `/workspaces/${workspaceId}/members`,
 		member: (workspaceId: string, userWorkspaceId: string) =>
 			`/workspaces/${workspaceId}/members/${userWorkspaceId}`,
+		join: (workspaceId: string) => `/workspaces/${workspaceId}/join`,
 	},
 	invitations: {
 		base: '/invitations',
 		details: (token: string) => `/workspaces/invitations/${token}`,
 		accept: (token: string) => `/workspaces/invitations/${token}/accept`,
+		byId: (userWorkspaceId: string) => `/invitations/${userWorkspaceId}`,
 	},
 	documents: {
 		myDocuments: '/documents/my-documents',

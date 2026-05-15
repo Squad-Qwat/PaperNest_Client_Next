@@ -13,7 +13,6 @@ import { MicrosoftIconIcon } from '@/components/icons/logos-microsoft-icon'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
 	Select,
 	SelectContent,
@@ -25,7 +24,7 @@ import { Textarea } from '@/components/ui/textarea'
 import Grainient from '@/components/visuals/Grainient/Grainient'
 import { useAuth } from '@/context/AuthContext'
 import { useCheckEmail, useRegister, useSignInWithSocial } from '@/lib/api/hooks/use-auth'
-import { useCreateWorkspace, useJoinWorkspace } from '@/lib/api/hooks/use-workspaces'
+import { useCreateWorkspace } from '@/lib/api/hooks/use-workspaces'
 import type { UserRole } from '@/lib/api/types/user.types'
 import { getErrorMessage } from '@/lib/api/utils/error-handler'
 import { cn } from '@/lib/utils'
@@ -55,8 +54,7 @@ export default function RegisterPage() {
 		setOnboardingData,
 	})
 
-	const loading =
-		isRegisterPending || isCreatePending || isSocialPending || checkingEmail
+	const loading = isRegisterPending || isCreatePending || isSocialPending || checkingEmail
 
 	const [currentStep, setCurrentStep] = useState(1)
 	const [direction, setDirection] = useState(0)
@@ -259,9 +257,11 @@ export default function RegisterPage() {
 				username: formData.username,
 				role: formData.role,
 				turnstileToken,
+				workspaceData: {
 					title: formData.workspaceTitle,
 					description: formData.workspaceDescription || undefined,
 					icon: formData.workspaceIcon,
+					mode: 'create',
 				},
 			})
 		} catch (error) {
@@ -595,14 +595,11 @@ export default function RegisterPage() {
 								<div className='space-y-6'>
 									{/* Title */}
 									<div className='text-center'>
-										<h1 className='text-2xl font-bold text-gray-900 mb-2'>
-											Create Your Workspace
-										</h1>
+										<h1 className='text-2xl font-bold text-gray-900 mb-2'>Create Your Workspace</h1>
 										<p className='text-sm text-gray-500'>
 											Step {currentStep} of {totalSteps} - Workspace Setup
 										</p>
 									</div>
-
 
 									{/* Create Workspace Form */}
 									<div className='space-y-6'>

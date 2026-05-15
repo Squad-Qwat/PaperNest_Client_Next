@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, KeyboardEvent, ClipboardEvent } from 'react'
+import { Mail, X } from 'lucide-react'
+import { type ClipboardEvent, type KeyboardEvent, useState } from 'react'
 import { toast } from 'sonner'
-import { X, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Modal, ModalFooter } from '@/components/ui/modal'
@@ -82,7 +82,7 @@ export function InviteMembersModal({
 			return
 		}
 
-		const invalidEmails = finalEmailList.filter(e => !EMAIL_REGEX.test(e))
+		const invalidEmails = finalEmailList.filter((e) => !EMAIL_REGEX.test(e))
 		if (invalidEmails.length > 0) {
 			toast.error(`Invalid email format: ${invalidEmails[0]}`)
 			return
@@ -128,23 +128,32 @@ export function InviteMembersModal({
 					<Label htmlFor='emails' className='text-sm font-medium'>
 						Invite by email
 					</Label>
-					
-					<div 
+
+					{/* biome-ignore lint/a11y/useSemanticElements: button cannot contain input */}
+					<div
+						role='button'
+						tabIndex={-1}
 						className={cn(
 							'flex flex-wrap gap-2 p-1.5 min-h-[40px] bg-white border rounded-lg focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all duration-200',
 							loading && 'opacity-50 cursor-not-allowed'
 						)}
 						onClick={() => document.getElementById('email-input')?.focus()}
+						onKeyDown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault()
+								document.getElementById('email-input')?.focus()
+							}
+						}}
 					>
 						{emailList.map((email) => {
 							const isValid = EMAIL_REGEX.test(email)
 							return (
-								<div 
-									key={email} 
+								<div
+									key={email}
 									className={cn(
 										'flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[13px] font-medium transition-colors',
-										isValid 
-											? 'bg-gray-100 text-gray-700 border border-gray-200' 
+										isValid
+											? 'bg-gray-100 text-gray-700 border border-gray-200'
 											: 'bg-red-50 text-red-700 border border-red-200'
 									)}
 								>
@@ -171,7 +180,9 @@ export function InviteMembersModal({
 							onKeyDown={handleKeyDown}
 							onPaste={handlePaste}
 							onBlur={() => addEmails(emailInput)}
-							placeholder={emailList.length === 0 ? 'Type emails separated by comma or space...' : ''}
+							placeholder={
+								emailList.length === 0 ? 'Type emails separated by comma or space...' : ''
+							}
 							className='flex-1 min-w-[120px] bg-transparent border-none outline-none text-[14px] p-1'
 							disabled={loading}
 						/>
@@ -182,12 +193,10 @@ export function InviteMembersModal({
 				</div>
 
 				<div className='space-y-2'>
-					<Label htmlFor='role' className='text-sm font-medium'>Assign Role</Label>
-					<Select
-						value={role}
-						onValueChange={(value) => setRole(value as any)}
-						disabled={loading}
-					>
+					<Label htmlFor='role' className='text-sm font-medium'>
+						Assign Role
+					</Label>
+					<Select value={role} onValueChange={(value) => setRole(value as any)} disabled={loading}>
 						<SelectTrigger className='w-full'>
 							<SelectValue placeholder='Select a role' />
 						</SelectTrigger>
@@ -208,7 +217,10 @@ export function InviteMembersModal({
 					<Button type='button' variant='outline' onClick={handleClose} disabled={loading}>
 						Cancel
 					</Button>
-					<Button type='submit' disabled={loading || (emailList.length === 0 && !emailInput.trim())}>
+					<Button
+						type='submit'
+						disabled={loading || (emailList.length === 0 && !emailInput.trim())}
+					>
 						{loading ? 'Sending...' : 'Send Invitations'}
 					</Button>
 				</ModalFooter>
