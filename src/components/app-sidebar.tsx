@@ -18,7 +18,6 @@ import { NavSecondary } from '@/components/nav-secondary'
 import { NavUser } from '@/components/nav-user'
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from '@/components/ui/sidebar'
 import { InviteMembersModal } from '@/components/workspace/InviteMembersModal'
-import { WorkspaceSettingsModal } from '@/components/workspace/WorkspaceSettingsModal'
 import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher'
 import { useAuth } from '@/context/AuthContext'
 import { useWorkspace, useWorkspaces } from '@/lib/api/hooks/use-workspaces'
@@ -29,7 +28,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const workspaceId = params.workspaceid as string
 	const { data: workspace, isLoading: workspaceLoading } = useWorkspace(workspaceId)
 	const { isLoading: workspacesLoading } = useWorkspaces()
-	const [showSettingsModal, setShowSettingsModal] = React.useState(false)
 	const [showCreateModal, setShowCreateModal] = React.useState(false)
 	const [showInviteModal, setShowInviteModal] = React.useState(false)
 
@@ -70,9 +68,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 			},
 			{
 				title: 'Settings',
-				url: '#',
+				url: `/${workspaceId}/settings`,
 				icon: IconSettings,
-				onClick: () => setShowSettingsModal(true),
 			},
 			{
 				title: 'Guide',
@@ -99,13 +96,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 			<SidebarFooter>
 				<NavUser user={data.user} />
 			</SidebarFooter>
-			{workspace && (
-				<WorkspaceSettingsModal
-					isOpen={showSettingsModal}
-					onClose={() => setShowSettingsModal(false)}
-					workspace={workspace}
-				/>
-			)}
 			<CreateDocumentModal
 				isOpen={showCreateModal}
 				onClose={() => setShowCreateModal(false)}
