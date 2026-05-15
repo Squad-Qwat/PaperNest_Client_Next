@@ -14,6 +14,7 @@ export const API_CONFIG = {
 export const API_ENDPOINTS = {
 	auth: {
 		register: '/auth/register',
+		finalizeRegistration: '/auth/register/finalize',
 		login: '/auth/login',
 		loginEmail: '/auth/login/email',
 		refresh: '/auth/refresh',
@@ -22,6 +23,9 @@ export const API_ENDPOINTS = {
 		deleteAccount: '/auth/account',
 		updateEmail: '/auth/email',
 		passwordReset: '/auth/password/reset',
+		checkEmail: '/auth/check-email',
+		otpSend: '/auth/otp/send',
+		otpVerify: '/auth/otp/verify',
 	},
 	users: {
 		base: '/users',

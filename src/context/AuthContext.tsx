@@ -32,9 +32,17 @@ const PUBLIC_ROUTES = [
 export function AuthProvider({ children }: { children: React.ReactNode }) {
 	const queryClient = useQueryClient()
 	const [onboardingData, setOnboardingData] = useState<any | null>(null)
-	const { isAuthenticated, clearAuth, _hasHydrated } = useAuthStore()
+	const { isAuthenticated, clearAuth, _hasHydrated, isInitializing, setInitializing } =
+		useAuthStore()
 	const router = useRouter()
 	const pathname = usePathname()
+
+	useEffect(() => {
+		const unsubscribe = auth.onAuthStateChanged(() => {
+			setInitializing(false)
+		})
+		return () => unsubscribe()
+	}, [setInitializing])
 
 	const { data: user = null, isLoading } = useQuery({
 		queryKey: AUTH_KEYS.user,
@@ -48,7 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 				return null
 			}
 		},
-		enabled: _hasHydrated && isAuthenticated,
+		enabled: _hasHydrated && isAuthenticated && !isInitializing,
 		staleTime: 5 * 60 * 1000,
 		retry: false,
 	})
@@ -59,7 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			await signOut(auth)
 			await authService.logout()
 			queryClient.clear()
-			toast.success('Anda telah keluar.')
+			toast.success('You have been logged out.')
 			router.push('/login')
 		} catch {
 			clearAuth()
@@ -68,9 +76,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 	}
 
 	useEffect(() => {
-		if (!_hasHydrated || isLoading) return
+		if (!_hasHydrated || isLoading || isInitializing) return
 
 		const isPublicRoute = PUBLIC_ROUTES.includes(pathname)
+		const firebaseUser = auth.currentUser
+
+		if (pathname === '/auth/verify-email') {
+			if (isAuthenticated || firebaseUser?.emailVerified) {
+				router.push('/')
+				return
+			}
+			if (!firebaseUser) {
+				router.push('/login')
+				return
+			}
+		}
 
 		if (!isAuthenticated && !isPublicRoute) {
 			router.push('/login')
@@ -79,9 +99,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		if (isAuthenticated && (pathname === '/login' || pathname === '/register')) {
 			router.push('/')
 		}
-	}, [_hasHydrated, isAuthenticated, isLoading, pathname, router])
+	}, [_hasHydrated, isAuthenticated, isLoading, isInitializing, pathname, router])
 
-	const isInitialLoading = !_hasHydrated || (isAuthenticated && isLoading)
+	const isInitialLoading = !_hasHydrated || isInitializing || (isAuthenticated && isLoading)
 
 	return (
 		<AuthContext.Provider

@@ -3,7 +3,6 @@ import {
 	fetchSignInMethodsForEmail,
 	linkWithCredential,
 	reload,
-	sendEmailVerification,
 	signInWithCustomToken,
 	signInWithEmailAndPassword,
 	signInWithPopup,
@@ -69,15 +68,51 @@ export function useRegister() {
 		onSuccess: async (response) => {
 			if (response.isVerificationRequired && response.firebaseToken) {
 				const result = await signInWithCustomToken(auth, response.firebaseToken)
-				await sendEmailVerification(result.user, {
-					url: `${window.location.origin}/login`,
-				})
-				toast.success('Pendaftaran berhasil! Silakan cek email Anda untuk verifikasi.')
+				const idToken = await result.user.getIdToken()
+
+				await authService.sendOTP(idToken)
+				toast.success('Pendaftaran berhasil! Silakan cek email Anda untuk kode OTP.')
 				router.push('/auth/verify-email')
 				return
 			}
 			handleAuthSuccess(queryClient, response)
 			toast.success('Pendaftaran berhasil! Selamat datang di PaperNest.')
+			router.push('/')
+		},
+	})
+}
+
+export function useSendOTP() {
+	return useMutation({
+		mutationFn: async () => {
+			const user = auth.currentUser
+			if (!user) throw new Error('NO_USER_FOUND')
+			const idToken = await user.getIdToken()
+			return authService.sendOTP(idToken)
+		},
+		onSuccess: () => {
+			toast.success('Kode OTP baru telah dikirim ke email Anda.')
+		},
+	})
+}
+
+export function useVerifyOTP() {
+	const queryClient = useQueryClient()
+	const router = useRouter()
+
+	return useMutation({
+		mutationFn: async (otp: string) => {
+			const user = auth.currentUser
+			if (!user) throw new Error('NO_USER_FOUND')
+			const idToken = await user.getIdToken()
+			await authService.verifyOTP(otp, idToken)
+			await reload(user)
+			const freshToken = await user.getIdToken(true)
+			return authService.finalizeRegistration({ firebaseToken: freshToken }, freshToken)
+		},
+		onSuccess: (response) => {
+			handleAuthSuccess(queryClient, response)
+			toast.success('Email berhasil diverifikasi!')
 			router.push('/')
 		},
 	})
@@ -94,7 +129,7 @@ export function useVerifyCompletion() {
 			await reload(user)
 			if (!user.emailVerified) throw new Error('EMAIL_NOT_VERIFIED')
 			const idToken = await user.getIdToken(true)
-			return authService.finalizeRegistration({ firebaseToken: idToken })
+			return authService.finalizeRegistration({ firebaseToken: idToken }, idToken)
 		},
 		onSuccess: (response) => {
 			handleAuthSuccess(queryClient, response)
@@ -111,12 +146,13 @@ export function useLoginEmail() {
 		mutationFn: async (data: LoginEmailDto & { turnstileToken?: string }) => {
 			const result = await signInWithEmailAndPassword(auth, data.email, data.password)
 			const idToken = await result.user.getIdToken()
-			return authService.login({
+			const response = await authService.login({
 				firebaseToken: idToken,
 				turnstileToken: data.turnstileToken,
 			})
+			return { response, idToken }
 		},
-		onSuccess: (response) => {
+		onSuccess: ({ response }) => {
 			if (response.isVerificationRequired) {
 				router.push('/auth/verify-email')
 				return
