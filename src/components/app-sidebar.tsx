@@ -7,6 +7,7 @@ import {
 	IconMessage2,
 	IconQuote,
 	IconSettings,
+	IconUserPlus,
 } from '@tabler/icons-react'
 import { useParams } from 'next/navigation'
 import * as React from 'react'
@@ -16,7 +17,7 @@ import { NavMain } from '@/components/nav-main'
 import { NavSecondary } from '@/components/nav-secondary'
 import { NavUser } from '@/components/nav-user'
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from '@/components/ui/sidebar'
-import { WorkspaceSettingsModal } from '@/components/workspace/WorkspaceSettingsModal'
+import { InviteMembersModal } from '@/components/workspace/InviteMembersModal'
 import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher'
 import { useAuth } from '@/context/AuthContext'
 import { useWorkspace, useWorkspaces } from '@/lib/api/hooks/use-workspaces'
@@ -27,12 +28,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const workspaceId = params.workspaceid as string
 	const { data: workspace, isLoading: workspaceLoading } = useWorkspace(workspaceId)
 	const { isLoading: workspacesLoading } = useWorkspaces()
-	const [showSettingsModal, setShowSettingsModal] = React.useState(false)
 	const [showCreateModal, setShowCreateModal] = React.useState(false)
+	const [showInviteModal, setShowInviteModal] = React.useState(false)
 
 	if (authLoading || (workspaceId && workspaceLoading) || workspacesLoading) {
 		return <SidebarSkeleton />
 	}
+
+	const isOwner = user?.userId === workspace?.ownerId
 
 	const data = {
 		user: {
@@ -59,11 +62,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 			},
 		],
 		navSecondary: [
+			...(isOwner
+				? [
+						{
+							title: 'Invite Members',
+							url: '#',
+							icon: IconUserPlus,
+							onClick: () => setShowInviteModal(true),
+						},
+					]
+				: []),
 			{
 				title: 'Settings',
-				url: '#',
+				url: `/${workspaceId}/settings`,
 				icon: IconSettings,
-				onClick: () => setShowSettingsModal(true),
 			},
 			{
 				title: 'Guide',
@@ -90,18 +102,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 			<SidebarFooter>
 				<NavUser user={data.user} />
 			</SidebarFooter>
-			{workspace && (
-				<WorkspaceSettingsModal
-					isOpen={showSettingsModal}
-					onClose={() => setShowSettingsModal(false)}
-					workspace={workspace}
-				/>
-			)}
 			<CreateDocumentModal
 				isOpen={showCreateModal}
 				onClose={() => setShowCreateModal(false)}
 				workspaceId={workspaceId}
 			/>
+			{workspace && (
+				<InviteMembersModal
+					isOpen={showInviteModal}
+					onClose={() => setShowInviteModal(false)}
+					workspaceId={workspaceId}
+					workspaceName={workspace.title}
+				/>
+			)}
 		</Sidebar>
 	)
 }
