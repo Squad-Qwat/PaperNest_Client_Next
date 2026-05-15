@@ -24,7 +24,7 @@ interface InviteMembersModalProps {
 	workspaceName?: string
 }
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
 
 export function InviteMembersModal({
 	isOpen,

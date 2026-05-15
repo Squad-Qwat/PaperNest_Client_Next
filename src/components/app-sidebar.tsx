@@ -35,6 +35,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 		return <SidebarSkeleton />
 	}
 
+	const isOwner = user?.userId === workspace?.ownerId
+
 	const data = {
 		user: {
 			name: user?.name || user?.email?.split('@')[0] || 'User',
@@ -60,12 +62,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 			},
 		],
 		navSecondary: [
-			{
-				title: 'Invite Members',
-				url: '#',
-				icon: IconUserPlus,
-				onClick: () => setShowInviteModal(true),
-			},
+			...(isOwner
+				? [
+						{
+							title: 'Invite Members',
+							url: '#',
+							icon: IconUserPlus,
+							onClick: () => setShowInviteModal(true),
+						},
+					]
+				: []),
 			{
 				title: 'Settings',
 				url: `/${workspaceId}/settings`,
