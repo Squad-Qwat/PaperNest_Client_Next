@@ -99,6 +99,7 @@
 		"eventsource-parser": "^3.0.6",
 		"firebase": "^12.6.0",
 		"immer": "^11.1.4",
+		"input-otp": "^1.4.2",
 		"langchain": "^1.2.35",
 		"lucide-react": "^0.555.0",
 		"mathlive": "^0.109.0",

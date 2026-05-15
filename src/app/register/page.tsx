@@ -1,10 +1,11 @@
 'use client'
 
+import { CheckIcon, EyeIcon, EyeOffIcon, XIcon } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { FaGithub } from 'react-icons/fa'
 import { FcGoogle } from 'react-icons/fc'
 import { TurnstileWidget } from '@/components/auth/TurnstileWidget'
@@ -27,6 +28,7 @@ import { useCheckEmail, useRegister, useSignInWithSocial } from '@/lib/api/hooks
 import { useCreateWorkspace, useJoinWorkspace } from '@/lib/api/hooks/use-workspaces'
 import type { UserRole } from '@/lib/api/types/user.types'
 import { getErrorMessage } from '@/lib/api/utils/error-handler'
+import { cn } from '@/lib/utils'
 
 type StepData = {
 	email: string
@@ -75,31 +77,54 @@ export default function RegisterPage() {
 		invitationCode: '',
 	})
 	const [errors, setErrors] = useState<Record<string, string>>({})
-	const [passwordStrength, setPasswordStrength] = useState(0)
+	const [isVisible, setIsVisible] = useState(false)
+	const [isConfirmVisible, setIsConfirmVisible] = useState(false)
 	const [turnstileToken, setTurnstileToken] = useState('')
+
+	const requirements = [
+		{ regex: /.{8,}/, text: 'At least 8 characters' },
+		{ regex: /[a-z]/, text: 'At least 1 lowercase letter' },
+		{ regex: /[A-Z]/, text: 'At least 1 uppercase letter' },
+		{ regex: /[0-9]/, text: 'At least 1 number' },
+		{
+			regex: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/,
+			text: 'At least 1 special character',
+		},
+	]
+
+	const strength = useMemo(() => {
+		return requirements.map((req) => ({
+			met: req.regex.test(formData.password),
+			text: req.text,
+		}))
+	}, [formData.password])
+
+	const strengthScore = useMemo(() => {
+		return strength.filter((req) => req.met).length
+	}, [strength])
+
+	const getStrengthColor = (score: number) => {
+		if (score === 0) return 'bg-border'
+		if (score <= 1) return 'bg-destructive'
+		if (score <= 2) return 'bg-orange-500'
+		if (score <= 3) return 'bg-amber-500'
+		if (score === 4) return 'bg-yellow-400'
+		return 'bg-green-500'
+	}
+
+	const getStrengthText = (score: number) => {
+		if (score === 0) return 'Enter a password'
+		if (score <= 2) return 'Weak password'
+		if (score <= 3) return 'Medium password'
+		if (score === 4) return 'Strong password'
+		return 'Very strong password'
+	}
 
 	const totalSteps = 4
 
-	// Calculate password strength
-	const calculatePasswordStrength = (password: string): number => {
-		let strength = 0
-		if (password.length >= 8) strength += 25
-		if (password.length >= 12) strength += 25
-		if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength += 25
-		if (/[0-9]/.test(password)) strength += 15
-		if (/[^a-zA-Z0-9]/.test(password)) strength += 10
-		return Math.min(strength, 100)
-	}
-
-	// Update form data
 	const updateFormData = (field: keyof StepData, value: string) => {
 		setFormData((prev) => ({ ...prev, [field]: value }))
 		setErrors((prev) => ({ ...prev, [field]: '' }))
-
-		// Update password strength
-		if (field === 'password') {
-			setPasswordStrength(calculatePasswordStrength(value))
-		}
 	}
 
 	// Step 1: Email validation
@@ -122,8 +147,8 @@ export default function RegisterPage() {
 
 		if (!formData.password) {
 			newErrors.password = 'Password is required'
-		} else if (formData.password.length < 8) {
-			newErrors.password = 'Password must be at least 8 characters'
+		} else if (strengthScore < 5) {
+			newErrors.password = 'Please meet all password requirements'
 		}
 
 		if (!formData.confirmPassword) {
@@ -274,19 +299,6 @@ export default function RegisterPage() {
 		}
 	}
 
-	// Password strength color
-	const _getPasswordStrengthColor = () => {
-		if (passwordStrength < 40) return 'bg-red-500'
-		if (passwordStrength < 70) return 'bg-yellow-500'
-		return 'bg-green-500'
-	}
-
-	const _getPasswordStrengthText = () => {
-		if (passwordStrength < 40) return 'Weak'
-		if (passwordStrength < 70) return 'Medium'
-		return 'Strong'
-	}
-
 	const displayError = errors.submit
 
 	const variants: any = {
@@ -430,7 +442,6 @@ export default function RegisterPage() {
 							{/* Step 2: Password */}
 							{currentStep === 2 && (
 								<div className='space-y-6'>
-									{/* Title */}
 									<div className='text-center'>
 										<h1 className='text-2xl font-bold text-gray-900 mb-2'>Create a new password</h1>
 										<p className='text-sm text-gray-500'>
@@ -439,48 +450,96 @@ export default function RegisterPage() {
 									</div>
 
 									<div className='space-y-2'>
-										<Label htmlFor='password' className='text-gray-900 font-normal'>
-											Password
-										</Label>
-										<Input
-											id='password'
-											type='password'
-											value={formData.password}
-											onChange={(e) => updateFormData('password', e.target.value)}
-											placeholder='Password'
-										/>
-										{errors.password && <p className='text-sm text-red-600'>{errors.password}</p>}
+										<Label htmlFor='password'>Password</Label>
+										<div className='relative'>
+											<Input
+												id='password'
+												type={isVisible ? 'text' : 'password'}
+												value={formData.password}
+												onChange={(e) => updateFormData('password', e.target.value)}
+												placeholder='Password'
+												className='pr-9'
+											/>
+											<Button
+												variant='ghost'
+												size='icon'
+												type='button'
+												onClick={() => setIsVisible(!isVisible)}
+												className='text-muted-foreground focus-visible:ring-ring/50 absolute inset-y-0 right-0 rounded-l-none hover:bg-transparent'
+											>
+												{isVisible ? (
+													<EyeOffIcon className='size-4' />
+												) : (
+													<EyeIcon className='size-4' />
+												)}
+											</Button>
+										</div>
 
-										{/* Password Strength Indicator */}
-										{formData.password && (
-											<div className='flex items-center gap-2 text-xs'>
-												<svg
-													className='w-4 h-4 text-green-500'
-													fill='currentColor'
-													viewBox='0 0 20 20'
-												>
-													<path
-														fillRule='evenodd'
-														d='M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z'
-														clipRule='evenodd'
-													/>
-												</svg>
-												<span className='text-gray-600'>At least 8 characters</span>
-											</div>
-										)}
+										<div className='flex h-1 w-full gap-1 mt-3'>
+											{[0, 1, 2, 3, 4].map((idx) => (
+												<span
+													key={idx}
+													className={cn(
+														'h-full flex-1 rounded-full transition-all duration-500 ease-out',
+														idx < strengthScore ? getStrengthColor(strengthScore) : 'bg-border'
+													)}
+												/>
+											))}
+										</div>
+
+										<p className='text-foreground text-sm font-medium pt-1'>
+											{getStrengthText(strengthScore)}. Must contain:
+										</p>
+
+										<ul className='space-y-1.5'>
+											{strength.map((req) => (
+												<li key={req.text} className='flex items-center gap-2'>
+													{req.met ? (
+														<CheckIcon className='size-4 text-green-600 dark:text-green-400' />
+													) : (
+														<XIcon className='text-muted-foreground size-4' />
+													)}
+													<span
+														className={cn(
+															'text-xs',
+															req.met
+																? 'text-green-600 dark:text-green-400'
+																: 'text-muted-foreground'
+														)}
+													>
+														{req.text}
+													</span>
+												</li>
+											))}
+										</ul>
+										{errors.password && <p className='text-sm text-red-600'>{errors.password}</p>}
 									</div>
 
 									<div className='space-y-2'>
-										<Label htmlFor='confirmPassword' className='text-gray-900 font-normal'>
-											Confirm Password
-										</Label>
-										<Input
-											id='confirmPassword'
-											type='password'
-											value={formData.confirmPassword}
-											onChange={(e) => updateFormData('confirmPassword', e.target.value)}
-											placeholder='Confirm your password'
-										/>
+										<Label htmlFor='confirmPassword'>Confirm Password</Label>
+										<div className='relative'>
+											<Input
+												id='confirmPassword'
+												type={isConfirmVisible ? 'text' : 'password'}
+												value={formData.confirmPassword}
+												onChange={(e) => updateFormData('confirmPassword', e.target.value)}
+												placeholder='Confirm your password'
+												className='pr-9'
+											/>
+											<Button
+												variant='ghost'
+												size='icon'
+												type='button'
+												onClick={() => setIsConfirmVisible(!isConfirmVisible)}
+												className='text-muted-foreground focus-visible:ring-ring/50 absolute inset-y-0 right-0 rounded-l-none hover:bg-transparent'
+											>
+												{isConfirmVisible ? (
+													<EyeOffIcon className='size-4' />
+												) : (
+													<EyeIcon className='size-4' />
+												)}
+											</Button>
+										</div>
 										{errors.confirmPassword && (
 											<p className='text-sm text-red-600'>{errors.confirmPassword}</p>
 										)}
