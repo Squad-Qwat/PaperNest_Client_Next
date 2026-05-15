@@ -67,7 +67,7 @@ export function useLatexCollaboration({
 					const provider = getYjsProviderForRoom(room, {
 						autoloadSubdocs: false,
 						enablePermanentUserData: true,
-						offlineSupport_experimental: true,
+						offlineSupport_experimental: false, // Disabled to prevent offline cache from overwriting rollbacks
 					})
 
 					const yjsDoc = provider.getYDoc()

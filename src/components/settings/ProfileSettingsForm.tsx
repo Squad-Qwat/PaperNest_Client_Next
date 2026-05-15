@@ -1,6 +1,5 @@
 'use client'
 
-import { IconLoader2 } from '@tabler/icons-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -60,7 +59,9 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 					setLastUpdated(new Date())
 					return 'Profile updated successfully!'
 				},
-				error: 'Failed to update profile. Please try again.',
+				error: (err: any) => {
+					return err?.message || 'Failed to update profile. Please try again.'
+				},
 			}
 		)
 	}, [user.userId, updateUser.mutateAsync, setLastUpdated])
@@ -113,17 +114,17 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 	return (
 		<div className='space-y-8 pb-10'>
 			<Card className='overflow-hidden border-2 shadow-none transition-all hover:border-primary/20'>
-				<CardHeader className='flex flex-row items-center justify-between space-y-0 pb-7'>
+				<CardHeader className='flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-7'>
 					<div className='space-y-1.5'>
 						<CardTitle className='text-xl'>Avatar</CardTitle>
 						<CardDescription className='max-w-md'>
 							This is your avatar. Enter a URL below to update your profile picture.
 						</CardDescription>
 					</div>
-					<div className='relative group'>
-						<Avatar className='h-24 w-24 border-4 border-background grayscale-0 group-hover:grayscale transition-all'>
+					<div className='relative group shrink-0'>
+						<Avatar className='h-20 w-20 sm:h-24 sm:w-24 border-4 border-background grayscale-0 group-hover:grayscale transition-all shadow-sm'>
 							<AvatarImage src={photoURL || undefined} alt={name} />
-							<AvatarFallback className='text-3xl bg-primary/10'>
+							<AvatarFallback className='text-2xl sm:text-3xl bg-primary/10'>
 								{name.charAt(0).toUpperCase()}
 							</AvatarFallback>
 						</Avatar>
@@ -192,16 +193,6 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 					</div>
 				</CardContent>
 			</Card>
-
-			{/* Loading indicator when saving */}
-			{updateUser.isPending && (
-				<div className='fixed top-4 right-4 z-50 animate-in fade-in zoom-in'>
-					<div className='bg-background border rounded-full px-4 py-2 shadow-lg flex items-center gap-2'>
-						<IconLoader2 className='size-4 animate-spin text-primary' />
-						<span className='text-sm font-medium'>Saving changes...</span>
-					</div>
-				</div>
-			)}
 		</div>
 	)
 }

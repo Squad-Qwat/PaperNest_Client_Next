@@ -12,6 +12,7 @@ import {
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
+	useSidebar,
 } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
 
@@ -25,6 +26,7 @@ const billingItems = [
 
 export function SettingsSidebar() {
 	const pathname = usePathname()
+	const { setOpenMobile, isMobile } = useSidebar()
 
 	const renderMenuItems = (
 		items: { title: string; icon: any; href: string; disabled?: boolean }[]
@@ -42,6 +44,9 @@ export function SettingsSidebar() {
 							isActive={isActive}
 							tooltip={item.title}
 							disabled={isDisabled}
+							onClick={() => {
+								if (isMobile) setOpenMobile(false)
+							}}
 							className={cn(
 								isActive &&
 									'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground',
@@ -60,7 +65,13 @@ export function SettingsSidebar() {
 	)
 
 	return (
-		<Sidebar collapsible='none' className='w-64 border-r bg-muted/30'>
+		<Sidebar
+			mobileWidth='100%'
+			mobileSide='bottom'
+			modal={false}
+			mobileClassName='z-[80]'
+			className='border-r bg-muted/30'
+		>
 			<SidebarContent className='p-2'>
 				<SidebarGroup>
 					<SidebarGroupLabel className='px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider'>

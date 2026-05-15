@@ -130,7 +130,7 @@ export default function ModalVersions({
 
 	// Merge Version and Review Data
 	const versionsList = useMemo(() => {
-		return versions.map((version, index) => {
+		return versions.map((version) => {
 			// Find review for this version
 			const versionReview = reviews.find((r) => r.documentBodyId === version.documentBodyId)
 
@@ -156,8 +156,8 @@ export default function ModalVersions({
 				author: finalName,
 				authorId: version.userId,
 				authorPhoto: version.user?.photoURL || member?.user?.photoURL,
-				color: index === 0 ? 'bg-purple-500' : 'bg-orange-500',
-				isCurrent: index === 0,
+				color: version.isCurrentVersion === true ? 'bg-purple-500' : 'bg-orange-500',
+				isCurrent: version.isCurrentVersion === true,
 				content: version.content,
 				review: versionReview
 					? {
