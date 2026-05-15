@@ -100,7 +100,7 @@ export default function VersionsPage() {
 									const versionReview = reviews.find(
 										(r: Review) => r.documentBodyId === version.documentBodyId
 									)
-									const isLatest = groupIdx === 0 && idx === 0
+									const isLatest = version.isCurrentVersion === true
 
 									const getCardStyles = () => {
 										if (isLatest) return 'border-l-blue-600 bg-blue-50/30 ring-1 ring-blue-100'

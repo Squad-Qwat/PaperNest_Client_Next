@@ -169,6 +169,16 @@ export function useLatexEditor({
 		}
 
 		const yText = yDoc.getText('latex')
+
+		// Fix RangeError: Sync CodeMirror doc with yText BEFORE attaching yCollab
+		const currentDocString = view.state.doc.toString()
+		const yTextString = yText.toString()
+		if (currentDocString !== yTextString) {
+			view.dispatch({
+				changes: { from: 0, to: currentDocString.length, insert: yTextString },
+			})
+		}
+
 		const extension = yCollab(yText, awareness, { undoManager: undoManager as any })
 
 		view.dispatch({
