@@ -88,7 +88,7 @@ export default function VersionsPage() {
 		if (groupedVersions.length > 0) {
 			return (
 				<div className='space-y-10'>
-					{groupedVersions.map((group, groupIdx) => (
+					{groupedVersions.map((group, _groupIdx) => (
 						<section key={group.title} className='space-y-4'>
 							<div className='flex items-center gap-4'>
 								<h2 className='text-sm font-semibold text-muted-foreground'>{group.title}</h2>
@@ -96,7 +96,7 @@ export default function VersionsPage() {
 							</div>
 
 							<div className='grid gap-3'>
-								{group.items.map((version, idx) => {
+								{group.items.map((version, _idx) => {
 									const versionReview = reviews.find(
 										(r: Review) => r.documentBodyId === version.documentBodyId
 									)
