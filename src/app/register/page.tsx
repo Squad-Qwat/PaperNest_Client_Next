@@ -37,11 +37,9 @@ type StepData = {
 	name: string
 	username: string
 	role: UserRole
-	workspaceMode: 'create' | 'join'
 	workspaceIcon: string
 	workspaceTitle: string
 	workspaceDescription: string
-	invitationCode: string
 }
 
 const workspaceIcons = ['📚', '🎓', '📖', '✍️', '🔬', '💼', '📊', '🎯', '🌟', '💡']
@@ -53,13 +51,12 @@ export default function RegisterPage() {
 	const { mutateAsync: registerUser, isPending: isRegisterPending } = useRegister()
 	const { mutateAsync: verifyEmail, isPending: checkingEmail } = useCheckEmail()
 	const { mutateAsync: _createWorkspace, isPending: isCreatePending } = useCreateWorkspace()
-	const { mutateAsync: _joinWorkspace, isPending: isJoinPending } = useJoinWorkspace()
 	const { mutateAsync: socialMutate, isPending: isSocialPending } = useSignInWithSocial({
 		setOnboardingData,
 	})
 
 	const loading =
-		isRegisterPending || isCreatePending || isJoinPending || isSocialPending || checkingEmail
+		isRegisterPending || isCreatePending || isSocialPending || checkingEmail
 
 	const [currentStep, setCurrentStep] = useState(1)
 	const [direction, setDirection] = useState(0)
@@ -70,11 +67,9 @@ export default function RegisterPage() {
 		name: '',
 		username: '',
 		role: 'Student',
-		workspaceMode: 'create',
 		workspaceIcon: '📚',
 		workspaceTitle: '',
 		workspaceDescription: '',
-		invitationCode: '',
 	})
 	const [errors, setErrors] = useState<Record<string, string>>({})
 	const [isVisible, setIsVisible] = useState(false)
@@ -187,18 +182,10 @@ export default function RegisterPage() {
 	const validateStep4 = (): boolean => {
 		const newErrors: Record<string, string> = {}
 
-		if (formData.workspaceMode === 'create') {
-			if (!formData.workspaceTitle) {
-				newErrors.workspaceTitle = 'Workspace title is required'
-			} else if (formData.workspaceTitle.length < 3) {
-				newErrors.workspaceTitle = 'Workspace title must be at least 3 characters'
-			}
-		} else if (formData.workspaceMode === 'join') {
-			if (!formData.invitationCode) {
-				newErrors.invitationCode = 'Invitation code is required'
-			} else if (formData.invitationCode.length < 3) {
-				newErrors.invitationCode = 'Invalid invitation code'
-			}
+		if (!formData.workspaceTitle) {
+			newErrors.workspaceTitle = 'Workspace title is required'
+		} else if (formData.workspaceTitle.length < 3) {
+			newErrors.workspaceTitle = 'Workspace title must be at least 3 characters'
 		}
 
 		setErrors(newErrors)
@@ -272,12 +259,9 @@ export default function RegisterPage() {
 				username: formData.username,
 				role: formData.role,
 				turnstileToken,
-				workspaceData: {
 					title: formData.workspaceTitle,
 					description: formData.workspaceDescription || undefined,
 					icon: formData.workspaceIcon,
-					mode: formData.workspaceMode,
-					invitationCode: formData.invitationCode,
 				},
 			})
 		} catch (error) {
@@ -612,133 +596,66 @@ export default function RegisterPage() {
 									{/* Title */}
 									<div className='text-center'>
 										<h1 className='text-2xl font-bold text-gray-900 mb-2'>
-											{formData.workspaceMode === 'create'
-												? 'Create Your Workspace'
-												: 'Join a Workspace'}
+											Create Your Workspace
 										</h1>
 										<p className='text-sm text-gray-500'>
 											Step {currentStep} of {totalSteps} - Workspace Setup
 										</p>
 									</div>
 
-									{/* Workspace Mode Radio */}
-									<RadioGroup
-										className='w-full grid grid-cols-2 gap-3'
-										value={formData.workspaceMode}
-										onValueChange={(value) =>
-											updateFormData('workspaceMode', value as 'create' | 'join')
-										}
-									>
-										<div className='border-input has-data-[state=checked]:bg-teal-500 has-data-[state=checked]:text-white relative flex flex-col gap-2 border p-4 rounded-lg outline-none has-data-[state=checked]:z-10 transition-all'>
-											<div className='group flex flex-col gap-2'>
-												<div className='flex items-center gap-2'>
-													<RadioGroupItem
-														id='mode-create'
-														value='create'
-														aria-label='create-workspace'
-														className='text-primary bg-white data-[state=checked]:bg-white data-[state=checked]:border-white data-[state=checked]:[&_svg]:fill-teal-500 after:absolute after:inset-0'
-													/>
-													<Label className='font-semibold cursor-pointer' htmlFor='mode-create'>
-														Create New
-													</Label>
-												</div>
-												<p className='text-xs opacity-80 pl-6'>Start your own workspace</p>
-											</div>
-										</div>
-										<div className='border-input has-data-[state=checked]:bg-teal-500 has-data-[state=checked]:text-white relative flex flex-col gap-2 border p-4 rounded-lg outline-none has-data-[state=checked]:z-10 transition-all'>
-											<div className='group flex flex-col gap-2'>
-												<div className='flex items-center gap-2'>
-													<RadioGroupItem
-														id='mode-join'
-														value='join'
-														aria-label='join-workspace'
-														className='text-primary bg-white data-[state=checked]:bg-white data-[state=checked]:border-white data-[state=checked]:[&_svg]:fill-teal-500 after:absolute after:inset-0'
-													/>
-													<Label className='font-semibold cursor-pointer' htmlFor='mode-join'>
-														Join Existing
-													</Label>
-												</div>
-												<p className='text-xs opacity-80 pl-6'>Use an invitation code</p>
-											</div>
-										</div>
-									</RadioGroup>
 
 									{/* Create Workspace Form */}
-									{formData.workspaceMode === 'create' && (
-										<>
-											<div className='space-y-2'>
-												<Label className='text-gray-900 font-normal'>Workspace Icon</Label>
-												<div className='grid grid-cols-5 gap-2'>
-													{workspaceIcons.map((icon) => (
-														<button
-															key={icon}
-															type='button'
-															onClick={() => updateFormData('workspaceIcon', icon)}
-															className={`p-3 text-2xl border rounded-lg transition-all hover:scale-105 ${
-																formData.workspaceIcon === icon
-																	? 'bg-teal-500 border-teal-400'
-																	: 'bg-white border-gray-200 hover:border-gray-300'
-															}`}
-														>
-															{icon}
-														</button>
-													))}
-												</div>
-											</div>
-
-											<div className='space-y-2'>
-												<Label htmlFor='workspaceTitle' className='text-gray-900 font-normal'>
-													Workspace Title <span className='text-red-500'>*</span>
-												</Label>
-												<Input
-													id='workspaceTitle'
-													type='text'
-													value={formData.workspaceTitle}
-													onChange={(e) => updateFormData('workspaceTitle', e.target.value)}
-													placeholder='My Research Workspace'
-												/>
-												{errors.workspaceTitle && (
-													<p className='text-sm text-red-600'>{errors.workspaceTitle}</p>
-												)}
-											</div>
-
-											<div className='space-y-2'>
-												<Label htmlFor='workspaceDescription' className='text-gray-900 font-normal'>
-													Workspace Description (Optional)
-												</Label>
-												<Textarea
-													id='workspaceDescription'
-													value={formData.workspaceDescription}
-													onChange={(e) => updateFormData('workspaceDescription', e.target.value)}
-													placeholder='A workspace for my research papers and projects'
-													rows={3}
-													className='resize-none'
-												/>
-											</div>
-										</>
-									)}
-
-									{/* Join Workspace Form */}
-									{formData.workspaceMode === 'join' && (
+									<div className='space-y-6'>
 										<div className='space-y-2'>
-											<Label htmlFor='invitationCode' className='text-gray-900 font-normal'>
-												Invitation Code <span className='text-red-500'>*</span>
+											<Label className='text-gray-900 font-normal'>Workspace Icon</Label>
+											<div className='grid grid-cols-5 gap-2'>
+												{workspaceIcons.map((icon) => (
+													<button
+														key={icon}
+														type='button'
+														onClick={() => updateFormData('workspaceIcon', icon)}
+														className={`p-3 text-2xl border rounded-lg transition-all hover:scale-105 ${
+															formData.workspaceIcon === icon
+																? 'bg-teal-500 border-teal-400'
+																: 'bg-white border-gray-200 hover:border-gray-300'
+														}`}
+													>
+														{icon}
+													</button>
+												))}
+											</div>
+										</div>
+
+										<div className='space-y-2'>
+											<Label htmlFor='workspaceTitle' className='text-gray-900 font-normal'>
+												Workspace Title <span className='text-red-500'>*</span>
 											</Label>
 											<Input
-												id='invitationCode'
+												id='workspaceTitle'
 												type='text'
-												value={formData.invitationCode}
-												onChange={(e) => updateFormData('invitationCode', e.target.value)}
-												placeholder='Enter your invitation code'
+												value={formData.workspaceTitle}
+												onChange={(e) => updateFormData('workspaceTitle', e.target.value)}
+												placeholder='My Research Workspace'
 											/>
-											{errors.invitationCode && (
-												<p className='text-sm text-red-600'>{errors.invitationCode}</p>
+											{errors.workspaceTitle && (
+												<p className='text-sm text-red-600'>{errors.workspaceTitle}</p>
 											)}
-											<p className='text-xs text-gray-500'>
-												Ask your workspace owner for an invitation code to join their workspace.
-											</p>
 										</div>
-									)}
+
+										<div className='space-y-2'>
+											<Label htmlFor='workspaceDescription' className='text-gray-900 font-normal'>
+												Workspace Description (Optional)
+											</Label>
+											<Textarea
+												id='workspaceDescription'
+												value={formData.workspaceDescription}
+												onChange={(e) => updateFormData('workspaceDescription', e.target.value)}
+												placeholder='A workspace for my research papers and projects'
+												rows={3}
+												className='resize-none'
+											/>
+										</div>
+									</div>
 								</div>
 							)}
 						</motion.div>

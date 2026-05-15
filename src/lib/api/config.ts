@@ -35,14 +35,15 @@ export const API_ENDPOINTS = {
 	workspaces: {
 		base: '/workspaces',
 		byId: (workspaceId: string) => `/workspaces/${workspaceId}`,
-		join: (workspaceId: string) => `/workspaces/${workspaceId}/join`,
+		invitations: (workspaceId: string) => `/workspaces/${workspaceId}/invitations`,
 		members: (workspaceId: string) => `/workspaces/${workspaceId}/members`,
 		member: (workspaceId: string, userWorkspaceId: string) =>
 			`/workspaces/${workspaceId}/members/${userWorkspaceId}`,
 	},
 	invitations: {
 		base: '/invitations',
-		byId: (userWorkspaceId: string) => `/invitations/${userWorkspaceId}`,
+		details: (token: string) => `/workspaces/invitations/${token}`,
+		accept: (token: string) => `/workspaces/invitations/${token}/accept`,
 	},
 	documents: {
 		myDocuments: '/documents/my-documents',

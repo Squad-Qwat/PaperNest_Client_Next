@@ -77,26 +77,25 @@ export function useDeleteWorkspace() {
 	})
 }
 
-export function useJoinWorkspace() {
-	const queryClient = useQueryClient()
-
+export function useSendInvitations() {
 	return useMutation({
-		mutationFn: (workspaceId: string) => workspacesService.joinByWorkspaceId(workspaceId),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: WORKSPACE_KEYS.all })
-		},
+		mutationFn: ({
+			workspaceId,
+			data,
+		}: {
+			workspaceId: string
+			data: { emails: string[]; role: string }
+		}) => workspacesService.sendInvitations(workspaceId, data),
 	})
 }
 
-// Member Management Mutations
-export function useInviteMember() {
+export function useAcceptInvitation() {
 	const queryClient = useQueryClient()
 
 	return useMutation({
-		mutationFn: ({ workspaceId, data }: { workspaceId: string; data: InviteMemberDto }) =>
-			workspacesService.inviteMember(workspaceId, data),
-		onSuccess: (_, variables) => {
-			queryClient.invalidateQueries({ queryKey: WORKSPACE_KEYS.members(variables.workspaceId) })
+		mutationFn: (token: string) => workspacesService.acceptInvitation(token),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: WORKSPACE_KEYS.all })
 		},
 	})
 }

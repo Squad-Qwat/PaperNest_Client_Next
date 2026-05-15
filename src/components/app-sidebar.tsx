@@ -7,6 +7,7 @@ import {
 	IconMessage2,
 	IconQuote,
 	IconSettings,
+	IconUserPlus,
 } from '@tabler/icons-react'
 import { useParams } from 'next/navigation'
 import * as React from 'react'
@@ -16,6 +17,7 @@ import { NavMain } from '@/components/nav-main'
 import { NavSecondary } from '@/components/nav-secondary'
 import { NavUser } from '@/components/nav-user'
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from '@/components/ui/sidebar'
+import { InviteMembersModal } from '@/components/workspace/InviteMembersModal'
 import { WorkspaceSettingsModal } from '@/components/workspace/WorkspaceSettingsModal'
 import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher'
 import { useAuth } from '@/context/AuthContext'
@@ -29,6 +31,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const { isLoading: workspacesLoading } = useWorkspaces()
 	const [showSettingsModal, setShowSettingsModal] = React.useState(false)
 	const [showCreateModal, setShowCreateModal] = React.useState(false)
+	const [showInviteModal, setShowInviteModal] = React.useState(false)
 
 	if (authLoading || (workspaceId && workspaceLoading) || workspacesLoading) {
 		return <SidebarSkeleton />
@@ -59,6 +62,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 			},
 		],
 		navSecondary: [
+			{
+				title: 'Invite Members',
+				url: '#',
+				icon: IconUserPlus,
+				onClick: () => setShowInviteModal(true),
+			},
 			{
 				title: 'Settings',
 				url: '#',
@@ -102,6 +111,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 				onClose={() => setShowCreateModal(false)}
 				workspaceId={workspaceId}
 			/>
+			{workspace && (
+				<InviteMembersModal
+					isOpen={showInviteModal}
+					onClose={() => setShowInviteModal(false)}
+					workspaceId={workspaceId}
+					workspaceName={workspace.title}
+				/>
+			)}
 		</Sidebar>
 	)
 }
