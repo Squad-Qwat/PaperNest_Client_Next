@@ -111,9 +111,9 @@ const AISearchPromptInner = ({
 
 	const plainText = useMemo(() => {
 		return mixValue
-			.map((line) =>
+			.map((line: any) =>
 				line
-					.map((item) => {
+					.map((item: any) => {
 						if (typeof item === 'string') {
 							return item
 						}
