@@ -1,7 +1,15 @@
 'use client'
 
 import type { ChatStatus, FileUIPart, SourceDocumentUIPart } from 'ai'
-import { CornerDownLeftIcon, ImageIcon, Monitor, PlusIcon, SquareIcon, XIcon, UploadCloud } from 'lucide-react'
+import {
+	CornerDownLeftIcon,
+	ImageIcon,
+	Monitor,
+	PlusIcon,
+	SquareIcon,
+	UploadCloud,
+	XIcon,
+} from 'lucide-react'
 import { nanoid } from 'nanoid'
 import type {
 	ChangeEvent,
@@ -26,6 +34,13 @@ import {
 	useRef,
 	useState,
 } from 'react'
+import {
+	Attachment,
+	AttachmentInfo,
+	AttachmentPreview,
+	AttachmentRemove,
+	Attachments,
+} from '@/components/ui/ai-elements/attachments'
 import {
 	Command,
 	CommandEmpty,
@@ -230,7 +245,7 @@ export const PromptInputProvider = ({
 	const [attachmentFiles, setAttachmentFiles] = useState<(FileUIPart & { id: string })[]>([])
 	const fileInputRef = useRef<HTMLInputElement | null>(null)
 	// oxlint-disable-next-line eslint(no-empty-function)
-	const openRef = useRef<() => void>(() => { })
+	const openRef = useRef<() => void>(() => {})
 
 	const add = useCallback((files: File[] | FileList) => {
 		const incoming = [...files]
@@ -638,13 +653,13 @@ export const PromptInput = ({
 			usingProvider
 				? controller?.attachments.clear()
 				: setItems((prev) => {
-					for (const file of prev) {
-						if (file.url) {
-							URL.revokeObjectURL(file.url)
+						for (const file of prev) {
+							if (file.url) {
+								URL.revokeObjectURL(file.url)
+							}
 						}
-					}
-					return []
-				}),
+						return []
+					}),
 		[usingProvider, controller]
 	)
 
@@ -837,9 +852,9 @@ export const PromptInput = ({
 			const text = usingProvider
 				? controller.textInput.value
 				: (() => {
-					const formData = new FormData(form)
-					return (formData.get('message') as string) || ''
-				})()
+						const formData = new FormData(form)
+						return (formData.get('message') as string) || ''
+					})()
 
 			// Reset form immediately after capturing text to avoid race condition
 			// where user input during async blob conversion would be lost
@@ -905,7 +920,9 @@ export const PromptInput = ({
 			/>
 			<div className='relative w-full'>
 				<form className='w-full' onSubmit={handleSubmit} ref={formRef} {...props}>
-					<InputGroup className={cn('overflow-hidden rounded-xl', className)}>{children}</InputGroup>
+					<InputGroup className={cn('overflow-hidden rounded-xl', className)}>
+						{children}
+					</InputGroup>
 				</form>
 				{isDragging && (
 					<div
@@ -913,9 +930,7 @@ export const PromptInput = ({
 						style={{ pointerEvents: 'none' }}
 					>
 						<UploadCloud className='w-5 h-5 text-primary' />
-						<div className='text-xs font-medium text-foreground'>
-							Drag & drop files here
-						</div>
+						<div className='text-xs font-medium text-foreground'>Drag & drop files here</div>
 						<div className='text-[10px] text-muted-foreground'>
 							Supports images, PDFs, documents & text
 						</div>
@@ -1033,15 +1048,15 @@ export const PromptInputTextarea = ({
 
 	const controlledProps = controller
 		? {
-			onChange: (e: ChangeEvent<HTMLTextAreaElement>) => {
-				controller.textInput.setInput(e.currentTarget.value)
-				onChange?.(e)
-			},
-			value: controller.textInput.value,
-		}
+				onChange: (e: ChangeEvent<HTMLTextAreaElement>) => {
+					controller.textInput.setInput(e.currentTarget.value)
+					onChange?.(e)
+				},
+				value: controller.textInput.value,
+			}
 		: {
-			onChange,
-		}
+				onChange,
+			}
 
 	return (
 		<InputGroupTextarea
@@ -1087,10 +1102,10 @@ export const PromptInputTools = ({ className, ...props }: PromptInputToolsProps)
 export type PromptInputButtonTooltip =
 	| string
 	| {
-		content: ReactNode
-		shortcut?: string
-		side?: ComponentProps<typeof TooltipContent>['side']
-	}
+			content: ReactNode
+			shortcut?: string
+			side?: ComponentProps<typeof TooltipContent>['side']
+	  }
 
 export type PromptInputButtonProps = ComponentProps<typeof InputGroupButton> & {
 	tooltip?: PromptInputButtonTooltip
@@ -1364,3 +1379,20 @@ export const PromptInputCommandSeparator = ({
 	className,
 	...props
 }: PromptInputCommandSeparatorProps) => <CommandSeparator className={cn(className)} {...props} />
+
+export const SharedPromptInputAttachments = () => {
+	const attachments = usePromptInputAttachments()
+	if (attachments.files.length === 0) return null
+
+	return (
+		<Attachments variant='inline'>
+			{attachments.files.map((file) => (
+				<Attachment key={file.id} data={file} onRemove={() => attachments.remove(file.id)}>
+					<AttachmentPreview />
+					<AttachmentInfo className='max-w-[120px] text-xs font-normal text-slate-600 dark:text-slate-300' />
+					<AttachmentRemove />
+				</Attachment>
+			))}
+		</Attachments>
+	)
+}

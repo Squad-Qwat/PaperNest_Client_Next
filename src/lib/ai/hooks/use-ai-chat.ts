@@ -49,12 +49,12 @@ export function useAIChat({ editor, documentId, workspaceId }: UseAIChatOptions)
 			abortControllerRef.current = controller
 
 			const assistantKey = nanoid()
-			
+
 			const attachments = files?.map((f) => ({
 				id: f.id || nanoid(),
 				filename: f.filename,
 				mediaType: f.mediaType,
-				url: f.url
+				url: f.url,
 			}))
 
 			store.addUserMessage(text, attachments)
@@ -99,7 +99,7 @@ export function useAIChat({ editor, documentId, workspaceId }: UseAIChatOptions)
 						plan: currentState.currentPlan.length > 0 ? currentState.currentPlan : undefined,
 						providerId,
 						modelId,
-						files: currentStep === 1 ? attachments : undefined
+						files: currentStep === 1 ? attachments : undefined,
 					}
 
 					const stream = await aiService.streamChat(payload, combinedSignal)
@@ -285,7 +285,7 @@ export function useAIChat({ editor, documentId, workspaceId }: UseAIChatOptions)
 				abortControllerRef.current = null
 			}
 		},
-		[editor, documentId, store, stop]
+		[editor, documentId, store, stop, workspaceId]
 	)
 
 	return {

@@ -2,6 +2,7 @@
 
 import { FileText, Sparkles } from 'lucide-react'
 import { useEffect, useRef } from 'react'
+import { Attachment, AttachmentPreview, Attachments } from '@/components/ui/ai-elements/attachments'
 import {
 	Conversation,
 	ConversationContent,
@@ -13,13 +14,6 @@ import {
 	ReasoningContent,
 	ReasoningTrigger,
 } from '@/components/ui/ai-elements/reasoning'
-import {
-	Attachments,
-	Attachment,
-	AttachmentPreview,
-} from '@/components/ui/ai-elements/attachments'
-
-import { useAIChatStore } from '@/lib/ai/store'
 
 interface ChatMessage {
 	id: string
@@ -59,7 +53,7 @@ const renderMessageTextWithTags = (text: string, documents: any[]) => {
 			if (matchedDoc) {
 				return (
 					<span
-						key={index}
+						key={`tag-${matchedDoc.id || matchedDoc.title}-${index}`}
 						className='inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 text-[11px] font-medium tracking-tight select-none align-middle mx-0.5 transition-all duration-200 hover:bg-primary/15 cursor-default'
 					>
 						<FileText className='size-3 shrink-0 opacity-75' />
@@ -75,10 +69,8 @@ const renderMessageTextWithTags = (text: string, documents: any[]) => {
 export function DashboardAIChat({
 	messages,
 	isThinking = false,
-	userDisplayName = 'User',
 	documents = [],
 }: DashboardAIChatProps) {
-	const { currentPlan } = useAIChatStore()
 	const contentRef = useRef<HTMLDivElement | null>(null)
 
 	// Auto-scroll to the bottom of the conversation area when messages or thinking state changes
@@ -118,9 +110,7 @@ export function DashboardAIChat({
 								<Message
 									from={msg.from}
 									className={
-										msg.from === 'assistant'
-											? 'max-w-4xl w-full'
-											: 'max-w-2xl ml-auto w-fit'
+										msg.from === 'assistant' ? 'max-w-4xl w-full' : 'max-w-2xl ml-auto w-fit'
 									}
 								>
 									<div className={msg.from === 'assistant' ? 'w-full' : 'w-fit max-w-full'}>
@@ -128,10 +118,7 @@ export function DashboardAIChat({
 											<div className='mb-2'>
 												<Attachments variant='grid'>
 													{msg.attachments.map((file: any) => (
-														<Attachment
-															key={file.id}
-															data={{ ...file, type: 'file' }}
-														>
+														<Attachment key={file.id} data={{ ...file, type: 'file' }}>
 															<AttachmentPreview />
 														</Attachment>
 													))}
@@ -151,7 +138,13 @@ export function DashboardAIChat({
 											</div>
 										)}
 
-										<MessageContent className={msg.from === 'assistant' ? 'w-full pt-0.5' : 'w-fit min-w-[80px] max-w-full pt-0.5 group-[.is-user]:bg-slate-100/60 dark:group-[.is-user]:bg-slate-800/40 group-[.is-user]:py-2'}>
+										<MessageContent
+											className={
+												msg.from === 'assistant'
+													? 'w-full pt-0.5'
+													: 'w-fit min-w-[80px] max-w-full pt-0.5 group-[.is-user]:bg-slate-100/60 dark:group-[.is-user]:bg-slate-800/40 group-[.is-user]:py-2'
+											}
+										>
 											{msg.from === 'assistant' ? (
 												<MessageResponse className='text-gray-800 leading-relaxed text-sm md:text-base'>
 													{msg.text}
@@ -171,10 +164,7 @@ export function DashboardAIChat({
 					{/* Thinking Animation */}
 					{isThinking && (
 						<div className='animate-in fade-in duration-300 max-w-4xl'>
-							<Message
-								from='assistant'
-								className='max-w-4xl w-full'
-							>
+							<Message from='assistant' className='max-w-4xl w-full'>
 								<div className='w-full'>
 									<span className='text-sm text-slate-400 italic font-light animate-pulse'>
 										Neptune sedang merenung...

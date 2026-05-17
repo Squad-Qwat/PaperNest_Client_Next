@@ -1,8 +1,8 @@
 import { nanoid } from 'nanoid'
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
-import type { ChatMessage, PlanStep, ToolCall, ToolStatus, MessageAttachment } from './types/chat'
 import { AI_MODELS } from './constants'
+import type { ChatMessage, MessageAttachment, PlanStep, ToolCall, ToolStatus } from './types/chat'
 
 interface AIChatState {
 	messages: ChatMessage[]

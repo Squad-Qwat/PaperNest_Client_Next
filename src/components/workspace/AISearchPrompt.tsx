@@ -1,32 +1,16 @@
 'use client'
 
-import MixInput, { type MixInputValues, type MixInputRef } from '@arif-un/react-mix-tag-input'
+import MixInput, { type MixInputRef, type MixInputValues } from '@arif-un/react-mix-tag-input'
 import '@arif-un/react-mix-tag-input/dist/index.css'
-import { CheckIcon, FileText, GlobeIcon, BrainCircuit, Zap } from 'lucide-react'
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { FileText, GlobeIcon } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { create } from 'zustand'
-import { useAIChatStore } from '@/lib/ai/store'
-import { AI_MODELS } from '@/lib/ai/constants'
-import {
-	Attachment,
-	AttachmentPreview,
-	AttachmentInfo,
-	AttachmentRemove,
-	Attachments,
-} from '@/components/ui/ai-elements/attachments'
 import {
 	ModelSelector,
-	ModelSelectorContent,
-	ModelSelectorEmpty,
-	ModelSelectorGroup,
-	ModelSelectorInput,
-	ModelSelectorItem,
-	ModelSelectorList,
 	ModelSelectorLogo,
-	ModelSelectorLogoGroup,
 	ModelSelectorName,
-	ModelSelectorSeparator,
 	ModelSelectorTrigger,
+	SharedModelSelectorContent,
 } from '@/components/ui/ai-elements/model-selector'
 import type { PromptInputMessage } from '@/components/ui/ai-elements/prompt-input'
 import {
@@ -42,7 +26,7 @@ import {
 	PromptInputProvider,
 	PromptInputSubmit,
 	PromptInputTools,
-	usePromptInputAttachments,
+	SharedPromptInputAttachments,
 	usePromptInputController,
 } from '@/components/ui/ai-elements/prompt-input'
 import {
@@ -53,6 +37,8 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { AI_MODELS } from '@/lib/ai/constants'
+import { useAIChatStore } from '@/lib/ai/store'
 
 interface PromptSource {
 	documentId: string
@@ -85,70 +71,6 @@ export const useAISearchPromptStore = create<AISearchPromptStore>((set) => ({
 }))
 
 const models = AI_MODELS
-
-interface AttachmentItemProps {
-	attachment: {
-		id: string
-		type: 'file'
-		filename?: string
-		mediaType?: string
-		url: string
-	}
-	onRemove: (id: string) => void
-}
-
-const AttachmentItem = memo(({ attachment, onRemove }: AttachmentItemProps) => {
-	const handleRemove = useCallback(() => onRemove(attachment.id), [onRemove, attachment.id])
-	return (
-		<Attachment data={{ ...attachment, type: 'file' } as any} key={attachment.id} onRemove={handleRemove}>
-			<AttachmentPreview />
-			<AttachmentInfo className='max-w-[120px] text-xs font-normal text-slate-600 dark:text-slate-300' />
-			<AttachmentRemove />
-		</Attachment>
-	)
-})
-
-AttachmentItem.displayName = 'AttachmentItem'
-
-interface ModelItemProps {
-	m: (typeof models)[0]
-	selectedModel: string
-	onSelect: (id: string) => void
-}
-
-const ModelItem = memo(({ m, selectedModel, onSelect }: ModelItemProps) => {
-	const handleSelect = useCallback(() => onSelect(m.id), [onSelect, m.id])
-	return (
-		<ModelSelectorItem key={m.id} onSelect={handleSelect} value={m.id}>
-			<ModelSelectorLogo provider={m.chef as any} />
-			<ModelSelectorName>{m.name}</ModelSelectorName>
-			{selectedModel === m.id ? (
-				<CheckIcon className='ml-auto size-3' />
-			) : (
-				<div className='ml-auto size-3' />
-			)}
-		</ModelSelectorItem>
-	)
-})
-
-ModelItem.displayName = 'ModelItem'
-
-const PromptInputAttachmentsDisplay = () => {
-	const attachments = usePromptInputAttachments()
-	const handleRemove = useCallback((id: string) => attachments.remove(id), [attachments])
-
-	if (attachments.files.length === 0) {
-		return null
-	}
-
-	return (
-		<Attachments variant='inline'>
-			{attachments.files.map((attachment) => (
-				<AttachmentItem attachment={attachment} key={attachment.id} onRemove={handleRemove} />
-			))}
-		</Attachments>
-	)
-}
 
 const CustomTagView = (props: any) => {
 	const label = props.node?.attrs?.label || ''
@@ -226,11 +148,6 @@ const AISearchPromptInner = ({
 		onSearchChange?.(plainText)
 	}, [plainText, textInput, onSearchChange])
 
-	const handleModelSelect = useCallback((id: string) => {
-		setModel(id)
-		setModelSelectorOpen(false)
-	}, [])
-
 	const handleSelectDocument = useCallback(
 		(doc: { documentId: string; title: string }) => {
 			const lastLine = [...(mixValue[mixValue.length - 1] || [])]
@@ -300,9 +217,7 @@ const AISearchPromptInner = ({
 
 	const filteredDocs = useMemo(() => {
 		if (!isMentioning) return []
-		return documents.filter((doc) =>
-			doc.title.toLowerCase().includes(mentionQuery.toLowerCase())
-		)
+		return documents.filter((doc) => doc.title.toLowerCase().includes(mentionQuery.toLowerCase()))
 	}, [isMentioning, mentionQuery, documents])
 
 	const showDropdown = isMentioning && filteredDocs.length > 0
@@ -353,7 +268,7 @@ const AISearchPromptInner = ({
 					className='bg-white border border-primary/20 rounded-2xl relative'
 				>
 					<div className='flex flex-wrap items-center gap-1.5 px-4 pt-3 empty:hidden'>
-						<PromptInputAttachmentsDisplay />
+						<SharedPromptInputAttachments />
 					</div>
 					<PromptInputBody onClick={handleBodyClick}>
 						<MixInput
@@ -394,35 +309,13 @@ const AISearchPromptInner = ({
 										)}
 									</PromptInputButton>
 								</ModelSelectorTrigger>
-								<ModelSelectorContent>
-									<ModelSelectorInput placeholder='Search models...' />
-									<ModelSelectorList>
-										<ModelSelectorEmpty>Model/mode not found.</ModelSelectorEmpty>
-										<ModelSelectorGroup heading='Agent Mode'>
-											<ModelSelectorItem onSelect={() => setAgentId('manual_graph')} value='manual_graph'>
-												<BrainCircuit className='mr-2 h-3.5 w-3.5 text-blue-500' />
-												<ModelSelectorName>High Agentic</ModelSelectorName>
-												{agentId === 'manual_graph' && <CheckIcon className='ml-auto size-3' />}
-											</ModelSelectorItem>
-											<ModelSelectorItem onSelect={() => setAgentId('deep_agent')} value='deep_agent'>
-												<Zap className='mr-2 h-3.5 w-3.5 text-amber-500' />
-												<ModelSelectorName>Medium</ModelSelectorName>
-												{agentId === 'deep_agent' && <CheckIcon className='ml-auto size-3' />}
-											</ModelSelectorItem>
-										</ModelSelectorGroup>
-										<ModelSelectorSeparator />
-										<ModelSelectorGroup heading='Available Models'>
-											{models.map((m) => (
-												<ModelItem
-													key={m.id}
-													m={m}
-													onSelect={handleModelSelect}
-													selectedModel={model}
-												/>
-											))}
-										</ModelSelectorGroup>
-									</ModelSelectorList>
-								</ModelSelectorContent>
+								<SharedModelSelectorContent
+									model={model}
+									setModel={setModel}
+									agentId={agentId}
+									setAgentId={setAgentId}
+									onSelect={() => setModelSelectorOpen(false)}
+								/>
 							</ModelSelector>
 						</PromptInputTools>
 						<PromptInputSubmit status={status} onStop={onStop} />

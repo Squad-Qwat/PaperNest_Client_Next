@@ -1,10 +1,9 @@
 'use client'
 
-import { ArrowLeft, FileText, Trash2 } from 'lucide-react'
+import { FileText, Trash2 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import { nanoid } from 'nanoid'
 import { useParams, useRouter } from 'next/navigation'
-import { useMemo, useState, useCallback } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { DashboardContentSkeleton } from '@/components/layout/DashboardSkeleton'
 import { TemplateGallery } from '@/components/templates/TemplateGallery'
@@ -23,13 +22,13 @@ import { SidebarTrigger } from '@/components/ui/sidebar'
 import { AISearchPrompt } from '@/components/workspace/AISearchPrompt'
 import { DashboardAIChat } from '@/components/workspace/DashboardAIChat'
 import { useAuth } from '@/context/AuthContext'
+import { useAIChat } from '@/lib/ai/hooks/use-ai-chat'
+import { useAIChatStore } from '@/lib/ai/store'
 import { useDeleteDocument, useWorkspaceDocuments } from '@/lib/api/hooks/use-documents'
 import { useWorkspace } from '@/lib/api/hooks/use-workspaces'
 import type { Document, DocumentsResponse } from '@/lib/api/types/document.types'
 import { format } from '@/lib/date'
 import { cn } from '@/lib/utils'
-import { useAIChat } from '@/lib/ai/hooks/use-ai-chat'
-import { useAIChatStore } from '@/lib/ai/store'
 
 export default function WorkspacePage() {
 	const params = useParams()
@@ -75,9 +74,9 @@ export default function WorkspacePage() {
 			const version = m.versions[m.activeVersionIndex]
 			const text = version?.parts
 				? version.parts
-					.filter((p) => p.type === 'text')
-					.map((p) => (p as any).content || '')
-					.join('\n')
+						.filter((p) => p.type === 'text')
+						.map((p) => (p as any).content || '')
+						.join('\n')
 				: ''
 
 			return {
@@ -289,9 +288,7 @@ export default function WorkspacePage() {
 												</p>
 
 												<div className='flex items-center justify-between text-xs text-gray-500 mb-4'>
-													<span>
-														{format(doc.updatedAt || doc.createdAt, 'd MMMM yyyy')}
-													</span>
+													<span>{format(doc.updatedAt || doc.createdAt, 'd MMMM yyyy')}</span>
 												</div>
 
 												<div className='flex gap-2 items-center'>
@@ -413,8 +410,11 @@ export default function WorkspacePage() {
 								}
 							`}</style>
 							{/* Bottom Fixed Sticky Prompt Area inside Chat Mode */}
-							<div className={`sticky bottom-0 left-0 right-0 w-full pt-4 pb-6 bg-gradient-to-t from-slate-50 via-slate-50/98 to-transparent dark:from-slate-950 dark:via-slate-950/98 dark:to-transparent z-20 glow-chat-divider ${aiStatus === 'streaming' || aiStatus === 'submitted' ? 'is-ai-thinking' : ''
-								}`}>
+							<div
+								className={`sticky bottom-0 left-0 right-0 w-full pt-4 pb-6 bg-gradient-to-t from-slate-50 via-slate-50/98 to-transparent dark:from-slate-950 dark:via-slate-950/98 dark:to-transparent z-20 glow-chat-divider ${
+									aiStatus === 'streaming' || aiStatus === 'submitted' ? 'is-ai-thinking' : ''
+								}`}
+							>
 								<div className='max-w-5xl mx-auto w-full px-4'>
 									<AISearchPrompt
 										onSearchChange={setSearchQuery}

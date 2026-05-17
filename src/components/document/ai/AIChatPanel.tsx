@@ -1,6 +1,6 @@
 'use client'
 
-import { CheckIcon, BrainCircuit, Zap } from 'lucide-react'
+import { Attachment, AttachmentPreview, Attachments } from '@/components/ui/ai-elements/attachments'
 import {
 	Conversation,
 	ConversationContent,
@@ -19,19 +19,18 @@ import {
 } from '@/components/ui/ai-elements/message'
 import {
 	ModelSelector,
-	ModelSelectorContent,
-	ModelSelectorEmpty,
-	ModelSelectorGroup,
-	ModelSelectorInput,
-	ModelSelectorItem,
-	ModelSelectorList,
 	ModelSelectorLogo,
 	ModelSelectorName,
 	ModelSelectorTrigger,
-	ModelSelectorSeparator,
+	SharedModelSelectorContent,
 } from '@/components/ui/ai-elements/model-selector'
 import {
 	PromptInput,
+	PromptInputActionAddAttachments,
+	PromptInputActionAddScreenshot,
+	PromptInputActionMenu,
+	PromptInputActionMenuContent,
+	PromptInputActionMenuTrigger,
 	PromptInputBody,
 	PromptInputFooter,
 	PromptInputHeader,
@@ -40,21 +39,10 @@ import {
 	PromptInputSubmit,
 	PromptInputTextarea,
 	PromptInputTools,
-	usePromptInputController,
-	PromptInputActionMenu,
-	PromptInputActionMenuTrigger,
-	PromptInputActionMenuContent,
-	PromptInputActionAddAttachments,
-	PromptInputActionAddScreenshot,
+	SharedPromptInputAttachments,
 	usePromptInputAttachments,
+	usePromptInputController,
 } from '@/components/ui/ai-elements/prompt-input'
-import {
-	Attachments,
-	Attachment,
-	AttachmentPreview,
-	AttachmentInfo,
-	AttachmentRemove,
-} from '@/components/ui/ai-elements/attachments'
 
 import {
 	Reasoning,
@@ -76,13 +64,12 @@ import {
 	ToolOutput,
 } from '@/components/ui/ai-elements/tool'
 import { Button } from '@/components/ui/button'
+import { AI_MODELS } from '@/lib/ai/constants'
 // New modular AI logic
 import { useAIChat } from '@/lib/ai/hooks/use-ai-chat'
 import { useAIChatStore } from '@/lib/ai/store'
 import type { ToolStatus } from '@/lib/ai/types/chat'
-
 import { AIChatHeader } from './AIChatHeader'
-import { AI_MODELS } from '@/lib/ai/constants'
 
 const models = AI_MODELS
 
@@ -107,7 +94,10 @@ interface AIChatPanelProps {
 
 export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 	// 1. Hooks & Store
-	const { sendMessage, stop, messages, isStreaming, currentPlan } = useAIChat({ editor, documentId })
+	const { sendMessage, stop, messages, isStreaming } = useAIChat({
+		editor,
+		documentId,
+	})
 	const {
 		model,
 		setModel,
@@ -157,9 +147,7 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 										from={message.from as any}
 										key={version.id}
 										className={
-											message.from === 'assistant'
-												? 'max-w-full'
-												: 'max-w-[85%] ml-auto w-fit'
+											message.from === 'assistant' ? 'max-w-full' : 'max-w-[85%] ml-auto w-fit'
 										}
 									>
 										<div className={message.from === 'assistant' ? 'w-full' : 'w-fit max-w-full'}>
@@ -194,7 +182,13 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 												</Reasoning>
 											)}
 
-											<MessageContent className={message.from === 'assistant' ? 'w-full' : 'w-fit min-w-[80px] max-w-full group-[.is-user]:bg-slate-100/60 dark:group-[.is-user]:bg-slate-800/40 group-[.is-user]:py-2'}>
+											<MessageContent
+												className={
+													message.from === 'assistant'
+														? 'w-full'
+														: 'w-fit min-w-[80px] max-w-full group-[.is-user]:bg-slate-100/60 dark:group-[.is-user]:bg-slate-800/40 group-[.is-user]:py-2'
+												}
+											>
 												{(version.parts || []).map((part) => {
 													if (part.type === 'text') {
 														return (
@@ -253,14 +247,11 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 						</MessageBranch>
 					))}
 					{isStreaming && !messages.at(-1)?.versions?.[0]?.parts?.length && (
-						<Message
-							from='assistant'
-							className='max-w-full w-full'
-						>
+						<Message from='assistant' className='max-w-full w-full'>
 							<MessageContent className='w-full pt-1'>
-									<span className='text-sm text-slate-400 italic font-light animate-pulse'>
-										Neptune sedang merenung...
-									</span>
+								<span className='text-sm text-slate-400 italic font-light animate-pulse'>
+									Neptune sedang merenung...
+								</span>
 							</MessageContent>
 						</Message>
 					)}
@@ -268,7 +259,9 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 				<ConversationScrollButton />
 			</Conversation>
 
-			<div className={`shrink-0 space-y-4 pt-4 bg-gradient-to-t from-slate-50 via-slate-50/98 to-transparent dark:from-slate-950 dark:via-slate-950/98 dark:to-transparent z-20 glow-chat-divider ${isStreaming ? 'is-ai-thinking' : ''}`}>
+			<div
+				className={`shrink-0 space-y-4 pt-4 bg-gradient-to-t from-slate-50 via-slate-50/98 to-transparent dark:from-slate-950 dark:via-slate-950/98 dark:to-transparent z-20 glow-chat-divider ${isStreaming ? 'is-ai-thinking' : ''}`}
+			>
 				<Suggestions className='px-4'>
 					{suggestions.map((suggestion) => (
 						<Suggestion key={suggestion} onClick={(s) => sendMessage(s)} suggestion={suggestion} />
@@ -370,15 +363,7 @@ function PromptInputAttachmentsList() {
 
 	return (
 		<PromptInputHeader className='border-b border-border/40 p-2'>
-			<Attachments variant='inline'>
-				{attachments.files.map((file) => (
-					<Attachment key={file.id} data={file} onRemove={() => attachments.remove(file.id)}>
-						<AttachmentPreview />
-						<AttachmentInfo className='max-w-[120px] text-xs font-normal text-slate-600 dark:text-slate-300' />
-						<AttachmentRemove />
-					</Attachment>
-				))}
-			</Attachments>
+			<SharedPromptInputAttachments />
 		</PromptInputHeader>
 	)
 }
@@ -394,7 +379,16 @@ interface AIChatInputProps {
 	setAgentId: (id: string) => void
 }
 
-function AIChatInput({ onSend, isLoading, onStop, model, setModel, selectedModelData, agentId, setAgentId }: AIChatInputProps) {
+function AIChatInput({
+	onSend,
+	isLoading,
+	onStop,
+	model,
+	setModel,
+	selectedModelData,
+	agentId,
+	setAgentId,
+}: AIChatInputProps) {
 	const controller = usePromptInputController()
 	const input = controller?.textInput.value || ''
 	const attachments = usePromptInputAttachments()
@@ -442,34 +436,12 @@ function AIChatInput({ onSend, isLoading, onStop, model, setModel, selectedModel
 								)}
 							</Button>
 						</ModelSelectorTrigger>
-						<ModelSelectorContent>
-							<ModelSelectorInput placeholder='Search models...' />
-							<ModelSelectorList>
-								<ModelSelectorEmpty>Model/mode not found.</ModelSelectorEmpty>
-								<ModelSelectorGroup heading='Agent Mode'>
-									<ModelSelectorItem onSelect={() => setAgentId('manual_graph')} value='manual_graph'>
-										<BrainCircuit className='mr-2 h-3.5 w-3.5 text-blue-500' />
-										<ModelSelectorName>High Agentic</ModelSelectorName>
-										{agentId === 'manual_graph' && <CheckIcon className='ml-auto size-3' />}
-									</ModelSelectorItem>
-									<ModelSelectorItem onSelect={() => setAgentId('deep_agent')} value='deep_agent'>
-										<Zap className='mr-2 h-3.5 w-3.5 text-amber-500' />
-										<ModelSelectorName>Medium</ModelSelectorName>
-										{agentId === 'deep_agent' && <CheckIcon className='ml-auto size-3' />}
-									</ModelSelectorItem>
-								</ModelSelectorGroup>
-								<ModelSelectorSeparator />
-								<ModelSelectorGroup heading='Available Models'>
-									{models.map((m) => (
-										<ModelSelectorItem key={m.id} onSelect={() => setModel(m.id)} value={m.id}>
-											<ModelSelectorLogo provider={m.chef as any} />
-											<ModelSelectorName>{m.name}</ModelSelectorName>
-											{model === m.id && <CheckIcon className='ml-auto size-3' />}
-										</ModelSelectorItem>
-									))}
-								</ModelSelectorGroup>
-							</ModelSelectorList>
-						</ModelSelectorContent>
+						<SharedModelSelectorContent
+							model={model}
+							setModel={setModel}
+							agentId={agentId}
+							setAgentId={setAgentId}
+						/>
 					</ModelSelector>
 				</PromptInputTools>
 				<PromptInputSubmit
