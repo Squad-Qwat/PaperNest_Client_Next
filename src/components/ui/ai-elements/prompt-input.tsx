@@ -549,8 +549,8 @@ export const PromptInput = ({
 		[accept]
 	)
 
-	const addLocal = useCallback(
-		(fileList: File[] | FileList) => {
+	const validateFiles = useCallback(
+		(fileList: File[] | FileList, currentCount: number): File[] | null => {
 			const incoming = [...fileList]
 			const accepted = incoming.filter((f) => matchesAccept(f))
 			if (incoming.length && accepted.length === 0) {
@@ -558,7 +558,7 @@ export const PromptInput = ({
 					code: 'accept',
 					message: 'No files match the accepted types.',
 				})
-				return
+				return null
 			}
 			const withinSize = (f: File) => (maxFileSize ? f.size <= maxFileSize : true)
 			const sized = accepted.filter(withinSize)
@@ -567,18 +567,29 @@ export const PromptInput = ({
 					code: 'max_file_size',
 					message: 'All files exceed the maximum size.',
 				})
-				return
+				return null
 			}
 
+			const capacity =
+				typeof maxFiles === 'number' ? Math.max(0, maxFiles - currentCount) : undefined
+			const capped = typeof capacity === 'number' ? sized.slice(0, capacity) : sized
+			if (typeof capacity === 'number' && sized.length > capacity) {
+				onError?.({
+					code: 'max_files',
+					message: 'Too many files. Some were not added.',
+				})
+			}
+			return capped
+		},
+		[matchesAccept, maxFiles, maxFileSize, onError]
+	)
+
+	const addLocal = useCallback(
+		(fileList: File[] | FileList) => {
 			setItems((prev) => {
-				const capacity =
-					typeof maxFiles === 'number' ? Math.max(0, maxFiles - prev.length) : undefined
-				const capped = typeof capacity === 'number' ? sized.slice(0, capacity) : sized
-				if (typeof capacity === 'number' && sized.length > capacity) {
-					onError?.({
-						code: 'max_files',
-						message: 'Too many files. Some were not added.',
-					})
+				const capped = validateFiles(fileList, prev.length)
+				if (!capped || capped.length === 0) {
+					return prev
 				}
 				const next: (FileUIPart & { id: string })[] = []
 				for (const file of capped) {
@@ -593,7 +604,7 @@ export const PromptInput = ({
 				return [...prev, ...next]
 			})
 		},
-		[matchesAccept, maxFiles, maxFileSize, onError]
+		[validateFiles]
 	)
 
 	const removeLocal = useCallback(
@@ -611,41 +622,12 @@ export const PromptInput = ({
 	// Wrapper that validates files before calling provider's add
 	const addWithProviderValidation = useCallback(
 		(fileList: File[] | FileList) => {
-			const incoming = [...fileList]
-			const accepted = incoming.filter((f) => matchesAccept(f))
-			if (incoming.length && accepted.length === 0) {
-				onError?.({
-					code: 'accept',
-					message: 'No files match the accepted types.',
-				})
-				return
-			}
-			const withinSize = (f: File) => (maxFileSize ? f.size <= maxFileSize : true)
-			const sized = accepted.filter(withinSize)
-			if (accepted.length > 0 && sized.length === 0) {
-				onError?.({
-					code: 'max_file_size',
-					message: 'All files exceed the maximum size.',
-				})
-				return
-			}
-
-			const currentCount = files.length
-			const capacity =
-				typeof maxFiles === 'number' ? Math.max(0, maxFiles - currentCount) : undefined
-			const capped = typeof capacity === 'number' ? sized.slice(0, capacity) : sized
-			if (typeof capacity === 'number' && sized.length > capacity) {
-				onError?.({
-					code: 'max_files',
-					message: 'Too many files. Some were not added.',
-				})
-			}
-
-			if (capped.length > 0) {
+			const capped = validateFiles(fileList, files.length)
+			if (capped && capped.length > 0) {
 				controller?.attachments.add(capped)
 			}
 		},
-		[matchesAccept, maxFileSize, maxFiles, onError, files.length, controller]
+		[validateFiles, files.length, controller]
 	)
 
 	const clearAttachments = useCallback(
@@ -691,8 +673,8 @@ export const PromptInput = ({
 	}, [files, syncHiddenInput])
 
 	useEffect(() => {
-		const form = formRef.current
-		if (!form || globalDrop) {
+		const target = globalDrop ? document : formRef.current
+		if (!target) {
 			return
 		}
 
@@ -730,66 +712,15 @@ export const PromptInput = ({
 			}
 		}
 
-		form.addEventListener('dragenter', onDragEnter)
-		form.addEventListener('dragover', onDragOver)
-		form.addEventListener('dragleave', onDragLeave)
-		form.addEventListener('drop', onDrop)
+		target.addEventListener('dragenter', onDragEnter as any)
+		target.addEventListener('dragover', onDragOver as any)
+		target.addEventListener('dragleave', onDragLeave as any)
+		target.addEventListener('drop', onDrop as any)
 		return () => {
-			form.removeEventListener('dragenter', onDragEnter)
-			form.removeEventListener('dragover', onDragOver)
-			form.removeEventListener('dragleave', onDragLeave)
-			form.removeEventListener('drop', onDrop)
-		}
-	}, [add, globalDrop])
-
-	useEffect(() => {
-		if (!globalDrop) {
-			return
-		}
-
-		const onDragEnter = (e: DragEvent) => {
-			if (e.dataTransfer?.types?.includes('Files')) {
-				e.preventDefault()
-				dragCounterRef.current++
-				if (dragCounterRef.current === 1) {
-					setIsDragging(true)
-				}
-			}
-		}
-		const onDragOver = (e: DragEvent) => {
-			if (e.dataTransfer?.types?.includes('Files')) {
-				e.preventDefault()
-			}
-		}
-		const onDragLeave = (e: DragEvent) => {
-			if (e.dataTransfer?.types?.includes('Files')) {
-				e.preventDefault()
-				dragCounterRef.current--
-				if (dragCounterRef.current === 0) {
-					setIsDragging(false)
-				}
-			}
-		}
-		const onDrop = (e: DragEvent) => {
-			if (e.dataTransfer?.types?.includes('Files')) {
-				e.preventDefault()
-			}
-			dragCounterRef.current = 0
-			setIsDragging(false)
-			if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
-				add(e.dataTransfer.files)
-			}
-		}
-
-		document.addEventListener('dragenter', onDragEnter)
-		document.addEventListener('dragover', onDragOver)
-		document.addEventListener('dragleave', onDragLeave)
-		document.addEventListener('drop', onDrop)
-		return () => {
-			document.removeEventListener('dragenter', onDragEnter)
-			document.removeEventListener('dragover', onDragOver)
-			document.removeEventListener('dragleave', onDragLeave)
-			document.removeEventListener('drop', onDrop)
+			target.removeEventListener('dragenter', onDragEnter as any)
+			target.removeEventListener('dragover', onDragOver as any)
+			target.removeEventListener('dragleave', onDragLeave as any)
+			target.removeEventListener('drop', onDrop as any)
 		}
 	}, [add, globalDrop])
 
