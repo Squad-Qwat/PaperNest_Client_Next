@@ -140,7 +140,12 @@ export function WorkspaceSettingsModal({
 						<Button
 							type='button'
 							variant='outline'
-							onClick={() => setShowDeleteDialog(true)}
+							onClick={(e: React.MouseEvent) => {
+								e.preventDefault()
+								e.stopPropagation()
+								onClose()
+								setShowDeleteDialog(true)
+							}}
 							disabled={loading || deleting}
 							className='text-red-600 hover:text-red-700 hover:bg-red-50'
 						>
