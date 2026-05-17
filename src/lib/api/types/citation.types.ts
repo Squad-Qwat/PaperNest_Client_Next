@@ -2,7 +2,7 @@ import type { ApiResponse } from './common.types'
 
 export interface Citation {
 	citationId: string
-	documentId: string
+	documentId?: string
 	type: string
 	title: string
 	author: string

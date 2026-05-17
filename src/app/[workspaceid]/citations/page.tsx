@@ -50,11 +50,14 @@ export default function Page() {
 
 	// Get citations for the entire workspace
 	const { data: citationsData, isLoading: isCitationsLoading } = useWorkspaceCitations(workspaceId)
-	const citations = useMemo(() => (citationsData?.citation as CitationDisplay[]) || [], [citationsData])
+
+	console.log('citationsData:', JSON.stringify(citationsData, null, 2))
+	
+	const citations = useMemo(() => (citationsData?.data?.citations as CitationDisplay[]) || [], [citationsData])
 
 	// Still need documents to assign new citations to a document
 	const { data: documentsData } = useWorkspaceDocuments(workspaceId)
-	const documentId = documentsData?.documents?.[0]?.documentId
+	// const documentId = documentsData?.documents?.[0]?.documentId
 
 	const { mutate: createCitation } = useCreateCitation()
 	const { mutate: updateCitation } = useUpdateCitation()
@@ -74,7 +77,7 @@ export default function Page() {
 		} else {
 			createCitation({
 				workspaceId,
-				documentId, // This might be undefined, which is now allowed
+				// documentId, <- This might be undefined, which is now allowed
 				...data as any,
 			})
 		}
@@ -141,7 +144,7 @@ export default function Page() {
 						onOpenChange={setIsSheetOpen}
 						onSave={handleSave}
 						initialData={editingCitation}
-						documentId={documentId}
+						// documentId={documentId}
 					/>
 
 					<CitationDetailsSheet

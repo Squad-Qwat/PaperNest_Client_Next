@@ -21,7 +21,7 @@ export const citationsService = {
 	 * Get all citations for a workspace
 	 */
 	getWorkspaceCitations: async (workspaceId: string): Promise<CitationsResponse> => {
-		return apiClient.get<CitationsResponse>(API_ENDPOINTS.citations.workspace(workspaceId))
+		return await apiClient.get<CitationsResponse>(API_ENDPOINTS.citations.workspace(workspaceId))
 	},
 
 	/**
@@ -36,11 +36,13 @@ export const citationsService = {
 	 * Can be document-specific or workspace-wide
 	 */
 	create: async (data: CitationData & { workspaceId?: string; documentId?: string }): Promise<CitationResponse> => {
-		if (data.documentId) {
-			return apiClient.post<CitationResponse>(API_ENDPOINTS.citations.base(data.documentId), data)
+		const {workspaceId, documentId, ...citationData} = data
+		
+		if (documentId) {
+			return apiClient.post<CitationResponse>(API_ENDPOINTS.citations.base(documentId), {...citationData, documentId, workspaceId})
 		}
-		if (data.workspaceId) {
-			return apiClient.post<CitationResponse>(API_ENDPOINTS.citations.workspace(data.workspaceId), data)
+		if (workspaceId) {
+			return apiClient.post<CitationResponse>(API_ENDPOINTS.citations.workspace(workspaceId), {...citationData, workspaceId})
 		}
 		throw new Error('Either documentId or workspaceId is required to create a citation')
 	},

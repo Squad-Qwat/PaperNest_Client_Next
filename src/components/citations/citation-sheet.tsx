@@ -202,6 +202,39 @@ export function CitationSheet({
 			publicationDate: year,
 			url: url || null,
 			cslJson: {
+				/* 
+				title,
+				author: authorString,
+				containerTitle: journal || '',
+				volume: volume || '',
+				issue: issue || '',
+				page: pageFrom && pageTo ? `${pageFrom}-${pageTo}` : (pageFrom || pageTo || ''),
+				issued: year || '',
+				DOI: doi || identifier || '',
+				URL: url || '', 
+				*/
+				raw: JSON.stringify({
+					title,
+					author: authors.map(a => {
+						const parts = a.name.split(',')
+						return {
+							family: parts[0]?.trim() || '',
+							given: parts[1]?.trim() || ''
+						}
+					}),
+					containerTitle: journal,
+					volume,
+					issue,
+					page: pageFrom && pageTo ? `${pageFrom}-${pageTo}` : (pageFrom || pageTo || ''),
+					issued: { 'date-parts': [[year]] },
+					DOI: doi || identifier,
+					URL: url,
+				})
+			}
+		}
+
+		/*
+			cslJson: {
 				title,
 				author: authors.map(a => {
 					const parts = a.name.split(',')
@@ -218,7 +251,7 @@ export function CitationSheet({
 				DOI: doi || identifier,
 				URL: url,
 			}
-		}
+		*/
 
 		onSave(data)
 		onOpenChange(false)
