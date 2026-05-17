@@ -40,7 +40,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 	onResizeStart,
 	onResizeEnd,
 }) => {
-	const [width, setWidth] = useState(320) // Default width 320px
+	const [width, setWidth] = useState(380) // Default width 380px
 	const [isResizing, setIsResizing] = useState(false)
 	const _indexingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
