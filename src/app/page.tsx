@@ -1,6 +1,6 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { useRouter, /*useParams*/ } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { DashboardSkeleton } from '@/components/layout/DashboardSkeleton'
 import { SplashLoader } from '@/components/layout/SplashLoader'
@@ -11,6 +11,7 @@ import { useWorkspaces } from '@/lib/api/hooks/use-workspaces'
 
 export default function Page() {
 	const router = useRouter()
+	// const params = useParams()
 	const { user, loading: authLoading } = useAuth()
 	const { data: workspacesResponse, isLoading: workspacesLoading, refetch } = useWorkspaces()
 	const workspaces = workspacesResponse?.workspaces || []
@@ -22,8 +23,28 @@ export default function Page() {
 		}
 
 		if (!workspacesLoading && workspaces.length > 0) {
-			router.push(`/${workspaces[0].workspaceId}`)
+			const validWorkspace = workspaces.find((w) => !!w.workspaceId)
+			// router.push(`/${workspaces[0].workspaceId}`)
+			if (validWorkspace) {
+				router.push(`/${validWorkspace.workspaceId}`)
+				// return
+			}
+
+			/*
+			Maybe later, after testing 
+			const lastVisitedWorkspaceId = typeof window !== 'undefined' ? localStorage.getItem('lastVisitedWorkspaceId') : null
+			const workspaceFromStorage = workspaces.find((w) => w.workspaceId === lastVisitedWorkspaceId)
+			const currentWorkspaceId = params?.workspaceId as string | undefined
+			const workspaceNotInUrl = workspaces.find((w) => w.workspaceId && w.workspaceId !== currentWorkspaceId)
+			const fallbackWorkspace = workspaceFromStorage || workspaceNotInUrl || workspaces.find((w) => !!w.workspaceId)
+
+			if (fallbackWorkspace?.workspaceId) {router.push(`/${fallbackWorkspace.workspaceId}`)}
+			else {setShowCreateModal(true)} 
+			*/
 		}
+
+		// since the latest if-then part is "!workspacesLoading && workspaces.length > 0", here it's "workspacesLoading || workspaces.length <= 0"
+		setShowCreateModal(true)
 	}, [user, authLoading, workspaces, workspacesLoading, router])
 
 	const handleWorkspaceCreated = async () => {
