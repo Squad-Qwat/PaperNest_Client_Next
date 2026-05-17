@@ -51,8 +51,8 @@ export default function Page() {
 	// Get citations for the entire workspace
 	const { data: citationsData, isLoading: isCitationsLoading } = useWorkspaceCitations(workspaceId)
 
-	console.log('citationsData:', JSON.stringify(citationsData, null, 2))
-	
+	// console.log('citationsData:', JSON.stringify(citationsData, null, 2))
+
 	const citations = useMemo(() => (citationsData?.data?.citations as CitationDisplay[]) || [], [citationsData])
 
 	// Still need documents to assign new citations to a document
