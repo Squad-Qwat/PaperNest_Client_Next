@@ -856,8 +856,8 @@ export const PromptInput = ({
 				title='Upload files'
 				type='file'
 			/>
-			<form className={cn('w-full', className)} onSubmit={handleSubmit} ref={formRef} {...props}>
-				<InputGroup className='overflow-hidden'>{children}</InputGroup>
+			<form className='w-full' onSubmit={handleSubmit} ref={formRef} {...props}>
+				<InputGroup className={cn('overflow-hidden rounded-xl', className)}>{children}</InputGroup>
 			</form>
 		</>
 	)
@@ -1155,6 +1155,7 @@ export const PromptInputSubmit = ({
 			type={isGenerating && onStop ? 'button' : 'submit'}
 			variant={variant}
 			{...props}
+			disabled={isGenerating ? false : props.disabled}
 		>
 			{children ?? Icon}
 		</InputGroupButton>

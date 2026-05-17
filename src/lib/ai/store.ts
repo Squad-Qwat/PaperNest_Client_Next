@@ -2,6 +2,7 @@ import { nanoid } from 'nanoid'
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 import type { ChatMessage, PlanStep, ToolCall, ToolStatus } from './types/chat'
+import { AI_MODELS } from './constants'
 
 interface AIChatState {
 	messages: ChatMessage[]
@@ -35,7 +36,7 @@ export const useAIChatStore = create<AIChatState & AIChatActions>()(
 		messages: [],
 		currentPlan: [],
 		isStreaming: false,
-		model: 'google-genai:gemma-4-31b-it', // Default model
+		model: AI_MODELS[0].id, // Default model
 		reasoningEnabled: false,
 		threadId: `thread_${Date.now()}_${nanoid(6)}`,
 		agentId: 'manual_graph',

@@ -89,6 +89,7 @@ export interface AIStreamPayload {
 	}[]
 	threadId: string
 	documentId?: string
+	workspaceId?: string
 	reasoningEnabled: boolean
 	plan?: PlanStep[]
 	providerId: string

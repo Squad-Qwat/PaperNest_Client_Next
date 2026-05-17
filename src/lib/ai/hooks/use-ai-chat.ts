@@ -6,12 +6,15 @@ import { executeEditorTool } from '../tools/functions'
 import type { AIStreamPayload } from '../types/chat'
 import { parseSSEStream } from './use-ai-stream'
 
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
 interface UseAIChatOptions {
-	editor: any
+	editor?: any
 	documentId?: string
+	workspaceId?: string
 }
 
-export function useAIChat({ editor, documentId }: UseAIChatOptions) {
+export function useAIChat({ editor, documentId, workspaceId }: UseAIChatOptions) {
 	const store = useAIChatStore()
 	const abortControllerRef = useRef<AbortController | null>(null)
 
@@ -88,6 +91,7 @@ export function useAIChat({ editor, documentId }: UseAIChatOptions) {
 							toolResultsForContinuation.length > 0 ? toolResultsForContinuation : undefined,
 						threadId: currentState.threadId,
 						documentId,
+						workspaceId,
 						reasoningEnabled: currentState.reasoningEnabled,
 						agentId: currentState.agentId,
 						plan: currentState.currentPlan.length > 0 ? currentState.currentPlan : undefined,
@@ -105,9 +109,22 @@ export function useAIChat({ editor, documentId }: UseAIChatOptions) {
 					// Consume the stream via async generator
 					for await (const event of parseSSEStream(stream)) {
 						switch (event.type) {
-							case 'content':
-								store.appendContent(assistantKey, event.content)
+							case 'content': {
+								const fullContent = event.content
+								if (fullContent.length > 2) {
+									let typedLength = 0
+									const chunkSize = 2
+									while (typedLength < fullContent.length) {
+										const chunk = fullContent.slice(typedLength, typedLength + chunkSize)
+										store.appendContent(assistantKey, chunk)
+										typedLength += chunkSize
+										await delay(12)
+									}
+								} else {
+									store.appendContent(assistantKey, fullContent)
+								}
 								break
+							}
 
 							case 'tool_calls':
 								hasToolCallsInThisIteration = true
