@@ -14,11 +14,11 @@ import {
 	ReasoningTrigger,
 } from '@/components/ui/ai-elements/reasoning'
 import {
-	ChainOfThought,
-	ChainOfThoughtContent,
-	ChainOfThoughtHeader,
-	ChainOfThoughtStep,
-} from '@/components/ui/ai-elements/chain-of-thought'
+	Attachments,
+	Attachment,
+	AttachmentPreview,
+} from '@/components/ui/ai-elements/attachments'
+
 import { useAIChatStore } from '@/lib/ai/store'
 
 interface ChatMessage {
@@ -27,6 +27,7 @@ interface ChatMessage {
 	text: string
 	isReasoning?: boolean
 	reasoningText?: string
+	attachments?: any[]
 }
 
 interface DashboardAIChatProps {
@@ -114,19 +115,6 @@ export function DashboardAIChat({
 					) : (
 						messages.map((msg) => (
 							<div key={msg.id} className='animate-in fade-in slide-in-from-bottom-2 duration-300'>
-								{/* Render optional reasoning block if AI has reasoning state */}
-								{msg.from === 'assistant' && msg.reasoningText && (
-									<div className='mb-3 max-w-4xl'>
-										<Reasoning
-											duration={1}
-											className='w-full border border-slate-100 shadow-xs rounded-lg'
-										>
-											<ReasoningTrigger />
-											<ReasoningContent>{msg.reasoningText}</ReasoningContent>
-										</Reasoning>
-									</div>
-								)}
-
 								<Message
 									from={msg.from}
 									className={
@@ -135,17 +123,46 @@ export function DashboardAIChat({
 											: 'max-w-2xl ml-auto w-fit'
 									}
 								>
-									<MessageContent className={msg.from === 'assistant' ? 'w-full pt-0.5' : 'w-fit min-w-[80px] max-w-full pt-0.5 group-[.is-user]:bg-slate-100/60 dark:group-[.is-user]:bg-slate-800/40 group-[.is-user]:py-2'}>
-										{msg.from === 'assistant' ? (
-											<MessageResponse className='text-gray-800 leading-relaxed text-sm md:text-base'>
-												{msg.text}
-											</MessageResponse>
-										) : (
-											<div className='text-gray-800 leading-relaxed text-sm md:text-base whitespace-pre-wrap break-words'>
-												{renderMessageTextWithTags(msg.text, documents)}
+									<div className={msg.from === 'assistant' ? 'w-full' : 'w-fit max-w-full'}>
+										{msg.from === 'user' && msg.attachments && msg.attachments.length > 0 && (
+											<div className='mb-2'>
+												<Attachments variant='grid'>
+													{msg.attachments.map((file: any) => (
+														<Attachment
+															key={file.id}
+															data={{ ...file, type: 'file' }}
+														>
+															<AttachmentPreview />
+														</Attachment>
+													))}
+												</Attachments>
 											</div>
 										)}
-									</MessageContent>
+
+										{msg.from === 'assistant' && msg.reasoningText && (
+											<div className='mb-2 w-full'>
+												<Reasoning
+													duration={1}
+													className='w-full border border-slate-100 shadow-xs rounded-lg'
+												>
+													<ReasoningTrigger />
+													<ReasoningContent>{msg.reasoningText}</ReasoningContent>
+												</Reasoning>
+											</div>
+										)}
+
+										<MessageContent className={msg.from === 'assistant' ? 'w-full pt-0.5' : 'w-fit min-w-[80px] max-w-full pt-0.5 group-[.is-user]:bg-slate-100/60 dark:group-[.is-user]:bg-slate-800/40 group-[.is-user]:py-2'}>
+											{msg.from === 'assistant' ? (
+												<MessageResponse className='text-gray-800 leading-relaxed text-sm md:text-base'>
+													{msg.text}
+												</MessageResponse>
+											) : (
+												<div className='text-gray-800 leading-relaxed text-sm md:text-base whitespace-pre-wrap break-words'>
+													{renderMessageTextWithTags(msg.text, documents)}
+												</div>
+											)}
+										</MessageContent>
+									</div>
 								</Message>
 							</div>
 						))
@@ -159,30 +176,9 @@ export function DashboardAIChat({
 								className='max-w-4xl w-full'
 							>
 								<div className='w-full'>
-									{currentPlan && currentPlan.length > 0 ? (
-										<ChainOfThought defaultOpen={true}>
-											<ChainOfThoughtHeader>Rencana Neptune AI</ChainOfThoughtHeader>
-											<ChainOfThoughtContent>
-												{currentPlan.map((step, idx) => (
-													<ChainOfThoughtStep
-														key={idx}
-														label={step.title}
-														status={
-															step.status === 'completed'
-																? 'complete'
-																: step.status === 'failed'
-																	? 'failed'
-																	: step.status
-														}
-													/>
-												))}
-											</ChainOfThoughtContent>
-										</ChainOfThought>
-									) : (
-										<span className='text-sm text-slate-400 italic font-light animate-pulse'>
-											Neptune sedang merenung...
-										</span>
-									)}
+									<span className='text-sm text-slate-400 italic font-light animate-pulse'>
+										Neptune sedang merenung...
+									</span>
 								</div>
 							</Message>
 						</div>

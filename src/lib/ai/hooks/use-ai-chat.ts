@@ -37,25 +37,30 @@ export function useAIChat({ editor, documentId, workspaceId }: UseAIChatOptions)
 	 * Main entry point to send a message to the AI
 	 */
 	const sendMessage = useCallback(
-		async (text: string) => {
-			if (!text.trim() || store.isStreaming) return
+		async (text: string, files?: any[]) => {
+			if (!text.trim() && (!files || files.length === 0)) return
+			if (store.isStreaming) return
 
-			// 1. Cleanup previous request if any
 			stop()
 
 			const controller = new AbortController()
-			// Increased timeout for backend-executed tools (Semantic Scholar can take >60s)
 			const timeoutSignal = AbortSignal.timeout(180000)
 			const combinedSignal = AbortSignal.any([controller.signal, timeoutSignal])
 			abortControllerRef.current = controller
 
-			// 2. Setup initial state
 			const assistantKey = nanoid()
-			store.addUserMessage(text)
+			
+			const attachments = files?.map((f) => ({
+				id: f.id || nanoid(),
+				filename: f.filename,
+				mediaType: f.mediaType,
+				url: f.url
+			}))
+
+			store.addUserMessage(text, attachments)
 			store.initAssistantMessage(assistantKey)
 			store.setStreaming(true)
 
-			// Get initial document state
 			workingDocTextRef.current = editor?.getCurrentContent?.() ?? ''
 
 			try {
@@ -65,14 +70,11 @@ export function useAIChat({ editor, documentId, workspaceId }: UseAIChatOptions)
 				let shouldContinue = true
 				const toolRetryCount = new Map<string, number>()
 
-				// --- Think-Execute-Reflect Loop ---
 				while (shouldContinue && currentStep < MAX_STEPS) {
 					currentStep++
 
-					// Get the freshest state from the store to avoid stale closures in the async loop
 					const currentState = useAIChatStore.getState()
 
-					// Prepare conversation history for the AI context
 					const conversationHistory = currentState.messages.slice(-10).map((msg) => ({
 						role: msg.from,
 						content: msg.versions[msg.activeVersionIndex].parts
@@ -97,6 +99,7 @@ export function useAIChat({ editor, documentId, workspaceId }: UseAIChatOptions)
 						plan: currentState.currentPlan.length > 0 ? currentState.currentPlan : undefined,
 						providerId,
 						modelId,
+						files: currentStep === 1 ? attachments : undefined
 					}
 
 					const stream = await aiService.streamChat(payload, combinedSignal)
@@ -151,8 +154,12 @@ export function useAIChat({ editor, documentId, workspaceId }: UseAIChatOptions)
 										continue
 									}
 
-									// Backend-executed tools: show loading state, wait for tool_results event
-									const BACKEND_TOOLS = new Set(['search_semantic_scholar', 'search_attached_pdfs'])
+									const BACKEND_TOOLS = new Set([
+										'search_semantic_scholar',
+										'search_attached_pdfs',
+										'search_workspace_documents',
+										'read_workspace_document_by_id',
+									])
 									if (BACKEND_TOOLS.has(toolData.name)) {
 										store.addToolPart(assistantKey, {
 											id: toolData.id,

@@ -1,6 +1,6 @@
 'use client'
 
-import { CheckIcon } from 'lucide-react'
+import { CheckIcon, BrainCircuit, Zap } from 'lucide-react'
 import {
 	Conversation,
 	ConversationContent,
@@ -28,6 +28,7 @@ import {
 	ModelSelectorLogo,
 	ModelSelectorName,
 	ModelSelectorTrigger,
+	ModelSelectorSeparator,
 } from '@/components/ui/ai-elements/model-selector'
 import {
 	PromptInput,
@@ -40,13 +41,21 @@ import {
 	PromptInputTextarea,
 	PromptInputTools,
 	usePromptInputController,
+	PromptInputActionMenu,
+	PromptInputActionMenuTrigger,
+	PromptInputActionMenuContent,
+	PromptInputActionAddAttachments,
+	PromptInputActionAddScreenshot,
+	usePromptInputAttachments,
 } from '@/components/ui/ai-elements/prompt-input'
 import {
-	ChainOfThought,
-	ChainOfThoughtContent,
-	ChainOfThoughtHeader,
-	ChainOfThoughtStep,
-} from '@/components/ui/ai-elements/chain-of-thought'
+	Attachments,
+	Attachment,
+	AttachmentPreview,
+	AttachmentInfo,
+	AttachmentRemove,
+} from '@/components/ui/ai-elements/attachments'
+
 import {
 	Reasoning,
 	ReasoningContent,
@@ -71,7 +80,7 @@ import { Button } from '@/components/ui/button'
 import { useAIChat } from '@/lib/ai/hooks/use-ai-chat'
 import { useAIChatStore } from '@/lib/ai/store'
 import type { ToolStatus } from '@/lib/ai/types/chat'
-import { AgentSelector } from './AgentSelector'
+
 import { AIChatHeader } from './AIChatHeader'
 import { AI_MODELS } from '@/lib/ai/constants'
 
@@ -102,6 +111,8 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 	const {
 		model,
 		setModel,
+		agentId,
+		setAgentId,
 		clearChat,
 		reasoningEnabled: _reasoningEnabled,
 		setReasoningEnabled: _setReasoningEnabled,
@@ -112,8 +123,11 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 
 	// 2. Handlers
 	const handleSubmit = (promptMsg: PromptInputMessage | string) => {
-		const text = typeof promptMsg === 'string' ? promptMsg : promptMsg.text
-		sendMessage(text)
+		if (typeof promptMsg === 'string') {
+			sendMessage(promptMsg)
+		} else {
+			sendMessage(promptMsg.text, promptMsg.files)
+		}
 	}
 
 	const mapStatusToShadcn = (status: ToolStatus): any => {
@@ -149,6 +163,17 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 										}
 									>
 										<div className={message.from === 'assistant' ? 'w-full' : 'w-fit max-w-full'}>
+											{message.attachments && message.attachments.length > 0 && (
+												<div className='mb-2'>
+													<Attachments variant='grid'>
+														{message.attachments.map((file) => (
+															<Attachment key={file.id} data={{ ...file, type: 'file' } as any}>
+																<AttachmentPreview />
+															</Attachment>
+														))}
+													</Attachments>
+												</div>
+											)}
 											{/* Sources */}
 											{message.sources && message.sources.length > 0 && (
 												<Sources className='w-full'>
@@ -233,30 +258,9 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 							className='max-w-full w-full'
 						>
 							<MessageContent className='w-full pt-1'>
-								{currentPlan && currentPlan.length > 0 ? (
-									<ChainOfThought defaultOpen={true}>
-										<ChainOfThoughtHeader>Rencana Neptune AI</ChainOfThoughtHeader>
-										<ChainOfThoughtContent>
-											{currentPlan.map((step, idx) => (
-												<ChainOfThoughtStep
-													key={idx}
-													label={step.title}
-													status={
-														step.status === 'completed'
-															? 'complete'
-															: step.status === 'failed'
-																? 'failed'
-																: step.status
-													}
-												/>
-											))}
-										</ChainOfThoughtContent>
-									</ChainOfThought>
-								) : (
 									<span className='text-sm text-slate-400 italic font-light animate-pulse'>
 										Neptune sedang merenung...
 									</span>
-								)}
 							</MessageContent>
 						</Message>
 					)}
@@ -280,6 +284,8 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 							model={model}
 							setModel={setModel}
 							selectedModelData={selectedModelData}
+							agentId={agentId}
+							setAgentId={setAgentId}
 						/>
 					</PromptInputProvider>
 				</div>
@@ -358,9 +364,40 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 	)
 }
 
-function AIChatInput({ onSend, isLoading, onStop, model, setModel, selectedModelData }: any) {
+function PromptInputAttachmentsList() {
+	const attachments = usePromptInputAttachments()
+	if (attachments.files.length === 0) return null
+
+	return (
+		<PromptInputHeader className='border-b border-border/40 p-2'>
+			<Attachments variant='inline'>
+				{attachments.files.map((file) => (
+					<Attachment key={file.id} data={file} onRemove={() => attachments.remove(file.id)}>
+						<AttachmentPreview />
+						<AttachmentInfo className='max-w-[120px] text-xs font-normal text-slate-600 dark:text-slate-300' />
+						<AttachmentRemove />
+					</Attachment>
+				))}
+			</Attachments>
+		</PromptInputHeader>
+	)
+}
+
+interface AIChatInputProps {
+	onSend: (msg: PromptInputMessage | string) => void
+	isLoading: boolean
+	onStop: () => void
+	model: string
+	setModel: (model: string) => void
+	selectedModelData?: any
+	agentId: string
+	setAgentId: (id: string) => void
+}
+
+function AIChatInput({ onSend, isLoading, onStop, model, setModel, selectedModelData, agentId, setAgentId }: AIChatInputProps) {
 	const controller = usePromptInputController()
 	const input = controller?.textInput.value || ''
+	const attachments = usePromptInputAttachments()
 
 	return (
 		<PromptInput
@@ -372,23 +409,35 @@ function AIChatInput({ onSend, isLoading, onStop, model, setModel, selectedModel
 					onSend(msg)
 				}
 			}}
-			className='w-full'
+			accept='image/*,application/pdf'
+			multiple={true}
+			className='w-full min-w-0'
 		>
-			<PromptInputHeader />
+			<PromptInputAttachmentsList />
 			<PromptInputBody>
 				<PromptInputTextarea className='py-3 px-4' placeholder='Tanyakan apa saja ke Neptune...' />
 			</PromptInputBody>
 			<PromptInputFooter>
 				<PromptInputTools>
-					<AgentSelector />
+					<PromptInputActionMenu>
+						<PromptInputActionMenuTrigger />
+						<PromptInputActionMenuContent>
+							<PromptInputActionAddAttachments />
+							<PromptInputActionAddScreenshot />
+						</PromptInputActionMenuContent>
+					</PromptInputActionMenu>
 
 					<ModelSelector>
 						<ModelSelectorTrigger asChild>
 							<Button size='sm' variant='ghost' className='gap-2 h-8'>
-								<ModelSelectorLogo provider={selectedModelData?.chef || 'google'} />
+								{selectedModelData?.chef && (
+									<ModelSelectorLogo provider={(selectedModelData?.chef || 'google') as any} />
+								)}
 								{selectedModelData?.name && (
 									<ModelSelectorName className='text-xs'>
-										{selectedModelData.name}
+										{selectedModelData.name.length > 15
+											? `${selectedModelData.name.slice(0, 15)}...`
+											: selectedModelData.name}
 									</ModelSelectorName>
 								)}
 							</Button>
@@ -396,7 +445,20 @@ function AIChatInput({ onSend, isLoading, onStop, model, setModel, selectedModel
 						<ModelSelectorContent>
 							<ModelSelectorInput placeholder='Cari model...' />
 							<ModelSelectorList>
-								<ModelSelectorEmpty>Model tidak ditemukan.</ModelSelectorEmpty>
+								<ModelSelectorEmpty>Model/mode tidak ditemukan.</ModelSelectorEmpty>
+								<ModelSelectorGroup heading='Mode Agen'>
+									<ModelSelectorItem onSelect={() => setAgentId('manual_graph')} value='manual_graph'>
+										<BrainCircuit className='mr-2 h-3.5 w-3.5 text-blue-500' />
+										<ModelSelectorName>High Agentic</ModelSelectorName>
+										{agentId === 'manual_graph' && <CheckIcon className='ml-auto size-3' />}
+									</ModelSelectorItem>
+									<ModelSelectorItem onSelect={() => setAgentId('deep_agent')} value='deep_agent'>
+										<Zap className='mr-2 h-3.5 w-3.5 text-amber-500' />
+										<ModelSelectorName>Medium</ModelSelectorName>
+										{agentId === 'deep_agent' && <CheckIcon className='ml-auto size-3' />}
+									</ModelSelectorItem>
+								</ModelSelectorGroup>
+								<ModelSelectorSeparator />
 								<ModelSelectorGroup heading='Model Tersedia'>
 									{models.map((m) => (
 										<ModelSelectorItem key={m.id} onSelect={() => setModel(m.id)} value={m.id}>
@@ -411,7 +473,7 @@ function AIChatInput({ onSend, isLoading, onStop, model, setModel, selectedModel
 					</ModelSelector>
 				</PromptInputTools>
 				<PromptInputSubmit
-					disabled={!input.trim() && !isLoading}
+					disabled={!input.trim() && attachments.files.length === 0 && !isLoading}
 					status={isLoading ? 'streaming' : 'ready'}
 					onStop={onStop}
 				/>

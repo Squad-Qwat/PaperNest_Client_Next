@@ -85,6 +85,7 @@ export default function WorkspacePage() {
 				from: m.from,
 				text,
 				reasoningText: m.reasoning?.content,
+				attachments: m.attachments,
 			}
 		})
 	}, [messages])
@@ -133,10 +134,11 @@ export default function WorkspacePage() {
 	const handleAIPromptSubmit = useCallback(
 		async (message: any) => {
 			const text = typeof message === 'string' ? message : message.text
-			if (!text?.trim()) return
+			const files = typeof message === 'string' ? undefined : message.files
+			if (!text?.trim() && (!files || files.length === 0)) return
 
 			setIsChatActive(true)
-			sendMessage(text)
+			sendMessage(text, files)
 		},
 		[sendMessage]
 	)

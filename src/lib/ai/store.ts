@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid'
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
-import type { ChatMessage, PlanStep, ToolCall, ToolStatus } from './types/chat'
+import type { ChatMessage, PlanStep, ToolCall, ToolStatus, MessageAttachment } from './types/chat'
 import { AI_MODELS } from './constants'
 
 interface AIChatState {
@@ -15,7 +15,7 @@ interface AIChatState {
 }
 
 interface AIChatActions {
-	addUserMessage: (text: string) => void
+	addUserMessage: (text: string, attachments?: MessageAttachment[]) => void
 	initAssistantMessage: (key: string) => void
 	appendContent: (key: string, content: string) => void
 	addToolPart: (key: string, tool: ToolCall) => void
@@ -41,7 +41,7 @@ export const useAIChatStore = create<AIChatState & AIChatActions>()(
 		threadId: `thread_${Date.now()}_${nanoid(6)}`,
 		agentId: 'manual_graph',
 
-		addUserMessage: (text: string) =>
+		addUserMessage: (text: string, attachments?: MessageAttachment[]) =>
 			set((state) => {
 				const message: ChatMessage = {
 					key: nanoid(),
@@ -54,6 +54,7 @@ export const useAIChatStore = create<AIChatState & AIChatActions>()(
 					],
 					activeVersionIndex: 0,
 					timestamp: new Date(),
+					attachments,
 				}
 				state.messages.push(message)
 			}),

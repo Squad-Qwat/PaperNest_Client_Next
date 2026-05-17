@@ -2,7 +2,7 @@
 
 import MixInput, { type MixInputValues, type MixInputRef } from '@arif-un/react-mix-tag-input'
 import '@arif-un/react-mix-tag-input/dist/index.css'
-import { CheckIcon, FileText, GlobeIcon } from 'lucide-react'
+import { CheckIcon, FileText, GlobeIcon, BrainCircuit, Zap } from 'lucide-react'
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { create } from 'zustand'
 import { useAIChatStore } from '@/lib/ai/store'
@@ -10,6 +10,7 @@ import { AI_MODELS } from '@/lib/ai/constants'
 import {
 	Attachment,
 	AttachmentPreview,
+	AttachmentInfo,
 	AttachmentRemove,
 	Attachments,
 } from '@/components/ui/ai-elements/attachments'
@@ -24,6 +25,7 @@ import {
 	ModelSelectorLogo,
 	ModelSelectorLogoGroup,
 	ModelSelectorName,
+	ModelSelectorSeparator,
 	ModelSelectorTrigger,
 } from '@/components/ui/ai-elements/model-selector'
 import type { PromptInputMessage } from '@/components/ui/ai-elements/prompt-input'
@@ -98,8 +100,9 @@ interface AttachmentItemProps {
 const AttachmentItem = memo(({ attachment, onRemove }: AttachmentItemProps) => {
 	const handleRemove = useCallback(() => onRemove(attachment.id), [onRemove, attachment.id])
 	return (
-		<Attachment data={attachment as any} key={attachment.id} onRemove={handleRemove}>
+		<Attachment data={{ ...attachment, type: 'file' } as any} key={attachment.id} onRemove={handleRemove}>
 			<AttachmentPreview />
+			<AttachmentInfo className='max-w-[120px] text-xs font-normal text-slate-600 dark:text-slate-300' />
 			<AttachmentRemove />
 		</Attachment>
 	)
@@ -174,7 +177,7 @@ const AISearchPromptInner = ({
 	documents = [],
 	onStop,
 }: AISearchPromptProps) => {
-	const { model, setModel } = useAIChatStore()
+	const { model, setModel, agentId, setAgentId } = useAIChatStore()
 	const [modelSelectorOpen, setModelSelectorOpen] = useState(false)
 	const { textInput } = usePromptInputController()
 	const { referencedSources, clearSources, setSources } = useAISearchPromptStore()
@@ -383,14 +386,31 @@ const AISearchPromptInner = ({
 											<ModelSelectorLogo provider={selectedModelData.chef as any} />
 										)}
 										{selectedModelData?.name && (
-											<ModelSelectorName>{selectedModelData.name}</ModelSelectorName>
+											<ModelSelectorName>
+												{selectedModelData.name.length > 15
+													? `${selectedModelData.name.slice(0, 15)}...`
+													: selectedModelData.name}
+											</ModelSelectorName>
 										)}
 									</PromptInputButton>
 								</ModelSelectorTrigger>
 								<ModelSelectorContent>
 									<ModelSelectorInput placeholder='Cari model...' />
 									<ModelSelectorList>
-										<ModelSelectorEmpty>Model tidak ditemukan.</ModelSelectorEmpty>
+										<ModelSelectorEmpty>Model/mode tidak ditemukan.</ModelSelectorEmpty>
+										<ModelSelectorGroup heading='Mode Agen'>
+											<ModelSelectorItem onSelect={() => setAgentId('manual_graph')} value='manual_graph'>
+												<BrainCircuit className='mr-2 h-3.5 w-3.5 text-blue-500' />
+												<ModelSelectorName>High Agentic</ModelSelectorName>
+												{agentId === 'manual_graph' && <CheckIcon className='ml-auto size-3' />}
+											</ModelSelectorItem>
+											<ModelSelectorItem onSelect={() => setAgentId('deep_agent')} value='deep_agent'>
+												<Zap className='mr-2 h-3.5 w-3.5 text-amber-500' />
+												<ModelSelectorName>Medium</ModelSelectorName>
+												{agentId === 'deep_agent' && <CheckIcon className='ml-auto size-3' />}
+											</ModelSelectorItem>
+										</ModelSelectorGroup>
+										<ModelSelectorSeparator />
 										<ModelSelectorGroup heading='Model Tersedia'>
 											{models.map((m) => (
 												<ModelItem

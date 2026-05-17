@@ -1,7 +1,7 @@
 'use client'
 
 import type { ChatStatus, FileUIPart, SourceDocumentUIPart } from 'ai'
-import { CornerDownLeftIcon, ImageIcon, Monitor, PlusIcon, SquareIcon, XIcon } from 'lucide-react'
+import { CornerDownLeftIcon, ImageIcon, Monitor, PlusIcon, SquareIcon, XIcon, UploadCloud } from 'lucide-react'
 import { nanoid } from 'nanoid'
 import type {
 	ChangeEvent,
@@ -230,7 +230,7 @@ export const PromptInputProvider = ({
 	const [attachmentFiles, setAttachmentFiles] = useState<(FileUIPart & { id: string })[]>([])
 	const fileInputRef = useRef<HTMLInputElement | null>(null)
 	// oxlint-disable-next-line eslint(no-empty-function)
-	const openRef = useRef<() => void>(() => {})
+	const openRef = useRef<() => void>(() => { })
 
 	const add = useCallback((files: File[] | FileList) => {
 		const incoming = [...files]
@@ -497,6 +497,8 @@ export const PromptInput = ({
 	const [referencedSources, setReferencedSources] = useState<
 		(SourceDocumentUIPart & { id: string })[]
 	>([])
+	const [isDragging, setIsDragging] = useState(false)
+	const dragCounterRef = useRef(0)
 
 	// Keep a ref to files for cleanup on unmount (avoids stale closure)
 	const filesRef = useRef(files)
@@ -636,13 +638,13 @@ export const PromptInput = ({
 			usingProvider
 				? controller?.attachments.clear()
 				: setItems((prev) => {
-						for (const file of prev) {
-							if (file.url) {
-								URL.revokeObjectURL(file.url)
-							}
+					for (const file of prev) {
+						if (file.url) {
+							URL.revokeObjectURL(file.url)
 						}
-						return []
-					}),
+					}
+					return []
+				}),
 		[usingProvider, controller]
 	)
 
@@ -673,34 +675,54 @@ export const PromptInput = ({
 		}
 	}, [files, syncHiddenInput])
 
-	// Attach drop handlers on nearest form and document (opt-in)
 	useEffect(() => {
 		const form = formRef.current
-		if (!form) {
-			return
-		}
-		if (globalDrop) {
-			// when global drop is on, let the document-level handler own drops
+		if (!form || globalDrop) {
 			return
 		}
 
+		const onDragEnter = (e: DragEvent) => {
+			if (e.dataTransfer?.types?.includes('Files')) {
+				e.preventDefault()
+				dragCounterRef.current++
+				if (dragCounterRef.current === 1) {
+					setIsDragging(true)
+				}
+			}
+		}
 		const onDragOver = (e: DragEvent) => {
 			if (e.dataTransfer?.types?.includes('Files')) {
 				e.preventDefault()
+			}
+		}
+		const onDragLeave = (e: DragEvent) => {
+			if (e.dataTransfer?.types?.includes('Files')) {
+				e.preventDefault()
+				dragCounterRef.current--
+				if (dragCounterRef.current === 0) {
+					setIsDragging(false)
+				}
 			}
 		}
 		const onDrop = (e: DragEvent) => {
 			if (e.dataTransfer?.types?.includes('Files')) {
 				e.preventDefault()
 			}
+			dragCounterRef.current = 0
+			setIsDragging(false)
 			if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
 				add(e.dataTransfer.files)
 			}
 		}
+
+		form.addEventListener('dragenter', onDragEnter)
 		form.addEventListener('dragover', onDragOver)
+		form.addEventListener('dragleave', onDragLeave)
 		form.addEventListener('drop', onDrop)
 		return () => {
+			form.removeEventListener('dragenter', onDragEnter)
 			form.removeEventListener('dragover', onDragOver)
+			form.removeEventListener('dragleave', onDragLeave)
 			form.removeEventListener('drop', onDrop)
 		}
 	}, [add, globalDrop])
@@ -710,23 +732,48 @@ export const PromptInput = ({
 			return
 		}
 
+		const onDragEnter = (e: DragEvent) => {
+			if (e.dataTransfer?.types?.includes('Files')) {
+				e.preventDefault()
+				dragCounterRef.current++
+				if (dragCounterRef.current === 1) {
+					setIsDragging(true)
+				}
+			}
+		}
 		const onDragOver = (e: DragEvent) => {
 			if (e.dataTransfer?.types?.includes('Files')) {
 				e.preventDefault()
+			}
+		}
+		const onDragLeave = (e: DragEvent) => {
+			if (e.dataTransfer?.types?.includes('Files')) {
+				e.preventDefault()
+				dragCounterRef.current--
+				if (dragCounterRef.current === 0) {
+					setIsDragging(false)
+				}
 			}
 		}
 		const onDrop = (e: DragEvent) => {
 			if (e.dataTransfer?.types?.includes('Files')) {
 				e.preventDefault()
 			}
+			dragCounterRef.current = 0
+			setIsDragging(false)
 			if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
 				add(e.dataTransfer.files)
 			}
 		}
+
+		document.addEventListener('dragenter', onDragEnter)
 		document.addEventListener('dragover', onDragOver)
+		document.addEventListener('dragleave', onDragLeave)
 		document.addEventListener('drop', onDrop)
 		return () => {
+			document.removeEventListener('dragenter', onDragEnter)
 			document.removeEventListener('dragover', onDragOver)
+			document.removeEventListener('dragleave', onDragLeave)
 			document.removeEventListener('drop', onDrop)
 		}
 	}, [add, globalDrop])
@@ -790,9 +837,9 @@ export const PromptInput = ({
 			const text = usingProvider
 				? controller.textInput.value
 				: (() => {
-						const formData = new FormData(form)
-						return (formData.get('message') as string) || ''
-					})()
+					const formData = new FormData(form)
+					return (formData.get('message') as string) || ''
+				})()
 
 			// Reset form immediately after capturing text to avoid race condition
 			// where user input during async blob conversion would be lost
@@ -856,9 +903,25 @@ export const PromptInput = ({
 				title='Upload files'
 				type='file'
 			/>
-			<form className='w-full' onSubmit={handleSubmit} ref={formRef} {...props}>
-				<InputGroup className={cn('overflow-hidden rounded-xl', className)}>{children}</InputGroup>
-			</form>
+			<div className='relative w-full'>
+				<form className='w-full' onSubmit={handleSubmit} ref={formRef} {...props}>
+					<InputGroup className={cn('overflow-hidden rounded-xl', className)}>{children}</InputGroup>
+				</form>
+				{isDragging && (
+					<div
+						className='absolute inset-0 z-30 flex flex-col items-center justify-center gap-1.5 backdrop-blur-[1px] bg-background/90 border border-dashed border-primary/30 rounded-xl transition-all duration-200 animate-in fade-in'
+						style={{ pointerEvents: 'none' }}
+					>
+						<UploadCloud className='w-5 h-5 text-primary' />
+						<div className='text-xs font-medium text-foreground'>
+							Seret & lepas berkas ke sini
+						</div>
+						<div className='text-[10px] text-muted-foreground'>
+							Mendukung gambar, PDF, dokumen & teks
+						</div>
+					</div>
+				)}
+			</div>
 		</>
 	)
 
@@ -970,15 +1033,15 @@ export const PromptInputTextarea = ({
 
 	const controlledProps = controller
 		? {
-				onChange: (e: ChangeEvent<HTMLTextAreaElement>) => {
-					controller.textInput.setInput(e.currentTarget.value)
-					onChange?.(e)
-				},
-				value: controller.textInput.value,
-			}
+			onChange: (e: ChangeEvent<HTMLTextAreaElement>) => {
+				controller.textInput.setInput(e.currentTarget.value)
+				onChange?.(e)
+			},
+			value: controller.textInput.value,
+		}
 		: {
-				onChange,
-			}
+			onChange,
+		}
 
 	return (
 		<InputGroupTextarea
@@ -1024,10 +1087,10 @@ export const PromptInputTools = ({ className, ...props }: PromptInputToolsProps)
 export type PromptInputButtonTooltip =
 	| string
 	| {
-			content: ReactNode
-			shortcut?: string
-			side?: ComponentProps<typeof TooltipContent>['side']
-	  }
+		content: ReactNode
+		shortcut?: string
+		side?: ComponentProps<typeof TooltipContent>['side']
+	}
 
 export type PromptInputButtonProps = ComponentProps<typeof InputGroupButton> & {
 	tooltip?: PromptInputButtonTooltip
