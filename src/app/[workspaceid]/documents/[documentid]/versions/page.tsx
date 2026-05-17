@@ -1,13 +1,12 @@
 'use client'
 
-import { ArrowRight, ChevronLeft, Clock, FileText, History, MessageSquare } from 'lucide-react'
+import { ChevronLeft, History } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { useMemo } from 'react'
 import { ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useDocumentReviews, useDocumentVersions } from '@/lib/api/hooks/use-documents'
 import { useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
@@ -88,7 +87,7 @@ export default function VersionsPage() {
 		if (groupedVersions.length > 0) {
 			return (
 				<div className='space-y-10'>
-					{groupedVersions.map((group, groupIdx) => (
+					{groupedVersions.map((group, _groupIdx) => (
 						<section key={group.title} className='space-y-4'>
 							<div className='flex items-center gap-4'>
 								<h2 className='text-sm font-semibold text-muted-foreground'>{group.title}</h2>
@@ -96,174 +95,157 @@ export default function VersionsPage() {
 							</div>
 
 							<div className='grid gap-3'>
-								{group.items.map((version, idx) => {
+								{group.items.map((version, _idx) => {
 									const versionReview = reviews.find(
 										(r: Review) => r.documentBodyId === version.documentBodyId
 									)
-									const isLatest = groupIdx === 0 && idx === 0
+									const isLatest = version.isCurrentVersion === true
 
 									const getCardStyles = () => {
-										if (isLatest) return 'border-l-blue-600 bg-blue-50/30 ring-1 ring-blue-100'
+										if (isLatest) return 'border-l-primary bg-primary/5'
 										if (!versionReview) return 'border-l-gray-300'
 										return versionReview.status === 'approved'
 											? 'border-l-green-500'
 											: 'border-l-amber-500'
 									}
 
+									const handleKeyDown = (e: React.KeyboardEvent) => {
+										if (e.key === 'Enter' || e.key === ' ') {
+											e.preventDefault()
+											router.push(
+												`/${workspaceId}/documents/${documentId}/versions/${version.documentBodyId}`
+											)
+										}
+									}
+
 									return (
-										<div key={version.documentBodyId} className='group'>
-											<Card
-												className={`p-5 transition-all duration-300 border-l-4 ${getCardStyles()} hover:shadow-md group-hover:translate-x-1`}
+										<div key={version.documentBodyId} className='w-full'>
+											{/* biome-ignore lint/a11y/useSemanticElements: wrapper contains nested interactive Link elements */}
+											<div
+												className={`p-6 bg-white border border-l-2 rounded-lg ${getCardStyles()} hover:border-primary transition-all relative text-left w-full flex flex-col md:flex-row md:items-center justify-between gap-6 cursor-pointer`}
+												onClick={() =>
+													router.push(
+														`/${workspaceId}/documents/${documentId}/versions/${version.documentBodyId}`
+													)
+												}
+												onKeyDown={handleKeyDown}
+												role='button'
+												tabIndex={0}
 											>
-												<div className='flex flex-col md:flex-row md:items-start gap-6'>
-													{/* Version Meta */}
-													<div className='flex items-center gap-4 md:w-48 shrink-0'>
-														<div
-															className={`h-12 w-12 shrink-0 rounded-xl flex items-center justify-center shadow-sm ${
-																isLatest
-																	? 'bg-blue-600 text-white'
-																	: 'bg-white border border-gray-200 text-gray-400'
-															}`}
-														>
-															<FileText className='w-6 h-6' />
-														</div>
-														<div className='flex flex-col'>
-															<div className='flex items-center gap-2'>
-																<span className='text-sm font-bold text-gray-900'>
-																	Versi #{String(version.versionNumber).padStart(3, '0')}
-																</span>
-																{!versionReview && !isLatest && (
-																	<span className='text-[10px] font-bold px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded uppercase'>
-																		Snapshot
-																	</span>
-																)}
-															</div>
-															<div className='flex items-center gap-1.5 text-xs text-gray-500 mt-0.5'>
-																<Clock className='w-3 h-3' />
-																{format(version.createdAt, 'HH:mm')}
-																{isLatest && (
-																	<span className='ml-1 px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-md font-bold text-[10px] uppercase tracking-wider'>
-																		Active
-																	</span>
-																)}
-															</div>
-														</div>
-													</div>
-
-													{/* Content */}
-													<div className='flex-1 min-w-0 flex flex-col justify-center space-y-2'>
-														<div className='flex items-center gap-2'>
-															{(() => {
-																const member = members.find(
-																	(m: any) =>
-																		m.userId === version.userId || m.user?.userId === version.userId
-																)
-																const displayName =
-																	version.user?.name || member?.user?.name || 'User'
-
-																const isUid = displayName.length > 20 && !displayName.includes(' ')
-																const finalName = isUid ? 'User' : displayName
-
-																return (
-																	<>
-																		<Avatar className='h-5 w-5'>
-																			<AvatarImage
-																				src={
-																					version.user?.photoURL ||
-																					member?.user?.photoURL ||
-																					getAvatarUrl(displayName, version.userId)
-																				}
-																			/>
-																			<AvatarFallback className='text-[10px]'>
-																				{getInitials(displayName)}
-																			</AvatarFallback>
-																		</Avatar>
-																		<span className='text-sm text-muted-foreground'>
-																			{finalName}
-																		</span>
-																	</>
-																)
-															})()}
-														</div>
-
-														{versionReview ? (
-															<div className='flex flex-col gap-3'>
-																{/* Student Request Message - Always from version.message (Commit Message) */}
-																<div className='flex items-start gap-2 group/msg'>
-																	<div className='mt-1 p-1 bg-blue-50 rounded text-blue-600 shrink-0'>
-																		<MessageSquare className='w-3 h-3' />
-																	</div>
-																	<div className='flex flex-col'>
-																		<span className='text-[10px] font-bold text-blue-500 uppercase tracking-tight leading-none mb-1'>
-																			Student Request
-																		</span>
-																		<p className='text-sm text-gray-700 leading-tight'>
-																			{version.message || 'No commit message.'}
-																		</p>
-																	</div>
-																</div>
-
-																{/* Lecturer Feedback Message */}
-																{versionReview.status !== 'pending' && (
-																	<div className='flex items-center gap-3 pt-1'>
-																		<ReviewStatusBadge status={versionReview.status} />
-																		{/* Logic for legacy data: if lecturerMessage is empty, use review.message as lecturer message */}
-																		{(() => {
-																			const feedback =
-																				versionReview.lecturerMessage || versionReview.message
-																			// Only show if it's different from the version message or explicitly provided
-																			if (feedback) {
-																				return (
-																					<div className='flex items-start gap-2 border-l-2 border-gray-100 pl-3'>
-																						<div className='flex flex-col'>
-																							<span className='text-[10px] font-bold text-gray-400 uppercase tracking-tight leading-none mb-1'>
-																								Lecturer Feedback
-																							</span>
-																							<p className='text-sm text-gray-600 italic leading-tight'>
-																								"{feedback}"
-																							</p>
-																						</div>
-																					</div>
-																				)
-																			}
-																			return null
-																		})()}
-																	</div>
-																)}
-															</div>
-														) : (
-															<div className='text-sm text-muted-foreground italic flex items-center gap-2'>
-																<div className='w-1 h-1 bg-gray-300 rounded-full' />
-																Belum ada catatan review
-															</div>
+												<div className='flex-1 flex flex-col gap-3 min-w-0'>
+													{/* Header line: Version Title & Badges */}
+													<div className='flex items-center gap-3 flex-wrap'>
+														<span className='text-sm font-semibold text-gray-900'>
+															Versi V{version.versionNumber}
+														</span>
+														{isLatest && (
+															<span className='px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-semibold uppercase'>
+																Active
+															</span>
 														)}
-													</div>
-
-													{/* Actions */}
-													<div className='shrink-0 flex items-center gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity'>
+														{!versionReview && !isLatest && (
+															<span className='px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-xs font-semibold uppercase'>
+																Snapshot
+															</span>
+														)}
 														{versionReview && (
-															<Link href={`/${workspaceId}/reviews/${versionReview.reviewId}`}>
-																<Button
-																	variant='ghost'
-																	size='sm'
-																	className='h-8 px-3 text-muted-foreground'
-																>
-																	<MessageSquare className='mr-2 h-3.5 w-3.5' />
-																	<span className='hidden md:inline'>Review</span>
-																</Button>
-															</Link>
+															<div className='scale-90 origin-left'>
+																<ReviewStatusBadge status={versionReview.status} />
+															</div>
 														)}
-														<Link
-															href={`/${workspaceId}/documents/${documentId}/versions/${version.documentBodyId}`}
-														>
-															<Button variant='secondary' size='sm' className='h-8 px-3'>
-																Buka
-																<ArrowRight className='ml-2 h-3.5 w-3.5' />
-															</Button>
-														</Link>
+													</div>
+
+													{/* User & Date Meta */}
+													<div className='flex items-center gap-2 text-sm text-gray-500'>
+														{(() => {
+															const member = members.find(
+																(m: any) =>
+																	m.userId === version.userId || m.user?.userId === version.userId
+															)
+															const displayName = version.user?.name || member?.user?.name || 'User'
+
+															const isUid = displayName.length > 20 && !displayName.includes(' ')
+															const finalName = isUid ? 'User' : displayName
+
+															return (
+																<>
+																	<Avatar className='h-5 w-5'>
+																		<AvatarImage
+																			src={
+																				version.user?.photoURL ||
+																				member?.user?.photoURL ||
+																				getAvatarUrl(displayName, version.userId)
+																			}
+																		/>
+																		<AvatarFallback className='text-xs'>
+																			{getInitials(displayName)}
+																		</AvatarFallback>
+																	</Avatar>
+																	<span className='font-semibold text-gray-700'>{finalName}</span>
+																</>
+															)
+														})()}
+														<span>•</span>
+														<span>
+															{format(version.createdAt, 'd MMMM yyyy HH:mm', { locale: id })}
+														</span>
+													</div>
+
+													{/* Commit Message & Feedback Preview */}
+													<div className='space-y-2'>
+														{version.message && (
+															<p className='text-gray-600 text-sm leading-relaxed font-normal'>
+																{version.message}
+															</p>
+														)}
+
+														{versionReview &&
+															versionReview.status !== 'pending' &&
+															(() => {
+																const feedback =
+																	versionReview.lecturerMessage || versionReview.message
+																if (feedback) {
+																	return (
+																		<div className='border-l-2 border-gray-100 pl-3 mt-1'>
+																			<span className='text-sm font-semibold text-gray-400 uppercase tracking-wider block mb-0.5'>
+																				Umpan Balik Dosen
+																			</span>
+																			<p className='text-sm text-gray-500 leading-relaxed font-normal'>
+																				{feedback}
+																			</p>
+																		</div>
+																	)
+																}
+																return null
+															})()}
 													</div>
 												</div>
-											</Card>
+
+												{/* Right Side: Actions (Buka / Review) */}
+												<div className='flex items-center gap-2.5 shrink-0 self-end md:self-center'>
+													{versionReview && (
+														<Link
+															href={`/${workspaceId}/reviews/${versionReview.reviewId}`}
+															onClick={(e) => e.stopPropagation()}
+														>
+															<Button
+																variant='outline'
+																className='rounded-lg shadow-sm border-gray-200'
+															>
+																Detail Review
+															</Button>
+														</Link>
+													)}
+													<Link
+														href={`/${workspaceId}/documents/${documentId}/versions/${version.documentBodyId}`}
+														onClick={(e) => e.stopPropagation()}
+													>
+														<Button variant='default' className='rounded-lg shadow-sm'>
+															Buka
+														</Button>
+													</Link>
+												</div>
+											</div>
 										</div>
 									)
 								})}

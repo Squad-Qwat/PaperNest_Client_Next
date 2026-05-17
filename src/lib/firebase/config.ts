@@ -25,7 +25,7 @@ let auth: Auth
 let db: Firestore
 let analytics: Analytics | null = null
 
-if (!getApps().length) {
+if (!getApps().length && firebaseConfig.apiKey) {
 	app = initializeApp(firebaseConfig)
 	auth = getAuth(app)
 	db = getFirestore(app)
@@ -35,9 +35,9 @@ if (!getApps().length) {
 		analytics = getAnalytics(app)
 	}
 } else {
-	app = getApps()[0]
-	auth = getAuth(app)
-	db = getFirestore(app)
+	app = getApps()[0] || ({} as FirebaseApp)
+	auth = (app as any).auth || ({} as Auth)
+	db = (app as any).firestore || ({} as Firestore)
 }
 
 export { app, auth, db, analytics }

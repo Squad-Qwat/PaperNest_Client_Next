@@ -10,6 +10,7 @@ import {
 import { useParams } from 'next/navigation'
 import React, { useMemo, useCallback, useState } from 'react'
 import { AppSidebar } from '@/components/app-sidebar'
+import { toast } from 'sonner'
 import { CitationSheet, type Citation as CitationType } from '@/components/citations/citation-sheet'
 import { CitationDetailsSheet } from '@/components/citations/citation-details-sheet'
 import { CitationTable, type CitationDisplay } from '@/components/citations/citation-table'
@@ -53,7 +54,10 @@ export default function Page() {
 
 	// console.log('citationsData:', JSON.stringify(citationsData, null, 2))
 
-	const citations = useMemo(() => (citationsData?.data?.citations as CitationDisplay[]) || [], [citationsData])
+	const citations = useMemo(() => {
+		const list = ((citationsData as any)?.citations ?? citationsData?.data?.citations) as CitationDisplay[] | undefined
+		return list || []
+	}, [citationsData])
 
 	// Still need documents to assign new citations to a document
 	const { data: documentsData } = useWorkspaceDocuments(workspaceId)
@@ -72,23 +76,55 @@ export default function Page() {
 		if (viewingCitation?.citationId) {
 			updateCitation({
 				citationId: viewingCitation.citationId,
+				documentId: viewingCitation.documentId,
 				data: data as any,
+			}, {
+				onSuccess: () => {
+					setIsSheetOpen(false)
+					setIsDetailsSheetOpen(false)
+					toast.success('Referensi berhasil diperbarui')
+				},
+				onError: (err) => {
+					console.error(err)
+					toast.error('Gagal memperbarui referensi')
+				}
 			})
 		} else {
 			createCitation({
 				workspaceId,
 				// documentId, <- This might be undefined, which is now allowed
 				...data as any,
+			}, {
+				onSuccess: () => {
+					setIsSheetOpen(false)
+					toast.success('Referensi berhasil ditambahkan')
+				},
+				onError: (err) => {
+					console.error(err)
+					toast.error('Gagal menambahkan referensi')
+				}
 			})
 		}
 	}
 
 	const handleDelete = useCallback((citationId: string) => {
 		if (!citationId) return
+		const citation = citations.find((c) => c.citationId === citationId)
 		if (window.confirm('Apakah Anda yakin ingin menghapus sitasi ini?')) {
-			deleteCitation(citationId)
+			deleteCitation({
+				citationId,
+				documentId: citation?.documentId,
+			}, {
+				onSuccess: () => {
+					toast.success('Referensi berhasil dihapus')
+				},
+				onError: (err) => {
+					console.error(err)
+					toast.error('Gagal menghapus referensi')
+				}
+			})
 		}
-	}, [deleteCitation])
+	}, [deleteCitation, citations])
 
 	const handleRowClick = useCallback((citation: CitationDisplay) => {
 		setViewingCitation(citation)

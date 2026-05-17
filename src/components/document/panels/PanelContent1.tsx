@@ -31,12 +31,12 @@ interface FileTreeItemProps {
 	isLeaf: boolean
 	isSelected: boolean
 	isOpen?: boolean
-	draggedItem: any
-	setDraggedItem: (item: any) => void
+	draggedItem: { id: string; name: string; type: 'file' | 'folder' } | null
+	setDraggedItem: (item: { id: string; name: string; type: 'file' | 'folder' } | null) => void
 	dragOverFolder: string | null
 	setDragOverFolder: (folder: string | null) => void
-	onInternalMove: (item: any, targetPath: string | null) => Promise<void>
-	onExternalUpload: (file: File, folderPath?: string) => Promise<void>
+	onInternalMove: (item: any, targetPath: string | null) => undefined | Promise<any>
+	onExternalUpload: (file: File, folderPath?: string) => undefined | Promise<any>
 }
 
 // --- Sub-Components ---
@@ -335,8 +335,8 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, onInsertText }) => 
 								setDraggedItem={setDraggedItem}
 								dragOverFolder={dragOverFolder}
 								setDragOverFolder={setDragOverFolder}
-								onInternalMove={handleInternalMove}
-								onExternalUpload={processUpload}
+								onInternalMove={handleInternalMove as any}
+								onExternalUpload={processUpload as any}
 							/>
 						)}
 					/>

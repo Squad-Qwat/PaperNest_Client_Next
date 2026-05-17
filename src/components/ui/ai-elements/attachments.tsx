@@ -170,7 +170,7 @@ export const Attachments = ({
 // Attachment - Item
 // ============================================================================
 
-export type AttachmentProps = HTMLAttributes<HTMLButtonElement> & {
+export type AttachmentProps = HTMLAttributes<HTMLDivElement> & {
 	data: AttachmentData
 	onRemove?: () => void
 }
@@ -186,8 +186,7 @@ export const Attachment = ({ data, onRemove, className, children, ...props }: At
 
 	return (
 		<AttachmentContext.Provider value={contextValue}>
-			<button
-				type='button'
+			<div
 				className={cn(
 					'group relative text-left w-auto',
 					variant === 'grid' && 'size-24 overflow-hidden rounded-lg',
@@ -206,7 +205,7 @@ export const Attachment = ({ data, onRemove, className, children, ...props }: At
 				{...props}
 			>
 				{children}
-			</button>
+			</div>
 		</AttachmentContext.Provider>
 	)
 }

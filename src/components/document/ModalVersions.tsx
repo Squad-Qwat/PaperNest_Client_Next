@@ -1,6 +1,6 @@
 import { ChevronLeft, FileText, Loader2, MoreVertical } from 'lucide-react'
 import { useParams } from 'next/navigation'
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { ReviewRequestModal } from '@/components/review/ReviewRequestModal'
 import { ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useAuth } from '@/context/AuthContext'
+import { useCompilePdf } from '@/hooks/editor/use-compile-pdf'
 import { useDocumentFiles } from '@/lib/api/hooks/use-document-files'
 import {
 	useCreateReview,
@@ -20,7 +21,6 @@ import { useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
 import type { Version } from '@/lib/api/types/document.types'
 import type { Review } from '@/lib/api/types/review.types'
 import { format, id } from '@/lib/date'
-import { laTeXService } from '@/lib/latex/LaTeXService'
 
 interface ModalVersionsProps {
 	isOpen: boolean
@@ -76,48 +76,8 @@ export default function ModalVersions({
 
 	const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null)
 	const [showReviewModal, setShowReviewModal] = useState(false)
-	const [pdfUrl, setPdfUrl] = useState<string | null>(null)
-	const [isCompiling, setIsCompiling] = useState(false)
-	const [compileError, setCompileError] = useState<string | null>(null)
 
-	// Function to compile LaTeX to PDF
-	const handleCompile = useCallback(
-		async (content: string) => {
-			if (!content) return
-
-			setIsCompiling(true)
-			setCompileError(null)
-
-			try {
-				// Using server mode for preview consistency in modal
-				const result = await laTeXService.compileWithAssets(
-					'main.tex',
-					content,
-					files,
-					undefined,
-					documentId
-				)
-
-				if (result.status === 0 && result.pdf) {
-					// Use Uint8Array directly, but cast to any or use it in the array to satisfy TypeScript's BlobPart requirement
-					const blob = new Blob([result.pdf as any], { type: 'application/pdf' })
-					const url = URL.createObjectURL(blob)
-
-					// Revoke old URL to prevent memory leaks
-					if (pdfUrl) URL.revokeObjectURL(pdfUrl)
-					setPdfUrl(url)
-				} else {
-					setCompileError(result.log || 'Compilation failed')
-				}
-			} catch (error: any) {
-				console.error('Compilation error in ModalVersions:', error)
-				setCompileError(error.message || 'Error compiling PDF')
-			} finally {
-				setIsCompiling(false)
-			}
-		},
-		[files, pdfUrl, documentId]
-	)
+	const { pdfUrl, isCompiling, compileError, handleCompile } = useCompilePdf(documentId, files)
 
 	// const { toast } = useToast()
 
@@ -130,7 +90,7 @@ export default function ModalVersions({
 
 	// Merge Version and Review Data
 	const versionsList = useMemo(() => {
-		return versions.map((version, index) => {
+		return versions.map((version) => {
 			// Find review for this version
 			const versionReview = reviews.find((r) => r.documentBodyId === version.documentBodyId)
 
@@ -156,8 +116,8 @@ export default function ModalVersions({
 				author: finalName,
 				authorId: version.userId,
 				authorPhoto: version.user?.photoURL || member?.user?.photoURL,
-				color: index === 0 ? 'bg-purple-500' : 'bg-orange-500',
-				isCurrent: index === 0,
+				color: version.isCurrentVersion === true ? 'bg-purple-500' : 'bg-orange-500',
+				isCurrent: version.isCurrentVersion === true,
 				content: version.content,
 				review: versionReview
 					? {
@@ -183,13 +143,6 @@ export default function ModalVersions({
 			handleCompile(version.content)
 		}
 	}, [selectedVersionId, isOpen, handleCompile, versionsList])
-
-	// Cleanup on unmount or close
-	useEffect(() => {
-		return () => {
-			if (pdfUrl) URL.revokeObjectURL(pdfUrl)
-		}
-	}, [pdfUrl])
 
 	const selectedVersion = versionsList.find((v) => v.id === selectedVersionId)
 

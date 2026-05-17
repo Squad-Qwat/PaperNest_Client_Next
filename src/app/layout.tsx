@@ -1,10 +1,12 @@
 import type { Metadata } from 'next'
 import { IBM_Plex_Mono, IBM_Plex_Sans } from 'next/font/google'
 import '@/app/css/globals.css'
+import Script from 'next/script'
 import { QueryProvider } from '@/components/providers/query-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from '@/context/AuthContext'
+import { NotificationProvider } from '@/context/NotificationContext'
 import { AppProvider } from '@/lib/store'
 
 const ibmPlexSans = IBM_Plex_Sans({
@@ -37,12 +39,45 @@ export default function RootLayout({
 			>
 				<QueryProvider>
 					<AuthProvider>
-						<TooltipProvider>
-							<AppProvider>{children}</AppProvider>
-						</TooltipProvider>
-						<Toaster position='bottom-right' richColors closeButton />
+						<NotificationProvider>
+							<TooltipProvider>
+								<AppProvider>{children}</AppProvider>
+							</TooltipProvider>
+							<Toaster position='bottom-right' richColors closeButton />
+						</NotificationProvider>
 					</AuthProvider>
 				</QueryProvider>
+
+				<Script id='maze-universal-snippet' strategy='afterInteractive'>
+					{`
+						(function (m, a, z, e) {
+							var s, t, u, v;
+							try {
+								t = m.sessionStorage.getItem('maze-us');
+							} catch (err) {}
+
+							if (!t) {
+								t = new Date().getTime();
+								try {
+									m.sessionStorage.setItem('maze-us', t);
+								} catch (err) {}
+							}
+
+							u = document.currentScript || (function () {
+								var w = document.getElementsByTagName('script');
+								return w[w.length - 1];
+							})();
+							v = u && u.nonce;
+
+							s = a.createElement('script');
+							s.src = z + '?apiKey=' + e;
+							s.async = true;
+							if (v) s.setAttribute('nonce', v);
+							a.getElementsByTagName('head')[0].appendChild(s);
+							m.mazeUniversalSnippetApiKey = e;
+						})(window, document, 'https://snippet.maze.co/maze-universal-loader.js', '3aff206f-c4ab-488e-ba08-0584c1b5eacd');
+					`}
+				</Script>
 			</body>
 		</html>
 	)

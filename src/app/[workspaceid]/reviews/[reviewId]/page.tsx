@@ -1,40 +1,31 @@
 'use client'
 
-import { AlertCircle, CheckCircle2, ChevronLeft, MessageSquare } from 'lucide-react'
+import { ChevronLeft, Loader2 } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { AppSidebar } from '@/components/app-sidebar'
-import { ReviewActionCard } from '@/components/review/ReviewActionCard'
-import { ReviewComment } from '@/components/review/ReviewComment'
-import { ReviewDetailSection } from '@/components/review/ReviewDetailSection'
-import { ReviewHero } from '@/components/review/ReviewHero'
-import { ReviewInfoCard } from '@/components/review/ReviewInfoCard'
-import {
-	Breadcrumb,
-	BreadcrumbItem,
-	BreadcrumbLink,
-	BreadcrumbList,
-	BreadcrumbPage,
-	BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb'
+import { ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from '@/components/ui/dialog'
+import { Card } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import { Modal, ModalFooter } from '@/components/ui/modal'
 import { Separator } from '@/components/ui/separator'
-import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/context/AuthContext'
-import { useDocument, useReviewDetail, useUpdateReviewStatus } from '@/lib/api/hooks/use-documents'
+import { useCompilePdf } from '@/hooks/editor/use-compile-pdf'
+import { useDocumentFiles } from '@/lib/api/hooks/use-document-files'
+import {
+	useDocument,
+	useDocumentVersions,
+	useReviewDetail,
+	useUpdateReviewStatus,
+} from '@/lib/api/hooks/use-documents'
 import { useWorkspace, useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
+import type { Document, Version } from '@/lib/api/types/document.types'
+import type { Review } from '@/lib/api/types/review.types'
 import { format, id } from '@/lib/date'
+import { getAvatarUrl, getInitials } from '@/lib/utils'
 
 export default function ReviewDetailPage() {
 	const params = useParams()
@@ -43,15 +34,24 @@ export default function ReviewDetailPage() {
 	const workspaceId = workspaceid as string
 
 	const { user, loading: authLoading } = useAuth()
-	const { data: workspace } = useWorkspace(workspaceId)
+	useWorkspace(workspaceId)
 	const { data: membersRes } = useWorkspaceMembers(workspaceId)
 	const { data: reviewRes, isLoading: reviewLoading } = useReviewDetail(reviewId as string)
-	const reviewData = reviewRes?.review
+	const reviewData = reviewRes as Review
 
-	const { data: documentRes } = useDocument(workspaceId, reviewData?.documentId)
-	const document = documentRes?.document || documentRes
+	const documentId = reviewData?.documentId || ''
+	const documentBodyId = reviewData?.documentBodyId || ''
+
+	const { data: documentRes } = useDocument(workspaceId, documentId)
+	const document = (documentRes as Document) || null
+
+	const { data: versionsResponse, isLoading: versionsLoading } = useDocumentVersions(documentId)
+	const { data: files = [] } = useDocumentFiles(documentId)
 
 	const { mutateAsync: updateStatus, isPending: isUpdating } = useUpdateReviewStatus()
+
+	// PDF Compilation State using hook
+	const { pdfUrl, isCompiling, compileError, handleCompile } = useCompilePdf(documentId, files)
 
 	// Feedback Modal State
 	const [isModalOpen, setIsModalOpen] = useState(false)
@@ -75,13 +75,27 @@ export default function ReviewDetailPage() {
 			)
 		: null
 
-	const studentName = reviewData?.student?.name || studentMember?.user?.name || 'Student'
-	const lecturerName = reviewData?.lecturer?.name || lecturerMember?.user?.name || 'Lecturer'
+	const studentName = reviewData?.student?.name || studentMember?.user?.name || 'Mahasiswa'
+	const lecturerName = reviewData?.lecturer?.name || lecturerMember?.user?.name || 'Dosen Peninjau'
 	const isDocumentDeleted = !documentRes && !reviewLoading && !!reviewData
-	const docTitle = document?.title
-	const formattedDate = format(reviewData?.requestedAt || new Date(), 'd MMMM yyyy, HH:mm', {
-		locale: id,
-	})
+	const docTitle = document?.title || 'Dokumen'
+	const formattedDate = format(
+		reviewData?.requestedAt ? new Date(reviewData.requestedAt) : new Date(),
+		'd MMMM yyyy, HH:mm',
+		{ locale: id }
+	)
+
+	const versions = Array.isArray(versionsResponse)
+		? (versionsResponse as Version[])
+		: (versionsResponse as { versions: Version[] })?.versions || []
+
+	const version = versions.find((v: Version) => v.documentBodyId === documentBodyId)
+
+	useEffect(() => {
+		if (version?.content && !pdfUrl && !isCompiling && !compileError) {
+			handleCompile(version.content)
+		}
+	}, [version?.content, handleCompile, pdfUrl, isCompiling, compileError])
 
 	const handleAction = async () => {
 		if (!reviewId) return
@@ -91,11 +105,11 @@ export default function ReviewDetailPage() {
 				reviewId: reviewId as string,
 				data: { status: decision, message: feedback },
 			})
-			toast.success(`Review ${decision.replace('_', ' ')} successfully`)
+			toast.success(`Keputusan review (${decision.replace('_', ' ')}) berhasil dikirim`)
 			setIsModalOpen(false)
 			setFeedback('')
 		} catch (error: any) {
-			toast.error(error.message || 'Failed to update review')
+			toast.error(error.message || 'Gagal memperbarui status review')
 		}
 	}
 
@@ -105,234 +119,276 @@ export default function ReviewDetailPage() {
 		setIsModalOpen(true)
 	}
 
-	if (authLoading || reviewLoading) {
+	if (authLoading || reviewLoading || (documentId && versionsLoading)) {
 		return (
-			<SidebarProvider>
-				<AppSidebar />
-				<SidebarInset className='flex flex-col min-h-0 bg-sidebar rounded-xl m-2 overflow-hidden border'>
-					<header className='flex h-16 shrink-0 items-center gap-2 px-4 bg-white border-b sticky top-0 z-30'>
-						<SidebarTrigger className='-ml-1' />
-						<Separator orientation='vertical' className='mr-2 h-4' />
-						<Skeleton className='h-4 w-64' />
-					</header>
-					<main className='flex-1 p-6 space-y-6'>
-						<Skeleton className='h-64 w-full rounded-xl' />
-						<div className='grid grid-cols-3 gap-8'>
-							<Skeleton className='col-span-2 h-64 rounded-xl' />
-							<Skeleton className='h-64 rounded-xl' />
-						</div>
-					</main>
-				</SidebarInset>
-			</SidebarProvider>
+			<div className='h-screen flex items-center justify-center bg-background'>
+				<div className='flex flex-col items-center gap-4'>
+					<Loader2 className='w-8 h-8 animate-spin text-muted-foreground' />
+					<span className='text-sm text-muted-foreground'>Memuat detail review...</span>
+				</div>
+			</div>
 		)
 	}
 
 	if (!reviewData) {
 		return (
-			<SidebarProvider>
-				<AppSidebar />
-				<SidebarInset className='flex flex-col min-h-0 bg-sidebar rounded-xl m-2 border overflow-hidden'>
-					<header className='flex h-16 shrink-0 items-center gap-2 px-4 bg-white border-b sticky top-0 z-30'>
-						<SidebarTrigger className='-ml-1' />
-						<Separator orientation='vertical' className='mr-2 h-4' />
-						<Breadcrumb>
-							<BreadcrumbList>
-								<BreadcrumbItem>
-									<BreadcrumbLink href={`/${workspaceId}`}>Workspace</BreadcrumbLink>
-								</BreadcrumbItem>
-								<BreadcrumbSeparator />
-								<BreadcrumbItem>
-									<BreadcrumbPage>Review Not Found</BreadcrumbPage>
-								</BreadcrumbItem>
-							</BreadcrumbList>
-						</Breadcrumb>
-					</header>
-					<main className='flex-1 p-6 flex flex-col items-center justify-center text-center'>
-						<div className='bg-red-50 p-6 rounded-full mb-4'>
-							<AlertCircle className='w-12 h-12 text-red-500' />
-						</div>
-						<h2 className='text-2xl font-bold text-gray-900'>Review tidak ditemukan</h2>
-						<Button
-							variant='outline'
-							className='mt-6'
-							onClick={() => router.push(`/${workspaceId}/reviews`)}
-						>
-							<ChevronLeft className='w-4 h-4 mr-2' /> Kembali ke Daftar Review
-						</Button>
-					</main>
-				</SidebarInset>
-			</SidebarProvider>
+			<div className='h-screen flex flex-col items-center justify-center bg-background gap-4'>
+				<h2 className='text-lg font-semibold text-gray-900'>Review tidak ditemukan</h2>
+				<Button variant='outline' onClick={() => router.push(`/${workspaceId}/reviews`)}>
+					Kembali ke Daftar Review
+				</Button>
+			</div>
 		)
 	}
 
 	const isLecturer = user?.role === 'Lecturer'
 	const isPending = reviewData.status === 'pending'
-	const getStatusVariant = (status: string) => {
-		switch (status) {
-			case 'approved':
-				return 'green'
-			case 'rejected':
-				return 'red'
-			default:
-				return 'amber'
-		}
-	}
-	const statusVariant = getStatusVariant(reviewData.status)
 
 	return (
-		<SidebarProvider>
-			<AppSidebar />
-			<SidebarInset className='flex flex-col min-h-0 bg-sidebar rounded-xl m-2 border overflow-hidden'>
-				<header className='flex h-16 shrink-0 items-center gap-2 px-4 bg-white border-b sticky top-0 z-30'>
-					<SidebarTrigger className='-ml-1' />
-					<Separator orientation='vertical' className='mr-2 h-4' />
-					<Breadcrumb>
-						<BreadcrumbList>
-							<BreadcrumbItem className='hidden md:block'>
-								<BreadcrumbLink href='/'>PaperNest</BreadcrumbLink>
-							</BreadcrumbItem>
-							<BreadcrumbSeparator className='hidden md:block' />
-							<BreadcrumbItem>
-								<BreadcrumbLink href={`/${workspaceId}`}>
-									{workspace?.title || 'Workspace'}
-								</BreadcrumbLink>
-							</BreadcrumbItem>
-							<BreadcrumbSeparator className='hidden md:block' />
-							<BreadcrumbItem>
-								<BreadcrumbLink href={`/${workspaceId}/reviews`}>Reviews</BreadcrumbLink>
-							</BreadcrumbItem>
-							<BreadcrumbSeparator className='hidden md:block' />
-							<BreadcrumbItem>
-								<BreadcrumbPage>{docTitle || 'Detail Review'}</BreadcrumbPage>
-							</BreadcrumbItem>
-						</BreadcrumbList>
-					</Breadcrumb>
-				</header>
-
-				<main className='flex-1 p-4 md:p-6 w-full overflow-y-auto space-y-6'>
-					<div className='mb-8 flex items-center justify-between'>
-						<div className='space-y-1'>
-							<div className='flex items-center gap-3'>
-								<h2 className='text-2xl font-bold text-gray-900'>
-									{isLecturer ? 'Review Mahasiswa' : 'Reviews Saya'}
-								</h2>
-								<span
-									className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full ${
-										isLecturer ? 'bg-purple-100 text-purple-700' : 'bg-teal-100 text-teal-700'
-									}`}
-								>
-									{user?.role}
-								</span>
-							</div>
-							<p className='text-sm text-gray-500'>
-								{isLecturer
-									? `Kelola daftar review mahasiswa di workspace `
-									: `Pantau status review dokumen Anda di workspace `}
-								<b>{workspace?.title}</b>
+		<div className='h-screen flex flex-col font-sans bg-background text-foreground'>
+			<header className='bg-background border-b sticky top-0 z-50 py-4'>
+				<div className='w-full px-4 md:px-6 flex items-center justify-between'>
+					<div className='flex items-center gap-4'>
+						<Button
+							variant='ghost'
+							onClick={() => router.push(`/${workspaceId}/reviews`)}
+							className='h-10 w-10 hover:bg-muted rounded-lg transition-all group p-0 min-w-0 shrink-0'
+							title='Kembali ke Daftar Review'
+						>
+							<ChevronLeft className='h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors' />
+						</Button>
+						<div className='flex flex-col'>
+							<h1 className='text-sm font-semibold tracking-tight line-clamp-1'>
+								Review: {docTitle}
+							</h1>
+							<p className='text-xs text-muted-foreground'>
+								Diajukan oleh {studentName} • {formattedDate}
 							</p>
 						</div>
 					</div>
 
-					<div className='space-y-6'>
-						<ReviewHero
-							docTitle={docTitle}
-							studentName={studentName}
-							formattedDate={formattedDate}
-							status={reviewData.status}
-							documentId={reviewData.documentId}
-							workspaceId={workspaceId}
-							isDeleted={isDocumentDeleted}
+					<div className='flex items-center gap-3'>
+						<ReviewStatusBadge status={reviewData.status} />
+					</div>
+				</div>
+			</header>
+
+			<main className='flex-1 flex flex-col lg:flex-row overflow-hidden p-4 md:p-6 gap-6'>
+				{/* Left side: PDF Compiler/Preview */}
+				<div className='flex-1 bg-background rounded-lg border flex items-center justify-center relative overflow-hidden transition-all'>
+					{isCompiling ? (
+						<div className='flex flex-col items-center gap-4'>
+							<Loader2 className='w-8 h-8 animate-spin text-muted-foreground' />
+							<span className='text-sm text-muted-foreground'>Mengompilasi PDF Dokumen...</span>
+						</div>
+					) : pdfUrl ? (
+						<iframe
+							key={pdfUrl}
+							src={`${pdfUrl}#toolbar=1`}
+							className='w-full h-full border-none'
+							title='PDF Preview'
 						/>
+					) : compileError ? (
+						<div className='p-8 text-center'>
+							<p className='text-sm font-semibold text-destructive'>Gagal Compile PDF</p>
+							<pre className='text-xs text-muted-foreground mt-4 max-w-md mx-auto overflow-auto max-h-40 bg-muted p-4 rounded-md text-left'>
+								{compileError}
+							</pre>
+						</div>
+					) : (
+						<div className='flex flex-col items-center gap-2 text-center p-6'>
+							<p className='text-sm text-muted-foreground'>
+								Konten dokumen versi ini tidak tersedia.
+							</p>
+						</div>
+					)}
+				</div>
 
-						<div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
-							<div className='lg:col-span-2 space-y-6'>
-								<ReviewDetailSection
-									title='Review Request'
-									badgeText='Student Message'
-									icon={MessageSquare}
-									variant='teal'
-								>
-									<ReviewComment
-										authorName={studentName}
-										date={formattedDate}
-										content={reviewData.message || 'Tidak ada pesan pengantar.'}
-										userType='student'
-									/>
-								</ReviewDetailSection>
-
-								{!isPending && (
-									<ReviewDetailSection
-										title='Review Feedback'
-										badgeText='Decision Reached'
-										icon={CheckCircle2}
-										variant={statusVariant}
-									>
-										<ReviewComment
-											authorName={lecturerName}
-											date={format(reviewData.reviewedAt || new Date(), 'd MMMM yyyy, HH:mm', {
-												locale: id,
-											})}
-											content={
-												reviewData.lecturerMessage ||
-												`Dokumen telah ditandai sebagai ${reviewData.status.replace('_', ' ')}.`
-											}
-											userType='lecturer'
-										/>
-									</ReviewDetailSection>
-								)}
-							</div>
-
-							<div className='space-y-6'>
-								{isLecturer && isPending ? (
-									<ReviewActionCard onAction={openDecisionModal} />
-								) : (
-									<ReviewInfoCard
-										lecturerName={lecturerName}
-										studentName={studentName}
-										documentId={reviewData.documentId}
-										workspaceId={workspaceId}
-										isDeleted={isDocumentDeleted}
-									/>
-								)}
+				{/* Right side: Review Sidebar Details */}
+				<div className='w-full lg:w-96 flex flex-col shrink-0 gap-6 overflow-y-auto'>
+					{/* Student Requester Info & Message Card */}
+					<Card className='p-5 space-y-4 rounded-2xl border-gray-200/60 shadow-sm bg-white'>
+						<div className='flex items-center gap-3 border-b border-gray-100 pb-3'>
+							<Avatar className='h-9 w-9'>
+								<AvatarImage
+									src={
+										reviewData.student?.photoURL ||
+										getAvatarUrl(studentName, reviewData.studentUserId)
+									}
+								/>
+								<AvatarFallback className='text-xs font-bold bg-primary/10 text-primary'>
+									{getInitials(studentName)}
+								</AvatarFallback>
+							</Avatar>
+							<div className='flex-1 min-w-0'>
+								<p className='text-sm font-bold text-gray-900 truncate'>{studentName}</p>
+								<p className='text-xs text-muted-foreground font-semibold uppercase tracking-wider'>
+									Pengaju Review
+								</p>
 							</div>
 						</div>
-					</div>
-				</main>
-			</SidebarInset>
+
+						<div className='space-y-2'>
+							<Label className='text-xs font-semibold text-muted-foreground uppercase tracking-wider block'>
+								Pesan Pengantar
+							</Label>
+							<div className='p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 leading-relaxed font-normal whitespace-pre-line'>
+								{reviewData.message || 'Tidak ada pesan pengantar.'}
+							</div>
+						</div>
+					</Card>
+
+					{/* Review Status or Actions Card */}
+					{isPending && isLecturer ? (
+						<Card className='p-5 space-y-4 rounded-2xl border-gray-200/60 shadow-sm bg-white'>
+							<h3 className='text-sm font-bold text-gray-900 uppercase tracking-wider border-b border-gray-100 pb-3'>
+								Tentukan Keputusan
+							</h3>
+
+							<div className='grid grid-cols-1 gap-2.5'>
+								<Button
+									variant='default'
+									onClick={() => openDecisionModal('approved')}
+									className='w-full font-semibold text-sm h-10'
+								>
+									Setujui (Approve)
+								</Button>
+								<Button
+									variant='secondary'
+									onClick={() => openDecisionModal('revision_required')}
+									className='w-full font-semibold text-sm h-10'
+								>
+									Minta Revisi
+								</Button>
+								<Button
+									variant='destructive'
+									onClick={() => openDecisionModal('rejected')}
+									className='w-full font-semibold text-sm h-10'
+								>
+									Tolak (Reject)
+								</Button>
+							</div>
+
+							<div className='p-3 bg-gray-50 rounded-lg border border-gray-100'>
+								<p className='text-xs text-gray-500 leading-normal'>
+									Harap tinjau dokumen di panel kiri sebelum mengambil keputusan.
+								</p>
+							</div>
+						</Card>
+					) : (
+						/* Decided Review Card */
+						<Card className='p-5 space-y-4 rounded-2xl border-gray-200/60 shadow-sm bg-white'>
+							<div className='flex items-center gap-3 border-b border-gray-100 pb-3'>
+								<Avatar className='h-9 w-9'>
+									<AvatarImage
+										src={
+											reviewData.lecturer?.photoURL ||
+											getAvatarUrl(lecturerName, reviewData.lecturerUserId)
+										}
+									/>
+									<AvatarFallback className='text-xs font-bold bg-primary/10 text-primary'>
+										{getInitials(lecturerName)}
+									</AvatarFallback>
+								</Avatar>
+								<div className='flex-1 min-w-0'>
+									<p className='text-sm font-bold text-gray-900 truncate'>{lecturerName}</p>
+									<p className='text-xs text-muted-foreground font-semibold uppercase tracking-wider'>
+										Dosen Peninjau
+									</p>
+								</div>
+							</div>
+
+							<div className='space-y-2'>
+								<Label className='text-xs font-semibold text-muted-foreground uppercase tracking-wider block'>
+									Umpan Balik / Catatan Dosen
+								</Label>
+								{isPending ? (
+									<div className='p-3 bg-yellow-50/50 border border-yellow-100 rounded-lg text-sm text-yellow-800'>
+										<span>Menunggu respon dan penilaian dari Dosen Peninjau.</span>
+									</div>
+								) : (
+									<div className='p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 leading-relaxed font-normal whitespace-pre-line'>
+										{reviewData.lecturerMessage || 'Tidak ada catatan tambahan.'}
+									</div>
+								)}
+							</div>
+						</Card>
+					)}
+
+					{/* Document Navigation Card */}
+					<Card className='p-5 rounded-2xl border-gray-200/60 shadow-sm bg-white space-y-4'>
+						<h3 className='text-xs font-bold text-muted-foreground uppercase tracking-wider border-b border-gray-100 pb-3'>
+							Informasi Dokumen
+						</h3>
+						<div className='space-y-3'>
+							<div className='flex items-center justify-between text-sm'>
+								<span className='text-gray-500'>Nama Dokumen</span>
+								<span className='font-bold text-gray-900 truncate max-w-[150px]'>{docTitle}</span>
+							</div>
+							<Separator className='opacity-50' />
+							<div className='flex items-center justify-between text-sm'>
+								<span className='text-gray-500'>Versi</span>
+								<span className='font-bold text-gray-900'>V{reviewData.versionNumber || '?'}</span>
+							</div>
+						</div>
+
+						<Button
+							variant='outline'
+							className='w-full mt-4 h-10 font-bold shadow-sm'
+							onClick={() =>
+								!isDocumentDeleted && router.push(`/${workspaceId}/documents/${documentId}`)
+							}
+							disabled={isDocumentDeleted}
+						>
+							{isDocumentDeleted ? 'Dokumen Terhapus' : 'Buka di Editor'}
+						</Button>
+					</Card>
+				</div>
+			</main>
 
 			{/* Decision Modal */}
-			<Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-				<DialogContent className='sm:max-w-[500px]'>
-					<DialogHeader>
-						<DialogTitle>
-							Konfirmasi{' '}
-							{decision.replace('_', ' ').charAt(0).toUpperCase() +
-								decision.replace('_', ' ').slice(1)}
-						</DialogTitle>
-						<DialogDescription>
-							Berikan catatan atau masukan tambahan untuk mahasiswa mengenai keputusan ini.
-						</DialogDescription>
-					</DialogHeader>
+			<Modal
+				isOpen={isModalOpen}
+				onClose={() => setIsModalOpen(false)}
+				title={`Konfirmasi Keputusan: ${
+					decision === 'approved'
+						? 'Setujui'
+						: decision === 'revision_required'
+							? 'Minta Revisi'
+							: 'Tolak'
+				}`}
+			>
+				<div className='space-y-4 pt-2'>
+					<p className='text-sm text-muted-foreground'>
+						Berikan catatan atau masukan tambahan untuk mahasiswa mengenai keputusan ini.
+					</p>
 
-					<div className='py-4'>
+					<div className='space-y-2'>
+						<Label htmlFor='decision-feedback'>Catatan Peninjau</Label>
 						<Textarea
+							id='decision-feedback'
 							placeholder='Tulis pesan masukan Anda di sini (opsional)...'
 							value={feedback}
 							onChange={(e) => setFeedback(e.target.value)}
-							className='min-h-[120px]'
+							className='min-h-[120px] resize-none text-sm'
 						/>
 					</div>
 
-					<DialogFooter className='flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2'>
-						<Button variant='outline' onClick={() => setIsModalOpen(false)} className='px-6'>
+					<ModalFooter className='px-0 pb-0 gap-2'>
+						<Button variant='outline' onClick={() => setIsModalOpen(false)}>
 							Batal
 						</Button>
-						<Button onClick={handleAction} disabled={isUpdating} className='font-bold px-8'>
+						<Button
+							variant={decision === 'rejected' ? 'destructive' : 'default'}
+							onClick={handleAction}
+							disabled={isUpdating}
+							className='font-semibold'
+						>
 							{isUpdating ? 'Memproses...' : 'Kirim Keputusan'}
 						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
-		</SidebarProvider>
+					</ModalFooter>
+				</div>
+			</Modal>
+		</div>
 	)
 }

@@ -1,6 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { citationsService } from '../services/citations.service'
-import type { CitationData, CitationResponse, CitationsResponse } from '../types/citation.types'
+import type {
+	CitationData,
+	CitationResponse,
+	CitationsResponse,
+	SemanticScholarSearchResponse,
+	CreateCitationDto,
+	UpdateCitationDto,
+} from '../types/citation.types'
 
 export const CITATION_KEYS = {
 	all: ['citations'] as const,
@@ -22,6 +29,8 @@ export function useCitations(documentId: string, type?: string) {
 	})
 }
 
+export const useDocumentCitations = useCitations
+
 export function useWorkspaceCitations(workspaceId: string) {
 	return useQuery<CitationsResponse>({
 		queryKey: CITATION_KEYS.workspaceList(workspaceId),
@@ -31,10 +40,10 @@ export function useWorkspaceCitations(workspaceId: string) {
 	})
 }
 
-export function useCitation(citationId: string) {
+export function useCitation(citationId: string, documentId?: string) {
 	return useQuery<CitationResponse>({
 		queryKey: CITATION_KEYS.detail(citationId),
-		queryFn: () => citationsService.getById(citationId),
+		queryFn: () => citationsService.getById(citationId, documentId),
 		enabled: !!citationId,
 		staleTime: 5 * 60 * 1000,
 	})
@@ -44,13 +53,13 @@ export function useCreateCitation() {
 	const queryClient = useQueryClient()
 
 	return useMutation({
-		mutationFn: (data: CitationData & { workspaceId?: string; documentId?: string }) =>
+		mutationFn: (data: CreateCitationDto) =>
 			citationsService.create(data),
 		onSuccess: (response) => {
 			queryClient.invalidateQueries({ queryKey: CITATION_KEYS.lists() })
-			if (response.citation?.citationId) {
+			if (response.data?.citation?.citationId) {
 				queryClient.setQueryData(
-					CITATION_KEYS.detail(response.citation.citationId),
+					CITATION_KEYS.detail(response.data.citation.citationId),
 					response
 				)
 			}
@@ -64,11 +73,13 @@ export function useUpdateCitation() {
 	return useMutation({
 		mutationFn: ({
 			citationId,
+			documentId,
 			data,
 		}: {
 			citationId: string
-			data: Partial<CitationData>
-		}) => citationsService.update(citationId, data),
+			documentId?: string
+			data: UpdateCitationDto
+		}) => citationsService.update(citationId, data, documentId),
 		onSuccess: (response, variables) => {
 			queryClient.invalidateQueries({ queryKey: CITATION_KEYS.lists() })
 			queryClient.setQueryData(
@@ -83,8 +94,14 @@ export function useDeleteCitation() {
 	const queryClient = useQueryClient()
 
 	return useMutation({
-		mutationFn: (citationId: string) => citationsService.delete(citationId),
-		onSuccess: (_, citationId) => {
+		mutationFn: (variables: string | { citationId: string; documentId?: string }) => {
+			if (typeof variables === 'string') {
+				return citationsService.delete(variables)
+			}
+			return citationsService.delete(variables.citationId, variables.documentId)
+		},
+		onSuccess: (_, variables) => {
+			const citationId = typeof variables === 'string' ? variables : variables.citationId
 			queryClient.invalidateQueries({ queryKey: CITATION_KEYS.lists() })
 			queryClient.removeQueries({
 				queryKey: CITATION_KEYS.detail(citationId),
@@ -98,7 +115,7 @@ export function useSearchCitations(documentId: string, query: string) {
 		queryKey: CITATION_KEYS.search(documentId, query),
 		queryFn: () => citationsService.search(documentId, query),
 		enabled: !!documentId && query.length > 0,
-		staleTime: 60 * 1000, // 1 minute stale time for search results
+		staleTime: 60 * 1000,
 	})
 }
 
@@ -108,6 +125,15 @@ export function useCitationByDoi(documentId: string, doi: string) {
 		queryFn: () => citationsService.getByDoi(documentId, doi),
 		enabled: !!documentId && !!doi,
 		staleTime: 5 * 60 * 1000,
-		retry: false, // Don't retry if not found
+		retry: false,
+	})
+}
+
+export function useSearchSemanticScholar(query: string, enabled: boolean = true, limit: number = 8) {
+	return useQuery<SemanticScholarSearchResponse>({
+		queryKey: ['semantic-scholar', 'search', query, limit],
+		queryFn: () => citationsService.searchSemanticScholar(query, limit),
+		enabled: enabled && query.trim().length > 0,
+		staleTime: 10 * 60 * 1000,
 	})
 }

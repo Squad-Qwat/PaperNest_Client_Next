@@ -128,8 +128,8 @@ export function CitationSheet({
 			const { citationsService } = await import('@/lib/api/services/citations.service')
 			const response = await citationsService.getByDoi(documentId, identifier)
 			
-			if (response?.citation) {
-				const c = response.citation
+			if (response?.data?.citation) {
+				const c = response.data.citation
 				setTitle(c.title || '')
 				setDoi(c.doi || identifier)
 				setYear(c.publicationDate || '')

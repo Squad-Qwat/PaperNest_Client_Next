@@ -5,16 +5,18 @@
 
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Modal, ModalFooter } from '@/components/ui/modal'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Textarea } from '@/components/ui/textarea'
 import { apiClient } from '@/lib/api/clients/api-client'
+import { useCreateWorkspace } from '@/lib/api/hooks/use-workspaces'
 import { workspacesService } from '@/lib/api/services/workspaces.service'
 import { getErrorMessage } from '@/lib/api/utils/error-handler'
+import { useAuthStore } from '@/lib/store/auth-store'
 
 interface CreateWorkspaceModalProps {
 	isOpen: boolean
@@ -25,6 +27,8 @@ interface CreateWorkspaceModalProps {
 const workspaceIcons = ['📚', '🎓', '📖', '✍️', '🔬', '💼', '📊', '🎯', '🌟', '💡']
 
 export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorkspaceModalProps) {
+	const router = useRouter()
+	const createWorkspaceMutation = useCreateWorkspace()
 	const [mode, setMode] = useState<'create' | 'join'>('create')
 	const [title, setTitle] = useState('')
 	const [description, setDescription] = useState('')
@@ -50,10 +54,10 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
 		setError(null)
 
 		try {
-			// Debug: Check token in localStorage
-			const token = localStorage.getItem('accessToken')
+			// Debug: Check token in Zustand store
+			const token = useAuthStore.getState().accessToken
 			console.log(
-				'[CreateWorkspace] Token from localStorage:',
+				'[CreateWorkspace] Token from Zustand store:',
 				token ? `${token.substring(0, 20)}...` : 'NOT FOUND'
 			)
 
@@ -67,14 +71,17 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
 
 			console.log('[CreateWorkspace] API client headers:', apiClient.getHeaders())
 
+			let newWorkspaceId = ''
+
 			if (mode === 'create') {
 				console.log('[CreateWorkspace] Creating workspace with title:', title)
-				await workspacesService.create({
+				const newWorkspace = await createWorkspaceMutation.mutateAsync({
 					title: title.trim(),
 					description: description.trim() || undefined,
 					icon: icon,
 				})
-				console.log('[CreateWorkspace] Workspace created successfully')
+				console.log('[CreateWorkspace] Workspace created successfully:', newWorkspace)
+				newWorkspaceId = newWorkspace.workspaceId
 			} else {
 				console.log('[CreateWorkspace] Joining workspace with ID:', workspaceId)
 				await workspacesService.joinByWorkspaceId(workspaceId.trim())
@@ -94,6 +101,11 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
 			}
 
 			onClose()
+
+			// Redirect if new workspace was created
+			if (newWorkspaceId) {
+				router.push(`/${newWorkspaceId}`)
+			}
 		} catch (err) {
 			setError(getErrorMessage(err))
 		} finally {
@@ -114,11 +126,7 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
 	}
 
 	return (
-		<Modal
-			isOpen={isOpen}
-			onClose={handleClose}
-			title={mode === 'create' ? 'Create New Workspace' : 'Join Workspace'}
-		>
+		<Modal isOpen={isOpen} onClose={handleClose} title='Create New Workspace'>
 			<form onSubmit={handleSubmit} className='space-y-4'>
 				{error && (
 					<div className='p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm'>
@@ -126,132 +134,59 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
 					</div>
 				)}
 
-				{/* Mode Selection */}
 				<div className='space-y-2'>
-					<Label className='text-gray-900 font-normal'>Select Action</Label>
-					<RadioGroup
-						className='w-full grid grid-cols-2 gap-3'
-						value={mode}
-						onValueChange={(value) => setMode(value as 'create' | 'join')}
-					>
-						<div className='border-input has-data-[state=checked]:bg-primary has-data-[state=checked]:text-primary-foreground relative flex flex-col gap-2 border p-4 rounded-lg outline-none has-data-[state=checked]:z-10 transition-all'>
-							<div className='group flex flex-col gap-2'>
-								<div className='flex items-center gap-2'>
-									<RadioGroupItem
-										id='mode-create'
-										value='create'
-										aria-label='create-workspace'
-										className='text-white bg-white data-[state=checked]:bg-white data-[state=checked]:border-white data-[state=checked]:[&_svg]:fill-primary after:absolute after:inset-0'
-									/>
-									<Label className='font-semibold cursor-pointer' htmlFor='mode-create'>
-										Create New
-									</Label>
-								</div>
-								<p className='text-xs opacity-80 pl-6'>Start your own workspace</p>
-							</div>
-						</div>
-						<div className='border-input has-data-[state=checked]:bg-primary has-data-[state=checked]:text-primary-foreground relative flex flex-col gap-2 border p-4 rounded-lg outline-none has-data-[state=checked]:z-10 transition-all'>
-							<div className='group flex flex-col gap-2'>
-								<div className='flex items-center gap-2'>
-									<RadioGroupItem
-										id='mode-join'
-										value='join'
-										aria-label='join-workspace'
-										className='text-white bg-white data-[state=checked]:bg-white data-[state=checked]:border-white data-[state=checked]:[&_svg]:fill-primary after:absolute after:inset-0'
-									/>
-									<Label className='font-semibold cursor-pointer' htmlFor='mode-join'>
-										Join Existing
-									</Label>
-								</div>
-								<p className='text-xs opacity-80 pl-6'>Use a workspace ID</p>
-							</div>
-						</div>
-					</RadioGroup>
+					<Label className='text-gray-900 font-normal'>Workspace Icon</Label>
+					<div className='grid grid-cols-5 gap-2'>
+						{workspaceIcons.map((iconOption) => (
+							<button
+								key={iconOption}
+								type='button'
+								onClick={() => setIcon(iconOption)}
+								className={`p-3 text-2xl border rounded-lg transition-all hover:scale-105 ${
+									icon === iconOption
+										? 'bg-primary/10 border-primary text-primary'
+										: 'bg-white border-gray-200 hover:border-gray-300'
+								}`}
+								disabled={loading}
+							>
+								{iconOption}
+							</button>
+						))}
+					</div>
 				</div>
 
-				{/* Create Workspace Form */}
-				{mode === 'create' && (
-					<>
-						<div className='space-y-2'>
-							<Label className='text-gray-900 font-normal'>Workspace Icon</Label>
-							<div className='grid grid-cols-5 gap-2'>
-								{workspaceIcons.map((iconOption) => (
-									<button
-										key={iconOption}
-										type='button'
-										onClick={() => setIcon(iconOption)}
-										className={`p-3 text-2xl border rounded-lg transition-all hover:scale-105 ${
-											icon === iconOption
-												? 'bg-primary/10 border-primary text-primary'
-												: 'bg-white border-gray-200 hover:border-gray-300'
-										}`}
-										disabled={loading}
-									>
-										{iconOption}
-									</button>
-								))}
-							</div>
-						</div>
-						<div className='space-y-2'>
-							<Label htmlFor='workspace-title'>
-								Workspace Title <span className='text-red-500'>*</span>
-							</Label>
-							<Input
-								id='workspace-title'
-								value={title}
-								onChange={(e) => setTitle(e.target.value)}
-								placeholder='My Research Workspace'
-								disabled={loading}
-								required
-							/>
-						</div>
+				<div className='space-y-2'>
+					<Label htmlFor='workspace-title'>
+						Workspace Title <span className='text-red-500'>*</span>
+					</Label>
+					<Input
+						id='workspace-title'
+						value={title}
+						onChange={(e) => setTitle(e.target.value)}
+						placeholder='My Research Workspace'
+						disabled={loading}
+						required
+					/>
+				</div>
 
-						<div className='space-y-2'>
-							<Label htmlFor='workspace-description'>Description (Optional)</Label>
-							<Textarea
-								id='workspace-description'
-								value={description}
-								onChange={(e) => setDescription(e.target.value)}
-								placeholder='A workspace for my research papers...'
-								rows={3}
-								disabled={loading}
-							/>
-						</div>
-					</>
-				)}
-
-				{/* Join Workspace Form */}
-				{mode === 'join' && (
-					<div className='space-y-2'>
-						<Label htmlFor='workspace-id'>
-							Workspace ID <span className='text-red-500'>*</span>
-						</Label>
-						<Input
-							id='workspace-id'
-							value={workspaceId}
-							onChange={(e) => setWorkspaceId(e.target.value)}
-							placeholder='Enter workspace ID'
-							disabled={loading}
-							required
-						/>
-						<p className='text-xs text-gray-500'>
-							Ask your workspace owner for the workspace ID to join.
-						</p>
-					</div>
-				)}
+				<div className='space-y-2'>
+					<Label htmlFor='workspace-description'>Description (Optional)</Label>
+					<Textarea
+						id='workspace-description'
+						value={description}
+						onChange={(e) => setDescription(e.target.value)}
+						placeholder='A workspace for my research papers...'
+						rows={3}
+						disabled={loading}
+					/>
+				</div>
 
 				<ModalFooter>
 					<Button type='button' variant='outline' onClick={handleClose} disabled={loading}>
 						Cancel
 					</Button>
 					<Button type='submit' disabled={loading}>
-						{loading
-							? mode === 'create'
-								? 'Creating...'
-								: 'Joining...'
-							: mode === 'create'
-								? 'Create Workspace'
-								: 'Join Workspace'}
+						{loading ? 'Creating...' : 'Create Workspace'}
 					</Button>
 				</ModalFooter>
 			</form>

@@ -3,22 +3,37 @@
 import { ChevronLeft, FileText, Loader2, MessageSquare, RotateCcw } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { Label } from '@/components/ui/label'
+import { Modal, ModalFooter } from '@/components/ui/modal'
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { useAuth } from '@/context/AuthContext'
+import { useCompilePdf } from '@/hooks/editor/use-compile-pdf'
 import { useDocumentFiles } from '@/lib/api/hooks/use-document-files'
 import {
+	useCreateReview,
 	useDocumentReviews,
 	useDocumentVersions,
+	useDocumentWithRoomState,
 	useRevertVersion,
 } from '@/lib/api/hooks/use-documents'
+import { useWorkspace, useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
 import type { Version } from '@/lib/api/types/document.types'
 import type { Review } from '@/lib/api/types/review.types'
 import { format, id } from '@/lib/date'
-import { laTeXService } from '@/lib/latex/LaTeXService'
 import { getAvatarUrl, getInitials } from '@/lib/utils'
 
 export default function VersionDetailPage() {
@@ -28,14 +43,64 @@ export default function VersionDetailPage() {
 	const documentId = params.documentid as string
 	const versionId = params.versionid as string
 
-	const [pdfUrl, setPdfUrl] = useState<string | null>(null)
-	const [isCompiling, setIsCompiling] = useState(false)
-	const [compileError, setCompileError] = useState<string | null>(null)
+	const [showConfirm, setShowConfirm] = useState(false)
+
+	const [isReviewModalOpen, setIsReviewModalOpen] = useState(false)
+	const [selectedLecturerId, setSelectedLecturerId] = useState('')
+	const [reviewMessage, setReviewMessage] = useState('')
+
+	const { user } = useAuth()
+	const { data: membersResponse } = useWorkspaceMembers(workspaceId)
+	const { data: workspace } = useWorkspace(workspaceId)
+	const { mutateAsync: createReview, isPending: isCreatingReview } = useCreateReview()
 
 	const { data: versionsResponse, isLoading: versionsLoading } = useDocumentVersions(documentId)
+	const { data: documentWithRoomData, refetch: refetchRoomState } =
+		useDocumentWithRoomState(documentId)
 	const { data: reviewsResponse } = useDocumentReviews(documentId)
 	const { data: files = [] } = useDocumentFiles(documentId)
 	const { mutateAsync: revertVersion, isPending: isReverting } = useRevertVersion()
+
+	// PDF Compilation State using hook
+	const { pdfUrl, isCompiling, compileError, handleCompile } = useCompilePdf(documentId, files)
+
+	const activeUsers = documentWithRoomData?.room?.activeUsers || 0
+
+	const members = membersResponse?.members || []
+	const lecturers = members.filter((m: any) => m.user?.role?.toLowerCase() === 'lecturer')
+
+	useEffect(() => {
+		if (lecturers.length > 0) {
+			if (!selectedLecturerId) {
+				setSelectedLecturerId(lecturers[0]?.user?.userId || '')
+			}
+		} else if (workspace?.ownerId) {
+			if (!selectedLecturerId) {
+				setSelectedLecturerId(workspace.ownerId)
+			}
+		}
+	}, [lecturers, workspace, selectedLecturerId])
+
+	const handleRequestReviewSubmit = async (e: React.FormEvent) => {
+		e.preventDefault()
+		if (!selectedLecturerId) return
+
+		try {
+			await createReview({
+				documentId,
+				documentBodyId: versionId,
+				data: {
+					lecturerUserId: selectedLecturerId,
+					message: reviewMessage || 'Requesting review for version',
+				},
+			})
+			toast.success('Pengajuan review berhasil dikirim!')
+			setIsReviewModalOpen(false)
+		} catch (error) {
+			console.error('Failed to create review:', error)
+			toast.error('Gagal mengirim pengajuan review')
+		}
+	}
 
 	const versions = Array.isArray(versionsResponse)
 		? (versionsResponse as Version[])
@@ -47,50 +112,28 @@ export default function VersionDetailPage() {
 		: (reviewsResponse as { reviews: Review[] })?.reviews || []
 	const versionReview = reviews.find((r: Review) => r.documentBodyId === versionId)
 
-	const handleCompile = useCallback(
-		async (content: string) => {
-			if (!content) return
-			setIsCompiling(true)
-			setCompileError(null)
-			try {
-				const result = await laTeXService.compileWithAssets(
-					'main.tex',
-					content,
-					files,
-					undefined,
-					documentId
-				)
-				if (result.status === 0 && result.pdf) {
-					const blob = new Blob([result.pdf as any], { type: 'application/pdf' })
-					const url = URL.createObjectURL(blob)
-					// We'll manage the revocation in a separate effect to avoid logic loops
-					setPdfUrl(url)
-				} else {
-					setCompileError(result.log || 'Compilation failed')
-				}
-			} catch (error: any) {
-				setCompileError(error.message || 'Error compiling PDF')
-			} finally {
-				setIsCompiling(false)
-			}
-		},
-		[files, documentId]
-	) // Removed pdfUrl from dependencies
-
 	useEffect(() => {
 		if (version?.content && !pdfUrl && !isCompiling && !compileError) {
 			handleCompile(version.content)
 		}
 	}, [version?.content, handleCompile, pdfUrl, isCompiling, compileError])
 
-	useEffect(() => {
-		return () => {
-			if (pdfUrl) URL.revokeObjectURL(pdfUrl)
-		}
-	}, [pdfUrl])
-
 	const handleRestore = async () => {
 		if (!version) return
+
+		// Refresh room state to get latest active users count
+		const { data: latestRoomData } = await refetchRoomState()
+		const currentActiveUsers = latestRoomData?.room?.activeUsers || 0
+
+		if (currentActiveUsers > 0) {
+			toast.error('Tidak Dapat Melakukan Pemulihan', {
+				description:
+					'Masih terdapat pengguna aktif di dalam editor. Harap pastikan semua pengguna telah keluar dari room sebelum melakukan pemulihan.',
+				duration: 5000,
+			})
+			return
+		}
+
 		try {
 			await revertVersion({ documentId, versionNumber: version.versionNumber })
 			toast.success('Versi berhasil dipulihkan')
@@ -143,15 +186,35 @@ export default function VersionDetailPage() {
 					</div>
 
 					<div className='flex items-center gap-3'>
-						{versionReview && (
+						{versionReview ? (
 							<Link href={`/${workspaceId}/reviews/${versionReview.reviewId}`}>
 								<Button variant='outline' size='sm' className='gap-2'>
 									<MessageSquare className='w-4 h-4' />
 									<span className='hidden sm:inline'>Lihat Review</span>
 								</Button>
 							</Link>
+						) : (
+							user?.role?.toLowerCase() === 'student' && (
+								<Button
+									variant='outline'
+									size='sm'
+									className='gap-2 bg-primary hover:bg-primary/90 text-white border-primary transition-all duration-200'
+									onClick={() => setIsReviewModalOpen(true)}
+								>
+									<MessageSquare className='w-4 h-4' />
+									<span>Ajukan Review</span>
+								</Button>
+							)
 						)}
-						<Button size='sm' className='gap-2' onClick={handleRestore} disabled={isReverting}>
+						<Button
+							size='sm'
+							className='gap-2'
+							onClick={async () => {
+								await refetchRoomState()
+								setShowConfirm(true)
+							}}
+							disabled={isReverting}
+						>
 							<RotateCcw className='w-4 h-4' />
 							<span className='hidden sm:inline'>
 								{isReverting ? 'Memulihkan...' : 'Pulihkan Versi Ini'}
@@ -284,6 +347,91 @@ export default function VersionDetailPage() {
 					</Card>
 				</div>
 			</main>
+
+			<ConfirmDialog
+				isOpen={showConfirm}
+				onClose={() => setShowConfirm(false)}
+				onConfirm={activeUsers > 0 ? () => {} : handleRestore}
+				title={activeUsers > 0 ? 'Editor Sedang Digunakan' : 'Konfirmasi Pemulihan'}
+				message={
+					activeUsers > 0
+						? `Terdapat ${activeUsers} pengguna yang sedang aktif di room editor. Untuk menjaga integritas data, semua pengguna harus keluar dari room editor sebelum pemulihan dapat dilakukan.`
+						: 'Apakah Anda yakin ingin memulihkan dokumen ini ke versi yang dipilih? Tindakan ini akan menghapus semua versi yang dibuat setelah versi ini.'
+				}
+				confirmText={activeUsers > 0 ? 'Mengerti' : 'Ya, Pulihkan'}
+				cancelText={activeUsers > 0 ? undefined : 'Batal'}
+				variant={activeUsers > 0 ? 'info' : 'warning'}
+			/>
+
+			<Modal
+				isOpen={isReviewModalOpen}
+				onClose={() => setIsReviewModalOpen(false)}
+				title='Ajukan Review Dokumen'
+			>
+				<form onSubmit={handleRequestReviewSubmit} className='space-y-4 pt-2'>
+					<p className='text-sm text-muted-foreground'>
+						Pilih dosen peninjau dan tambahkan pesan opsional untuk menjelaskan perubahan atau fokus
+						peninjauan Anda.
+					</p>
+
+					<div className='space-y-2'>
+						<Label htmlFor='lecturer-select'>
+							Dosen Peninjau <span className='text-red-500'>*</span>
+						</Label>
+						<Select
+							value={selectedLecturerId}
+							onValueChange={(value) => setSelectedLecturerId(value)}
+							required
+						>
+							<SelectTrigger id='lecturer-select' className='w-full bg-white'>
+								<SelectValue placeholder='-- Pilih Dosen --' />
+							</SelectTrigger>
+							<SelectContent className='z-[1025]'>
+								{lecturers.map((m: any) => (
+									<SelectItem key={m.user?.userId} value={m.user?.userId}>
+										{m.user?.name || m.user?.username || 'Dosen'}
+									</SelectItem>
+								))}
+								{lecturers.length === 0 && workspace?.ownerId && (
+									<SelectItem value={workspace.ownerId}>Pemilik Workspace (Default)</SelectItem>
+								)}
+							</SelectContent>
+						</Select>
+					</div>
+
+					<div className='space-y-2'>
+						<Label htmlFor='review-message'>Pesan Tambahan (Opsional)</Label>
+						<Textarea
+							id='review-message'
+							placeholder='Tulis catatan atau instruksi khusus untuk peninjau...'
+							value={reviewMessage}
+							onChange={(e) => setReviewMessage(e.target.value)}
+							disabled={isCreatingReview}
+							className='resize-none text-sm'
+							rows={4}
+						/>
+					</div>
+
+					<ModalFooter className='px-0 pb-0 gap-2'>
+						<Button
+							type='button'
+							variant='outline'
+							onClick={() => setIsReviewModalOpen(false)}
+							disabled={isCreatingReview}
+						>
+							Batal
+						</Button>
+						<Button
+							type='submit'
+							disabled={isCreatingReview || !selectedLecturerId}
+							className='bg-primary text-white hover:bg-primary/90 flex items-center gap-1.5'
+						>
+							{isCreatingReview && <Loader2 className='w-4 h-4 animate-spin' />}
+							{isCreatingReview ? 'Mengirim...' : 'Kirim Pengajuan'}
+						</Button>
+					</ModalFooter>
+				</form>
+			</Modal>
 		</div>
 	)
 }

@@ -8,7 +8,6 @@ import { API_ENDPOINTS } from '../config'
 import type { Invitation } from '../types/invitation.types'
 import type {
 	CreateWorkspaceDto,
-	InviteMemberDto,
 	UpdateMemberRoleDto,
 	UpdateWorkspaceDto,
 	Workspace,
@@ -56,14 +55,38 @@ class WorkspacesService {
 	}
 
 	/**
-	 * Join workspace by workspace ID
+	 * Send invitations to multiple emails
 	 */
-	async joinByWorkspaceId(workspaceId: string): Promise<Invitation> {
-		const response = await apiClient.post<{ userWorkspace: Invitation }>(
-			API_ENDPOINTS.workspaces.join(workspaceId),
-			{}
+	async sendInvitations(
+		workspaceId: string,
+		data: { emails: string[]; role: string }
+	): Promise<{ results: { email: string; status: string }[] }> {
+		return apiClient.post<{ results: { email: string; status: string }[] }>(
+			API_ENDPOINTS.workspaces.invitations(workspaceId),
+			data
 		)
-		return response.userWorkspace
+	}
+
+	/**
+	 * Get invitation details by token
+	 */
+	async getInvitationDetails(token: string): Promise<{
+		invitation: {
+			email: string
+			role: string
+			workspaceTitle: string
+			workspaceIcon?: string
+			inviterName: string
+		}
+	}> {
+		return apiClient.get(API_ENDPOINTS.invitations.details(token))
+	}
+
+	/**
+	 * Accept invitation by token
+	 */
+	async acceptInvitation(token: string): Promise<void> {
+		await apiClient.post(API_ENDPOINTS.invitations.accept(token), {})
 	}
 
 	// ============= Member Management =============
@@ -73,17 +96,6 @@ class WorkspacesService {
 	 */
 	async getMembers(workspaceId: string): Promise<WorkspaceMembersResponse> {
 		return apiClient.get<WorkspaceMembersResponse>(API_ENDPOINTS.workspaces.members(workspaceId))
-	}
-
-	/**
-	 * Invite member to workspace
-	 */
-	async inviteMember(workspaceId: string, data: InviteMemberDto): Promise<Invitation> {
-		const response = await apiClient.post<{ userWorkspace: Invitation }>(
-			API_ENDPOINTS.workspaces.members(workspaceId),
-			data
-		)
-		return response.userWorkspace
 	}
 
 	/**
@@ -106,6 +118,14 @@ class WorkspacesService {
 	 */
 	async removeMember(workspaceId: string, userWorkspaceId: string): Promise<void> {
 		await apiClient.delete<void>(API_ENDPOINTS.workspaces.member(workspaceId, userWorkspaceId))
+	}
+
+	/**
+	 * Join workspace by ID (Placeholder for future implementation)
+	 */
+	async joinByWorkspaceId(_workspaceId: string): Promise<void> {
+		// This endpoint does not exist yet in backend
+		throw new Error('Join by ID not implemented yet. Please use an invitation link.')
 	}
 }
 

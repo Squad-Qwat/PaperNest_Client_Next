@@ -2,7 +2,7 @@
 
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import type { LucideIcon } from 'lucide-react'
-import { BrainIcon, ChevronDownIcon, DotIcon } from 'lucide-react'
+import { BrainIcon, CheckCircle2, ChevronDownIcon, Circle, Loader2, XCircle } from 'lucide-react'
 import type { ComponentProps, ReactNode } from 'react'
 import { createContext, memo, useContext, useMemo } from 'react'
 import { Badge } from '@/components/ui/badge'
@@ -87,45 +87,68 @@ export type ChainOfThoughtStepProps = ComponentProps<'div'> & {
 	icon?: LucideIcon
 	label: ReactNode
 	description?: ReactNode
-	status?: 'complete' | 'active' | 'pending'
+	status?: 'complete' | 'active' | 'pending' | 'failed'
 }
 
 const stepStatusStyles = {
-	active: 'text-foreground',
+	active: 'text-foreground font-medium',
 	complete: 'text-muted-foreground',
 	pending: 'text-muted-foreground/50',
+	failed: 'text-destructive font-medium',
 }
 
 export const ChainOfThoughtStep = memo(
 	({
 		className,
-		icon: Icon = DotIcon,
+		icon,
 		label,
 		description,
 		status = 'complete',
 		children,
 		...props
-	}: ChainOfThoughtStepProps) => (
-		<div
-			className={cn(
-				'flex gap-2 text-sm',
-				stepStatusStyles[status],
-				'fade-in-0 slide-in-from-top-2 animate-in',
-				className
-			)}
-			{...props}
-		>
-			<div className='relative mt-0.5'>
-				<Icon className='size-4' />
-				<div className='absolute top-7 bottom-0 left-1/2 -mx-px w-px bg-border' />
+	}: ChainOfThoughtStepProps) => {
+		// Pick the most appropriate icon based on status if no custom icon is provided (DotIcon is the original fallback)
+		const Icon =
+			icon ||
+			(status === 'active'
+				? Loader2
+				: status === 'complete'
+					? CheckCircle2
+					: status === 'failed'
+						? XCircle
+						: Circle)
+
+		return (
+			<div
+				className={cn(
+					'flex gap-2 text-sm relative pb-4 last:pb-0 group',
+					stepStatusStyles[status],
+					'fade-in-0 slide-in-from-top-2 animate-in',
+					className
+				)}
+				{...props}
+			>
+				{/* We place the absolute timeline connector line relative to the entire step block 
+            so that it dynamically spans from the bottom of the icon down through the pb-4 padding 
+            of the current step, bridging any gap to the next step's icon wrapper. */}
+				<div className='mt-0.5 shrink-0 relative z-10 bg-background'>
+					<Icon
+						className={cn(
+							'size-4',
+							status === 'active' && 'text-primary animate-spin',
+							status === 'failed' && 'text-destructive'
+						)}
+					/>
+				</div>
+				<div className='absolute top-5 bottom-0 left-2 -translate-x-1/2 w-px bg-border group-last:hidden' />
+				<div className='flex-1 space-y-2 overflow-hidden pl-1'>
+					<div>{label}</div>
+					{description && <div className='text-muted-foreground text-xs'>{description}</div>}
+					{children}
+				</div>
 			</div>
-			<div className='flex-1 space-y-2 overflow-hidden'>
-				<div>{label}</div>
-				{description && <div className='text-muted-foreground text-xs'>{description}</div>}
-				{children}
-			</div>
-		</div>
-	)
+		)
+	}
 )
 
 export type ChainOfThoughtSearchResultsProps = ComponentProps<'div'>
