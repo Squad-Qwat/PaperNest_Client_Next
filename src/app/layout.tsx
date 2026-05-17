@@ -1,12 +1,12 @@
 import type { Metadata } from 'next'
 import { IBM_Plex_Mono, IBM_Plex_Sans } from 'next/font/google'
 import '@/app/css/globals.css'
+import Script from 'next/script'
 import { QueryProvider } from '@/components/providers/query-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from '@/context/AuthContext'
 import { AppProvider } from '@/lib/store'
-import Script from 'next/script'
 
 const ibmPlexSans = IBM_Plex_Sans({
 	variable: '--font-ibmPlex-sans',
@@ -45,7 +45,7 @@ export default function RootLayout({
 					</AuthProvider>
 				</QueryProvider>
 
-				<Script id="maze-universal-snippet" strategy="afterInteractive">
+				<Script id='maze-universal-snippet' strategy='afterInteractive'>
 					{`
 						(function (m, a, z, e) {
 							var s, t, u, v;
