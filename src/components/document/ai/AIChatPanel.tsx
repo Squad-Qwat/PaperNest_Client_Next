@@ -42,6 +42,12 @@ import {
 	usePromptInputController,
 } from '@/components/ui/ai-elements/prompt-input'
 import {
+	ChainOfThought,
+	ChainOfThoughtContent,
+	ChainOfThoughtHeader,
+	ChainOfThoughtStep,
+} from '@/components/ui/ai-elements/chain-of-thought'
+import {
 	Reasoning,
 	ReasoningContent,
 	ReasoningTrigger,
@@ -92,7 +98,7 @@ interface AIChatPanelProps {
 
 export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 	// 1. Hooks & Store
-	const { sendMessage, stop, messages, isStreaming } = useAIChat({ editor, documentId })
+	const { sendMessage, stop, messages, isStreaming, currentPlan } = useAIChat({ editor, documentId })
 	const {
 		model,
 		setModel,
@@ -227,9 +233,30 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 							className='max-w-full w-full'
 						>
 							<MessageContent className='w-full pt-1'>
-								<span className='text-sm text-slate-400 italic font-light animate-pulse'>
-									Neptune sedang merenung...
-								</span>
+								{currentPlan && currentPlan.length > 0 ? (
+									<ChainOfThought defaultOpen={true}>
+										<ChainOfThoughtHeader>Rencana Neptune AI</ChainOfThoughtHeader>
+										<ChainOfThoughtContent>
+											{currentPlan.map((step, idx) => (
+												<ChainOfThoughtStep
+													key={idx}
+													label={step.title}
+													status={
+														step.status === 'completed'
+															? 'complete'
+															: step.status === 'failed'
+																? 'failed'
+																: step.status
+													}
+												/>
+											))}
+										</ChainOfThoughtContent>
+									</ChainOfThought>
+								) : (
+									<span className='text-sm text-slate-400 italic font-light animate-pulse'>
+										Neptune sedang merenung...
+									</span>
+								)}
 							</MessageContent>
 						</Message>
 					)}
