@@ -415,7 +415,7 @@ function AIChatInput({ onSend, isLoading, onStop, model, setModel, selectedModel
 		>
 			<PromptInputAttachmentsList />
 			<PromptInputBody>
-				<PromptInputTextarea className='py-3 px-4' placeholder='Tanyakan apa saja ke Neptune...' />
+				<PromptInputTextarea className='py-3 px-4' placeholder='Ask Neptune anything...' />
 			</PromptInputBody>
 			<PromptInputFooter>
 				<PromptInputTools>
@@ -443,10 +443,10 @@ function AIChatInput({ onSend, isLoading, onStop, model, setModel, selectedModel
 							</Button>
 						</ModelSelectorTrigger>
 						<ModelSelectorContent>
-							<ModelSelectorInput placeholder='Cari model...' />
+							<ModelSelectorInput placeholder='Search models...' />
 							<ModelSelectorList>
-								<ModelSelectorEmpty>Model/mode tidak ditemukan.</ModelSelectorEmpty>
-								<ModelSelectorGroup heading='Mode Agen'>
+								<ModelSelectorEmpty>Model/mode not found.</ModelSelectorEmpty>
+								<ModelSelectorGroup heading='Agent Mode'>
 									<ModelSelectorItem onSelect={() => setAgentId('manual_graph')} value='manual_graph'>
 										<BrainCircuit className='mr-2 h-3.5 w-3.5 text-blue-500' />
 										<ModelSelectorName>High Agentic</ModelSelectorName>
@@ -459,7 +459,7 @@ function AIChatInput({ onSend, isLoading, onStop, model, setModel, selectedModel
 									</ModelSelectorItem>
 								</ModelSelectorGroup>
 								<ModelSelectorSeparator />
-								<ModelSelectorGroup heading='Model Tersedia'>
+								<ModelSelectorGroup heading='Available Models'>
 									{models.map((m) => (
 										<ModelSelectorItem key={m.id} onSelect={() => setModel(m.id)} value={m.id}>
 											<ModelSelectorLogo provider={m.chef as any} />

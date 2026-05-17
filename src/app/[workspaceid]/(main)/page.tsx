@@ -26,7 +26,7 @@ import { useAuth } from '@/context/AuthContext'
 import { useDeleteDocument, useWorkspaceDocuments } from '@/lib/api/hooks/use-documents'
 import { useWorkspace } from '@/lib/api/hooks/use-workspaces'
 import type { Document, DocumentsResponse } from '@/lib/api/types/document.types'
-import { format, id } from '@/lib/date'
+import { format } from '@/lib/date'
 import { cn } from '@/lib/utils'
 import { useAIChat } from '@/lib/ai/hooks/use-ai-chat'
 import { useAIChatStore } from '@/lib/ai/store'
@@ -208,7 +208,7 @@ export default function WorkspacePage() {
 							}}
 							className='h-9 px-4 text-xs font-semibold rounded-xl text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800/80 transition-all shadow-2xs'
 						>
-							Kembali ke Dashboard
+							Back to Dashboard
 						</Button>
 					</motion.div>
 				)}
@@ -231,9 +231,9 @@ export default function WorkspacePage() {
 							className='w-full flex-1 flex flex-col'
 						>
 							<div className='mb-8 flex flex-col items-center text-center'>
-								<h2 className='text-3xl font-bold text-gray-900'>Apa yang kita teliti hari ini?</h2>
+								<h2 className='text-3xl font-bold text-gray-900'>What are we researching today?</h2>
 								<p className='text-gray-500 mt-2'>
-									Temukan dokumen atau mulai riset baru di workspace {workspace?.title}
+									Find documents or start a new research in workspace {workspace?.title}
 								</p>
 							</div>
 
@@ -245,26 +245,26 @@ export default function WorkspacePage() {
 										onSearchSubmit={handleAIPromptSubmit}
 										status={aiStatus}
 										documents={documents}
-										placeholder='Cari dokumen atau tanya AI PaperNest...'
+										placeholder='Search documents or ask PaperNest AI...'
 										onStop={handleAIStop}
 									/>
 								</div>
 							</div>
 
-							<div className='mb-12'>
+							<div className='mb-6'>
 								<TemplateGallery workspaceId={workspaceId} />
 							</div>
 
 							<div className='mb-6'>
-								<h3 className='text-lg font-semibold flex items-center gap-2'>Kelola Dokumen</h3>
+								<h3 className='text-lg font-semibold flex items-center gap-2'>Manage Documents</h3>
 							</div>
 							{filteredDocuments.length === 0 ? (
-								<div className='text-center py-20 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200'>
-									<FileText className='h-16 w-16 mx-auto text-gray-400 mb-4 opacity-50' />
-									<p className='text-gray-600 text-lg mb-2'>
+								<div className='flex flex-col items-center justify-center text-center py-12 px-4 bg-background border border-dashed border-muted-foreground/20 rounded-xl max-w-md mx-auto w-full'>
+									<FileText className='h-8 w-8 text-muted-foreground/60 mb-3' />
+									<h3 className='text-sm font-medium text-foreground mb-1'>
 										{searchQuery ? 'No documents found' : 'No documents yet'}
-									</p>
-									<p className='text-gray-500 text-sm'>
+									</h3>
+									<p className='text-xs text-muted-foreground'>
 										{searchQuery
 											? 'Try a different search term'
 											: 'No documents available in this workspace'}
@@ -284,13 +284,13 @@ export default function WorkspacePage() {
 													</h3>
 												</div>
 
-												<p className='text-gray-600 text-sm mb-6 line-clamp-2 min-h-[40px]'>
+												<p className='text-gray-600 text-sm mb-3 line-clamp-2 min-h-[40px]'>
 													{doc.description || 'No description'}
 												</p>
 
-												<div className='flex items-center justify-between text-xs text-gray-500 mb-6'>
+												<div className='flex items-center justify-between text-xs text-gray-500 mb-4'>
 													<span>
-														{format(doc.updatedAt || doc.createdAt, 'd MMMM yyyy', { locale: id })}
+														{format(doc.updatedAt || doc.createdAt, 'd MMMM yyyy')}
 													</span>
 												</div>
 
@@ -302,7 +302,7 @@ export default function WorkspacePage() {
 														}}
 														className='flex-1 bg-primary hover:bg-primary/90'
 													>
-														Buka
+														Open
 													</Button>
 													<button
 														type='button'
@@ -312,7 +312,7 @@ export default function WorkspacePage() {
 														}}
 														disabled={isDeleting}
 														className='inline-flex items-center justify-center h-9 w-9 rounded-md border border-gray-300 text-gray-600 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors disabled:opacity-50'
-														title='Hapus Dokumen'
+														title='Delete Document'
 													>
 														<Trash2 className='h-4 w-4' />
 													</button>
@@ -421,7 +421,7 @@ export default function WorkspacePage() {
 										onSearchSubmit={handleAIPromptSubmit}
 										status={aiStatus}
 										documents={documents}
-										placeholder='Tanya AI PaperNest lainnya...'
+										placeholder='Ask PaperNest AI anything else...'
 										onStop={handleAIStop}
 									/>
 								</div>

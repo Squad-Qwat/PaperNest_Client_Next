@@ -914,10 +914,10 @@ export const PromptInput = ({
 					>
 						<UploadCloud className='w-5 h-5 text-primary' />
 						<div className='text-xs font-medium text-foreground'>
-							Seret & lepas berkas ke sini
+							Drag & drop files here
 						</div>
 						<div className='text-[10px] text-muted-foreground'>
-							Mendukung gambar, PDF, dokumen & teks
+							Supports images, PDFs, documents & text
 						</div>
 					</div>
 				)}

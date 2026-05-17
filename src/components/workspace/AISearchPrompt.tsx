@@ -170,7 +170,7 @@ interface AISearchPromptProps {
 }
 
 const AISearchPromptInner = ({
-	placeholder = 'Cari dokumen atau tanya AI...',
+	placeholder = 'Search documents or ask AI...',
 	onSearchChange,
 	onSearchSubmit,
 	status = 'ready',
@@ -395,10 +395,10 @@ const AISearchPromptInner = ({
 									</PromptInputButton>
 								</ModelSelectorTrigger>
 								<ModelSelectorContent>
-									<ModelSelectorInput placeholder='Cari model...' />
+									<ModelSelectorInput placeholder='Search models...' />
 									<ModelSelectorList>
-										<ModelSelectorEmpty>Model/mode tidak ditemukan.</ModelSelectorEmpty>
-										<ModelSelectorGroup heading='Mode Agen'>
+										<ModelSelectorEmpty>Model/mode not found.</ModelSelectorEmpty>
+										<ModelSelectorGroup heading='Agent Mode'>
 											<ModelSelectorItem onSelect={() => setAgentId('manual_graph')} value='manual_graph'>
 												<BrainCircuit className='mr-2 h-3.5 w-3.5 text-blue-500' />
 												<ModelSelectorName>High Agentic</ModelSelectorName>
@@ -411,7 +411,7 @@ const AISearchPromptInner = ({
 											</ModelSelectorItem>
 										</ModelSelectorGroup>
 										<ModelSelectorSeparator />
-										<ModelSelectorGroup heading='Model Tersedia'>
+										<ModelSelectorGroup heading='Available Models'>
 											{models.map((m) => (
 												<ModelItem
 													key={m.id}
@@ -436,7 +436,7 @@ const AISearchPromptInner = ({
 				sideOffset={12}
 			>
 				<DropdownMenuLabel className='px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50/50 rounded-t-lg select-none'>
-					Pilih Dokumen Referensi
+					Select Reference Document
 				</DropdownMenuLabel>
 				<DropdownMenuSeparator className='my-1' />
 				{filteredDocs.map((doc) => (
