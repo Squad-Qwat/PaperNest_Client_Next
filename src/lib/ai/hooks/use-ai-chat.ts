@@ -37,7 +37,7 @@ export function useAIChat({ editor, documentId, workspaceId }: UseAIChatOptions)
 	 * Main entry point to send a message to the AI
 	 */
 	const sendMessage = useCallback(
-		async (text: string, files?: any[]) => {
+		async (text: string, files?: any[], taggedDocumentIds?: string[]) => {
 			if (!text.trim() && (!files || files.length === 0)) return
 			if (store.isStreaming) return
 
@@ -100,6 +100,7 @@ export function useAIChat({ editor, documentId, workspaceId }: UseAIChatOptions)
 						providerId,
 						modelId,
 						files: currentStep === 1 ? attachments : undefined,
+						taggedDocumentIds: currentStep === 1 ? taggedDocumentIds : undefined,
 					}
 
 					const stream = await aiService.streamChat(payload, combinedSignal)
