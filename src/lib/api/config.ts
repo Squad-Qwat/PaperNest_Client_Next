@@ -92,4 +92,15 @@ export const API_ENDPOINTS = {
 		base: '/templates',
 		byId: (templateId: string) => `/templates/${templateId}`,
 	},
+
+	// Citations
+	citations: {
+		byWorkspace: (workspaceId: string) => `/workspaces/${workspaceId}/citations`,
+		byDocument: (documentId: string) => `/documents/${documentId}/citations`,
+		search: (documentId: string) => `/documents/${documentId}/citations/search`,
+		doi: (documentId: string, doi: string) => `/documents/${documentId}/citations/doi/${doi}`,
+		byId: (citationId: string) => `/citations/${citationId}`,
+		semanticScholarSearch: '/semantic-scholar/search',
+		semanticScholarDetails: (paperId: string) => `/semantic-scholar/paper/${paperId}`,
+	},
 } as const
