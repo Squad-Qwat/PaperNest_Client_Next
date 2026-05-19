@@ -13,29 +13,14 @@ import type {
 	SemanticScholarSearchResponse,
 	UpdateCitationDto,
 } from '../types/citation.types'
+import { RequestDeduplicator } from '../utils/deduplicator'
 
 class CitationsService {
-	private readonly inFlightRequests = new Map<string, Promise<any>>()
-
-	private async deduplicateRequest<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
-		if (this.inFlightRequests.has(key)) {
-			console.log(`♻️ [CitationsService] Reusing in-flight request: ${key}`)
-			return this.inFlightRequests.get(key)!
-		}
-
-		const promise = fetcher().finally(() => {
-			this.inFlightRequests.delete(key)
-		})
-
-		this.inFlightRequests.set(key, promise)
-		return promise
-	}
-
 	/**
 	 * Get all citations for a workspace
 	 */
 	async getWorkspaceCitations(workspaceId: string): Promise<CitationsResponse> {
-		return this.deduplicateRequest(`getWorkspaceCitations:${workspaceId}`, () =>
+		return RequestDeduplicator.deduplicate(`getWorkspaceCitations:${workspaceId}`, () =>
 			apiClient.get<CitationsResponse>(API_ENDPOINTS.citations.byWorkspace(workspaceId))
 		)
 	}
@@ -44,7 +29,7 @@ class CitationsService {
 	 * Get all citations for a document
 	 */
 	async getDocumentCitations(documentId: string): Promise<CitationsResponse> {
-		return this.deduplicateRequest(`getDocumentCitations:${documentId}`, () =>
+		return RequestDeduplicator.deduplicate(`getDocumentCitations:${documentId}`, () =>
 			apiClient.get<CitationsResponse>(API_ENDPOINTS.citations.byDocument(documentId))
 		)
 	}
@@ -73,7 +58,7 @@ class CitationsService {
 	 * Get a citation by ID
 	 */
 	async getCitationById(citationId: string): Promise<CitationResponse> {
-		return this.deduplicateRequest(`getCitationById:${citationId}`, () =>
+		return RequestDeduplicator.deduplicate(`getCitationById:${citationId}`, () =>
 			apiClient.get<CitationResponse>(API_ENDPOINTS.citations.byId(citationId))
 		)
 	}
@@ -123,7 +108,7 @@ class CitationsService {
 			limit: limit.toString(),
 			offset: offset.toString(),
 		}).toString()
-		return this.deduplicateRequest(`searchSemanticScholar:${q}:${limit}:${offset}`, () =>
+		return RequestDeduplicator.deduplicate(`searchSemanticScholar:${q}:${limit}:${offset}`, () =>
 			apiClient.get<SemanticScholarSearchResponse>(
 				`${API_ENDPOINTS.citations.semanticScholarSearch}?${queryParams}`
 			)
@@ -134,7 +119,7 @@ class CitationsService {
 	 * Get paper details from Semantic Scholar
 	 */
 	async getSemanticScholarPaperDetails(paperId: string): Promise<SemanticScholarPaperResponse> {
-		return this.deduplicateRequest(`getSemanticScholarPaperDetails:${paperId}`, () =>
+		return RequestDeduplicator.deduplicate(`getSemanticScholarPaperDetails:${paperId}`, () =>
 			apiClient.get<SemanticScholarPaperResponse>(
 				API_ENDPOINTS.citations.semanticScholarDetails(paperId)
 			)

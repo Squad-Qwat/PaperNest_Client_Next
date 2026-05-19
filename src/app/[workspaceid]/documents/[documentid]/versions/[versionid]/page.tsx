@@ -10,13 +10,26 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { Label } from '@/components/ui/label'
+import { Modal, ModalFooter } from '@/components/ui/modal'
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { useAuth } from '@/context/AuthContext'
 import { useDocumentFiles } from '@/lib/api/hooks/use-document-files'
 import {
+	useCreateReview,
 	useDocumentReviews,
 	useDocumentVersions,
 	useDocumentWithRoomState,
 	useRevertVersion,
 } from '@/lib/api/hooks/use-documents'
+import { useWorkspace, useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
 import type { Version } from '@/lib/api/types/document.types'
 import type { Review } from '@/lib/api/types/review.types'
 import { format, id } from '@/lib/date'
@@ -35,6 +48,15 @@ export default function VersionDetailPage() {
 	const [compileError, setCompileError] = useState<string | null>(null)
 	const [showConfirm, setShowConfirm] = useState(false)
 
+	const [isReviewModalOpen, setIsReviewModalOpen] = useState(false)
+	const [selectedLecturerId, setSelectedLecturerId] = useState('')
+	const [reviewMessage, setReviewMessage] = useState('')
+
+	const { user } = useAuth()
+	const { data: membersResponse } = useWorkspaceMembers(workspaceId)
+	const { data: workspace } = useWorkspace(workspaceId)
+	const { mutateAsync: createReview, isPending: isCreatingReview } = useCreateReview()
+
 	const { data: versionsResponse, isLoading: versionsLoading } = useDocumentVersions(documentId)
 	const { data: documentWithRoomData, refetch: refetchRoomState } =
 		useDocumentWithRoomState(documentId)
@@ -43,6 +65,42 @@ export default function VersionDetailPage() {
 	const { mutateAsync: revertVersion, isPending: isReverting } = useRevertVersion()
 
 	const activeUsers = documentWithRoomData?.room?.activeUsers || 0
+
+	const members = membersResponse?.members || []
+	const lecturers = members.filter((m: any) => m.user?.role?.toLowerCase() === 'lecturer')
+
+	useEffect(() => {
+		if (lecturers.length > 0) {
+			if (!selectedLecturerId) {
+				setSelectedLecturerId(lecturers[0]?.user?.userId || '')
+			}
+		} else if (workspace?.ownerId) {
+			if (!selectedLecturerId) {
+				setSelectedLecturerId(workspace.ownerId)
+			}
+		}
+	}, [lecturers, workspace, selectedLecturerId])
+
+	const handleRequestReviewSubmit = async (e: React.FormEvent) => {
+		e.preventDefault()
+		if (!selectedLecturerId) return
+
+		try {
+			await createReview({
+				documentId,
+				documentBodyId: versionId,
+				data: {
+					lecturerUserId: selectedLecturerId,
+					message: reviewMessage || 'Requesting review for version',
+				},
+			})
+			toast.success('Pengajuan review berhasil dikirim!')
+			setIsReviewModalOpen(false)
+		} catch (error) {
+			console.error('Failed to create review:', error)
+			toast.error('Gagal mengirim pengajuan review')
+		}
+	}
 
 	const versions = Array.isArray(versionsResponse)
 		? (versionsResponse as Version[])
@@ -164,13 +222,25 @@ export default function VersionDetailPage() {
 					</div>
 
 					<div className='flex items-center gap-3'>
-						{versionReview && (
+						{versionReview ? (
 							<Link href={`/${workspaceId}/reviews/${versionReview.reviewId}`}>
 								<Button variant='outline' size='sm' className='gap-2'>
 									<MessageSquare className='w-4 h-4' />
 									<span className='hidden sm:inline'>Lihat Review</span>
 								</Button>
 							</Link>
+						) : (
+							user?.role?.toLowerCase() === 'student' && (
+								<Button
+									variant='outline'
+									size='sm'
+									className='gap-2 bg-primary hover:bg-primary/90 text-white border-primary transition-all duration-200'
+									onClick={() => setIsReviewModalOpen(true)}
+								>
+									<MessageSquare className='w-4 h-4' />
+									<span>Ajukan Review</span>
+								</Button>
+							)
 						)}
 						<Button
 							size='sm'
@@ -328,6 +398,77 @@ export default function VersionDetailPage() {
 				cancelText={activeUsers > 0 ? undefined : 'Batal'}
 				variant={activeUsers > 0 ? 'info' : 'warning'}
 			/>
+
+			<Modal
+				isOpen={isReviewModalOpen}
+				onClose={() => setIsReviewModalOpen(false)}
+				title='Ajukan Review Dokumen'
+			>
+				<form onSubmit={handleRequestReviewSubmit} className='space-y-4 pt-2'>
+					<p className='text-sm text-muted-foreground'>
+						Pilih dosen peninjau dan tambahkan pesan opsional untuk menjelaskan perubahan atau fokus peninjauan Anda.
+					</p>
+
+					<div className='space-y-2'>
+						<Label htmlFor='lecturer-select'>
+							Dosen Peninjau <span className='text-red-500'>*</span>
+						</Label>
+						<Select
+							value={selectedLecturerId}
+							onValueChange={(value) => setSelectedLecturerId(value)}
+							required
+						>
+							<SelectTrigger id='lecturer-select' className='w-full bg-white'>
+								<SelectValue placeholder='-- Pilih Dosen --' />
+							</SelectTrigger>
+							<SelectContent className='z-[1025]'>
+								{lecturers.map((m: any) => (
+									<SelectItem key={m.user?.userId} value={m.user?.userId}>
+										{m.user?.name || m.user?.username || 'Dosen'}
+									</SelectItem>
+								))}
+								{lecturers.length === 0 && workspace?.ownerId && (
+									<SelectItem value={workspace.ownerId}>
+										Pemilik Workspace (Default)
+									</SelectItem>
+								)}
+							</SelectContent>
+						</Select>
+					</div>
+
+					<div className='space-y-2'>
+						<Label htmlFor='review-message'>Pesan Tambahan (Opsional)</Label>
+						<Textarea
+							id='review-message'
+							placeholder='Tulis catatan atau instruksi khusus untuk peninjau...'
+							value={reviewMessage}
+							onChange={(e) => setReviewMessage(e.target.value)}
+							disabled={isCreatingReview}
+							className='resize-none text-sm'
+							rows={4}
+						/>
+					</div>
+
+					<ModalFooter className='px-0 pb-0 gap-2'>
+						<Button
+							type='button'
+							variant='outline'
+							onClick={() => setIsReviewModalOpen(false)}
+							disabled={isCreatingReview}
+						>
+							Batal
+						</Button>
+						<Button
+							type='submit'
+							disabled={isCreatingReview || !selectedLecturerId}
+							className='bg-primary text-white hover:bg-primary/90 flex items-center gap-1.5'
+						>
+							{isCreatingReview && <Loader2 className='w-4 h-4 animate-spin' />}
+							{isCreatingReview ? 'Mengirim...' : 'Kirim Pengajuan'}
+						</Button>
+					</ModalFooter>
+				</form>
+			</Modal>
 		</div>
 	)
 }

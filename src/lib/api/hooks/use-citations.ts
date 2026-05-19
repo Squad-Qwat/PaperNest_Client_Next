@@ -27,18 +27,18 @@ const mapFirestoreDoc = (docSnap: any, idField: string) => {
 }
 
 // Hook to listen to citations in real-time
-export function useDocumentCitations(documentId: string) {
+function useFirestoreCitations(filterField: 'documentId' | 'workspaceId', value: string) {
 	const [data, setData] = useState<Citation[]>([])
 	const [isLoading, setIsLoading] = useState(true)
 
 	useEffect(() => {
-		if (!documentId) {
+		if (!value) {
 			setData([])
 			setIsLoading(false)
 			return
 		}
 
-		const q = query(collection(db, 'citations'), where('documentId', '==', documentId))
+		const q = query(collection(db, 'citations'), where(filterField, '==', value))
 		const unsubscribe = onSnapshot(
 			q,
 			(snapshot) => {
@@ -53,52 +53,23 @@ export function useDocumentCitations(documentId: string) {
 				setIsLoading(false)
 			},
 			(error) => {
-				console.error('Error in useDocumentCitations listener:', error)
+				console.error(`Error in useFirestoreCitations (${filterField}) listener:`, error)
 				setIsLoading(false)
 			}
 		)
 
 		return () => unsubscribe()
-	}, [documentId])
+	}, [filterField, value])
 
 	return { data: { citations: data, count: data.length }, isLoading }
 }
 
+export function useDocumentCitations(documentId: string) {
+	return useFirestoreCitations('documentId', documentId)
+}
+
 export function useWorkspaceCitations(workspaceId: string) {
-	const [data, setData] = useState<Citation[]>([])
-	const [isLoading, setIsLoading] = useState(true)
-
-	useEffect(() => {
-		if (!workspaceId) {
-			setData([])
-			setIsLoading(false)
-			return
-		}
-
-		const q = query(collection(db, 'citations'), where('workspaceId', '==', workspaceId))
-		const unsubscribe = onSnapshot(
-			q,
-			(snapshot) => {
-				const docs = snapshot.docs.map((d) => mapFirestoreDoc(d, 'citationId') as Citation)
-				// Sort by createdAt desc in memory
-				docs.sort((a, b) => {
-					const dateA = new Date(a.createdAt).getTime()
-					const dateB = new Date(b.createdAt).getTime()
-					return dateB - dateA
-				})
-				setData(docs)
-				setIsLoading(false)
-			},
-			(error) => {
-				console.error('Error in useWorkspaceCitations listener:', error)
-				setIsLoading(false)
-			}
-		)
-
-		return () => unsubscribe()
-	}, [workspaceId])
-
-	return { data: { citations: data, count: data.length }, isLoading }
+	return useFirestoreCitations('workspaceId', workspaceId)
 }
 
 export function useCreateCitation() {

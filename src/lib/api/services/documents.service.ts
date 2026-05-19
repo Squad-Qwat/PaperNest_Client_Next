@@ -23,38 +23,14 @@ import type {
 	ReviewsResponse,
 	UpdateReviewStatusDto,
 } from '../types/review.types'
+import { RequestDeduplicator } from '../utils/deduplicator'
 
 class DocumentsService {
-	// Request deduplication cache: key -> Promise
-	private readonly inFlightRequests = new Map<string, Promise<any>>()
-
-	/**
-	 * Deduplicate concurrent identical API requests
-	 * If request already in-flight, return same promise
-	 */
-	private async deduplicateRequest<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
-		// Check if request already in-flight
-		if (this.inFlightRequests.has(key)) {
-			console.log(`♻️ [DocumentsService] Reusing in-flight request: ${key}`)
-			return this.inFlightRequests.get(key)!
-		}
-
-		// Create new request promise
-		const promise = fetcher().finally(() => {
-			// Clean up cache after request completes
-			this.inFlightRequests.delete(key)
-		})
-
-		// Store in cache
-		this.inFlightRequests.set(key, promise)
-		return promise
-	}
-
 	/**
 	 * Get reviews for a document
 	 */
 	async getReviews(documentId: string): Promise<ReviewsResponse> {
-		return this.deduplicateRequest(`getReviews:${documentId}`, () =>
+		return RequestDeduplicator.deduplicate(`getReviews:${documentId}`, () =>
 			apiClient.get<ReviewsResponse>(API_ENDPOINTS.reviews.byDocument(documentId))
 		)
 	}
@@ -170,7 +146,7 @@ class DocumentsService {
 	 * Get all versions of a document
 	 */
 	async getVersions(documentId: string): Promise<VersionsResponse> {
-		return this.deduplicateRequest(`getVersions:${documentId}`, () =>
+		return RequestDeduplicator.deduplicate(`getVersions:${documentId}`, () =>
 			apiClient.get<VersionsResponse>(API_ENDPOINTS.documents.versions(documentId))
 		)
 	}
@@ -189,7 +165,7 @@ class DocumentsService {
 	 * Get current version of a document
 	 */
 	async getCurrentVersion(documentId: string): Promise<VersionResponse> {
-		return this.deduplicateRequest(`getCurrentVersion:${documentId}`, () =>
+		return RequestDeduplicator.deduplicate(`getCurrentVersion:${documentId}`, () =>
 			apiClient.get<VersionResponse>(API_ENDPOINTS.documents.currentVersion(documentId))
 		)
 	}
