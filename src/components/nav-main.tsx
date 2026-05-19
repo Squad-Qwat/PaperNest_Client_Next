@@ -3,6 +3,7 @@
 import { type Icon, IconCirclePlusFilled } from '@tabler/icons-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { Badge } from '@/components/ui/badge'
 import {
 	SidebarGroup,
 	SidebarGroupContent,
@@ -20,6 +21,7 @@ export function NavMain({
 		title: string
 		url: string
 		icon?: Icon
+		badge?: number | string
 	}[]
 }) {
 	const pathname = usePathname()
@@ -64,6 +66,11 @@ export function NavMain({
 									<Link href={item.url}>
 										{item.icon && <item.icon />}
 										<span>{item.title}</span>
+										{item.badge && (
+											<Badge className='ml-auto flex h-5 w-5 items-center justify-center rounded-full p-0 text-[10px] font-bold group-data-[collapsible=icon]:hidden'>
+												{item.badge}
+											</Badge>
+										)}
 									</Link>
 								</SidebarMenuButton>
 							</SidebarMenuItem>

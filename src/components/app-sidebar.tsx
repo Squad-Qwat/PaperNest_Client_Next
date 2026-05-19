@@ -4,6 +4,7 @@ import {
 	IconBook,
 	IconFileDescription,
 	IconHelp,
+	IconInbox,
 	IconMessage2,
 	IconQuote,
 	IconSettings,
@@ -20,10 +21,12 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from '@/compone
 import { InviteMembersModal } from '@/components/workspace/InviteMembersModal'
 import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher'
 import { useAuth } from '@/context/AuthContext'
+import { useNotifications } from '@/context/NotificationContext'
 import { useWorkspace, useWorkspaces } from '@/lib/api/hooks/use-workspaces'
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const { user, loading: authLoading } = useAuth()
+	const { unreadCount } = useNotifications()
 	const params = useParams()
 	const workspaceId = params.workspaceid as string
 	const { data: workspace, isLoading: workspaceLoading } = useWorkspace(workspaceId)
@@ -49,6 +52,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 				url: `/${workspaceId}`,
 				icon: IconFileDescription,
 				isActive: true,
+			},
+			{
+				title: 'Inbox',
+				url: `/${workspaceId}/inbox`,
+				icon: IconInbox,
+				badge: unreadCount > 0 ? unreadCount : undefined,
 			},
 			{
 				title: 'Reviews',
