@@ -7,7 +7,6 @@ import { useMemo } from 'react'
 import { ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useDocumentReviews, useDocumentVersions } from '@/lib/api/hooks/use-documents'
 import { useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
@@ -110,11 +109,28 @@ export default function VersionsPage() {
 											: 'border-l-amber-500'
 									}
 
+									const handleKeyDown = (e: React.KeyboardEvent) => {
+										if (e.key === 'Enter' || e.key === ' ') {
+											e.preventDefault()
+											router.push(
+												`/${workspaceId}/documents/${documentId}/versions/${version.documentBodyId}`
+											)
+										}
+									}
+
 									return (
 										<div key={version.documentBodyId} className='w-full'>
+											{/* biome-ignore lint/a11y/useSemanticElements: wrapper contains nested interactive Link elements */}
 											<div
 												className={`p-6 bg-white border border-l-2 rounded-lg ${getCardStyles()} hover:border-primary transition-all relative text-left w-full flex flex-col md:flex-row md:items-center justify-between gap-6 cursor-pointer`}
-												onClick={() => router.push(`/${workspaceId}/documents/${documentId}/versions/${version.documentBodyId}`)}
+												onClick={() =>
+													router.push(
+														`/${workspaceId}/documents/${documentId}/versions/${version.documentBodyId}`
+													)
+												}
+												onKeyDown={handleKeyDown}
+												role='button'
+												tabIndex={0}
 											>
 												<div className='flex-1 flex flex-col gap-3 min-w-0'>
 													{/* Header line: Version Title & Badges */}
@@ -146,8 +162,7 @@ export default function VersionsPage() {
 																(m: any) =>
 																	m.userId === version.userId || m.user?.userId === version.userId
 															)
-															const displayName =
-																version.user?.name || member?.user?.name || 'User'
+															const displayName = version.user?.name || member?.user?.name || 'User'
 
 															const isUid = displayName.length > 20 && !displayName.includes(' ')
 															const finalName = isUid ? 'User' : displayName
@@ -166,14 +181,14 @@ export default function VersionsPage() {
 																			{getInitials(displayName)}
 																		</AvatarFallback>
 																	</Avatar>
-																	<span className='font-semibold text-gray-700'>
-																		{finalName}
-																	</span>
+																	<span className='font-semibold text-gray-700'>{finalName}</span>
 																</>
 															)
 														})()}
 														<span>•</span>
-														<span>{format(version.createdAt, 'd MMMM yyyy HH:mm', { locale: id })}</span>
+														<span>
+															{format(version.createdAt, 'd MMMM yyyy HH:mm', { locale: id })}
+														</span>
 													</div>
 
 													{/* Commit Message & Feedback Preview */}
@@ -184,22 +199,25 @@ export default function VersionsPage() {
 															</p>
 														)}
 
-														{versionReview && versionReview.status !== 'pending' && (() => {
-															const feedback = versionReview.lecturerMessage || versionReview.message
-															if (feedback) {
-																return (
-																	<div className='border-l-2 border-gray-100 pl-3 mt-1'>
-																		<span className='text-sm font-semibold text-gray-400 uppercase tracking-wider block mb-0.5'>
-																			Umpan Balik Dosen
-																		</span>
-																		<p className='text-sm text-gray-500 leading-relaxed font-normal'>
-																			{feedback}
-																		</p>
-																	</div>
-																)
-															}
-															return null
-														})()}
+														{versionReview &&
+															versionReview.status !== 'pending' &&
+															(() => {
+																const feedback =
+																	versionReview.lecturerMessage || versionReview.message
+																if (feedback) {
+																	return (
+																		<div className='border-l-2 border-gray-100 pl-3 mt-1'>
+																			<span className='text-sm font-semibold text-gray-400 uppercase tracking-wider block mb-0.5'>
+																				Umpan Balik Dosen
+																			</span>
+																			<p className='text-sm text-gray-500 leading-relaxed font-normal'>
+																				{feedback}
+																			</p>
+																		</div>
+																	)
+																}
+																return null
+															})()}
 													</div>
 												</div>
 
@@ -222,10 +240,7 @@ export default function VersionsPage() {
 														href={`/${workspaceId}/documents/${documentId}/versions/${version.documentBodyId}`}
 														onClick={(e) => e.stopPropagation()}
 													>
-														<Button
-															variant='default'
-															className='rounded-lg shadow-sm'
-														>
+														<Button variant='default' className='rounded-lg shadow-sm'>
 															Buka
 														</Button>
 													</Link>

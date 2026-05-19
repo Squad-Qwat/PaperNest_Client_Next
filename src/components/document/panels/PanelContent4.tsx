@@ -1,6 +1,6 @@
 'use client'
 
-import { Calendar, ChevronRight, Clock, MessageSquare } from 'lucide-react'
+import { Calendar, ChevronRight, MessageSquare } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import type React from 'react'
 import { ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
@@ -95,7 +95,9 @@ const PanelContent4: React.FC<PanelContent4Props> = ({ documentId }) => {
 							<div className='flex items-center gap-2'>
 								<Avatar className='h-5 w-5'>
 									<AvatarImage
-										src={review.student?.photoURL || getAvatarUrl(studentName, review.studentUserId)}
+										src={
+											review.student?.photoURL || getAvatarUrl(studentName, review.studentUserId)
+										}
 									/>
 									<AvatarFallback className='text-[9px] font-bold bg-primary/10 text-primary'>
 										{getInitials(studentName)}

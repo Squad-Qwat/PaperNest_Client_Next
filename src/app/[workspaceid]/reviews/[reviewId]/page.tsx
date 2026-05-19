@@ -2,7 +2,7 @@
 
 import { ChevronLeft, Loader2 } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -13,6 +13,7 @@ import { Modal, ModalFooter } from '@/components/ui/modal'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/context/AuthContext'
+import { useCompilePdf } from '@/hooks/editor/use-compile-pdf'
 import { useDocumentFiles } from '@/lib/api/hooks/use-document-files'
 import {
 	useDocument,
@@ -21,11 +22,9 @@ import {
 	useUpdateReviewStatus,
 } from '@/lib/api/hooks/use-documents'
 import { useWorkspace, useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
-import type { Version } from '@/lib/api/types/document.types'
-import type { Document } from '@/lib/api/types/document.types'
+import type { Document, Version } from '@/lib/api/types/document.types'
 import type { Review } from '@/lib/api/types/review.types'
 import { format, id } from '@/lib/date'
-import { laTeXService } from '@/lib/latex/LaTeXService'
 import { getAvatarUrl, getInitials } from '@/lib/utils'
 
 export default function ReviewDetailPage() {
@@ -35,7 +34,7 @@ export default function ReviewDetailPage() {
 	const workspaceId = workspaceid as string
 
 	const { user, loading: authLoading } = useAuth()
-	const { data: workspace } = useWorkspace(workspaceId)
+	useWorkspace(workspaceId)
 	const { data: membersRes } = useWorkspaceMembers(workspaceId)
 	const { data: reviewRes, isLoading: reviewLoading } = useReviewDetail(reviewId as string)
 	const reviewData = reviewRes as Review
@@ -51,10 +50,8 @@ export default function ReviewDetailPage() {
 
 	const { mutateAsync: updateStatus, isPending: isUpdating } = useUpdateReviewStatus()
 
-	// PDF Compilation State
-	const [pdfUrl, setPdfUrl] = useState<string | null>(null)
-	const [isCompiling, setIsCompiling] = useState(false)
-	const [compileError, setCompileError] = useState<string | null>(null)
+	// PDF Compilation State using hook
+	const { pdfUrl, isCompiling, compileError, handleCompile } = useCompilePdf(documentId, files)
 
 	// Feedback Modal State
 	const [isModalOpen, setIsModalOpen] = useState(false)
@@ -94,47 +91,11 @@ export default function ReviewDetailPage() {
 
 	const version = versions.find((v: Version) => v.documentBodyId === documentBodyId)
 
-	// PDF Compiler Hook
-	const handleCompile = useCallback(
-		async (content: string) => {
-			if (!content || !documentId) return
-			setIsCompiling(true)
-			setCompileError(null)
-			try {
-				const result = await laTeXService.compileWithAssets(
-					'main.tex',
-					content,
-					files,
-					undefined,
-					documentId
-				)
-				if (result.status === 0 && result.pdf) {
-					const blob = new Blob([result.pdf as any], { type: 'application/pdf' })
-					const url = URL.createObjectURL(blob)
-					setPdfUrl(url)
-				} else {
-					setCompileError(result.log || 'Kompilasi PDF gagal.')
-				}
-			} catch (error: any) {
-				setCompileError(error.message || 'Error saat mengompilasi PDF')
-			} finally {
-				setIsCompiling(false)
-			}
-		},
-		[files, documentId]
-	)
-
 	useEffect(() => {
 		if (version?.content && !pdfUrl && !isCompiling && !compileError) {
 			handleCompile(version.content)
 		}
 	}, [version?.content, handleCompile, pdfUrl, isCompiling, compileError])
-
-	useEffect(() => {
-		return () => {
-			if (pdfUrl) URL.revokeObjectURL(pdfUrl)
-		}
-	}, [pdfUrl])
 
 	const handleAction = async () => {
 		if (!reviewId) return
@@ -236,7 +197,9 @@ export default function ReviewDetailPage() {
 						</div>
 					) : (
 						<div className='flex flex-col items-center gap-2 text-center p-6'>
-							<p className='text-sm text-muted-foreground'>Konten dokumen versi ini tidak tersedia.</p>
+							<p className='text-sm text-muted-foreground'>
+								Konten dokumen versi ini tidak tersedia.
+							</p>
 						</div>
 					)}
 				</div>
@@ -247,7 +210,12 @@ export default function ReviewDetailPage() {
 					<Card className='p-5 space-y-4 rounded-2xl border-gray-200/60 shadow-sm bg-white'>
 						<div className='flex items-center gap-3 border-b border-gray-100 pb-3'>
 							<Avatar className='h-9 w-9'>
-								<AvatarImage src={reviewData.student?.photoURL || getAvatarUrl(studentName, reviewData.studentUserId)} />
+								<AvatarImage
+									src={
+										reviewData.student?.photoURL ||
+										getAvatarUrl(studentName, reviewData.studentUserId)
+									}
+								/>
 								<AvatarFallback className='text-xs font-bold bg-primary/10 text-primary'>
 									{getInitials(studentName)}
 								</AvatarFallback>
@@ -312,7 +280,12 @@ export default function ReviewDetailPage() {
 						<Card className='p-5 space-y-4 rounded-2xl border-gray-200/60 shadow-sm bg-white'>
 							<div className='flex items-center gap-3 border-b border-gray-100 pb-3'>
 								<Avatar className='h-9 w-9'>
-									<AvatarImage src={reviewData.lecturer?.photoURL || getAvatarUrl(lecturerName, reviewData.lecturerUserId)} />
+									<AvatarImage
+										src={
+											reviewData.lecturer?.photoURL ||
+											getAvatarUrl(lecturerName, reviewData.lecturerUserId)
+										}
+									/>
 									<AvatarFallback className='text-xs font-bold bg-primary/10 text-primary'>
 										{getInitials(lecturerName)}
 									</AvatarFallback>
@@ -355,14 +328,16 @@ export default function ReviewDetailPage() {
 							<Separator className='opacity-50' />
 							<div className='flex items-center justify-between text-sm'>
 								<span className='text-gray-500'>Versi</span>
-								<span className='font-bold text-gray-900'>V{reviewData.versionNumber || '?' }</span>
+								<span className='font-bold text-gray-900'>V{reviewData.versionNumber || '?'}</span>
 							</div>
 						</div>
 
 						<Button
 							variant='outline'
 							className='w-full mt-4 h-10 font-bold shadow-sm'
-							onClick={() => !isDocumentDeleted && router.push(`/${workspaceId}/documents/${documentId}`)}
+							onClick={() =>
+								!isDocumentDeleted && router.push(`/${workspaceId}/documents/${documentId}`)
+							}
 							disabled={isDocumentDeleted}
 						>
 							{isDocumentDeleted ? 'Dokumen Terhapus' : 'Buka di Editor'}

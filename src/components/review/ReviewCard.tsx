@@ -1,7 +1,7 @@
 import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
 import { format, id } from '@/lib/date'
 import { ReviewStatusBadge } from './ReviewStatusBadge'
-import { Button } from '@/components/ui/button'
 
 interface ReviewCardProps {
 	reviewId: string
@@ -44,18 +44,27 @@ export function ReviewCard({
 		router.push(`/${workspaceId}/reviews/${reviewId}`)
 	}
 
+	const handleKeyDown = (e: React.KeyboardEvent) => {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault()
+			handleCardClick()
+		}
+	}
+
 	return (
+		// biome-ignore lint/a11y/useSemanticElements: wrapper contains nested interactive button
 		<div
 			className='bg-white border rounded-lg p-6 hover:border-primary transition-all group relative text-left w-full flex flex-col h-full cursor-pointer'
 			onClick={handleCardClick}
+			onKeyDown={handleKeyDown}
+			role='button'
+			tabIndex={0}
 		>
 			{/* Top: Title and Status Badge */}
 			<div className='flex items-start justify-between gap-4 mb-2.5'>
 				<h3
 					className={`text-lg font-semibold line-clamp-2 leading-snug transition-colors flex-1 ${
-						isDocumentDeleted
-							? 'text-gray-400 italic'
-							: 'text-gray-900 group-hover:text-primary'
+						isDocumentDeleted ? 'text-gray-400 italic' : 'text-gray-900 group-hover:text-primary'
 					}`}
 				>
 					{isDocumentDeleted ? 'Dokumen Terhapus' : title || 'Dokumen Tanpa Judul'}

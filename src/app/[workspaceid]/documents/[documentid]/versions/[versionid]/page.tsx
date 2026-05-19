@@ -3,7 +3,7 @@
 import { ChevronLeft, FileText, Loader2, MessageSquare, RotateCcw } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/context/AuthContext'
+import { useCompilePdf } from '@/hooks/editor/use-compile-pdf'
 import { useDocumentFiles } from '@/lib/api/hooks/use-document-files'
 import {
 	useCreateReview,
@@ -33,7 +34,6 @@ import { useWorkspace, useWorkspaceMembers } from '@/lib/api/hooks/use-workspace
 import type { Version } from '@/lib/api/types/document.types'
 import type { Review } from '@/lib/api/types/review.types'
 import { format, id } from '@/lib/date'
-import { laTeXService } from '@/lib/latex/LaTeXService'
 import { getAvatarUrl, getInitials } from '@/lib/utils'
 
 export default function VersionDetailPage() {
@@ -43,9 +43,6 @@ export default function VersionDetailPage() {
 	const documentId = params.documentid as string
 	const versionId = params.versionid as string
 
-	const [pdfUrl, setPdfUrl] = useState<string | null>(null)
-	const [isCompiling, setIsCompiling] = useState(false)
-	const [compileError, setCompileError] = useState<string | null>(null)
 	const [showConfirm, setShowConfirm] = useState(false)
 
 	const [isReviewModalOpen, setIsReviewModalOpen] = useState(false)
@@ -63,6 +60,9 @@ export default function VersionDetailPage() {
 	const { data: reviewsResponse } = useDocumentReviews(documentId)
 	const { data: files = [] } = useDocumentFiles(documentId)
 	const { mutateAsync: revertVersion, isPending: isReverting } = useRevertVersion()
+
+	// PDF Compilation State using hook
+	const { pdfUrl, isCompiling, compileError, handleCompile } = useCompilePdf(documentId, files)
 
 	const activeUsers = documentWithRoomData?.room?.activeUsers || 0
 
@@ -112,47 +112,11 @@ export default function VersionDetailPage() {
 		: (reviewsResponse as { reviews: Review[] })?.reviews || []
 	const versionReview = reviews.find((r: Review) => r.documentBodyId === versionId)
 
-	const handleCompile = useCallback(
-		async (content: string) => {
-			if (!content) return
-			setIsCompiling(true)
-			setCompileError(null)
-			try {
-				const result = await laTeXService.compileWithAssets(
-					'main.tex',
-					content,
-					files,
-					undefined,
-					documentId
-				)
-				if (result.status === 0 && result.pdf) {
-					const blob = new Blob([result.pdf as any], { type: 'application/pdf' })
-					const url = URL.createObjectURL(blob)
-					// We'll manage the revocation in a separate effect to avoid logic loops
-					setPdfUrl(url)
-				} else {
-					setCompileError(result.log || 'Compilation failed')
-				}
-			} catch (error: any) {
-				setCompileError(error.message || 'Error compiling PDF')
-			} finally {
-				setIsCompiling(false)
-			}
-		},
-		[files, documentId]
-	) // Removed pdfUrl from dependencies
-
 	useEffect(() => {
 		if (version?.content && !pdfUrl && !isCompiling && !compileError) {
 			handleCompile(version.content)
 		}
 	}, [version?.content, handleCompile, pdfUrl, isCompiling, compileError])
-
-	useEffect(() => {
-		return () => {
-			if (pdfUrl) URL.revokeObjectURL(pdfUrl)
-		}
-	}, [pdfUrl])
 
 	const handleRestore = async () => {
 		if (!version) return
@@ -406,7 +370,8 @@ export default function VersionDetailPage() {
 			>
 				<form onSubmit={handleRequestReviewSubmit} className='space-y-4 pt-2'>
 					<p className='text-sm text-muted-foreground'>
-						Pilih dosen peninjau dan tambahkan pesan opsional untuk menjelaskan perubahan atau fokus peninjauan Anda.
+						Pilih dosen peninjau dan tambahkan pesan opsional untuk menjelaskan perubahan atau fokus
+						peninjauan Anda.
 					</p>
 
 					<div className='space-y-2'>
@@ -428,9 +393,7 @@ export default function VersionDetailPage() {
 									</SelectItem>
 								))}
 								{lecturers.length === 0 && workspace?.ownerId && (
-									<SelectItem value={workspace.ownerId}>
-										Pemilik Workspace (Default)
-									</SelectItem>
+									<SelectItem value={workspace.ownerId}>Pemilik Workspace (Default)</SelectItem>
 								)}
 							</SelectContent>
 						</Select>
