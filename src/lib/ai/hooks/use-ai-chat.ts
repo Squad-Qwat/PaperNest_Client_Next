@@ -87,6 +87,7 @@ const executeSingleTool = async (
 				toolCallId: toolData.id,
 				name: toolData.name,
 				result: errorMsg,
+				success: false,
 			},
 			shouldStop: true,
 		}
@@ -141,6 +142,7 @@ const executeSingleTool = async (
 				toolCallId: toolData.id,
 				name: toolData.name,
 				result: feedbackResult,
+				success: true,
 			},
 		}
 	} catch (error) {
@@ -151,6 +153,7 @@ const executeSingleTool = async (
 				toolCallId: toolData.id,
 				name: toolData.name,
 				result: `ERROR: ${errorMsg}`,
+				success: false,
 			},
 		}
 	}
