@@ -34,6 +34,7 @@ import {
 	useDocumentFiles,
 } from '@/lib/api/hooks/use-document-files'
 import type { Citation, CreateCitationDto } from '@/lib/api/types/citation.types'
+import { CitationForm } from './CitationForm'
 
 interface PanelContent3Props {
 	onInsertText?: (text: string) => void
@@ -566,119 +567,28 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 						</button>
 					</div>
 
-					<form onSubmit={handleUpdateSubmit} className='space-y-3 text-xs flex-1'>
-						<div>
-							<label className='block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1'>
-								<span>Reference Type</span>
-								<select
-									value={manualType}
-									onChange={(e) => setManualType(e.target.value)}
-									className='w-full p-2 border rounded border-gray-200 outline-none focus:ring-1 focus:ring-primary mt-1'
-								>
-									<option value='article'>Journal Article</option>
-									<option value='book'>Book</option>
-									<option value='website'>Website</option>
-									<option value='proceedings'>Conference Proceedings</option>
-									<option value='misc'>Miscellaneous</option>
-								</select>
-							</label>
-						</div>
-
-						<div>
-							<label className='block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1'>
-								<span>Title *</span>
-								<textarea
-									value={manualTitle}
-									onChange={(e) => setManualTitle(e.target.value)}
-									className='w-full p-2 border rounded border-gray-200 outline-none focus:ring-1 focus:ring-primary h-14 resize-none mt-1'
-									required
-								/>
-							</label>
-						</div>
-
-						<div>
-							<label className='block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1'>
-								<span>Author(s) * (e.g. Smith, J. and Doe, A.)</span>
-								<input
-									type='text'
-									value={manualAuthor}
-									onChange={(e) => setManualAuthor(e.target.value)}
-									className='w-full p-2 border rounded border-gray-200 outline-none focus:ring-1 focus:ring-primary mt-1'
-									required
-								/>
-							</label>
-						</div>
-
-						<div className='grid grid-cols-2 gap-2'>
-							<div>
-								<label className='block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1'>
-									<span>Journal/Venue</span>
-									<input
-										type='text'
-										value={manualVenue}
-										onChange={(e) => setManualVenue(e.target.value)}
-										className='w-full p-2 border rounded border-gray-200 outline-none focus:ring-1 focus:ring-primary mt-1'
-									/>
-								</label>
-							</div>
-							<div>
-								<label className='block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1'>
-									<span>Year</span>
-									<input
-										type='text'
-										value={manualYear}
-										onChange={(e) => setManualYear(e.target.value)}
-										className='w-full p-2 border rounded border-gray-200 outline-none focus:ring-1 focus:ring-primary mt-1'
-									/>
-								</label>
-							</div>
-						</div>
-
-						<div className='grid grid-cols-2 gap-2'>
-							<div>
-								<label className='block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1'>
-									<span>DOI</span>
-									<input
-										type='text'
-										value={manualDoi}
-										onChange={(e) => setManualDoi(e.target.value)}
-										className='w-full p-2 border rounded border-gray-200 outline-none focus:ring-1 focus:ring-primary mt-1'
-									/>
-								</label>
-							</div>
-							<div>
-								<label className='block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1'>
-									<span>URL</span>
-									<input
-										type='url'
-										value={manualUrl}
-										onChange={(e) => setManualUrl(e.target.value)}
-										className='w-full p-2 border rounded border-gray-200 outline-none focus:ring-1 focus:ring-primary mt-1'
-									/>
-								</label>
-							</div>
-						</div>
-
-						<div className='pt-2 flex gap-2'>
-							<button
-								type='button'
-								onClick={() => setEditingCitation(null)}
-								className='flex-1 py-2 px-3 border border-gray-200 hover:bg-gray-50 font-semibold text-gray-600 rounded-md transition'
-							>
-								Cancel
-							</button>
-							<button
-								type='submit'
-								disabled={updateCitationMutation.isPending}
-								className='flex-1 py-2 px-3 bg-primary hover:bg-primary/95 text-white font-semibold rounded-md transition flex justify-center items-center gap-1.5'
-							>
-								{updateCitationMutation.isPending && (
-									<Loader2 className='h-3.5 w-3.5 animate-spin' />
-								)}
-								Save Changes
-							</button>
-						</div>
-					</form>
+					<CitationForm
+						onSubmit={handleUpdateSubmit}
+						isPending={updateCitationMutation.isPending}
+						submitLabel='Save Changes'
+						showCancel={true}
+						onCancel={() => setEditingCitation(null)}
+						authorPlaceholder='e.g. Smith, J. and Doe, A.'
+						type={manualType}
+						setType={setManualType}
+						title={manualTitle}
+						setTitle={setManualTitle}
+						author={manualAuthor}
+						setAuthor={setManualAuthor}
+						venue={manualVenue}
+						setVenue={setManualVenue}
+						year={manualYear}
+						setYear={setManualYear}
+						doi={manualDoi}
+						setDoi={setManualDoi}
+						url={manualUrl}
+						setUrl={setManualUrl}
+					/>
 				</div>
 			)}
 
@@ -801,118 +711,26 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 
 				{/* Tab 3: Manual Entry */}
 				{activeTab === 'manual' && (
-					<form onSubmit={handleManualSubmit} className='space-y-3.5 text-xs p-1'>
-						<div>
-							<label className='block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1'>
-								<span>Reference Type</span>
-								<select
-									value={manualType}
-									onChange={(e) => setManualType(e.target.value)}
-									className='w-full p-2 border rounded border-gray-200 outline-none focus:ring-1 focus:ring-primary mt-1'
-								>
-									<option value='article'>Journal Article</option>
-									<option value='book'>Book</option>
-									<option value='website'>Website</option>
-									<option value='proceedings'>Conference Proceedings</option>
-									<option value='misc'>Miscellaneous</option>
-								</select>
-							</label>
-						</div>
-
-						<div>
-							<label className='block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1'>
-								<span>Title *</span>
-								<textarea
-									value={manualTitle}
-									placeholder='e.g., An Overview of Large Language Models in Scientific Writing'
-									onChange={(e) => setManualTitle(e.target.value)}
-									className='w-full p-2 border rounded border-gray-200 outline-none focus:ring-1 focus:ring-primary h-14 resize-none mt-1'
-									required
-								/>
-							</label>
-						</div>
-
-						<div>
-							<label className='block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1'>
-								<span>Author(s) *</span>
-								<input
-									type='text'
-									placeholder='e.g., Doe, J. and Smith, A.'
-									value={manualAuthor}
-									onChange={(e) => setManualAuthor(e.target.value)}
-									className='w-full p-2 border rounded border-gray-200 outline-none focus:ring-1 focus:ring-primary mt-1'
-									required
-								/>
-							</label>
-						</div>
-
-						<div className='grid grid-cols-2 gap-2'>
-							<div>
-								<label className='block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1'>
-									<span>Journal/Venue</span>
-									<input
-										type='text'
-										placeholder='e.g., Nature AI'
-										value={manualVenue}
-										onChange={(e) => setManualVenue(e.target.value)}
-										className='w-full p-2 border rounded border-gray-200 outline-none focus:ring-1 focus:ring-primary mt-1'
-									/>
-								</label>
-							</div>
-							<div>
-								<label className='block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1'>
-									<span>Year</span>
-									<input
-										type='text'
-										placeholder='e.g., 2025'
-										value={manualYear}
-										onChange={(e) => setManualYear(e.target.value)}
-										className='w-full p-2 border rounded border-gray-200 outline-none focus:ring-1 focus:ring-primary mt-1'
-									/>
-								</label>
-							</div>
-						</div>
-
-						<div className='grid grid-cols-2 gap-2'>
-							<div>
-								<label className='block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1'>
-									<span>DOI</span>
-									<input
-										type='text'
-										placeholder='e.g., 10.1038/s415'
-										value={manualDoi}
-										onChange={(e) => setManualDoi(e.target.value)}
-										className='w-full p-2 border rounded border-gray-200 outline-none focus:ring-1 focus:ring-primary mt-1'
-									/>
-								</label>
-							</div>
-							<div>
-								<label className='block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1'>
-									<span>URL</span>
-									<input
-										type='url'
-										placeholder='e.g., https://example.com'
-										value={manualUrl}
-										onChange={(e) => setManualUrl(e.target.value)}
-										className='w-full p-2 border rounded border-gray-200 outline-none focus:ring-1 focus:ring-primary mt-1'
-									/>
-								</label>
-							</div>
-						</div>
-
-						<button
-							type='submit'
-							disabled={createCitationMutation.isPending}
-							className='w-full py-2 px-3 bg-primary hover:bg-primary/95 text-white font-semibold rounded-md transition shadow flex justify-center items-center gap-1.5'
-						>
-							{createCitationMutation.isPending ? (
-								<Loader2 className='h-3.5 w-3.5 animate-spin' />
-							) : (
-								<Plus className='h-3.5 w-3.5' />
-							)}
-							Add to Bibliography
-						</button>
-					</form>
+					<CitationForm
+						onSubmit={handleManualSubmit}
+						isPending={createCitationMutation.isPending}
+						submitLabel='Add to Bibliography'
+						submitIcon={<Plus className='h-3.5 w-3.5' />}
+						type={manualType}
+						setType={setManualType}
+						title={manualTitle}
+						setTitle={setManualTitle}
+						author={manualAuthor}
+						setAuthor={setManualAuthor}
+						venue={manualVenue}
+						setVenue={setManualVenue}
+						year={manualYear}
+						setYear={setManualYear}
+						doi={manualDoi}
+						setDoi={setManualDoi}
+						url={manualUrl}
+						setUrl={setManualUrl}
+					/>
 				)}
 			</div>
 		</div>
