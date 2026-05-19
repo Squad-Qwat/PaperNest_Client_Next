@@ -2,6 +2,7 @@
 
 import { useQueryClient } from '@tanstack/react-query'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import * as React from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -28,6 +29,7 @@ export function CreateDocumentModal({
 	logoUrl,
 }: CreateDocumentModalProps) {
 	const _queryClient = useQueryClient()
+	const router = useRouter()
 	const { mutateAsync: createDocument, isPending: isCreating } = useCreateDocument()
 
 	const [newDoc, setNewDoc] = React.useState({
@@ -55,7 +57,7 @@ export function CreateDocumentModal({
 		}
 
 		try {
-			await createDocument({
+			const res = await createDocument({
 				workspaceId,
 				data: {
 					title: newDoc.title,
@@ -65,6 +67,10 @@ export function CreateDocumentModal({
 			})
 
 			handleClose()
+
+			if (res?.document?.documentId) {
+				router.push(`/${workspaceId}/documents/${res.document.documentId}`)
+			}
 		} catch (_error) {}
 	}
 
