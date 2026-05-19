@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid'
-import { useCallback, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { aiService } from '../services/ai.service'
 import { useAIChatStore } from '../store'
 import { executeEditorTool } from '../tools/functions'
@@ -7,6 +7,211 @@ import type { AIStreamPayload } from '../types/chat'
 import { parseSSEStream } from './use-ai-stream'
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+const BACKEND_TOOLS = new Set([
+	'search_semantic_scholar',
+	'search_attached_pdfs',
+	'search_workspace_documents',
+	'read_workspace_document_by_id',
+])
+
+const STAGED_TOOLS = new Set(['insert_content', 'apply_diff_edit', 'replace_lines', 'format_latex'])
+
+interface ToolExecutionContext {
+	assistantKey: string
+	documentId?: string
+	editor: any
+	store: any
+	toolRetryCount: Map<string, number>
+	workingDocTextRef: { current: string }
+}
+
+const prepareChatAttachments = (files?: any[]) => {
+	return files?.map((f) => ({
+		id: f.id || nanoid(),
+		filename: f.filename,
+		mediaType: f.mediaType,
+		url: f.url,
+	}))
+}
+
+const buildConversationHistory = (messages: any[]) => {
+	return messages.slice(-10).map((msg) => ({
+		role: msg.from,
+		content: msg.versions[msg.activeVersionIndex].parts
+			.filter((p: any) => p.type === 'text')
+			.map((p: any) => p.content || '')
+			.join('\n'),
+	}))
+}
+
+const handleContentEvent = async (
+	event: any,
+	assistantKey: string,
+	appendContent: (key: string, chunk: string) => void
+) => {
+	const fullContent = event.content
+	if (fullContent.length > 2) {
+		let typedLength = 0
+		const chunkSize = 2
+		while (typedLength < fullContent.length) {
+			const chunk = fullContent.slice(typedLength, typedLength + chunkSize)
+			appendContent(assistantKey, chunk)
+			typedLength += chunkSize
+			await delay(12)
+		}
+	} else {
+		appendContent(assistantKey, fullContent)
+	}
+}
+
+const executeSingleTool = async (
+	toolData: any,
+	ctx: ToolExecutionContext
+): Promise<{ result: any; shouldStop?: boolean }> => {
+	const { assistantKey, documentId, editor, store, toolRetryCount, workingDocTextRef } = ctx
+	const toolSignature = `${toolData.name}:${JSON.stringify(toolData.args)}`
+	const retryCount = (toolRetryCount.get(toolSignature) || 0) + 1
+	toolRetryCount.set(toolSignature, retryCount)
+
+	if (retryCount > 3) {
+		const errorMsg = `SAFETY: Recursive tool call detected for ${toolData.name}. Stopping loop.`
+		console.warn(`[useAIChat] ${errorMsg}`)
+		store.addToolPart(assistantKey, {
+			...toolData,
+			status: 'error',
+			result: errorMsg,
+		})
+		return {
+			result: {
+				toolCallId: toolData.id,
+				name: toolData.name,
+				result: errorMsg,
+			},
+			shouldStop: true,
+		}
+	}
+
+	if (BACKEND_TOOLS.has(toolData.name)) {
+		store.addToolPart(assistantKey, {
+			id: toolData.id,
+			name: toolData.name,
+			args: toolData.args,
+			status: 'executing',
+		})
+		return { result: null }
+	}
+
+	store.addToolPart(assistantKey, {
+		id: toolData.id,
+		name: toolData.name,
+		args: toolData.args,
+		status: 'executing',
+	})
+
+	try {
+		const toolArgs = { ...toolData.args } as any
+		if (STAGED_TOOLS.has(toolData.name)) {
+			toolArgs.stage = true
+		}
+
+		const result = await executeEditorTool(editor, toolData.name, toolArgs, documentId)
+
+		if (result && typeof result === 'object' && result.type === 'staged_change') {
+			if (editor?.setPendingMerge) {
+				editor.setPendingMerge(result)
+			}
+			if (result.modified) {
+				workingDocTextRef.current = result.modified
+			}
+		}
+
+		// Success status update
+		store.updateToolResult(assistantKey, toolData.id, result, 'complete')
+
+		const feedbackResult =
+			result && typeof result === 'object' && result.type === 'staged_change'
+				? 'SUCCESS: Document edit staged/previewed. User must accept/reject to finalize.'
+				: typeof result === 'string'
+					? result
+					: JSON.stringify(result)
+
+		return {
+			result: {
+				toolCallId: toolData.id,
+				name: toolData.name,
+				result: feedbackResult,
+			},
+		}
+	} catch (error) {
+		const errorMsg = error instanceof Error ? error.message : 'Tool execution failed'
+		store.updateToolResult(assistantKey, toolData.id, errorMsg, 'error')
+		return {
+			result: {
+				toolCallId: toolData.id,
+				name: toolData.name,
+				result: `ERROR: ${errorMsg}`,
+			},
+		}
+	}
+}
+
+const processSSEEventStream = async (stream: any, ctx: ToolExecutionContext) => {
+	let hasToolCalls = false
+	let backendHasMoreSteps = false
+	let shouldContinue = true
+	const toolResults: any[] = []
+
+	for await (const event of parseSSEStream(stream)) {
+		switch (event.type) {
+			case 'content':
+				await handleContentEvent(event, ctx.assistantKey, ctx.store.appendContent)
+				break
+
+			case 'tool_calls': {
+				hasToolCalls = true
+				for (const toolData of event.toolCalls) {
+					const { result, shouldStop } = await executeSingleTool(toolData, ctx)
+					if (shouldStop) {
+						shouldContinue = false
+					}
+					if (result) {
+						toolResults.push(result)
+					}
+				}
+				break
+			}
+
+			case 'tool_results':
+				for (const r of event.results) {
+					ctx.store.updateToolResult(ctx.assistantKey, r.toolCallId, r.result, 'complete')
+				}
+				break
+
+			case 'plan_update':
+				ctx.store.setPlan(event.plan)
+				break
+
+			case 'reasoning':
+				ctx.store.appendReasoning(ctx.assistantKey, event.content, event.duration)
+				break
+
+			case 'done':
+				backendHasMoreSteps = event.hasMoreSteps
+				break
+
+			case 'stream_end':
+				break
+		}
+	}
+
+	return {
+		hasToolCalls,
+		backendHasMoreSteps,
+		shouldContinue,
+		toolResults,
+	}
+}
 
 interface UseAIChatOptions {
 	editor?: any
@@ -18,13 +223,13 @@ export function useAIChat({ editor, documentId, workspaceId }: UseAIChatOptions)
 	const store = useAIChatStore()
 	const abortControllerRef = useRef<AbortController | null>(null)
 
-	// Virtual Document Reference: Always keeps a "working version" of the document
-	// during the thinking loop so the AI sees its own staged changes immediately.
+	const editorRef = useRef(editor)
+	useEffect(() => {
+		editorRef.current = editor
+	}, [editor])
+
 	const workingDocTextRef = useRef<string>('')
 
-	/**
-	 * Stops any active streaming and cleans up controllers
-	 */
 	const stop = useCallback(() => {
 		if (abortControllerRef.current) {
 			abortControllerRef.current.abort()
@@ -33,11 +238,8 @@ export function useAIChat({ editor, documentId, workspaceId }: UseAIChatOptions)
 		store.setStreaming(false)
 	}, [store])
 
-	/**
-	 * Main entry point to send a message to the AI
-	 */
 	const sendMessage = useCallback(
-		async (text: string, files?: any[]) => {
+		async (text: string, files?: any[], taggedDocumentIds?: string[]) => {
 			if (!text.trim() && (!files || files.length === 0)) return
 			if (store.isStreaming) return
 
@@ -49,19 +251,13 @@ export function useAIChat({ editor, documentId, workspaceId }: UseAIChatOptions)
 			abortControllerRef.current = controller
 
 			const assistantKey = nanoid()
-
-			const attachments = files?.map((f) => ({
-				id: f.id || nanoid(),
-				filename: f.filename,
-				mediaType: f.mediaType,
-				url: f.url,
-			}))
+			const attachments = prepareChatAttachments(files)
 
 			store.addUserMessage(text, attachments)
 			store.initAssistantMessage(assistantKey)
 			store.setStreaming(true)
 
-			workingDocTextRef.current = editor?.getCurrentContent?.() ?? ''
+			workingDocTextRef.current = editorRef.current?.getCurrentContent?.() ?? ''
 
 			try {
 				const MAX_STEPS = 20
@@ -74,15 +270,7 @@ export function useAIChat({ editor, documentId, workspaceId }: UseAIChatOptions)
 					currentStep++
 
 					const currentState = useAIChatStore.getState()
-
-					const conversationHistory = currentState.messages.slice(-10).map((msg) => ({
-						role: msg.from,
-						content: msg.versions[msg.activeVersionIndex].parts
-							.filter((p) => p.type === 'text')
-							.map((p) => (p as any).content || '')
-							.join('\n'),
-					}))
-
+					const conversationHistory = buildConversationHistory(currentState.messages)
 					const [providerId, modelId] = currentState.model.split(':')
 
 					const payload: AIStreamPayload = {
@@ -100,175 +288,28 @@ export function useAIChat({ editor, documentId, workspaceId }: UseAIChatOptions)
 						providerId,
 						modelId,
 						files: currentStep === 1 ? attachments : undefined,
+						taggedDocumentIds: currentStep === 1 ? taggedDocumentIds : undefined,
 					}
 
 					const stream = await aiService.streamChat(payload, combinedSignal)
 
-					// Reset continuation logic for this iteration
-					toolResultsForContinuation = []
-					let hasToolCallsInThisIteration = false
-					let backendHasMoreSteps = false
-
-					// Consume the stream via async generator
-					for await (const event of parseSSEStream(stream)) {
-						switch (event.type) {
-							case 'content': {
-								const fullContent = event.content
-								if (fullContent.length > 2) {
-									let typedLength = 0
-									const chunkSize = 2
-									while (typedLength < fullContent.length) {
-										const chunk = fullContent.slice(typedLength, typedLength + chunkSize)
-										store.appendContent(assistantKey, chunk)
-										typedLength += chunkSize
-										await delay(12)
-									}
-								} else {
-									store.appendContent(assistantKey, fullContent)
-								}
-								break
-							}
-
-							case 'tool_calls':
-								hasToolCallsInThisIteration = true
-								for (const toolData of event.toolCalls) {
-									const toolSignature = `${toolData.name}:${JSON.stringify(toolData.args)}`
-									const retryCount = (toolRetryCount.get(toolSignature) || 0) + 1
-									toolRetryCount.set(toolSignature, retryCount)
-
-									// SAFETY: Prevent infinite tool-calling loops
-									if (retryCount > 3) {
-										const errorMsg = `SAFETY: Recursive tool call detected for ${toolData.name}. Stopping loop.`
-										console.warn(`[useAIChat] ${errorMsg}`)
-										store.addToolPart(assistantKey, {
-											...toolData,
-											status: 'error',
-											result: errorMsg,
-										})
-										toolResultsForContinuation.push({
-											toolCallId: toolData.id,
-											name: toolData.name,
-											result: errorMsg,
-										})
-										shouldContinue = false
-										continue
-									}
-
-									const BACKEND_TOOLS = new Set([
-										'search_semantic_scholar',
-										'search_attached_pdfs',
-										'search_workspace_documents',
-										'read_workspace_document_by_id',
-									])
-									if (BACKEND_TOOLS.has(toolData.name)) {
-										store.addToolPart(assistantKey, {
-											id: toolData.id,
-											name: toolData.name,
-											args: toolData.args,
-											status: 'executing',
-										})
-										continue
-									}
-
-									// Execute the tool
-									store.addToolPart(assistantKey, {
-										id: toolData.id,
-										name: toolData.name,
-										args: toolData.args,
-										status: 'executing',
-									})
-
-									try {
-										// Support for "dry-run/staged" edits
-										const toolArgs = { ...toolData.args } as any
-										if (
-											[
-												'insert_content',
-												'apply_diff_edit',
-												'replace_lines',
-												'format_latex',
-											].includes(toolData.name)
-										) {
-											toolArgs.stage = true
-										}
-
-										const result = await executeEditorTool(
-											editor,
-											toolData.name,
-											toolArgs,
-											documentId
-										)
-
-										// Logic for staged document changes
-										if (result && typeof result === 'object' && result.type === 'staged_change') {
-											if (editor?.setPendingMerge) {
-												editor.setPendingMerge(result)
-											}
-											// SYNC: Update virtual doc so AI sees its own preview change
-											if (result.modified) {
-												workingDocTextRef.current = result.modified
-											}
-										}
-
-										// Success status update
-										store.updateToolResult(assistantKey, toolData.id, result, 'complete')
-
-										// Prepare feedback for AI reflection
-										const feedbackResult =
-											result && typeof result === 'object' && result.type === 'staged_change'
-												? `SUCCESS: Document edit staged/previewed. User must accept/reject to finalize.`
-												: typeof result === 'string'
-													? result
-													: JSON.stringify(result)
-
-										toolResultsForContinuation.push({
-											toolCallId: toolData.id,
-											name: toolData.name,
-											result: feedbackResult,
-										})
-									} catch (error) {
-										const errorMsg =
-											error instanceof Error ? error.message : 'Tool execution failed'
-										store.updateToolResult(assistantKey, toolData.id, errorMsg, 'error')
-										toolResultsForContinuation.push({
-											toolCallId: toolData.id,
-											name: toolData.name,
-											result: `ERROR: ${errorMsg}`,
-										})
-									}
-								}
-								break
-
-							case 'tool_results':
-								// Backend-executed tool results (e.g. Semantic Scholar) — update tool boxes with real data
-								for (const r of event.results) {
-									store.updateToolResult(assistantKey, r.toolCallId, r.result, 'complete')
-								}
-								break
-
-							case 'plan_update':
-								store.setPlan(event.plan)
-								break
-
-							case 'reasoning':
-								store.appendReasoning(assistantKey, event.content, event.duration)
-								break
-
-							case 'done':
-								backendHasMoreSteps = event.hasMoreSteps
-								break
-
-							case 'stream_end':
-								break
-						}
+					const streamCtx: ToolExecutionContext = {
+						assistantKey,
+						documentId,
+						editor: editorRef.current,
+						store,
+						toolRetryCount,
+						workingDocTextRef,
 					}
 
-					// Reflection Logic: Continue loop only if backend requests more steps
-					// AND we actually have tool results to feed back.
+					const streamResult = await processSSEEventStream(stream, streamCtx)
+
+					toolResultsForContinuation = streamResult.toolResults
 					shouldContinue =
-						backendHasMoreSteps &&
-						hasToolCallsInThisIteration &&
-						toolResultsForContinuation.length > 0
+						streamResult.shouldContinue &&
+						streamResult.backendHasMoreSteps &&
+						streamResult.hasToolCalls &&
+						streamResult.toolResults.length > 0
 				}
 			} catch (error: any) {
 				if (error.name === 'AbortError') {
@@ -285,7 +326,7 @@ export function useAIChat({ editor, documentId, workspaceId }: UseAIChatOptions)
 				abortControllerRef.current = null
 			}
 		},
-		[editor, documentId, store, stop, workspaceId]
+		[documentId, store, stop, workspaceId]
 	)
 
 	return {
