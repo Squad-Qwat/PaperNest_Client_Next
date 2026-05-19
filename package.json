@@ -96,6 +96,7 @@
 		"cmdk": "^1.1.1",
 		"codemirror-lang-latex": "^0.2.0",
 		"codemirror-lang-typst": "^0.4.0",
+		"date-fns": "^4.2.1",
 		"diff-match-patch-ts": "^0.8.0",
 		"embla-carousel-react": "^8.6.0",
 		"eventsource-parser": "^3.0.6",
