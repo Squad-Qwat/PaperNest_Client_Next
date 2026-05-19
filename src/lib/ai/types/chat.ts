@@ -32,9 +32,13 @@ export interface MessageVersion {
 	parts: MessagePart[]
 }
 
-/**
- * Main chat message structure
- */
+export interface MessageAttachment {
+	id: string
+	filename?: string
+	mediaType?: string
+	url?: string
+}
+
 export interface ChatMessage {
 	key: string
 	from: MessageRole
@@ -49,6 +53,7 @@ export interface ChatMessage {
 		href: string
 		title: string
 	}[]
+	attachments?: MessageAttachment[]
 }
 
 /**
@@ -89,11 +94,14 @@ export interface AIStreamPayload {
 	}[]
 	threadId: string
 	documentId?: string
+	workspaceId?: string
 	reasoningEnabled: boolean
 	plan?: PlanStep[]
 	providerId: string
 	modelId: string
 	agentId?: string
+	files?: MessageAttachment[]
+	taggedDocumentIds?: string[]
 }
 
 /**

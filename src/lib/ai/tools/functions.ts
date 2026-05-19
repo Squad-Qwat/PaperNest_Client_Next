@@ -5,6 +5,7 @@
  * These functions run in the browser and interact with the CodeMirror/LaTeX editor.
  * CodeMirror/LaTeX implementation only.
  */
+import { Text } from '@codemirror/state'
 
 type DiffPair = {
 	index: number
@@ -274,12 +275,18 @@ export const executeEditorTool = async (
 	const view = editor.getInternalView?.() || editor.editor
 	if (!view) return 'Error: CodeMirror view not available'
 
+	// Guarantee we read the true latest content (even if CodeMirror is out of sync with Visual Editor)
+	const rawContent =
+		typeof editor.getCurrentContent === 'function'
+			? editor.getCurrentContent()
+			: view.state.doc.toString()
+	const doc = Text.of(rawContent.split('\n'))
+
 	try {
 		switch (toolName) {
 			case 'read_document': {
 				const { fromLine, toLine, full } = args
 				const isFull = full === true // Use strict true to avoid truthy fallback from backend default false
-				const doc = view.state.doc
 
 				// Helper: format content with line numbers for LLM reference
 				const withLineNumbers = (startLine: number, endLine: number): string => {
@@ -311,7 +318,7 @@ export const executeEditorTool = async (
 			}
 
 			case 'get_sections': {
-				const docText = view.state.doc.toString()
+				const docText = doc.toString()
 				const sectionRegex = /^\\(?:sub)*section\{([^}]+)\}/gm
 				const sections: Array<{ text: string; level: number; line: number }> = []
 				let match = sectionRegex.exec(docText)
@@ -336,13 +343,13 @@ export const executeEditorTool = async (
 			}
 
 			case 'get_document_stats': {
-				const docText = view.state.doc.toString()
+				const docText = doc.toString()
 				const words = docText.trim().length === 0 ? 0 : docText.trim().split(/\s+/).length
 				const readingTimeMinutes = Math.max(1, Math.ceil(words / 200))
 
 				return JSON.stringify({
 					characterCount: docText.length,
-					lineCount: view.state.doc.lines,
+					lineCount: doc.lines,
 					wordCount: words,
 					estimatedReadingTimeMinutes: readingTimeMinutes,
 				})
@@ -350,7 +357,6 @@ export const executeEditorTool = async (
 
 			case 'search_text_lines': {
 				const { query, caseSensitive } = args
-				const doc = view.state.doc
 				const results: { line: number; text: string }[] = []
 				const searchString = caseSensitive ? query : query.toLowerCase()
 
@@ -372,7 +378,6 @@ export const executeEditorTool = async (
 
 			case 'replace_lines': {
 				const { fromLine, toLine, newContent, stage } = args
-				const doc = view.state.doc
 
 				if (fromLine < 1 || toLine > doc.lines || fromLine > toLine) {
 					return `Error: Invalid line range ${fromLine}-${toLine}. Total lines: ${doc.lines}`
@@ -534,12 +539,14 @@ export const executeEditorTool = async (
 
 				const docText = view.state.doc.toString()
 				const resolved = findAtomicDiffMatches(docText, parsed.pairs)
-				if (!resolved.matches) {
+
+				// Bypass strict exact match if we are staging (Fuzzy Merge will handle it)
+				if (!resolved.matches && !stage) {
 					return resolved.error
 				}
 
-				const matches = resolved.matches
-				const modified = applyMatchesToText(docText, matches)
+				const matches = resolved.matches || []
+				const modified = resolved.matches ? applyMatchesToText(docText, matches) : docText
 				const sortedDesc = [...matches].sort((a, b) => b.from - a.from)
 
 				if (stage) {

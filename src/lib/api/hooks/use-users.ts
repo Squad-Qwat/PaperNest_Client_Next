@@ -20,3 +20,9 @@ export function useUpdateUser() {
 		},
 	})
 }
+
+export function useDeleteUser() {
+	return useMutation({
+		mutationFn: (userId: string) => usersService.delete(userId),
+	})
+}
