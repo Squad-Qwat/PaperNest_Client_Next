@@ -257,6 +257,9 @@ importers:
       codemirror-lang-typst:
         specifier: ^0.4.0
         version: 0.4.0
+      diff-match-patch-ts:
+        specifier: ^0.8.0
+        version: 0.8.0
       embla-carousel-react:
         specifier: ^8.6.0
         version: 8.6.0(react@19.2.0)
@@ -3733,6 +3736,9 @@ packages:
 
   devlop@1.1.0:
     resolution: {integrity: sha512-RWmIqhcFf1lRYBvNmr7qTNuyCt/7/ns2jbpp1+PalgE/rDQcBT0fioSMUpJ93irlUhC5hrg4cYqe6U+0ImW0rA==}
+
+  diff-match-patch-ts@0.8.0:
+    resolution: {integrity: sha512-Hor6jjh8bAkK+Yd1Aqrcx3Q5XXLTCr1CYdC05SO0OTV3KG6RCBZ1smHPMSusO5J/06bo7kdNeFwOoPc80Hs4pQ==}
 
   diff@4.0.4:
     resolution: {integrity: sha512-X07nttJQkwkfKfvTPG/KSnE2OMdcUCao6+eXF3wmnIQRn2aPAHH3VxDbDOdegkd6JbPsXqShpvEOHfAT+nCNwQ==}
@@ -8918,6 +8924,8 @@ snapshots:
   devlop@1.1.0:
     dependencies:
       dequal: 2.0.3
+
+  diff-match-patch-ts@0.8.0: {}
 
   diff@4.0.4: {}
 

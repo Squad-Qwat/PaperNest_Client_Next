@@ -134,7 +134,7 @@ export default function WorkspacePage() {
 		async (message: any) => {
 			const text = typeof message === 'string' ? message : message.text
 			const files = typeof message === 'string' ? undefined : message.files
-			const sources = typeof message === 'string' ? [] : (message.sources || [])
+			const sources = typeof message === 'string' ? [] : message.sources || []
 			const taggedDocumentIds = sources.map((s: any) => s.documentId)
 
 			if (!text?.trim() && (!files || files.length === 0)) return
