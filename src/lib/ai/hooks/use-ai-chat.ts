@@ -304,10 +304,7 @@ export function useAIChat({ editor, documentId, workspaceId }: UseAIChatOptions)
 
 					const streamResult = await processSSEEventStream(stream, streamCtx)
 
-					toolResultsForContinuation = [
-						...toolResultsForContinuation,
-						...streamResult.toolResults,
-					]
+					toolResultsForContinuation = [...toolResultsForContinuation, ...streamResult.toolResults]
 					shouldContinue =
 						streamResult.shouldContinue &&
 						streamResult.backendHasMoreSteps &&
