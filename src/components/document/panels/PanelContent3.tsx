@@ -77,7 +77,7 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 	const deleteCitationMutation = useDeleteCitation()
 	const addDocumentFileMutation = useAddDocumentFile()
 
-	const citations = citationsData?.citations || []
+	const citations = ((citationsData as any)?.citations ?? citationsData?.data?.citations ?? []) as Citation[]
 	const files = filesData || []
 
 	// Semantic Scholar Hook
@@ -219,11 +219,7 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 				cslJson: {},
 			}
 
-			await createCitationMutation.mutateAsync({
-				workspaceId,
-				documentId,
-				data: citationData,
-			})
+			await createCitationMutation.mutateAsync(citationData)
 
 			toast.success('Reference added successfully!')
 			// Clear fields
@@ -285,7 +281,6 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 			try {
 				await deleteCitationMutation.mutateAsync({
 					citationId,
-					workspaceId,
 					documentId,
 				})
 				toast.success('Reference removed')
@@ -316,11 +311,7 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 				cslJson: paper,
 			}
 
-			await createCitationMutation.mutateAsync({
-				workspaceId,
-				documentId,
-				data: citationData,
-			})
+			await createCitationMutation.mutateAsync(citationData)
 
 			toast.success('Added scholarly paper to references!')
 		} catch (err) {

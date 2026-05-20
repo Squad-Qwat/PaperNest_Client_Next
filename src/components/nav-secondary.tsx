@@ -21,6 +21,7 @@ export function NavSecondary({
 		url: string
 		icon: Icon
 		onClick?: () => void
+		isActive?: boolean
 	}[]
 } & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
 	const pathname = usePathname()

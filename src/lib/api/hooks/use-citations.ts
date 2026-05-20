@@ -1,144 +1,139 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { collection, onSnapshot, query, where } from 'firebase/firestore'
-import { useEffect, useState } from 'react'
-import { db } from '@/lib/firebase/config'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { citationsService } from '../services/citations.service'
-import type { Citation, CreateCitationDto, UpdateCitationDto } from '../types/citation.types'
+import type {
+	CitationData,
+	CitationResponse,
+	CitationsResponse,
+	SemanticScholarSearchResponse,
+	CreateCitationDto,
+	UpdateCitationDto,
+} from '../types/citation.types'
 
 export const CITATION_KEYS = {
 	all: ['citations'] as const,
-	workspace: (workspaceId: string) => [...CITATION_KEYS.all, 'workspace', workspaceId] as const,
-	document: (documentId: string) => [...CITATION_KEYS.all, 'document', documentId] as const,
-	detail: (citationId: string) => [...CITATION_KEYS.all, 'detail', citationId] as const,
-	semanticScholar: (q: string) => [...CITATION_KEYS.all, 'semantic-scholar', q] as const,
+	lists: () => [...CITATION_KEYS.all, 'list'] as const,
+	workspaceList: (workspaceId: string) => [...CITATION_KEYS.lists(), 'workspace', workspaceId] as const,
+	list: (documentId: string, type?: string) => [...CITATION_KEYS.lists(), 'document', documentId, { type }] as const,
+	details: () => [...CITATION_KEYS.all, 'detail'] as const,
+	detail: (citationId: string) => [...CITATION_KEYS.details(), citationId] as const,
+	search: (documentId: string, query: string) => [...CITATION_KEYS.all, 'search', documentId, { query }] as const,
+	doi: (documentId: string, doi: string) => [...CITATION_KEYS.all, 'doi', documentId, doi] as const,
 }
 
-// Helper to map Firestore docs
-const mapFirestoreDoc = (docSnap: any, idField: string) => {
-	const data = docSnap.data()
-	const result = { [idField]: docSnap.id, ...data }
-	if (data.createdAt?.toDate) result.createdAt = data.createdAt.toDate()
-	else if (data.createdAt) result.createdAt = new Date(data.createdAt)
-
-	if (data.updatedAt?.toDate) result.updatedAt = data.updatedAt.toDate()
-	else if (data.updatedAt) result.updatedAt = new Date(data.updatedAt)
-
-	return result
+export function useCitations(documentId: string, type?: string) {
+	return useQuery<CitationsResponse>({
+		queryKey: CITATION_KEYS.list(documentId, type),
+		queryFn: () => citationsService.getDocumentCitations(documentId, type),
+		enabled: !!documentId,
+		staleTime: 5 * 60 * 1000,
+	})
 }
 
-// Hook to listen to citations in real-time
-function useFirestoreCitations(filterField: 'documentId' | 'workspaceId', value: string) {
-	const [data, setData] = useState<Citation[]>([])
-	const [isLoading, setIsLoading] = useState(true)
-
-	useEffect(() => {
-		if (!value) {
-			setData([])
-			setIsLoading(false)
-			return
-		}
-
-		const q = query(collection(db, 'citations'), where(filterField, '==', value))
-		const unsubscribe = onSnapshot(
-			q,
-			(snapshot) => {
-				const docs = snapshot.docs.map((d) => mapFirestoreDoc(d, 'citationId') as Citation)
-				// Sort by createdAt desc in memory
-				docs.sort((a, b) => {
-					const dateA = new Date(a.createdAt).getTime()
-					const dateB = new Date(b.createdAt).getTime()
-					return dateB - dateA
-				})
-				setData(docs)
-				setIsLoading(false)
-			},
-			(error) => {
-				console.error(`Error in useFirestoreCitations (${filterField}) listener:`, error)
-				setIsLoading(false)
-			}
-		)
-
-		return () => unsubscribe()
-	}, [filterField, value])
-
-	return { data: { citations: data, count: data.length }, isLoading }
-}
-
-export function useDocumentCitations(documentId: string) {
-	return useFirestoreCitations('documentId', documentId)
-}
+export const useDocumentCitations = useCitations
 
 export function useWorkspaceCitations(workspaceId: string) {
-	return useFirestoreCitations('workspaceId', workspaceId)
+	return useQuery<CitationsResponse>({
+		queryKey: CITATION_KEYS.workspaceList(workspaceId),
+		queryFn: () => citationsService.getWorkspaceCitations(workspaceId),
+		enabled: !!workspaceId,
+		staleTime: 5 * 60 * 1000,
+	})
+}
+
+export function useCitation(citationId: string, documentId?: string) {
+	return useQuery<CitationResponse>({
+		queryKey: CITATION_KEYS.detail(citationId),
+		queryFn: () => citationsService.getById(citationId, documentId),
+		enabled: !!citationId,
+		staleTime: 5 * 60 * 1000,
+	})
 }
 
 export function useCreateCitation() {
 	const queryClient = useQueryClient()
+
 	return useMutation({
-		mutationFn: ({
-			workspaceId,
-			documentId,
-			data,
-		}: {
-			workspaceId: string
-			documentId?: string
-			data: CreateCitationDto
-		}) => {
-			if (documentId) {
-				return citationsService.createDocumentCitation(documentId, data)
+		mutationFn: (data: CreateCitationDto) =>
+			citationsService.create(data),
+		onSuccess: (response) => {
+			queryClient.invalidateQueries({ queryKey: CITATION_KEYS.lists() })
+			if (response.data?.citation?.citationId) {
+				queryClient.setQueryData(
+					CITATION_KEYS.detail(response.data.citation.citationId),
+					response
+				)
 			}
-			return citationsService.createWorkspaceCitation(workspaceId, data)
-		},
-		onSuccess: (_, variables) => {
-			if (variables.documentId) {
-				queryClient.invalidateQueries({ queryKey: CITATION_KEYS.document(variables.documentId) })
-			}
-			queryClient.invalidateQueries({ queryKey: CITATION_KEYS.workspace(variables.workspaceId) })
 		},
 	})
 }
 
 export function useUpdateCitation() {
 	const queryClient = useQueryClient()
+
 	return useMutation({
-		mutationFn: ({ citationId, data }: { citationId: string; data: UpdateCitationDto }) =>
-			citationsService.updateCitation(citationId, data),
+		mutationFn: ({
+			citationId,
+			documentId,
+			data,
+		}: {
+			citationId: string
+			documentId?: string
+			data: UpdateCitationDto
+		}) => citationsService.update(citationId, data, documentId),
 		onSuccess: (response, variables) => {
-			const citation = response.data.citation
-			queryClient.invalidateQueries({ queryKey: CITATION_KEYS.detail(variables.citationId) })
-			if (citation.documentId) {
-				queryClient.invalidateQueries({ queryKey: CITATION_KEYS.document(citation.documentId) })
-			}
-			queryClient.invalidateQueries({ queryKey: CITATION_KEYS.workspace(citation.workspaceId) })
+			queryClient.invalidateQueries({ queryKey: CITATION_KEYS.lists() })
+			queryClient.setQueryData(
+				CITATION_KEYS.detail(variables.citationId),
+				response
+			)
 		},
 	})
 }
 
 export function useDeleteCitation() {
 	const queryClient = useQueryClient()
+
 	return useMutation({
-		mutationFn: ({
-			citationId,
-		}: {
-			citationId: string
-			workspaceId: string
-			documentId?: string
-		}) => citationsService.deleteCitation(citationId),
-		onSuccess: (_, variables) => {
-			queryClient.invalidateQueries({ queryKey: CITATION_KEYS.detail(variables.citationId) })
-			if (variables.documentId) {
-				queryClient.invalidateQueries({ queryKey: CITATION_KEYS.document(variables.documentId) })
+		mutationFn: (variables: string | { citationId: string; documentId?: string }) => {
+			if (typeof variables === 'string') {
+				return citationsService.delete(variables)
 			}
-			queryClient.invalidateQueries({ queryKey: CITATION_KEYS.workspace(variables.workspaceId) })
+			return citationsService.delete(variables.citationId, variables.documentId)
+		},
+		onSuccess: (_, variables) => {
+			const citationId = typeof variables === 'string' ? variables : variables.citationId
+			queryClient.invalidateQueries({ queryKey: CITATION_KEYS.lists() })
+			queryClient.removeQueries({
+				queryKey: CITATION_KEYS.detail(citationId),
+			})
 		},
 	})
 }
 
-export function useSearchSemanticScholar(q: string, enabled = false, limit = 10, offset = 0) {
-	return useQuery({
-		queryKey: CITATION_KEYS.semanticScholar(q),
-		queryFn: () => citationsService.searchSemanticScholar(q, limit, offset),
-		enabled: enabled && !!q,
-		staleTime: 5 * 60 * 1000, // 5 minutes
+export function useSearchCitations(documentId: string, query: string) {
+	return useQuery<CitationsResponse>({
+		queryKey: CITATION_KEYS.search(documentId, query),
+		queryFn: () => citationsService.search(documentId, query),
+		enabled: !!documentId && query.length > 0,
+		staleTime: 60 * 1000,
+	})
+}
+
+export function useCitationByDoi(documentId: string, doi: string) {
+	return useQuery<CitationResponse>({
+		queryKey: CITATION_KEYS.doi(documentId, doi),
+		queryFn: () => citationsService.getByDoi(documentId, doi),
+		enabled: !!documentId && !!doi,
+		staleTime: 5 * 60 * 1000,
+		retry: false,
+	})
+}
+
+export function useSearchSemanticScholar(query: string, enabled: boolean = true, limit: number = 8) {
+	return useQuery<SemanticScholarSearchResponse>({
+		queryKey: ['semantic-scholar', 'search', query, limit],
+		queryFn: () => citationsService.searchSemanticScholar(query, limit),
+		enabled: enabled && query.trim().length > 0,
+		staleTime: 10 * 60 * 1000,
 	})
 }
