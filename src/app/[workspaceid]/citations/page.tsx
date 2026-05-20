@@ -17,6 +17,7 @@ import {
 	BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { SearchInput } from '@/components/ui/search-input'
 import {
 	Select,
@@ -47,6 +48,7 @@ export default function Page() {
 	const [isDetailsSheetOpen, setIsDetailsSheetOpen] = useState(false)
 	const [editingCitation, setEditingCitation] = useState<Partial<CitationType> | undefined>()
 	const [viewingCitation, setViewingCitation] = useState<CitationDisplay | undefined>()
+	const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
 
 	// Get citations for the entire workspace
 	const { data: citationsData, isLoading: isCitationsLoading } = useWorkspaceCitations(workspaceId)
@@ -114,30 +116,31 @@ export default function Page() {
 		}
 	}
 
-	const handleDelete = useCallback(
-		(citationId: string) => {
-			if (!citationId) return
-			const citation = citations.find((c) => c.citationId === citationId)
-			if (window.confirm('Apakah Anda yakin ingin menghapus sitasi ini?')) {
-				deleteCitation(
-					{
-						citationId,
-						documentId: citation?.documentId,
-					},
-					{
-						onSuccess: () => {
-							toast.success('Referensi berhasil dihapus')
-						},
-						onError: (err) => {
-							console.error(err)
-							toast.error('Gagal menghapus referensi')
-						},
-					}
-				)
+	const handleDelete = useCallback((citationId: string) => {
+		if (!citationId) return
+		setDeleteConfirm(citationId)
+	}, [])
+
+	const handleConfirmDelete = useCallback(() => {
+		if (!deleteConfirm) return
+		const citation = citations.find((c) => c.citationId === deleteConfirm)
+		deleteCitation(
+			{
+				citationId: deleteConfirm,
+				documentId: citation?.documentId,
+			},
+			{
+				onSuccess: () => {
+					setDeleteConfirm(null)
+					toast.success('Referensi berhasil dihapus')
+				},
+				onError: (err) => {
+					console.error(err)
+					toast.error('Gagal menghapus referensi')
+				},
 			}
-		},
-		[deleteCitation, citations]
-	)
+		)
+	}, [deleteConfirm, deleteCitation, citations])
 
 	const handleRowClick = useCallback((citation: CitationDisplay) => {
 		setViewingCitation(citation)
@@ -273,6 +276,17 @@ export default function Page() {
 						isLoading={isCitationsLoading}
 						onRowClick={handleRowClick}
 						onDelete={handleDelete}
+					/>
+
+					<ConfirmDialog
+						isOpen={deleteConfirm !== null}
+						onClose={() => setDeleteConfirm(null)}
+						onConfirm={handleConfirmDelete}
+						title='Hapus Referensi'
+						message='Apakah Anda yakin ingin menghapus referensi ini? Tindakan ini tidak dapat dibatalkan.'
+						confirmText='Hapus'
+						cancelText='Batal'
+						variant='danger'
 					/>
 				</main>
 			</SidebarInset>

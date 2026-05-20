@@ -136,7 +136,7 @@ export function CitationSheet({
 				setUrl(c.url || '')
 
 				if (c.author) {
-					const authorList = c.author.split('; ').map((name: string, _index: number) => ({
+					const authorList = c.author.split('; ').map((name: string) => ({
 						id: Math.random().toString(36).slice(2, 11),
 						name,
 					}))
