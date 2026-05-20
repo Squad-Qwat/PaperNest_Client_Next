@@ -7,6 +7,7 @@
  * Standard API response wrapper
  */
 export interface ApiResponse<T> {
+	citation: any
 	success: boolean
 	message?: string
 	data: T

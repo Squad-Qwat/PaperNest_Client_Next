@@ -56,11 +56,12 @@ export class HttpClient {
 				throw new ApiError(response.statusText || 'An error occurred', response.status)
 			}
 
-			throw new ApiError(
+			const apiError = new ApiError(
 				errorData.error || errorData.message || 'An error occurred',
 				response.status,
 				errorData.errors
 			)
+			throw apiError
 		}
 
 		if (response.status === 204) return {} as T

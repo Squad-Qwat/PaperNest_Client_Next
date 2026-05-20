@@ -25,8 +25,43 @@ class ApiClient extends HttpClient {
 		try {
 			return await super.request<T>(endpoint, options)
 		} catch (error) {
-			if (error instanceof ApiError && error.status === 401 && endpoint !== '/auth/refresh') {
-				return this.handle401<T>(endpoint, options)
+			if (
+				error instanceof ApiError &&
+				error.status === 401 &&
+				endpoint !== '/auth/refresh' &&
+				!options._retry
+			) {
+				try {
+					return await this.handle401<T>(endpoint, { ...options, _retry: true })
+				} catch (refreshError) {
+					if (refreshError instanceof ApiError) {
+						if (refreshError.status !== 401) {
+							console.error(
+								'[API Error]',
+								refreshError.status,
+								endpoint,
+								refreshError.message,
+								refreshError.errors
+							)
+						}
+					} else {
+						console.error('[API Error]', endpoint, refreshError)
+					}
+					throw refreshError
+				}
+			}
+
+			if (error instanceof ApiError && error.status === 401) {
+				const { clearAuth } = useAuthStore.getState()
+				clearAuth()
+			}
+
+			if (error instanceof ApiError) {
+				if (error.status !== 401) {
+					console.error('[API Error]', error.status, endpoint, error.message, error.errors)
+				}
+			} else {
+				console.error('[API Error]', endpoint, error)
 			}
 			throw error
 		}
@@ -67,13 +102,21 @@ class ApiClient extends HttpClient {
 			}
 		}
 
-		return new Promise((resolve) => {
+		return new Promise((resolve, reject) => {
 			this.addRefreshSubscriber((token: string) => {
 				options.headers = {
 					...options.headers,
 					Authorization: `Bearer ${token}`,
 				}
-				resolve(super.request<T>(endpoint, options))
+				super
+					.request<T>(endpoint, options)
+					.then(resolve)
+					.catch((err) => {
+						if (err instanceof ApiError && err.status === 401) {
+							useAuthStore.getState().clearAuth()
+						}
+						reject(err)
+					})
 			})
 		})
 	}

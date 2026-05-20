@@ -83,7 +83,8 @@ export const API_ENDPOINTS = {
 		byDocument: (documentId: string) => `/documents/${documentId}/citations`,
 		search: (documentId: string) => `/documents/${documentId}/citations/search`,
 		doi: (documentId: string, doi: string) => `/documents/${documentId}/citations/doi/${doi}`,
-		byId: (citationId: string) => `/citations/${citationId}`,
+		byId: (citationId: string, documentId?: string) =>
+			documentId ? `/documents/${documentId}/citations/${citationId}` : `/citations/${citationId}`,
 		semanticScholarSearch: '/semantic-scholar/search',
 		semanticScholarDetails: (paperId: string) => `/semantic-scholar/paper/${paperId}`,
 	},

@@ -15,6 +15,8 @@ export interface Citation {
 	updatedAt: string | Date
 }
 
+export type CitationData = Omit<Citation, 'citationId' | 'createdAt' | 'updatedAt'>
+
 export interface CreateCitationDto {
 	workspaceId: string
 	documentId?: string

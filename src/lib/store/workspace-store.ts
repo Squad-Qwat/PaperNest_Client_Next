@@ -14,6 +14,8 @@ export const useWorkspaceStore = create<WorkspaceState>()(
 		}),
 		{
 			name: 'workspace-storage',
+			version: 1, // bump this whenever you want to wipe old persisted state
+			migrate: () => ({ lastWorkspaceId: null }), // reset on version mismatch
 		}
 	)
 )

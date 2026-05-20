@@ -15,7 +15,7 @@ import {
 export function NavMain({
 	onCreateDocument,
 	items,
-}: {
+}: Readonly<{
 	onCreateDocument?: () => void
 	items: {
 		title: string
@@ -23,7 +23,7 @@ export function NavMain({
 		icon?: Icon
 		badge?: number | string
 	}[]
-}) {
+}>) {
 	const pathname = usePathname()
 
 	const isItemActive = (url: string) => {

@@ -28,9 +28,14 @@ class CitationsService {
 	/**
 	 * Get all citations for a document
 	 */
-	async getDocumentCitations(documentId: string): Promise<CitationsResponse> {
-		return RequestDeduplicator.deduplicate(`getDocumentCitations:${documentId}`, () =>
-			apiClient.get<CitationsResponse>(API_ENDPOINTS.citations.byDocument(documentId))
+	async getDocumentCitations(documentId: string, type?: string): Promise<CitationsResponse> {
+		return RequestDeduplicator.deduplicate(
+			`getDocumentCitations:${documentId}:${type || ''}`,
+			() => {
+				const baseUrl = API_ENDPOINTS.citations.byDocument(documentId)
+				const url = type ? `${baseUrl}?type=${encodeURIComponent(type)}` : baseUrl
+				return apiClient.get<CitationsResponse>(url)
+			}
 		)
 	}
 
@@ -41,7 +46,11 @@ class CitationsService {
 		workspaceId: string,
 		data: CreateCitationDto
 	): Promise<CitationResponse> {
-		return apiClient.post<CitationResponse>(API_ENDPOINTS.citations.byWorkspace(workspaceId), data)
+		const normalized = this.normalizePayload(data)
+		return apiClient.post<CitationResponse>(
+			API_ENDPOINTS.citations.byWorkspace(workspaceId),
+			normalized
+		)
 	}
 
 	/**
@@ -51,75 +60,127 @@ class CitationsService {
 		documentId: string,
 		data: CreateCitationDto
 	): Promise<CitationResponse> {
-		return apiClient.post<CitationResponse>(API_ENDPOINTS.citations.byDocument(documentId), data)
+		const normalized = this.normalizePayload(data)
+		return apiClient.post<CitationResponse>(
+			API_ENDPOINTS.citations.byDocument(documentId),
+			normalized
+		)
+	}
+
+	/**
+	 * Create a citation (supporting either workspace or document context)
+	 */
+	async create(
+		data: CreateCitationDto & { workspaceId?: string; documentId?: string }
+	): Promise<CitationResponse> {
+		const normalized = this.normalizePayload(data)
+		if (normalized.documentId) {
+			return this.createDocumentCitation(normalized.documentId, normalized)
+		}
+		if (normalized.workspaceId) {
+			return this.createWorkspaceCitation(normalized.workspaceId, normalized)
+		}
+		throw new Error('Either documentId or workspaceId must be provided to create a citation')
 	}
 
 	/**
 	 * Get a citation by ID
 	 */
-	async getCitationById(citationId: string): Promise<CitationResponse> {
-		return RequestDeduplicator.deduplicate(`getCitationById:${citationId}`, () =>
-			apiClient.get<CitationResponse>(API_ENDPOINTS.citations.byId(citationId))
+	async getById(citationId: string, documentId?: string): Promise<CitationResponse> {
+		return RequestDeduplicator.deduplicate(`getById:${citationId}:${documentId || ''}`, () =>
+			apiClient.get<CitationResponse>(API_ENDPOINTS.citations.byId(citationId, documentId))
 		)
+	}
+
+	/**
+	 * Get a citation by ID (alias)
+	 */
+	async getCitationById(citationId: string, documentId?: string): Promise<CitationResponse> {
+		return this.getById(citationId, documentId)
 	}
 
 	/**
 	 * Update an existing citation
 	 */
-	async updateCitation(citationId: string, data: UpdateCitationDto): Promise<CitationResponse> {
-		return apiClient.put<CitationResponse>(API_ENDPOINTS.citations.byId(citationId), data)
+	async update(
+		citationId: string,
+		data: Partial<UpdateCitationDto>,
+		documentId?: string
+	): Promise<CitationResponse> {
+		const normalized = this.normalizePayload(data)
+		return apiClient.put<CitationResponse>(
+			API_ENDPOINTS.citations.byId(citationId, documentId),
+			normalized
+		)
+	}
+
+	private normalizeUrl(url: string | null | undefined): string | null {
+		if (url === null || url === undefined) return null
+		const trimmed = url.trim()
+		if (!trimmed) return null
+		if (/^https?:\/\//i.test(trimmed)) {
+			return trimmed
+		}
+		return `https://${trimmed}`
+	}
+
+	private normalizePayload<T extends { url?: string | null }>(data: T): T {
+		if ('url' in data) {
+			return {
+				...data,
+				url: this.normalizeUrl(data.url),
+			}
+		}
+		return data
 	}
 
 	/**
 	 * Delete a citation
 	 */
-	async deleteCitation(citationId: string): Promise<void> {
-		return apiClient.delete<void>(API_ENDPOINTS.citations.byId(citationId))
+	async delete(citationId: string, documentId?: string): Promise<void> {
+		return apiClient.delete(API_ENDPOINTS.citations.byId(citationId, documentId))
 	}
 
 	/**
-	 * Search local document citations
+	 * Search citations by title or author
 	 */
-	async searchCitations(documentId: string, q: string): Promise<CitationsResponse> {
-		const queryStr = new URLSearchParams({ q }).toString()
+	async search(documentId: string, query: string): Promise<CitationsResponse> {
 		return apiClient.get<CitationsResponse>(
-			`${API_ENDPOINTS.citations.search(documentId)}?${queryStr}`
+			`${API_ENDPOINTS.citations.search(documentId)}?q=${encodeURIComponent(query)}`
 		)
 	}
 
 	/**
-	 * Find a citation by DOI
+	 * Find citation by DOI
 	 */
-	async getCitationByDoi(documentId: string, doi: string): Promise<CitationResponse> {
-		const encodedDoi = encodeURIComponent(doi)
-		return apiClient.get<CitationResponse>(API_ENDPOINTS.citations.doi(documentId, encodedDoi))
+	async getByDoi(documentId: string, doi: string): Promise<CitationResponse> {
+		return apiClient.get<CitationResponse>(
+			API_ENDPOINTS.citations.doi(documentId, encodeURIComponent(doi))
+		)
 	}
 
 	/**
-	 * Search for academic papers on Semantic Scholar
+	 * Search papers on Semantic Scholar
 	 */
 	async searchSemanticScholar(
-		q: string,
+		query: string,
 		limit: number = 10,
 		offset: number = 0
 	): Promise<SemanticScholarSearchResponse> {
-		const queryParams = new URLSearchParams({
-			q,
-			limit: limit.toString(),
-			offset: offset.toString(),
-		}).toString()
-		return RequestDeduplicator.deduplicate(`searchSemanticScholar:${q}:${limit}:${offset}`, () =>
-			apiClient.get<SemanticScholarSearchResponse>(
-				`${API_ENDPOINTS.citations.semanticScholarSearch}?${queryParams}`
-			)
+		return RequestDeduplicator.deduplicate(
+			`searchSemanticScholar:${query}:${limit}:${offset}`,
+			() =>
+				apiClient.get<SemanticScholarSearchResponse>(
+					`${API_ENDPOINTS.citations.semanticScholarSearch}?q=${encodeURIComponent(query)}&limit=${limit}&offset=${offset}`
+				)
 		)
 	}
 
 	/**
 	 * Get paper details from Semantic Scholar
 	 */
-	async getSemanticScholarPaperDetails(paperId: string): Promise<SemanticScholarPaperResponse> {
-		return RequestDeduplicator.deduplicate(`getSemanticScholarPaperDetails:${paperId}`, () =>
+	async getSemanticScholarPaper(paperId: string): Promise<SemanticScholarPaperResponse> {
+		return RequestDeduplicator.deduplicate(`getSemanticScholarPaper:${paperId}`, () =>
 			apiClient.get<SemanticScholarPaperResponse>(
 				API_ENDPOINTS.citations.semanticScholarDetails(paperId)
 			)
