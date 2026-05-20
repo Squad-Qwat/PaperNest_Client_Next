@@ -1,13 +1,8 @@
-import {
-	Sheet,
-	SheetContent,
-	SheetHeader,
-	SheetTitle,
-} from '@/components/ui/sheet'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { FileText, Link as LinkIcon, MessageSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 interface CitationDetailsSheetProps {
 	open: boolean
@@ -30,7 +25,9 @@ export function CitationDetailsSheet({
 						<SheetTitle className='sr-only'>Detail Sitasi</SheetTitle>
 						<TabsList>
 							<TabsTrigger value='details'>Detail Metadata</TabsTrigger>
-							<TabsTrigger value='annotations'>Anotasi ({citation.annotationsCount || 0})</TabsTrigger>
+							<TabsTrigger value='annotations'>
+								Anotasi ({citation.annotationsCount || 0})
+							</TabsTrigger>
 						</TabsList>
 					</SheetHeader>
 
@@ -46,7 +43,7 @@ export function CitationDetailsSheet({
 									<div className='text-sm text-gray-500'>Tipe</div>
 									<div className='col-span-2 text-sm font-medium capitalize'>{citation.type}</div>
 								</div>
-								
+
 								<div className='grid grid-cols-3 gap-4'>
 									<div className='text-sm text-gray-500'>Publikasi</div>
 									<div className='col-span-2 text-sm font-medium'>{citation.publicationInfo}</div>
@@ -60,9 +57,7 @@ export function CitationDetailsSheet({
 								{citation.doi && (
 									<div className='grid grid-cols-3 gap-4'>
 										<div className='text-sm text-gray-500'>DOI</div>
-										<div className='col-span-2 text-sm font-mono text-primary'>
-											{citation.doi}
-										</div>
+										<div className='col-span-2 text-sm font-mono text-primary'>{citation.doi}</div>
 									</div>
 								)}
 
@@ -86,20 +81,26 @@ export function CitationDetailsSheet({
 							<div className='text-sm text-gray-500 mb-4'>
 								Daftar bagian teks dimana sitasi ini digunakan.
 							</div>
-							
+
 							{(citation.annotationsCount || 0) > 0 ? (
 								<div className='space-y-4'>
 									{Array.from({ length: citation.annotationsCount || 0 }).map((_, i) => (
-										<div key={i.toLocaleString()} className='p-4 rounded-lg border border-gray-200 bg-gray-50'>
+										<div
+											key={i.toLocaleString()}
+											className='p-4 rounded-lg border border-gray-200 bg-gray-50'
+										>
 											<div className='flex items-start gap-3'>
 												<MessageSquare className='h-5 w-5 text-gray-400 shrink-0 mt-0.5' />
 												<div>
 													<p className='text-sm text-gray-700 italic'>
-														"...contoh kutipan dari dokumen yang menggunakan sitasi ini sebagai referensi..."
+														"...contoh kutipan dari dokumen yang menggunakan sitasi ini sebagai
+														referensi..."
 													</p>
 													<div className='mt-2 flex items-center gap-2'>
 														<FileText className='h-3 w-3 text-gray-400' />
-														<span className='text-xs text-gray-500 font-medium'>Bab 1: Pendahuluan</span>
+														<span className='text-xs text-gray-500 font-medium'>
+															Bab 1: Pendahuluan
+														</span>
 													</div>
 												</div>
 											</div>

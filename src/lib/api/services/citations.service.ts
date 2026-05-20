@@ -9,9 +9,9 @@ import type {
 	CitationResponse,
 	CitationsResponse,
 	CreateCitationDto,
-	UpdateCitationDto,
 	SemanticScholarPaperResponse,
 	SemanticScholarSearchResponse,
+	UpdateCitationDto,
 } from '../types/citation.types'
 import { RequestDeduplicator } from '../utils/deduplicator'
 
@@ -29,11 +29,14 @@ class CitationsService {
 	 * Get all citations for a document
 	 */
 	async getDocumentCitations(documentId: string, type?: string): Promise<CitationsResponse> {
-		return RequestDeduplicator.deduplicate(`getDocumentCitations:${documentId}:${type || ''}`, () => {
-			const baseUrl = API_ENDPOINTS.citations.byDocument(documentId)
-			const url = type ? `${baseUrl}?type=${encodeURIComponent(type)}` : baseUrl
-			return apiClient.get<CitationsResponse>(url)
-		})
+		return RequestDeduplicator.deduplicate(
+			`getDocumentCitations:${documentId}:${type || ''}`,
+			() => {
+				const baseUrl = API_ENDPOINTS.citations.byDocument(documentId)
+				const url = type ? `${baseUrl}?type=${encodeURIComponent(type)}` : baseUrl
+				return apiClient.get<CitationsResponse>(url)
+			}
+		)
 	}
 
 	/**
@@ -44,7 +47,10 @@ class CitationsService {
 		data: CreateCitationDto
 	): Promise<CitationResponse> {
 		const normalized = this.normalizePayload(data)
-		return apiClient.post<CitationResponse>(API_ENDPOINTS.citations.byWorkspace(workspaceId), normalized)
+		return apiClient.post<CitationResponse>(
+			API_ENDPOINTS.citations.byWorkspace(workspaceId),
+			normalized
+		)
 	}
 
 	/**
@@ -55,7 +61,10 @@ class CitationsService {
 		data: CreateCitationDto
 	): Promise<CitationResponse> {
 		const normalized = this.normalizePayload(data)
-		return apiClient.post<CitationResponse>(API_ENDPOINTS.citations.byDocument(documentId), normalized)
+		return apiClient.post<CitationResponse>(
+			API_ENDPOINTS.citations.byDocument(documentId),
+			normalized
+		)
 	}
 
 	/**
@@ -119,7 +128,7 @@ class CitationsService {
 		if ('url' in data) {
 			return {
 				...data,
-				url: this.normalizeUrl(data.url)
+				url: this.normalizeUrl(data.url),
 			}
 		}
 		return data
@@ -158,10 +167,12 @@ class CitationsService {
 		limit: number = 10,
 		offset: number = 0
 	): Promise<SemanticScholarSearchResponse> {
-		return RequestDeduplicator.deduplicate(`searchSemanticScholar:${query}:${limit}:${offset}`, () =>
-			apiClient.get<SemanticScholarSearchResponse>(
-				`${API_ENDPOINTS.citations.semanticScholarSearch}?q=${encodeURIComponent(query)}&limit=${limit}&offset=${offset}`
-			)
+		return RequestDeduplicator.deduplicate(
+			`searchSemanticScholar:${query}:${limit}:${offset}`,
+			() =>
+				apiClient.get<SemanticScholarSearchResponse>(
+					`${API_ENDPOINTS.citations.semanticScholarSearch}?q=${encodeURIComponent(query)}&limit=${limit}&offset=${offset}`
+				)
 		)
 	}
 

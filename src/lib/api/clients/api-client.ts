@@ -26,8 +26,8 @@ class ApiClient extends HttpClient {
 			return await super.request<T>(endpoint, options)
 		} catch (error) {
 			if (
-				error instanceof ApiError && 
-				error.status === 401 && 
+				error instanceof ApiError &&
+				error.status === 401 &&
 				endpoint !== '/auth/refresh' &&
 				!options._retry
 			) {
@@ -36,7 +36,13 @@ class ApiClient extends HttpClient {
 				} catch (refreshError) {
 					if (refreshError instanceof ApiError) {
 						if (refreshError.status !== 401) {
-							console.error('[API Error]', refreshError.status, endpoint, refreshError.message, refreshError.errors)
+							console.error(
+								'[API Error]',
+								refreshError.status,
+								endpoint,
+								refreshError.message,
+								refreshError.errors
+							)
 						}
 					} else {
 						console.error('[API Error]', endpoint, refreshError)
@@ -102,7 +108,8 @@ class ApiClient extends HttpClient {
 					...options.headers,
 					Authorization: `Bearer ${token}`,
 				}
-				super.request<T>(endpoint, options)
+				super
+					.request<T>(endpoint, options)
 					.then(resolve)
 					.catch((err) => {
 						if (err instanceof ApiError && err.status === 401) {

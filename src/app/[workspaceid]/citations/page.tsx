@@ -1,19 +1,13 @@
 'use client'
 
-import {
-	Calendar,
-	Plus,
-	Settings2,
-	Tag,
-	User,
-} from 'lucide-react'
+import { Calendar, Plus, Settings2, Tag, User } from 'lucide-react'
 import { useParams } from 'next/navigation'
-import React, { useMemo, useCallback, useState } from 'react'
-import { AppSidebar } from '@/components/app-sidebar'
+import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { CitationSheet, type Citation as CitationType } from '@/components/citations/citation-sheet'
+import { AppSidebar } from '@/components/app-sidebar'
 import { CitationDetailsSheet } from '@/components/citations/citation-details-sheet'
-import { CitationTable, type CitationDisplay } from '@/components/citations/citation-table'
+import { CitationSheet, type Citation as CitationType } from '@/components/citations/citation-sheet'
+import { type CitationDisplay, CitationTable } from '@/components/citations/citation-table'
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -35,9 +29,14 @@ import {
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
+import {
+	useCreateCitation,
+	useDeleteCitation,
+	useUpdateCitation,
+	useWorkspaceCitations,
+} from '@/lib/api/hooks/use-citations'
+
 import { useWorkspace } from '@/lib/api/hooks/use-workspaces'
-import { useWorkspaceCitations, useCreateCitation, useDeleteCitation, useUpdateCitation } from '@/lib/api/hooks/use-citations'
-import { useWorkspaceDocuments } from '@/lib/api/hooks/use-documents'
 
 export default function Page() {
 	const params = useParams()
@@ -55,12 +54,14 @@ export default function Page() {
 	// console.log('citationsData:', JSON.stringify(citationsData, null, 2))
 
 	const citations = useMemo(() => {
-		const list = ((citationsData as any)?.citations ?? citationsData?.data?.citations) as CitationDisplay[] | undefined
+		const list = ((citationsData as any)?.citations ?? citationsData?.data?.citations) as
+			| CitationDisplay[]
+			| undefined
 		return list || []
 	}, [citationsData])
 
 	// Still need documents to assign new citations to a document
-	const { data: documentsData } = useWorkspaceDocuments(workspaceId)
+	// const { data: documentsData } = useWorkspaceDocuments(workspaceId)
 	// const documentId = documentsData?.documents?.[0]?.documentId
 
 	const { mutate: createCitation } = useCreateCitation()
@@ -74,81 +75,95 @@ export default function Page() {
 
 	const handleSave = (data: Partial<CitationType>) => {
 		if (viewingCitation?.citationId) {
-			updateCitation({
-				citationId: viewingCitation.citationId,
-				documentId: viewingCitation.documentId,
-				data: data as any,
-			}, {
-				onSuccess: () => {
-					setIsSheetOpen(false)
-					setIsDetailsSheetOpen(false)
-					toast.success('Referensi berhasil diperbarui')
+			updateCitation(
+				{
+					citationId: viewingCitation.citationId,
+					documentId: viewingCitation.documentId,
+					data: data as any,
 				},
-				onError: (err) => {
-					console.error(err)
-					toast.error('Gagal memperbarui referensi')
+				{
+					onSuccess: () => {
+						setIsSheetOpen(false)
+						setIsDetailsSheetOpen(false)
+						toast.success('Referensi berhasil diperbarui')
+					},
+					onError: (err) => {
+						console.error(err)
+						toast.error('Gagal memperbarui referensi')
+					},
 				}
-			})
+			)
 		} else {
-			createCitation({
-				workspaceId,
-				// documentId, <- This might be undefined, which is now allowed
-				...data as any,
-			}, {
-				onSuccess: () => {
-					setIsSheetOpen(false)
-					toast.success('Referensi berhasil ditambahkan')
+			createCitation(
+				{
+					workspaceId,
+					// documentId, <- This might be undefined, which is now allowed
+					...(data as any),
 				},
-				onError: (err) => {
-					console.error(err)
-					toast.error('Gagal menambahkan referensi')
+				{
+					onSuccess: () => {
+						setIsSheetOpen(false)
+						toast.success('Referensi berhasil ditambahkan')
+					},
+					onError: (err) => {
+						console.error(err)
+						toast.error('Gagal menambahkan referensi')
+					},
 				}
-			})
+			)
 		}
 	}
 
-	const handleDelete = useCallback((citationId: string) => {
-		if (!citationId) return
-		const citation = citations.find((c) => c.citationId === citationId)
-		if (window.confirm('Apakah Anda yakin ingin menghapus sitasi ini?')) {
-			deleteCitation({
-				citationId,
-				documentId: citation?.documentId,
-			}, {
-				onSuccess: () => {
-					toast.success('Referensi berhasil dihapus')
-				},
-				onError: (err) => {
-					console.error(err)
-					toast.error('Gagal menghapus referensi')
-				}
-			})
-		}
-	}, [deleteCitation, citations])
+	const handleDelete = useCallback(
+		(citationId: string) => {
+			if (!citationId) return
+			const citation = citations.find((c) => c.citationId === citationId)
+			if (window.confirm('Apakah Anda yakin ingin menghapus sitasi ini?')) {
+				deleteCitation(
+					{
+						citationId,
+						documentId: citation?.documentId,
+					},
+					{
+						onSuccess: () => {
+							toast.success('Referensi berhasil dihapus')
+						},
+						onError: (err) => {
+							console.error(err)
+							toast.error('Gagal menghapus referensi')
+						},
+					}
+				)
+			}
+		},
+		[deleteCitation, citations]
+	)
 
 	const handleRowClick = useCallback((citation: CitationDisplay) => {
 		setViewingCitation(citation)
 		setIsDetailsSheetOpen(true)
 	}, [])
 
-
-	const BreadcrumbSection = useMemo(() => (
-		<Breadcrumb>
-			<BreadcrumbList>
-				<BreadcrumbItem className='hidden md:block'>
-					<BreadcrumbLink href='#'>PaperNest</BreadcrumbLink>
-				</BreadcrumbItem>
-				<BreadcrumbSeparator className='hidden md:block' />
-				<BreadcrumbItem>
-					<BreadcrumbLink href={`/${workspaceId}`}>{workspace?.title}</BreadcrumbLink>
-				</BreadcrumbItem>
-				<BreadcrumbSeparator className='hidden md:block' />
-				<BreadcrumbItem>
-					<BreadcrumbPage>Sitasi</BreadcrumbPage>
-				</BreadcrumbItem>
-			</BreadcrumbList>
-		</Breadcrumb>
-	), [workspaceId, workspace?.title])
+	const BreadcrumbSection = useMemo(
+		() => (
+			<Breadcrumb>
+				<BreadcrumbList>
+					<BreadcrumbItem className='hidden md:block'>
+						<BreadcrumbLink href='#'>PaperNest</BreadcrumbLink>
+					</BreadcrumbItem>
+					<BreadcrumbSeparator className='hidden md:block' />
+					<BreadcrumbItem>
+						<BreadcrumbLink href={`/${workspaceId}`}>{workspace?.title}</BreadcrumbLink>
+					</BreadcrumbItem>
+					<BreadcrumbSeparator className='hidden md:block' />
+					<BreadcrumbItem>
+						<BreadcrumbPage>Sitasi</BreadcrumbPage>
+					</BreadcrumbItem>
+				</BreadcrumbList>
+			</Breadcrumb>
+		),
+		[workspaceId, workspace?.title]
+	)
 
 	return (
 		<SidebarProvider className='h-svh overflow-hidden bg-sidebar'>
@@ -200,7 +215,7 @@ export default function Page() {
 
 						<div className='flex flex-wrap items-center gap-3'>
 							<div className='flex items-center gap-2 overflow-x-auto pb-1 md:pb-0'>
-								<Select key="author-select">
+								<Select key='author-select'>
 									<SelectTrigger className='bg-white h-10'>
 										<User className='h-4 w-4 mr-2' />
 										<SelectValue placeholder='Semua Penulis' />
@@ -210,7 +225,7 @@ export default function Page() {
 									</SelectContent>
 								</Select>
 
-								<Select key="year-select">
+								<Select key='year-select'>
 									<SelectTrigger className='bg-white h-10'>
 										<Calendar className='h-4 w-4 mr-2' />
 										<SelectValue placeholder='Semua Tahun' />
@@ -220,7 +235,7 @@ export default function Page() {
 									</SelectContent>
 								</Select>
 
-								<Select key="type-select">
+								<Select key='type-select'>
 									<SelectTrigger className='bg-white h-10'>
 										<Tag className='h-4 w-4 mr-2' />
 										<SelectValue placeholder='Semua Tipe' />
@@ -234,7 +249,7 @@ export default function Page() {
 								</Select>
 							</div>
 
-							<Select defaultValue='full' key="view-settings">
+							<Select defaultValue='full' key='view-settings'>
 								<SelectTrigger className='bg-white h-10'>
 									<Settings2 className='h-4 w-4 mr-2' />
 									<SelectValue placeholder='Pengaturan' />

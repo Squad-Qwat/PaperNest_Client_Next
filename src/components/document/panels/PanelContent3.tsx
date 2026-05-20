@@ -77,7 +77,9 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 	const deleteCitationMutation = useDeleteCitation()
 	const addDocumentFileMutation = useAddDocumentFile()
 
-	const citations = ((citationsData as any)?.citations ?? citationsData?.data?.citations ?? []) as Citation[]
+	const citations = ((citationsData as any)?.citations ??
+		citationsData?.data?.citations ??
+		[]) as Citation[]
 	const files = filesData || []
 
 	// Semantic Scholar Hook

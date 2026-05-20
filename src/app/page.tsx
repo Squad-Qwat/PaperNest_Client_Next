@@ -1,6 +1,6 @@
 'use client'
 
-import { useRouter, /*useParams*/ } from 'next/navigation'
+import { useRouter /*useParams*/ } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { DashboardSkeleton } from '@/components/layout/DashboardSkeleton'
 import { SplashLoader } from '@/components/layout/SplashLoader'

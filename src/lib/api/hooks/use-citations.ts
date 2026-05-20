@@ -1,22 +1,24 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { citationsService } from '../services/citations.service'
 import type {
-	CitationData,
 	CitationResponse,
 	CitationsResponse,
-	SemanticScholarSearchResponse,
 	CreateCitationDto,
+	SemanticScholarSearchResponse,
 	UpdateCitationDto,
 } from '../types/citation.types'
 
 export const CITATION_KEYS = {
 	all: ['citations'] as const,
 	lists: () => [...CITATION_KEYS.all, 'list'] as const,
-	workspaceList: (workspaceId: string) => [...CITATION_KEYS.lists(), 'workspace', workspaceId] as const,
-	list: (documentId: string, type?: string) => [...CITATION_KEYS.lists(), 'document', documentId, { type }] as const,
+	workspaceList: (workspaceId: string) =>
+		[...CITATION_KEYS.lists(), 'workspace', workspaceId] as const,
+	list: (documentId: string, type?: string) =>
+		[...CITATION_KEYS.lists(), 'document', documentId, { type }] as const,
 	details: () => [...CITATION_KEYS.all, 'detail'] as const,
 	detail: (citationId: string) => [...CITATION_KEYS.details(), citationId] as const,
-	search: (documentId: string, query: string) => [...CITATION_KEYS.all, 'search', documentId, { query }] as const,
+	search: (documentId: string, query: string) =>
+		[...CITATION_KEYS.all, 'search', documentId, { query }] as const,
 	doi: (documentId: string, doi: string) => [...CITATION_KEYS.all, 'doi', documentId, doi] as const,
 }
 
@@ -53,15 +55,11 @@ export function useCreateCitation() {
 	const queryClient = useQueryClient()
 
 	return useMutation({
-		mutationFn: (data: CreateCitationDto) =>
-			citationsService.create(data),
+		mutationFn: (data: CreateCitationDto) => citationsService.create(data),
 		onSuccess: (response) => {
 			queryClient.invalidateQueries({ queryKey: CITATION_KEYS.lists() })
 			if (response.data?.citation?.citationId) {
-				queryClient.setQueryData(
-					CITATION_KEYS.detail(response.data.citation.citationId),
-					response
-				)
+				queryClient.setQueryData(CITATION_KEYS.detail(response.data.citation.citationId), response)
 			}
 		},
 	})
@@ -82,10 +80,7 @@ export function useUpdateCitation() {
 		}) => citationsService.update(citationId, data, documentId),
 		onSuccess: (response, variables) => {
 			queryClient.invalidateQueries({ queryKey: CITATION_KEYS.lists() })
-			queryClient.setQueryData(
-				CITATION_KEYS.detail(variables.citationId),
-				response
-			)
+			queryClient.setQueryData(CITATION_KEYS.detail(variables.citationId), response)
 		},
 	})
 }
@@ -129,7 +124,11 @@ export function useCitationByDoi(documentId: string, doi: string) {
 	})
 }
 
-export function useSearchSemanticScholar(query: string, enabled: boolean = true, limit: number = 8) {
+export function useSearchSemanticScholar(
+	query: string,
+	enabled: boolean = true,
+	limit: number = 8
+) {
 	return useQuery<SemanticScholarSearchResponse>({
 		queryKey: ['semantic-scholar', 'search', query, limit],
 		queryFn: () => citationsService.searchSemanticScholar(query, limit),

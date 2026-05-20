@@ -1,26 +1,23 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
 import {
+	type Cell,
+	type ColumnDef,
+	type ColumnOrderState,
 	flexRender,
 	getCoreRowModel,
 	getSortedRowModel,
-	useReactTable,
-	type ColumnDef,
-	type SortingState,
-	type ColumnOrderState,
-	type Table as TableType,
-	type Row,
 	type Header as HeaderType,
-	type Cell,
+	type Row,
+	type SortingState,
+	type Table as TableType,
+	useReactTable,
 } from '@tanstack/react-table'
-import {
-	ArrowDown,
-	ArrowUp,
-	ArrowUpDown,
-	ExternalLink,
-	Trash2,
-} from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, ExternalLink, Trash2 } from 'lucide-react'
+import React, { useMemo, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
 	Table,
 	TableBody,
@@ -29,14 +26,11 @@ import {
 	TableHeader,
 	TableRow,
 } from '@/components/ui/table'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Button } from '@/components/ui/button'
 import type { Citation } from '@/lib/api/types/citation.types'
 import { cn } from '@/lib/utils'
 
-export type CitationDisplay = Citation & { 
-	annotationsCount?: number 
+export type CitationDisplay = Citation & {
+	annotationsCount?: number
 }
 
 interface CitationTableProps {
@@ -57,9 +51,9 @@ const TableHeaderSection = React.memo(({ table }: { table: TableType<CitationDis
 					{headerGroup.headers.map((header: HeaderType<CitationDisplay, unknown>) => (
 						<TableHead
 							key={header.id}
-							style={{ 
+							style={{
 								width: header.getSize(),
-								minWidth: header.column.columnDef.minSize 
+								minWidth: header.column.columnDef.minSize,
 							}}
 							className='relative group overflow-hidden'
 						>
@@ -99,36 +93,32 @@ TableHeaderSection.displayName = 'TableHeaderSection'
 /**
  * Renders a single table row
  */
-const TableRowComponent = React.memo(({ 
-	row, 
-	onClick 
-}: { 
-	row: Row<CitationDisplay>, 
-	onClick: (data: CitationDisplay) => void 
-}) => {
-	return (
-		<TableRow
-			data-state={row.getIsSelected() && 'selected'}
-			className='cursor-pointer hover:bg-gray-50/50 transition-colors'
-			onClick={() => onClick(row.original)}
-		>
-			{row.getVisibleCells().map((cell: Cell<CitationDisplay, unknown>) => (
-				<TableCell
-					key={cell.id}
-					style={{
-						width: cell.column.getSize(),
-						minWidth: cell.column.columnDef.minSize,
-					}}
-					className='overflow-hidden'
-				>
-					<div className='truncate'>
-						{flexRender(cell.column.columnDef.cell, cell.getContext())}
-					</div>
-				</TableCell>
-			))}
-		</TableRow>
-	)
-})
+const TableRowComponent = React.memo(
+	({ row, onClick }: { row: Row<CitationDisplay>; onClick: (data: CitationDisplay) => void }) => {
+		return (
+			<TableRow
+				data-state={row.getIsSelected() && 'selected'}
+				className='cursor-pointer hover:bg-gray-50/50 transition-colors'
+				onClick={() => onClick(row.original)}
+			>
+				{row.getVisibleCells().map((cell: Cell<CitationDisplay, unknown>) => (
+					<TableCell
+						key={cell.id}
+						style={{
+							width: cell.column.getSize(),
+							minWidth: cell.column.columnDef.minSize,
+						}}
+						className='overflow-hidden'
+					>
+						<div className='truncate'>
+							{flexRender(cell.column.columnDef.cell, cell.getContext())}
+						</div>
+					</TableCell>
+				))}
+			</TableRow>
+		)
+	}
+)
 
 TableRowComponent.displayName = 'TableRowComponent'
 
@@ -137,7 +127,7 @@ TableRowComponent.displayName = 'TableRowComponent'
  */
 const LoadingState = ({ columns }: { columns: ColumnDef<CitationDisplay, any>[] }) => {
 	const skeletonRows = useMemo(() => ['skel-1', 'skel-2', 'skel-3', 'skel-4', 'skel-5'], [])
-	
+
 	return (
 		<>
 			{skeletonRows.map((rowId) => (
@@ -275,14 +265,19 @@ const getCitationColumns = (onDelete: (id: string) => void): ColumnDef<CitationD
 		header: () => <div className='text-right'>Link</div>,
 		cell: ({ row }) => (
 			<div className='text-right'>
-				<Button 
-					variant='ghost' 
-					size='icon' 
-					asChild 
+				<Button
+					variant='ghost'
+					size='icon'
+					asChild
 					className='h-8 w-8'
 					onClick={(e) => e.stopPropagation()}
 				>
-					<a href={row.original.url || '#'} target='_blank' rel='noopener noreferrer' aria-label='Open original link'>
+					<a
+						href={row.original.url || '#'}
+						target='_blank'
+						rel='noopener noreferrer'
+						aria-label='Open original link'
+					>
 						<ExternalLink className='h-4 w-4' />
 					</a>
 				</Button>
@@ -296,9 +291,9 @@ const getCitationColumns = (onDelete: (id: string) => void): ColumnDef<CitationD
 		header: () => <div className='text-right'>Aksi</div>,
 		cell: ({ row }) => (
 			<div className='text-right'>
-				<Button 
-					variant='ghost' 
-					size='icon' 
+				<Button
+					variant='ghost'
+					size='icon'
 					className='h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10'
 					onClick={(e) => {
 						e.stopPropagation()
@@ -318,16 +313,16 @@ const getCitationColumns = (onDelete: (id: string) => void): ColumnDef<CitationD
 /**
  * Renders the table body content
  */
-const TableBodyContent = ({ 
-	isLoading, 
-	tableRows, 
-	columns, 
-	onRowClick 
-}: { 
-	isLoading: boolean, 
-	tableRows: Row<CitationDisplay>[], 
-	columns: ColumnDef<CitationDisplay>[],
-	onRowClick: (citation: CitationDisplay) => void 
+const TableBodyContent = ({
+	isLoading,
+	tableRows,
+	columns,
+	onRowClick,
+}: {
+	isLoading: boolean
+	tableRows: Row<CitationDisplay>[]
+	columns: ColumnDef<CitationDisplay>[]
+	onRowClick: (citation: CitationDisplay) => void
 }) => {
 	if (isLoading) {
 		return <LoadingState columns={columns} />
@@ -337,11 +332,7 @@ const TableBodyContent = ({
 		return (
 			<>
 				{tableRows.map((row) => (
-					<TableRowComponent 
-						key={row.id} 
-						row={row} 
-						onClick={onRowClick} 
-					/>
+					<TableRowComponent key={row.id} row={row} onClick={onRowClick} />
 				))}
 			</>
 		)
@@ -359,46 +350,43 @@ const TableBodyContent = ({
 /**
  * Main CitationTable component
  */
-export const CitationTable = React.memo(({ 
-	data, 
-	isLoading, 
-	onRowClick,
-	onDelete 
-}: CitationTableProps) => {
-	const [sorting, setSorting] = useState<SortingState>([])
-	const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([])
+export const CitationTable = React.memo(
+	({ data, isLoading, onRowClick, onDelete }: CitationTableProps) => {
+		const [sorting, setSorting] = useState<SortingState>([])
+		const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([])
 
-	const columns = useMemo(() => getCitationColumns(onDelete), [onDelete])
+		const columns = useMemo(() => getCitationColumns(onDelete), [onDelete])
 
-	const table = useReactTable({
-		data,
-		columns,
-		state: {
-			sorting,
-			columnOrder,
-		},
-		onSortingChange: setSorting,
-		onColumnOrderChange: setColumnOrder,
-		getCoreRowModel: getCoreRowModel(),
-		getSortedRowModel: getSortedRowModel(),
-		columnResizeMode: 'onChange',
-	})
+		const table = useReactTable({
+			data,
+			columns,
+			state: {
+				sorting,
+				columnOrder,
+			},
+			onSortingChange: setSorting,
+			onColumnOrderChange: setColumnOrder,
+			getCoreRowModel: getCoreRowModel(),
+			getSortedRowModel: getSortedRowModel(),
+			columnResizeMode: 'onChange',
+		})
 
-	return (
-		<div className='bg-white border rounded-xl overflow-hidden'>
-			<Table style={{ width: table.getTotalSize(), minWidth: '100%' }}>
-				<TableHeaderSection table={table} />
-				<TableBody>
-					<TableBodyContent 
-						isLoading={isLoading} 
-						tableRows={table.getRowModel().rows} 
-						columns={columns} 
-						onRowClick={onRowClick} 
-					/>
-				</TableBody>
-			</Table>
-		</div>
-	)
-})
+		return (
+			<div className='bg-white border rounded-xl overflow-hidden'>
+				<Table style={{ width: table.getTotalSize(), minWidth: '100%' }}>
+					<TableHeaderSection table={table} />
+					<TableBody>
+						<TableBodyContent
+							isLoading={isLoading}
+							tableRows={table.getRowModel().rows}
+							columns={columns}
+							onRowClick={onRowClick}
+						/>
+					</TableBody>
+				</Table>
+			</div>
+		)
+	}
+)
 
 CitationTable.displayName = 'CitationTable'

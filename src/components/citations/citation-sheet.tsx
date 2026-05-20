@@ -1,18 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { Plus, Search, Trash2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-	Sheet,
-	SheetContent,
-	SheetHeader,
-	SheetTitle,
-	SheetFooter,
-	SheetDescription,
-} from '@/components/ui/sheet'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import {
 	Select,
 	SelectContent,
@@ -20,8 +14,14 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Field, FieldLabel } from '@/components/ui/field'
+import {
+	Sheet,
+	SheetContent,
+	SheetDescription,
+	SheetFooter,
+	SheetHeader,
+	SheetTitle,
+} from '@/components/ui/sheet'
 
 interface Author {
 	id: string
@@ -79,7 +79,7 @@ export function CitationSheet({
 			setDoi(initialData.doi || '')
 			setUrl(initialData.url || '')
 			setYear(initialData.publicationDate || '')
-			
+
 			// Parse authors
 			if (initialData.author) {
 				const authorList = initialData.author.split('; ').map((name: string, index: number) => ({
@@ -127,16 +127,16 @@ export function CitationSheet({
 		try {
 			const { citationsService } = await import('@/lib/api/services/citations.service')
 			const response = await citationsService.getByDoi(documentId, identifier)
-			
+
 			if (response?.data?.citation) {
 				const c = response.data.citation
 				setTitle(c.title || '')
 				setDoi(c.doi || identifier)
 				setYear(c.publicationDate || '')
 				setUrl(c.url || '')
-				
+
 				if (c.author) {
-					const authorList = c.author.split('; ').map((name: string, index: number) => ({
+					const authorList = c.author.split('; ').map((name: string, _index: number) => ({
 						id: Math.random().toString(36).slice(2, 11),
 						name,
 					}))
@@ -215,22 +215,22 @@ export function CitationSheet({
 				*/
 				raw: JSON.stringify({
 					title,
-					author: authors.map(a => {
+					author: authors.map((a) => {
 						const parts = a.name.split(',')
 						return {
 							family: parts[0]?.trim() || '',
-							given: parts[1]?.trim() || ''
+							given: parts[1]?.trim() || '',
 						}
 					}),
 					containerTitle: journal,
 					volume,
 					issue,
-					page: pageFrom && pageTo ? `${pageFrom}-${pageTo}` : (pageFrom || pageTo || ''),
+					page: pageFrom && pageTo ? `${pageFrom}-${pageTo}` : pageFrom || pageTo || '',
 					issued: { 'date-parts': [[year]] },
 					DOI: doi || identifier,
 					URL: url,
-				})
-			}
+				}),
+			},
 		}
 
 		/*
@@ -259,10 +259,10 @@ export function CitationSheet({
 
 	const isFormValid = Boolean(
 		title.trim() &&
-		type.trim() &&
-		authors.some((a) => a.name.trim()) &&
-		journal.trim() &&
-		year.trim()
+			type.trim() &&
+			authors.some((a) => a.name.trim()) &&
+			journal.trim() &&
+			year.trim()
 	)
 
 	return (
@@ -291,14 +291,18 @@ export function CitationSheet({
 									value={identifier}
 									onChange={(e) => setIdentifier(e.target.value)}
 								/>
-								<Button 
-									size='icon' 
-									variant='outline' 
+								<Button
+									size='icon'
+									variant='outline'
 									className='shrink-0 bg-white border-gray-200 hover:bg-gray-50'
 									onClick={handleSearch}
 									disabled={isSearching || !identifier.trim()}
 								>
-									{isSearching ? <Search className='h-4 w-4 animate-spin' /> : <Search className='h-4 w-4' />}
+									{isSearching ? (
+										<Search className='h-4 w-4 animate-spin' />
+									) : (
+										<Search className='h-4 w-4' />
+									)}
 								</Button>
 							</div>
 							<p className='text-[13px] text-gray-500'>
@@ -441,7 +445,7 @@ export function CitationSheet({
 									/>
 								</Field>
 							</div>
-							
+
 							<Field>
 								<FieldLabel className='text-sm font-semibold text-gray-700'>URL</FieldLabel>
 								<Input
@@ -463,8 +467,8 @@ export function CitationSheet({
 					>
 						Cancel
 					</Button>
-					<Button 
-						className='flex-1 sm:flex-none bg-primary shadow-sm hover:bg-primary/90' 
+					<Button
+						className='flex-1 sm:flex-none bg-primary shadow-sm hover:bg-primary/90'
 						onClick={handleSave}
 						disabled={!isFormValid}
 					>
