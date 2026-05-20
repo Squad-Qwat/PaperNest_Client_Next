@@ -28,6 +28,12 @@ interface Author {
 	name: string
 }
 
+let authorIdCounter = 0
+const generateAuthorId = (): string => {
+	authorIdCounter += 1
+	return `author-${Date.now()}-${authorIdCounter}`
+}
+
 export interface Citation {
 	citationId?: string
 	documentId?: string
@@ -137,7 +143,7 @@ export function CitationSheet({
 
 				if (c.author) {
 					const authorList = c.author.split('; ').map((name: string) => ({
-						id: Math.random().toString(36).slice(2, 11),
+						id: generateAuthorId(),
 						name,
 					}))
 					setAuthors(authorList.length > 0 ? authorList : [{ id: '1', name: '' }])
@@ -163,7 +169,7 @@ export function CitationSheet({
 	}
 
 	const addAuthor = () => {
-		setAuthors([...authors, { id: Math.random().toString(36).slice(2, 11), name: '' }])
+		setAuthors([...authors, { id: generateAuthorId(), name: '' }])
 	}
 
 	const updateAuthor = (id: string, name: string) => {
