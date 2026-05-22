@@ -119,6 +119,14 @@ export default function ReviewDetailPage() {
 		setIsModalOpen(true)
 	}
 
+	const handleBack = () => {
+		if (typeof window !== 'undefined' && window.history.length > 1) {
+			router.back()
+		} else {
+			router.push(`/${workspaceId}/reviews`)
+		}
+	}
+
 	if (authLoading || reviewLoading || (documentId && versionsLoading)) {
 		return (
 			<div className='h-screen flex items-center justify-center bg-background'>
@@ -134,7 +142,7 @@ export default function ReviewDetailPage() {
 		return (
 			<div className='h-screen flex flex-col items-center justify-center bg-background gap-4'>
 				<h2 className='text-lg font-semibold text-gray-900'>Review tidak ditemukan</h2>
-				<Button variant='outline' onClick={() => router.push(`/${workspaceId}/reviews`)}>
+				<Button variant='outline' onClick={handleBack}>
 					Kembali ke Daftar Review
 				</Button>
 			</div>
@@ -151,7 +159,7 @@ export default function ReviewDetailPage() {
 					<div className='flex items-center gap-4'>
 						<Button
 							variant='ghost'
-							onClick={() => router.push(`/${workspaceId}/reviews`)}
+							onClick={handleBack}
 							className='h-10 w-10 hover:bg-muted rounded-lg transition-all group p-0 min-w-0 shrink-0'
 							title='Kembali ke Daftar Review'
 						>
