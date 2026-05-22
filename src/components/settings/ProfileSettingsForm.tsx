@@ -228,7 +228,7 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 						<Button
 							size='sm'
 							onClick={handleSaveAll}
-							disabled={!isDirty || updateUser.isPending}
+							disabled={updateUser.isPending}
 							className='h-9 px-8 bg-primary hover:bg-primary/90 text-sm font-medium'
 						>
 							{updateUser.isPending ? (
