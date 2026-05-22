@@ -241,6 +241,7 @@ export function useDeleteDocument() {
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.workspace(variables.workspaceId) })
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.myDocuments() })
 			queryClient.removeQueries({ queryKey: DOCUMENT_KEYS.detail(variables.documentId) })
+			queryClient.invalidateQueries({ queryKey: ['reviews'] })
 		},
 	})
 }
