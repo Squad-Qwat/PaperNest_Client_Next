@@ -1,7 +1,7 @@
 'use client'
 
 import { Loader2 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -37,20 +37,29 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 		)
 	}, [name, username, photoURL, user])
 
-	// Use a ref to always have access to the latest state in stable callbacks
-	const stateRef = useRef({ name, username, photoURL })
-	useEffect(() => {
-		stateRef.current = { name, username, photoURL }
-	}, [name, username, photoURL])
-
 	const handleSaveAll = useCallback(async () => {
-		const currentData = stateRef.current
+		const nameInput = document.getElementById('display-name-input') as HTMLInputElement | null
+		const usernameInput = document.getElementById('username-input') as HTMLInputElement | null
+		const photoUrlInput = document.getElementById('avatar-url') as HTMLInputElement | null
+
+		const currentName = nameInput ? nameInput.value : name
+		const currentUsername = usernameInput ? usernameInput.value : username
+		const currentPhotoURL = photoUrlInput ? photoUrlInput.value : photoURL
+
+		// Sync React state back in case DOM value was modified directly by testing tool
+		if (currentName !== name) setName(currentName)
+		if (currentUsername !== username) setUsername(currentUsername)
+		if (currentPhotoURL !== photoURL) setPhotoURL(currentPhotoURL)
 
 		// Use toast.promise for a unified, clean UI response
 		toast.promise(
 			updateUser.mutateAsync({
 				userId: user.userId,
-				data: currentData,
+				data: {
+					name: currentName,
+					username: currentUsername,
+					photoURL: currentPhotoURL,
+				},
 			}),
 			{
 				loading: 'Saving your profile changes...',
@@ -63,7 +72,7 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 				},
 			}
 		)
-	}, [user.userId, updateUser.mutateAsync, setLastUpdated])
+	}, [user.userId, updateUser.mutateAsync, setLastUpdated, name, username, photoURL])
 
 	const handleReset = useCallback(() => {
 		setName(user.name || '')
@@ -132,6 +141,7 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 							</div>
 							<div className='w-full sm:w-1/2 space-y-1 text-left'>
 								<Input
+									id='display-name-input'
 									value={name}
 									onChange={(e) => setName(e.target.value)}
 									placeholder='Enter your full name'
@@ -156,6 +166,7 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 										papernest.com/
 									</div>
 									<Input
+										id='username-input'
 										value={username}
 										onChange={(e) => setUsername(e.target.value)}
 										placeholder='your_username'

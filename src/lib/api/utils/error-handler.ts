@@ -66,7 +66,7 @@ export function getErrorMessage(error: unknown): string {
 		if (Array.isArray(parsed.errors)) {
 			const firstError = parsed.errors[0]
 			if (firstError?.message) {
-				return firstError.field ? `${firstError.field}: ${firstError.message}` : firstError.message
+				return firstError.message
 			}
 		}
 
