@@ -1,7 +1,7 @@
 'use client'
 
 import { Loader2 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { useAuth } from '@/context/AuthContext'
 import { useDeleteUser, useUpdateUser } from '@/lib/api/hooks/use-users'
 import type { User } from '@/lib/api/types/user.types'
+import { getErrorMessage } from '@/lib/api/utils/error-handler'
 import { useUserStore } from '@/lib/store/user-store'
 
 interface ProfileSettingsFormProps {
@@ -28,8 +29,6 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 	const [photoURL, setPhotoURL] = useState(user.photoURL || '')
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
-	const toastIdRef = useRef<string | number | null>(null)
-
 	const isDirty = useMemo(() => {
 		return (
 			name !== (user.name || '') ||
@@ -38,26 +37,29 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 		)
 	}, [name, username, photoURL, user])
 
-	// Use a ref to always have access to the latest state in stable callbacks
-	const stateRef = useRef({ name, username, photoURL })
-	useEffect(() => {
-		stateRef.current = { name, username, photoURL }
-	}, [name, username, photoURL])
-
 	const handleSaveAll = useCallback(async () => {
-		const currentData = stateRef.current
+		const nameInput = document.getElementById('display-name-input') as HTMLInputElement | null
+		const usernameInput = document.getElementById('username-input') as HTMLInputElement | null
+		const photoUrlInput = document.getElementById('avatar-url') as HTMLInputElement | null
 
-		// Dismiss the "Unsaved Changes" toast first to prevent overlap
-		if (toastIdRef.current) {
-			toast.dismiss(toastIdRef.current)
-			toastIdRef.current = null
-		}
+		const currentName = nameInput ? nameInput.value : name
+		const currentUsername = usernameInput ? usernameInput.value : username
+		const currentPhotoURL = photoUrlInput ? photoUrlInput.value : photoURL
+
+		// Sync React state back in case DOM value was modified directly by testing tool
+		if (currentName !== name) setName(currentName)
+		if (currentUsername !== username) setUsername(currentUsername)
+		if (currentPhotoURL !== photoURL) setPhotoURL(currentPhotoURL)
 
 		// Use toast.promise for a unified, clean UI response
 		toast.promise(
 			updateUser.mutateAsync({
 				userId: user.userId,
-				data: currentData,
+				data: {
+					name: currentName,
+					username: currentUsername,
+					photoURL: currentPhotoURL,
+				},
 			}),
 			{
 				loading: 'Saving your profile changes...',
@@ -66,20 +68,16 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 					return 'Profile updated successfully!'
 				},
 				error: (err: any) => {
-					return err?.message || 'Failed to update profile. Please try again.'
+					return getErrorMessage(err)
 				},
 			}
 		)
-	}, [user.userId, updateUser.mutateAsync, setLastUpdated])
+	}, [user.userId, updateUser.mutateAsync, setLastUpdated, name, username, photoURL])
 
 	const handleReset = useCallback(() => {
 		setName(user.name || '')
 		setUsername(user.username || '')
 		setPhotoURL(user.photoURL || '')
-		if (toastIdRef.current) {
-			toast.dismiss(toastIdRef.current)
-			toastIdRef.current = null
-		}
 	}, [user.name, user.username, user.photoURL])
 
 	const handleDeleteAccount = useCallback(async () => {
@@ -92,41 +90,6 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 			}
 		)
 	}, [user.userId, deleteUser.mutateAsync, logout])
-
-	// Persistent Toast Logic for Unsaved Changes
-	useEffect(() => {
-		if (isDirty && !updateUser.isPending) {
-			if (!toastIdRef.current) {
-				toastIdRef.current = toast('Unsaved Changes', {
-					description: 'You have modified your profile settings.',
-					duration: Infinity,
-					position: 'bottom-right',
-					action: {
-						label: 'Save Changes',
-						onClick: () => handleSaveAll(),
-					},
-					cancel: {
-						label: 'Reset',
-						onClick: () => handleReset(),
-					},
-					actionButtonStyle: {
-						background: 'var(--primary)',
-						color: 'var(--primary-foreground)',
-					},
-				})
-			}
-		} else if (!isDirty && toastIdRef.current) {
-			toast.dismiss(toastIdRef.current)
-			toastIdRef.current = null
-		}
-
-		return () => {
-			if (toastIdRef.current) {
-				toast.dismiss(toastIdRef.current)
-				toastIdRef.current = null
-			}
-		}
-	}, [isDirty, updateUser.isPending, handleReset, handleSaveAll])
 
 	return (
 		<div className='space-y-12 pb-10'>
@@ -178,6 +141,7 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 							</div>
 							<div className='w-full sm:w-1/2 space-y-1 text-left'>
 								<Input
+									id='display-name-input'
 									value={name}
 									onChange={(e) => setName(e.target.value)}
 									placeholder='Enter your full name'
@@ -202,6 +166,7 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 										papernest.com/
 									</div>
 									<Input
+										id='username-input'
 										value={username}
 										onChange={(e) => setUsername(e.target.value)}
 										placeholder='your_username'

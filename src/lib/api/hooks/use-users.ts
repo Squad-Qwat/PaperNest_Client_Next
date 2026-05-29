@@ -9,6 +9,9 @@ export function useUpdateUser() {
 	return useMutation({
 		mutationFn: ({ userId, data }: { userId: string; data: UpdateUserDto }) =>
 			usersService.update(userId, data),
+		meta: {
+			errorMessage: false,
+		},
 		onSuccess: (response: any) => {
 			// The response contains { user: User }
 			const updatedUser = response.user || response

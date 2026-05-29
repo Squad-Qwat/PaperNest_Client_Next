@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils'
 const accountItems = [{ title: 'Profile', icon: IconUser, href: '/settings/profile' }]
 
 const billingItems = [
-	{ title: 'Billing Information', icon: IconCreditCard, href: '/settings/billing', disabled: true },
+	{ title: 'Billing Information', icon: IconCreditCard, href: '/settings/billing' },
 	{ title: 'Invoices', icon: IconReceipt, href: '/settings/invoices', disabled: true },
 	{ title: 'Tokens', icon: IconKey, href: '/settings/tokens', disabled: true },
 ]

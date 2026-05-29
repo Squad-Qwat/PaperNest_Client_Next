@@ -18,6 +18,10 @@ export interface User {
 	username: string
 	role: UserRole
 	photoURL?: string | null
+	subscriptionPlan?: 'free' | 'pro' | 'enterprise'
+	lemonSqueezyCustomerId?: string
+	lemonSqueezySubscriptionId?: string
+	billingPeriodEnd?: string | null
 	createdAt: string
 	updatedAt: string
 }
