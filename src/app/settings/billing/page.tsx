@@ -40,7 +40,8 @@ export default function BillingSettingsPage() {
 	const [isPortalLoading, setIsPortalLoading] = useState(false)
 
 	const proVariantId = process.env.NEXT_PUBLIC_LEMONSQUEEZY_VARIANT_ID_PRO || '1698870'
-	const enterpriseVariantId = process.env.NEXT_PUBLIC_LEMONSQUEEZY_VARIANT_ID_ENTERPRISE || '1698909'
+	const enterpriseVariantId =
+		process.env.NEXT_PUBLIC_LEMONSQUEEZY_VARIANT_ID_ENTERPRISE || '1698909'
 
 	const isPro = user?.subscriptionPlan === 'pro'
 	const isEnterprise = user?.subscriptionPlan === 'enterprise'
@@ -144,7 +145,9 @@ export default function BillingSettingsPage() {
 			{/* Current Subscription Status */}
 			<Card className='border border-muted/50 bg-card shadow-md overflow-hidden relative'>
 				{hasActiveSubscription && (
-					<div className={`absolute top-0 right-0 left-0 h-1.5 ${isEnterprise ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500' : 'bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-500'}`} />
+					<div
+						className={`absolute top-0 right-0 left-0 h-1.5 ${isEnterprise ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500' : 'bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-500'}`}
+					/>
 				)}
 				<CardHeader className='pb-4'>
 					<div className='flex items-center justify-between flex-wrap gap-4'>
@@ -211,7 +214,9 @@ export default function BillingSettingsPage() {
 							<ul className='space-y-1.5 text-sm text-muted-foreground'>
 								<li className='flex items-center gap-2'>
 									<Check className='size-4 text-emerald-500 shrink-0' />
-									{hasActiveSubscription ? 'Unlimited collaborative documents' : 'Up to 3 active documents'}
+									{hasActiveSubscription
+										? 'Unlimited collaborative documents'
+										: 'Up to 3 active documents'}
 								</li>
 								<li className='flex items-center gap-2'>
 									<Check className='size-4 text-emerald-500 shrink-0' />
@@ -219,7 +224,11 @@ export default function BillingSettingsPage() {
 								</li>
 								<li className='flex items-center gap-2'>
 									<Check className='size-4 text-emerald-500 shrink-0' />
-									{isEnterprise ? '200k AI tokens daily' : isPro ? '50k AI tokens daily' : '1,000 AI tokens daily'}
+									{isEnterprise
+										? '200k AI tokens daily'
+										: isPro
+											? '50k AI tokens daily'
+											: '1,000 AI tokens daily'}
 								</li>
 							</ul>
 						</div>
@@ -280,7 +289,7 @@ export default function BillingSettingsPage() {
 			</Card>
 
 			{/* Pricing Plans Overview */}
-			{(!isEnterprise) && (
+			{!isEnterprise && (
 				<div className='space-y-6 pt-4'>
 					<div>
 						<h3 className='text-lg font-bold text-gray-900 dark:text-gray-100'>Available Plans</h3>
@@ -326,7 +335,9 @@ export default function BillingSettingsPage() {
 						</Card>
 
 						{/* Pro Plan Card */}
-						<Card className={`border-2 flex flex-col justify-between h-full bg-card shadow-md relative ${isPro ? 'border-violet-500 dark:border-violet-600' : 'border-muted/50'}`}>
+						<Card
+							className={`border-2 flex flex-col justify-between h-full bg-card shadow-md relative ${isPro ? 'border-violet-500 dark:border-violet-600' : 'border-muted/50'}`}
+						>
 							{isPro && (
 								<div className='absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-violet-600 text-white text-[10px] uppercase font-bold tracking-wider rounded-full'>
 									Current Plan
@@ -403,7 +414,9 @@ export default function BillingSettingsPage() {
 							<CardHeader>
 								<div className='flex justify-between items-start'>
 									<div>
-										<CardTitle className='text-xl font-bold text-gray-900 dark:text-gray-100'>Enterprise</CardTitle>
+										<CardTitle className='text-xl font-bold text-gray-900 dark:text-gray-100'>
+											Enterprise
+										</CardTitle>
 										<CardDescription>For power users and teams</CardDescription>
 									</div>
 									<Sparkles className='size-5 text-amber-500 animate-pulse' />
