@@ -1,6 +1,6 @@
 'use client'
 
-import { Plus, Search, Trash2 } from 'lucide-react'
+import { Loader2, Plus, Search, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Field, FieldLabel } from '@/components/ui/field'
@@ -61,7 +61,7 @@ export function CitationSheet({
 	onOpenChange,
 	onSave,
 	initialData,
-	documentId,
+	documentId: _documentId,
 }: Readonly<CitationSheetProps>) {
 	const [type, setType] = useState('article')
 	const [title, setTitle] = useState('')
@@ -73,10 +73,145 @@ export function CitationSheet({
 	const [volume, setVolume] = useState('')
 	const [issue, setIssue] = useState('')
 	const [doi, setDoi] = useState('')
-	const [identifier, setIdentifier] = useState('')
 	const [url, setUrl] = useState('')
 
-	const [isSearching, setIsSearching] = useState(false)
+	const [scholarQuery, setScholarQuery] = useState('')
+	const [scholarResults, setScholarResults] = useState<any[]>([])
+	const [isSearchingScholar, setIsSearchingScholar] = useState(false)
+	const [hasSearched, setHasSearched] = useState(false)
+
+	const handleScholarSearch = async () => {
+		if (!scholarQuery.trim()) return
+
+		setIsSearchingScholar(true)
+		setHasSearched(true)
+		try {
+			const { citationsService } = await import('@/lib/api/services/citations.service')
+			const cleanedQuery = scholarQuery.trim()
+
+			const isbnCleaned = cleanedQuery.replace(/[- ]/g, '')
+			const isIsbn = /^(978|979)?\d{9}[\dX]$/i.test(isbnCleaned)
+
+			let results = []
+
+			if (isIsbn) {
+				try {
+					const bookData = await citationsService.getGoogleBooksPaper(isbnCleaned)
+					if (bookData?.items && bookData.items.length > 0) {
+						results = bookData.items.map((item: any) => {
+							const info = item.volumeInfo || {}
+							return {
+								paperId: `isbn-${isbnCleaned}-${item.id || Math.random().toString(36).substr(2, 9)}`,
+								title: info.title || '',
+								externalIds: { ISBN: isbnCleaned },
+								year: info.publishedDate ? info.publishedDate.substring(0, 4) : '',
+								url: info.infoLink || '',
+								venue: info.publisher || '',
+								authors: info.authors?.map((name: string) => ({ name })) || [],
+								type: 'book',
+								journal: {
+									volume: '',
+									pages: '',
+								},
+							}
+						})
+					}
+				} catch (gbError) {
+					console.error('Error fetching from Google Books:', gbError)
+				}
+			} else {
+				const response = (await citationsService.searchSemanticScholar(scholarQuery, 5)) as any
+				results = response?.data || []
+
+				const isDoi = cleanedQuery.startsWith('10.') && cleanedQuery.includes('/')
+
+				if (results.length === 0 && isDoi) {
+					try {
+						const crossRefData = await citationsService.getCrossRefPaper(cleanedQuery)
+						if (crossRefData?.message) {
+							const msg = crossRefData.message
+
+							const mappedAuthors =
+								msg.author
+									?.map((a: any) => {
+										if (a.given || a.family) {
+											return { name: `${a.given || ''} ${a.family || ''}`.trim() }
+										}
+										if (a.name && !isAffiliation(a.name)) {
+											return { name: a.name.trim() }
+										}
+										return null
+									})
+									.filter(Boolean) || []
+
+							const simulatedPaper = {
+								paperId: `crossref-${msg.DOI || Math.random().toString(36).substr(2, 9)}`,
+								title: msg.title?.[0] || '',
+								externalIds: { DOI: msg.DOI || cleanedQuery },
+								year:
+									msg.issued?.['date-parts']?.[0]?.[0] ||
+									msg['published-print']?.['date-parts']?.[0]?.[0] ||
+									msg['published-online']?.['date-parts']?.[0]?.[0] ||
+									'',
+								url: msg.URL || '',
+								venue: msg['container-title']?.[0] || '',
+								authors: mappedAuthors,
+								journal: {
+									volume: msg.volume || '',
+									pages: msg.page || '',
+								},
+								crossRefType: msg.type,
+							}
+							results = [simulatedPaper]
+						}
+					} catch (crError) {
+						console.error('Error fetching from CrossRef:', crError)
+					}
+				}
+			}
+
+			setScholarResults(results)
+		} catch (error) {
+			console.error('Error searching:', error)
+			setScholarResults([])
+		} finally {
+			setIsSearchingScholar(false)
+		}
+	}
+
+	const handleSelectPaper = (paper: any) => {
+		setTitle(paper.title || '')
+		setDoi(paper.externalIds?.DOI || paper.externalIds?.ISBN || '')
+		setYear(paper.year ? String(paper.year) : '')
+		setUrl(paper.url || paper.openAccessPdf?.url || '')
+		setJournal(paper.venue || '')
+
+		const mappedType = mapReferenceType(paper.publicationTypes, paper.crossRefType || paper.type)
+		setType(mappedType)
+
+		if (paper.authors && paper.authors.length > 0) {
+			const authorList = paper.authors.map((a: any, index: number) => ({
+				id: `author-${Date.now()}-${index}`,
+				name: formatAuthorName(a.name),
+			}))
+			setAuthors(authorList)
+		} else {
+			setAuthors([{ id: '1', name: '' }])
+		}
+
+		if (paper.journal?.volume) {
+			setVolume(paper.journal.volume)
+		}
+		if (paper.journal?.pages) {
+			const pagesParts = paper.journal.pages.split('-')
+			setPageFrom(pagesParts[0]?.trim() || '')
+			setPageTo(pagesParts[1]?.trim() || '')
+		}
+
+		setScholarResults([])
+		setScholarQuery('')
+		setHasSearched(false)
+	}
 
 	useEffect(() => {
 		if (initialData && open) {
@@ -121,52 +256,9 @@ export function CitationSheet({
 			setVolume('')
 			setIssue('')
 			setDoi('')
-			setIdentifier('')
 			setUrl('')
 		}
 	}, [initialData, open])
-
-	const handleSearch = async () => {
-		if (!identifier.trim() || !documentId) return
-
-		setIsSearching(true)
-		try {
-			const { citationsService } = await import('@/lib/api/services/citations.service')
-			const response = await citationsService.getByDoi(documentId, identifier)
-
-			if (response?.data?.citation) {
-				const c = response.data.citation
-				setTitle(c.title || '')
-				setDoi(c.doi || identifier)
-				setYear(c.publicationDate || '')
-				setUrl(c.url || '')
-
-				if (c.author) {
-					const authorList = c.author.split('; ').map((name: string) => ({
-						id: generateAuthorId(),
-						name,
-					}))
-					setAuthors(authorList.length > 0 ? authorList : [{ id: '1', name: '' }])
-				}
-
-				if (c.cslJson) {
-					const csl = c.cslJson
-					setJournal(csl.containerTitle || '')
-					setVolume(csl.volume || '')
-					setIssue(csl.issue || '')
-					if (csl.page) {
-						const [from, to] = String(csl.page).split('-')
-						setPageFrom(from || '')
-						setPageTo(to || '')
-					}
-				}
-			}
-		} catch (error) {
-			console.error('Error searching identifier:', error)
-		} finally {
-			setIsSearching(false)
-		}
-	}
 
 	const addAuthor = () => {
 		setAuthors([...authors, { id: generateAuthorId(), name: '' }])
@@ -204,7 +296,7 @@ export function CitationSheet({
 			title,
 			author: authorString,
 			publicationInfo,
-			doi: doi || identifier || null,
+			doi: doi || null,
 			publicationDate: year,
 			url: url || null,
 			cslJson: {
@@ -216,7 +308,7 @@ export function CitationSheet({
 				issue: issue || '',
 				page: pageFrom && pageTo ? `${pageFrom}-${pageTo}` : (pageFrom || pageTo || ''),
 				issued: year || '',
-				DOI: doi || identifier || '',
+				DOI: doi || '',
 				URL: url || '', 
 				*/
 				raw: JSON.stringify({
@@ -233,7 +325,7 @@ export function CitationSheet({
 					issue,
 					page: pageFrom && pageTo ? `${pageFrom}-${pageTo}` : pageFrom || pageTo || '',
 					issued: { 'date-parts': [[year]] },
-					DOI: doi || identifier,
+					DOI: doi,
 					URL: url,
 				}),
 			},
@@ -285,34 +377,83 @@ export function CitationSheet({
 
 				<ScrollArea className='flex-1 min-h-0'>
 					<div className='space-y-8'>
-						{/* Identifiers Section */}
+						{/* Semantic Scholar Search Section */}
 						<div className='p-6 space-y-3 bg-muted border-b'>
 							<Label className='text-sm font-semibold text-gray-700'>
-								Identifiers (ArXivID, DOI, PMID or ISBN)
+								Cari & Isi Otomatis via Semantic Scholar
 							</Label>
 							<div className='flex gap-2'>
 								<Input
-									placeholder='Enter identifier (e.g. 10.1038/nature12345)'
+									placeholder='Cari judul, penulis, DOI, atau arXiv...'
 									className='flex-1 bg-white border-gray-200 focus-visible:ring-primary/20'
-									value={identifier}
-									onChange={(e) => setIdentifier(e.target.value)}
+									value={scholarQuery}
+									onChange={(e) => setScholarQuery(e.target.value)}
+									onKeyDown={(e) => {
+										if (e.key === 'Enter') {
+											e.preventDefault()
+											handleScholarSearch()
+										}
+									}}
 								/>
 								<Button
 									size='icon'
 									variant='outline'
 									className='shrink-0 bg-white border-gray-200 hover:bg-gray-50'
-									onClick={handleSearch}
-									disabled={isSearching || !identifier.trim()}
+									onClick={handleScholarSearch}
+									disabled={isSearchingScholar || !scholarQuery.trim()}
 								>
-									{isSearching ? (
-										<Search className='h-4 w-4 animate-spin' />
+									{isSearchingScholar ? (
+										<Loader2 className='h-4 w-4 animate-spin' />
 									) : (
 										<Search className='h-4 w-4' />
 									)}
 								</Button>
 							</div>
+
+							{isSearchingScholar && (
+								<p className='text-xs text-gray-500 animate-pulse'>
+									Mencari database Semantic Scholar...
+								</p>
+							)}
+
+							{hasSearched && !isSearchingScholar && scholarResults.length === 0 && (
+								<p className='text-xs text-destructive'>
+									Paper tidak ditemukan. Coba pencarian lain.
+								</p>
+							)}
+
+							{scholarResults.length > 0 && (
+								<div className='mt-2 border rounded-lg bg-white divide-y max-h-60 overflow-y-auto shadow-sm'>
+									{scholarResults.map((paper) => (
+										<button
+											key={paper.paperId}
+											type='button'
+											className='w-full p-3 text-left hover:bg-gray-50/80 transition-colors flex flex-col gap-1 focus:outline-none focus:bg-gray-50'
+											onClick={() => handleSelectPaper(paper)}
+										>
+											<span className='text-sm font-semibold text-gray-900 line-clamp-2'>
+												{paper.title}
+											</span>
+											{paper.authors && paper.authors.length > 0 && (
+												<span className='text-xs text-gray-500'>
+													{paper.authors.map((a: any) => a.name).join(', ')}
+												</span>
+											)}
+											<span className='text-[11px] text-gray-400'>
+												{[
+													paper.year,
+													paper.venue,
+													paper.externalIds?.DOI ? `DOI: ${paper.externalIds.DOI}` : null,
+												]
+													.filter(Boolean)
+													.join(' • ')}
+											</span>
+										</button>
+									))}
+								</div>
+							)}
 							<p className='text-[13px] text-gray-500'>
-								Enter identifiers and look up for metadata.
+								Cari paper secara global untuk mengisi form metadata secara instan.
 							</p>
 						</div>
 
@@ -484,4 +625,71 @@ export function CitationSheet({
 			</SheetContent>
 		</Sheet>
 	)
+}
+
+const isAffiliation = (name: string): boolean => {
+	const lower = name.toLowerCase()
+	const keywords = [
+		'university',
+		'institute',
+		'sciences',
+		'centre',
+		'center',
+		'school',
+		'department',
+		'laboratory',
+		'association',
+		'society',
+		'foundation',
+		'group',
+		'consortium',
+		'committee',
+		'collaboration',
+		'commission',
+		'organization',
+		'clinic',
+		'hospital',
+		'south africa',
+	]
+	return keywords.some((kw) => lower.includes(kw)) || name.length > 40
+}
+
+const mapReferenceType = (pubTypes?: string[], crossRefType?: string): string => {
+	if (crossRefType) {
+		const typeMap: Record<string, string> = {
+			'journal-article': 'article',
+			book: 'book',
+			'book-chapter': 'book',
+			monograph: 'book',
+			'edited-book': 'book',
+			'proceedings-article': 'conference',
+			report: 'report',
+			dissertation: 'thesis',
+		}
+		if (typeMap[crossRefType]) {
+			return typeMap[crossRefType]
+		}
+	}
+
+	if (pubTypes && pubTypes.length > 0) {
+		const lowerTypes = pubTypes.map((t) => t.toLowerCase())
+		if (lowerTypes.some((t) => t.includes('journal') || t.includes('review'))) return 'article'
+		if (lowerTypes.some((t) => t.includes('book'))) return 'book'
+		if (lowerTypes.some((t) => t.includes('conference') || t.includes('proceedings')))
+			return 'conference'
+		if (lowerTypes.some((t) => t.includes('report'))) return 'report'
+		if (lowerTypes.some((t) => t.includes('thesis') || t.includes('dissertation'))) return 'thesis'
+	}
+
+	return 'article'
+}
+
+const formatAuthorName = (name: string): string => {
+	const parts = name.trim().split(/\s+/)
+	if (parts.length > 1) {
+		const last = parts.pop()
+		const first = parts.join(' ')
+		return `${last}, ${first}`
+	}
+	return name
 }

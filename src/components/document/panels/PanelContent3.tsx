@@ -456,7 +456,9 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 			)
 		}
 
-		if (scholarData?.data?.data?.length === 0) {
+		const scholarDataAny = scholarData as any
+
+		if (scholarDataAny?.data?.length === 0) {
 			return (
 				<div className='text-center py-12 text-xs text-gray-400'>
 					No papers found. Try different search terms.
@@ -464,8 +466,8 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 			)
 		}
 
-		return scholarData?.data?.data?.map((p) => {
-			const authors = p.authors?.map((a) => a.name).join(', ') || 'Unknown Author'
+		return scholarDataAny?.data?.map((p: any) => {
+			const authors = p.authors?.map((a: any) => a.name).join(', ') || 'Unknown Author'
 			const hasBeenAdded = citations.some((c) => c.title.toLowerCase() === p.title?.toLowerCase())
 
 			return (

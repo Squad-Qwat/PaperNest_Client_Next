@@ -186,6 +186,28 @@ class CitationsService {
 			)
 		)
 	}
+
+	async getCrossRefPaper(doi: string): Promise<any> {
+		return RequestDeduplicator.deduplicate(`getCrossRefPaper:${doi}`, async () => {
+			const res = await fetch(`https://api.crossref.org/works/${encodeURIComponent(doi)}`)
+			if (!res.ok) {
+				throw new Error(`CrossRef API responded with status: ${res.status}`)
+			}
+			return res.json()
+		})
+	}
+
+	async getGoogleBooksPaper(isbn: string): Promise<any> {
+		return RequestDeduplicator.deduplicate(`getGoogleBooksPaper:${isbn}`, async () => {
+			const res = await fetch(
+				`https://www.googleapis.com/books/v1/volumes?q=isbn:${encodeURIComponent(isbn)}`
+			)
+			if (!res.ok) {
+				throw new Error(`Google Books API responded with status: ${res.status}`)
+			}
+			return res.json()
+		})
+	}
 }
 
 export const citationsService = new CitationsService()
