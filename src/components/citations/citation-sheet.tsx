@@ -1,6 +1,6 @@
 'use client'
 
-import { Plus, Search, Trash2 } from 'lucide-react'
+import { Loader2, Plus, Search, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Field, FieldLabel } from '@/components/ui/field'
@@ -22,6 +22,7 @@ import {
 	SheetHeader,
 	SheetTitle,
 } from '@/components/ui/sheet'
+import { formatAuthorName, mapReferenceType } from '@/lib/api/services/citations.service'
 
 interface Author {
 	id: string
@@ -61,7 +62,7 @@ export function CitationSheet({
 	onOpenChange,
 	onSave,
 	initialData,
-	documentId,
+	documentId: _documentId,
 }: Readonly<CitationSheetProps>) {
 	const [type, setType] = useState('article')
 	const [title, setTitle] = useState('')
@@ -73,10 +74,63 @@ export function CitationSheet({
 	const [volume, setVolume] = useState('')
 	const [issue, setIssue] = useState('')
 	const [doi, setDoi] = useState('')
-	const [identifier, setIdentifier] = useState('')
 	const [url, setUrl] = useState('')
 
-	const [isSearching, setIsSearching] = useState(false)
+	const [scholarQuery, setScholarQuery] = useState('')
+	const [scholarResults, setScholarResults] = useState<any[]>([])
+	const [isSearchingScholar, setIsSearchingScholar] = useState(false)
+	const [hasSearched, setHasSearched] = useState(false)
+
+	const handleScholarSearch = async () => {
+		if (!scholarQuery.trim()) return
+
+		setIsSearchingScholar(true)
+		setHasSearched(true)
+		try {
+			const { citationsService } = await import('@/lib/api/services/citations.service')
+			const results = await citationsService.unifiedSearch(scholarQuery.trim(), 5)
+			setScholarResults(results)
+		} catch (error) {
+			console.error(error)
+			setScholarResults([])
+		} finally {
+			setIsSearchingScholar(false)
+		}
+	}
+
+	const handleSelectPaper = (paper: any) => {
+		setTitle(paper.title || '')
+		setDoi(paper.externalIds?.DOI || paper.externalIds?.ISBN || '')
+		setYear(paper.year ? String(paper.year) : '')
+		setUrl(paper.url || paper.openAccessPdf?.url || '')
+		setJournal(paper.venue || '')
+
+		const mappedType = mapReferenceType(paper.publicationTypes, paper.crossRefType || paper.type)
+		setType(mappedType)
+
+		if (paper.authors && paper.authors.length > 0) {
+			const authorList = paper.authors.map((a: any, index: number) => ({
+				id: `author-${Date.now()}-${index}`,
+				name: formatAuthorName(a.name),
+			}))
+			setAuthors(authorList)
+		} else {
+			setAuthors([{ id: '1', name: '' }])
+		}
+
+		if (paper.journal?.volume) {
+			setVolume(paper.journal.volume)
+		}
+		if (paper.journal?.pages) {
+			const pagesParts = paper.journal.pages.split('-')
+			setPageFrom(pagesParts[0]?.trim() || '')
+			setPageTo(pagesParts[1]?.trim() || '')
+		}
+
+		setScholarResults([])
+		setScholarQuery('')
+		setHasSearched(false)
+	}
 
 	useEffect(() => {
 		if (initialData && open) {
@@ -121,52 +175,9 @@ export function CitationSheet({
 			setVolume('')
 			setIssue('')
 			setDoi('')
-			setIdentifier('')
 			setUrl('')
 		}
 	}, [initialData, open])
-
-	const handleSearch = async () => {
-		if (!identifier.trim() || !documentId) return
-
-		setIsSearching(true)
-		try {
-			const { citationsService } = await import('@/lib/api/services/citations.service')
-			const response = await citationsService.getByDoi(documentId, identifier)
-
-			if (response?.data?.citation) {
-				const c = response.data.citation
-				setTitle(c.title || '')
-				setDoi(c.doi || identifier)
-				setYear(c.publicationDate || '')
-				setUrl(c.url || '')
-
-				if (c.author) {
-					const authorList = c.author.split('; ').map((name: string) => ({
-						id: generateAuthorId(),
-						name,
-					}))
-					setAuthors(authorList.length > 0 ? authorList : [{ id: '1', name: '' }])
-				}
-
-				if (c.cslJson) {
-					const csl = c.cslJson
-					setJournal(csl.containerTitle || '')
-					setVolume(csl.volume || '')
-					setIssue(csl.issue || '')
-					if (csl.page) {
-						const [from, to] = String(csl.page).split('-')
-						setPageFrom(from || '')
-						setPageTo(to || '')
-					}
-				}
-			}
-		} catch (error) {
-			console.error('Error searching identifier:', error)
-		} finally {
-			setIsSearching(false)
-		}
-	}
 
 	const addAuthor = () => {
 		setAuthors([...authors, { id: generateAuthorId(), name: '' }])
@@ -204,7 +215,7 @@ export function CitationSheet({
 			title,
 			author: authorString,
 			publicationInfo,
-			doi: doi || identifier || null,
+			doi: doi || null,
 			publicationDate: year,
 			url: url || null,
 			cslJson: {
@@ -216,7 +227,7 @@ export function CitationSheet({
 				issue: issue || '',
 				page: pageFrom && pageTo ? `${pageFrom}-${pageTo}` : (pageFrom || pageTo || ''),
 				issued: year || '',
-				DOI: doi || identifier || '',
+				DOI: doi || '',
 				URL: url || '', 
 				*/
 				raw: JSON.stringify({
@@ -233,7 +244,7 @@ export function CitationSheet({
 					issue,
 					page: pageFrom && pageTo ? `${pageFrom}-${pageTo}` : pageFrom || pageTo || '',
 					issued: { 'date-parts': [[year]] },
-					DOI: doi || identifier,
+					DOI: doi,
 					URL: url,
 				}),
 			},
@@ -285,34 +296,83 @@ export function CitationSheet({
 
 				<ScrollArea className='flex-1 min-h-0'>
 					<div className='space-y-8'>
-						{/* Identifiers Section */}
+						{/* Semantic Scholar Search Section */}
 						<div className='p-6 space-y-3 bg-muted border-b'>
 							<Label className='text-sm font-semibold text-gray-700'>
-								Identifiers (ArXivID, DOI, PMID or ISBN)
+								Cari & Isi Otomatis via Semantic Scholar
 							</Label>
 							<div className='flex gap-2'>
 								<Input
-									placeholder='Enter identifier (e.g. 10.1038/nature12345)'
+									placeholder='Cari judul, penulis, DOI, atau arXiv...'
 									className='flex-1 bg-white border-gray-200 focus-visible:ring-primary/20'
-									value={identifier}
-									onChange={(e) => setIdentifier(e.target.value)}
+									value={scholarQuery}
+									onChange={(e) => setScholarQuery(e.target.value)}
+									onKeyDown={(e) => {
+										if (e.key === 'Enter') {
+											e.preventDefault()
+											handleScholarSearch()
+										}
+									}}
 								/>
 								<Button
 									size='icon'
 									variant='outline'
 									className='shrink-0 bg-white border-gray-200 hover:bg-gray-50'
-									onClick={handleSearch}
-									disabled={isSearching || !identifier.trim()}
+									onClick={handleScholarSearch}
+									disabled={isSearchingScholar || !scholarQuery.trim()}
 								>
-									{isSearching ? (
-										<Search className='h-4 w-4 animate-spin' />
+									{isSearchingScholar ? (
+										<Loader2 className='h-4 w-4 animate-spin' />
 									) : (
 										<Search className='h-4 w-4' />
 									)}
 								</Button>
 							</div>
+
+							{isSearchingScholar && (
+								<p className='text-xs text-gray-500 animate-pulse'>
+									Mencari database Semantic Scholar...
+								</p>
+							)}
+
+							{hasSearched && !isSearchingScholar && scholarResults.length === 0 && (
+								<p className='text-xs text-destructive'>
+									Paper tidak ditemukan. Coba pencarian lain.
+								</p>
+							)}
+
+							{scholarResults.length > 0 && (
+								<div className='mt-2 border rounded-lg bg-white divide-y max-h-60 overflow-y-auto shadow-sm'>
+									{scholarResults.map((paper) => (
+										<button
+											key={paper.paperId}
+											type='button'
+											className='w-full p-3 text-left hover:bg-gray-50/80 transition-colors flex flex-col gap-1 focus:outline-none focus:bg-gray-50'
+											onClick={() => handleSelectPaper(paper)}
+										>
+											<span className='text-sm font-semibold text-gray-900 line-clamp-2'>
+												{paper.title}
+											</span>
+											{paper.authors && paper.authors.length > 0 && (
+												<span className='text-xs text-gray-500'>
+													{paper.authors.map((a: any) => a.name).join(', ')}
+												</span>
+											)}
+											<span className='text-[11px] text-gray-400'>
+												{[
+													paper.year,
+													paper.venue,
+													paper.externalIds?.DOI ? `DOI: ${paper.externalIds.DOI}` : null,
+												]
+													.filter(Boolean)
+													.join(' • ')}
+											</span>
+										</button>
+									))}
+								</div>
+							)}
 							<p className='text-[13px] text-gray-500'>
-								Enter identifiers and look up for metadata.
+								Cari paper secara global untuk mengisi form metadata secara instan.
 							</p>
 						</div>
 

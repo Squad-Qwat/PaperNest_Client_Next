@@ -25,14 +25,15 @@ import {
 	useCreateCitation,
 	useDeleteCitation,
 	useDocumentCitations,
-	useSearchSemanticScholar,
 	useUpdateCitation,
+	useWorkspaceCitations,
 } from '@/lib/api/hooks/use-citations'
 import {
 	DOCUMENT_FILE_KEYS,
 	useAddDocumentFile,
 	useDocumentFiles,
 } from '@/lib/api/hooks/use-document-files'
+import { formatAuthorName, mapReferenceType } from '@/lib/api/services/citations.service'
 import type { Citation, CreateCitationDto } from '@/lib/api/types/citation.types'
 import { CitationForm } from './CitationForm'
 
@@ -47,20 +48,19 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 
 	const queryClient = useQueryClient()
 
-	// Tabs: 'list' (My References), 'search' (Search Academic Library), 'manual' (Manual Import)
-	const [activeTab, setActiveTab] = useState<'list' | 'search' | 'manual'>('list')
+	const [activeTab, setActiveTab] = useState<'list' | 'search' | 'workspace'>('list')
 
-	// Search & Query States
 	const [localSearch, setLocalSearch] = useState('')
 	const [scholarQuery, setScholarQuery] = useState('')
-	const [scholarSearchActive, setScholarSearchActive] = useState(false)
+	const [scholarResults, setScholarResults] = useState<any[]>([])
+	const [isScholarSearching, setIsScholarSearching] = useState(false)
+	const [hasSearched, setHasSearched] = useState(false)
+	const [scholarError, setScholarError] = useState<any>(null)
 
-	// Action States
 	const [isSyncingBib, setIsSyncingBib] = useState(false)
 	const [syncSuccess, setSyncSuccess] = useState(false)
 	const [editingCitation, setEditingCitation] = useState<Citation | null>(null)
 
-	// Form States for Manual Input / Editing
 	const [manualType, setManualType] = useState('article')
 	const [manualTitle, setManualTitle] = useState('')
 	const [manualAuthor, setManualAuthor] = useState('')
@@ -69,9 +69,10 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 	const [manualDoi, setManualDoi] = useState('')
 	const [manualUrl, setManualUrl] = useState('')
 
-	// Hooks
 	const { data: citationsData, isLoading: isCitationsLoading } = useDocumentCitations(documentId)
 	const { data: filesData } = useDocumentFiles(documentId)
+	const { data: workspaceCitationsData, isLoading: isWorkspaceLoading } =
+		useWorkspaceCitations(workspaceId)
 	const createCitationMutation = useCreateCitation()
 	const updateCitationMutation = useUpdateCitation()
 	const deleteCitationMutation = useDeleteCitation()
@@ -80,14 +81,10 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 	const citations = ((citationsData as any)?.citations ??
 		citationsData?.data?.citations ??
 		[]) as Citation[]
+	const workspaceCitations = ((workspaceCitationsData as any)?.citations ??
+		workspaceCitationsData?.data?.citations ??
+		[]) as Citation[]
 	const files = filesData || []
-
-	// Semantic Scholar Hook
-	const {
-		data: scholarData,
-		isLoading: isScholarSearching,
-		error: scholarError,
-	} = useSearchSemanticScholar(scholarQuery, scholarSearchActive, 8)
 
 	// Filter citations in memory
 	const filteredCitations = useMemo(() => {
@@ -197,44 +194,27 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 		}
 	}
 
-	// Manual Reference Submit
-	const handleManualSubmit = async (e: React.FormEvent) => {
-		e.preventDefault()
-
-		if (!manualTitle || !manualAuthor) {
-			toast.error('Title and Author are required!')
-			return
-		}
-
+	const handleImportFromWorkspace = async (workspaceCite: Citation) => {
 		try {
 			const citationData: CreateCitationDto = {
 				workspaceId,
 				documentId,
-				type: manualType,
-				title: manualTitle,
-				author: manualAuthor,
-				publicationInfo: manualVenue,
-				publicationDate: manualYear,
-				doi: manualDoi || null,
-				url: manualUrl || null,
+				type: workspaceCite.type,
+				title: workspaceCite.title,
+				author: workspaceCite.author,
+				publicationInfo: workspaceCite.publicationInfo,
+				publicationDate: workspaceCite.publicationDate,
+				doi: workspaceCite.doi || null,
+				url: workspaceCite.url || null,
 				accessDate: new Date().toISOString().split('T')[0],
-				cslJson: {},
+				cslJson: workspaceCite.cslJson || {},
 			}
 
 			await createCitationMutation.mutateAsync(citationData)
-
-			toast.success('Reference added successfully!')
-			// Clear fields
-			setManualTitle('')
-			setManualAuthor('')
-			setManualVenue('')
-			setManualYear('')
-			setManualDoi('')
-			setManualUrl('')
-			setActiveTab('list')
+			toast.success('Reference imported to document!')
 		} catch (err) {
 			console.error(err)
-			toast.error('Failed to create manual reference')
+			toast.error('Failed to import reference')
 		}
 	}
 
@@ -293,28 +273,44 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 		}
 	}
 
-	// Add paper from Semantic Scholar
 	const handleAddScholarPaper = async (paper: any) => {
 		try {
-			const authorsStr = paper.authors?.map((a: any) => a.name).join(', ') || 'Unknown Author'
+			const authorsStr =
+				paper.authors?.map((a: any) => formatAuthorName(a.name)).join('; ') || 'Unknown Author'
 			const yearStr = paper.year ? paper.year.toString() : ''
+			const mappedType = mapReferenceType(paper.publicationTypes, paper.crossRefType || paper.type)
 
 			const citationData: CreateCitationDto = {
 				workspaceId,
 				documentId,
-				type: 'article-journal',
+				type: mappedType,
 				title: paper.title || 'Untitled Paper',
 				author: authorsStr,
 				publicationInfo: paper.venue || 'Academic Journal',
 				publicationDate: yearStr,
-				doi: paper.externalIds?.DOI || null,
+				doi: paper.externalIds?.DOI || paper.externalIds?.ISBN || null,
 				url: paper.url || null,
 				accessDate: new Date().toISOString().split('T')[0],
-				cslJson: paper,
+				cslJson: {
+					raw: JSON.stringify({
+						title: paper.title,
+						author: paper.authors?.map((a: any) => {
+							const nameFormatted = formatAuthorName(a.name)
+							const parts = nameFormatted.split(',')
+							return {
+								family: parts[0]?.trim() || '',
+								given: parts[1]?.trim() || '',
+							}
+						}),
+						containerTitle: paper.venue,
+						issued: { 'date-parts': [[yearStr]] },
+						DOI: paper.externalIds?.DOI || paper.externalIds?.ISBN || '',
+						URL: paper.url,
+					}),
+				},
 			}
 
 			await createCitationMutation.mutateAsync(citationData)
-
 			toast.success('Added scholarly paper to references!')
 		} catch (err) {
 			console.error(err)
@@ -322,10 +318,26 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 		}
 	}
 
-	const triggerScholarSearch = (e: React.FormEvent) => {
+	const triggerScholarSearch = async (e: React.FormEvent) => {
 		e.preventDefault()
-		if (!scholarQuery.trim()) return
-		setScholarSearchActive(true)
+		const query = scholarQuery.trim()
+		if (!query) return
+
+		setIsScholarSearching(true)
+		setHasSearched(true)
+		setScholarError(null)
+
+		try {
+			const { citationsService } = await import('@/lib/api/services/citations.service')
+			const results = await citationsService.unifiedSearch(query, 8)
+			setScholarResults(results)
+		} catch (error) {
+			console.error(error)
+			setScholarError(error)
+			setScholarResults([])
+		} finally {
+			setIsScholarSearching(false)
+		}
 	}
 
 	const renderLocalReferences = () => {
@@ -421,6 +433,84 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 		))
 	}
 
+	const renderWorkspaceReferences = () => {
+		if (isWorkspaceLoading) {
+			return (
+				<div className='flex flex-col items-center justify-center py-12 gap-2 text-gray-400'>
+					<Loader2 className='h-6 w-6 animate-spin text-primary' />
+					<span className='text-xs'>Loading workspace library...</span>
+				</div>
+			)
+		}
+
+		if (workspaceCitations.length === 0) {
+			return (
+				<div className='flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed border-gray-100 rounded-xl text-center gap-4 text-gray-400 mt-2'>
+					<div className='p-3 bg-gray-50 rounded-full text-primary/40'>
+						<BookOpen className='h-8 w-8' />
+					</div>
+					<div>
+						<p className='text-xs font-semibold text-gray-600'>No workspace references</p>
+						<p className='text-[10px] text-gray-400 mt-1 max-w-[200px]'>
+							Your workspace library is empty. Add references from the dashboard first!
+						</p>
+					</div>
+				</div>
+			)
+		}
+
+		return workspaceCitations.map((c) => {
+			const hasBeenAdded = citations.some(
+				(docCite) =>
+					(docCite.doi && docCite.doi === c.doi) ||
+					docCite.title.toLowerCase() === c.title.toLowerCase()
+			)
+
+			return (
+				<div
+					key={c.citationId}
+					className='group relative border border-gray-150 hover:border-primary/40 rounded-xl p-3 bg-white hover:shadow-sm transition-all duration-200'
+				>
+					<div className='pr-24 text-xs'>
+						<span className='inline-block px-1.5 py-0.5 bg-gray-100 font-mono text-[9px] text-gray-500 rounded tracking-wider mb-1.5 uppercase'>
+							{c.type}
+						</span>
+						<h5 className='font-bold text-gray-800 leading-snug'>{c.title}</h5>
+						<p className='text-gray-500 font-medium mt-1 text-[11px] line-clamp-1'>{c.author}</p>
+						<p className='text-[10px] text-gray-400 mt-0.5 line-clamp-1'>
+							{c.publicationInfo} {c.publicationDate ? `(${c.publicationDate})` : ''}
+						</p>
+					</div>
+
+					<div className='absolute right-2 top-1/2 -translate-y-1/2'>
+						<button
+							type='button'
+							onClick={() => handleImportFromWorkspace(c)}
+							disabled={hasBeenAdded || createCitationMutation.isPending}
+							className={`py-1 px-2.5 rounded-md font-bold text-[10px] transition-all flex items-center gap-1 ${
+								hasBeenAdded
+									? 'bg-green-50 text-green-600 border border-green-200 cursor-default'
+									: 'bg-primary hover:bg-primary/95 text-white shadow-sm'
+							}`}
+						>
+							{hasBeenAdded ? (
+								<>
+									<Check className='h-3 w-3' />
+									Imported
+								</>
+							) : (
+								<>
+									<Plus className='h-3 w-3' />
+									Import
+								</>
+							)}
+						</button>
+					</div>
+				</div>
+			)
+		})
+	}
+
 	const renderScholarContent = () => {
 		if (isScholarSearching) {
 			return (
@@ -442,7 +532,7 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 			)
 		}
 
-		if (!scholarSearchActive) {
+		if (!hasSearched) {
 			return (
 				<div className='flex flex-col items-center justify-center py-12 px-4 text-center text-gray-400 gap-3'>
 					<div className='p-3 bg-blue-50 text-primary/60 rounded-full animate-pulse'>
@@ -456,7 +546,7 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 			)
 		}
 
-		if (scholarData?.data?.data?.length === 0) {
+		if (scholarResults.length === 0) {
 			return (
 				<div className='text-center py-12 text-xs text-gray-400'>
 					No papers found. Try different search terms.
@@ -464,8 +554,8 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 			)
 		}
 
-		return scholarData?.data?.data?.map((p) => {
-			const authors = p.authors?.map((a) => a.name).join(', ') || 'Unknown Author'
+		return scholarResults.map((p: any) => {
+			const authors = p.authors?.map((a: any) => a.name).join(', ') || 'Unknown Author'
 			const hasBeenAdded = citations.some((c) => c.title.toLowerCase() === p.title?.toLowerCase())
 
 			return (
@@ -497,7 +587,6 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 						)}
 					</div>
 
-					{/* Action button */}
 					<div className='mt-2.5 pt-2 border-t border-gray-100 flex items-center justify-between'>
 						{p.openAccessPdf?.url ? (
 							<a
@@ -611,14 +700,14 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 				</button>
 				<button
 					type='button'
-					onClick={() => setActiveTab('manual')}
+					onClick={() => setActiveTab('workspace')}
 					className={`flex-1 py-1.5 text-[11px] font-semibold rounded-md transition-all ${
-						activeTab === 'manual'
+						activeTab === 'workspace'
 							? 'bg-white shadow text-primary border border-gray-200'
 							: 'text-gray-500 hover:text-gray-800'
 					}`}
 				>
-					Manual Entry
+					Workspace Library
 				</button>
 			</div>
 
@@ -681,7 +770,7 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 									value={scholarQuery}
 									onChange={(e) => {
 										setScholarQuery(e.target.value)
-										setScholarSearchActive(false) // Reset search active so we wait for enter/click
+										setHasSearched(false)
 									}}
 									className='w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-md outline-none text-xs focus:ring-1 focus:ring-primary bg-gray-50/50'
 								/>
@@ -702,28 +791,8 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 					</div>
 				)}
 
-				{/* Tab 3: Manual Entry */}
-				{activeTab === 'manual' && (
-					<CitationForm
-						onSubmit={handleManualSubmit}
-						isPending={createCitationMutation.isPending}
-						submitLabel='Add to Bibliography'
-						submitIcon={<Plus className='h-3.5 w-3.5' />}
-						type={manualType}
-						setType={setManualType}
-						title={manualTitle}
-						setTitle={setManualTitle}
-						author={manualAuthor}
-						setAuthor={setManualAuthor}
-						venue={manualVenue}
-						setVenue={setManualVenue}
-						year={manualYear}
-						setYear={setManualYear}
-						doi={manualDoi}
-						setDoi={setManualDoi}
-						url={manualUrl}
-						setUrl={setManualUrl}
-					/>
+				{activeTab === 'workspace' && (
+					<div className='space-y-2 overflow-y-auto h-full'>{renderWorkspaceReferences()}</div>
 				)}
 			</div>
 		</div>
