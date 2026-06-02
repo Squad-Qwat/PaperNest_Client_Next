@@ -26,8 +26,14 @@ type AnchoredReplacePair = {
 	replace: string
 }
 
-const createStagedChangeId = (): string =>
-	`staged_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+const createStagedChangeId = (): string => {
+	if (typeof window !== 'undefined' && window.crypto) {
+		const array = new Uint32Array(1)
+		window.crypto.getRandomValues(array)
+		return `staged_${Date.now()}_${array[0].toString(36).slice(0, 6)}`
+	}
+	return `staged_${Date.now()}_${Date.now().toString(36)}`
+}
 
 const createAnchoredReplacePair = (
 	docText: string,

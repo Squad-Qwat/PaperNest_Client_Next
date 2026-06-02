@@ -22,6 +22,7 @@ import {
 	SheetHeader,
 	SheetTitle,
 } from '@/components/ui/sheet'
+import { formatAuthorName, mapReferenceType } from '@/lib/api/services/citations.service'
 
 interface Author {
 	id: string
@@ -87,92 +88,10 @@ export function CitationSheet({
 		setHasSearched(true)
 		try {
 			const { citationsService } = await import('@/lib/api/services/citations.service')
-			const cleanedQuery = scholarQuery.trim()
-
-			const isbnCleaned = cleanedQuery.replace(/[- ]/g, '')
-			const isIsbn = /^(978|979)?\d{9}[\dX]$/i.test(isbnCleaned)
-
-			let results = []
-
-			if (isIsbn) {
-				try {
-					const bookData = await citationsService.getGoogleBooksPaper(isbnCleaned)
-					if (bookData?.items && bookData.items.length > 0) {
-						results = bookData.items.map((item: any) => {
-							const info = item.volumeInfo || {}
-							return {
-								paperId: `isbn-${isbnCleaned}-${item.id || Math.random().toString(36).substr(2, 9)}`,
-								title: info.title || '',
-								externalIds: { ISBN: isbnCleaned },
-								year: info.publishedDate ? info.publishedDate.substring(0, 4) : '',
-								url: info.infoLink || '',
-								venue: info.publisher || '',
-								authors: info.authors?.map((name: string) => ({ name })) || [],
-								type: 'book',
-								journal: {
-									volume: '',
-									pages: '',
-								},
-							}
-						})
-					}
-				} catch (gbError) {
-					console.error('Error fetching from Google Books:', gbError)
-				}
-			} else {
-				const response = (await citationsService.searchSemanticScholar(scholarQuery, 5)) as any
-				results = response?.data || []
-
-				const isDoi = cleanedQuery.startsWith('10.') && cleanedQuery.includes('/')
-
-				if (results.length === 0 && isDoi) {
-					try {
-						const crossRefData = await citationsService.getCrossRefPaper(cleanedQuery)
-						if (crossRefData?.message) {
-							const msg = crossRefData.message
-
-							const mappedAuthors =
-								msg.author
-									?.map((a: any) => {
-										if (a.given || a.family) {
-											return { name: `${a.given || ''} ${a.family || ''}`.trim() }
-										}
-										if (a.name && !isAffiliation(a.name)) {
-											return { name: a.name.trim() }
-										}
-										return null
-									})
-									.filter(Boolean) || []
-
-							const simulatedPaper = {
-								paperId: `crossref-${msg.DOI || Math.random().toString(36).substr(2, 9)}`,
-								title: msg.title?.[0] || '',
-								externalIds: { DOI: msg.DOI || cleanedQuery },
-								year:
-									msg.issued?.['date-parts']?.[0]?.[0] ||
-									msg['published-print']?.['date-parts']?.[0]?.[0] ||
-									msg['published-online']?.['date-parts']?.[0]?.[0] ||
-									'',
-								url: msg.URL || '',
-								venue: msg['container-title']?.[0] || '',
-								authors: mappedAuthors,
-								journal: {
-									volume: msg.volume || '',
-									pages: msg.page || '',
-								},
-								crossRefType: msg.type,
-							}
-							results = [simulatedPaper]
-						}
-					} catch (crError) {
-						console.error('Error fetching from CrossRef:', crError)
-					}
-				}
-			}
-
+			const results = await citationsService.unifiedSearch(scholarQuery.trim(), 5)
 			setScholarResults(results)
 		} catch (error) {
-			console.error('Error searching:', error)
+			console.error(error)
 			setScholarResults([])
 		} finally {
 			setIsSearchingScholar(false)
@@ -625,71 +544,4 @@ export function CitationSheet({
 			</SheetContent>
 		</Sheet>
 	)
-}
-
-const isAffiliation = (name: string): boolean => {
-	const lower = name.toLowerCase()
-	const keywords = [
-		'university',
-		'institute',
-		'sciences',
-		'centre',
-		'center',
-		'school',
-		'department',
-		'laboratory',
-		'association',
-		'society',
-		'foundation',
-		'group',
-		'consortium',
-		'committee',
-		'collaboration',
-		'commission',
-		'organization',
-		'clinic',
-		'hospital',
-		'south africa',
-	]
-	return keywords.some((kw) => lower.includes(kw)) || name.length > 40
-}
-
-const mapReferenceType = (pubTypes?: string[], crossRefType?: string): string => {
-	if (crossRefType) {
-		const typeMap: Record<string, string> = {
-			'journal-article': 'article',
-			book: 'book',
-			'book-chapter': 'book',
-			monograph: 'book',
-			'edited-book': 'book',
-			'proceedings-article': 'conference',
-			report: 'report',
-			dissertation: 'thesis',
-		}
-		if (typeMap[crossRefType]) {
-			return typeMap[crossRefType]
-		}
-	}
-
-	if (pubTypes && pubTypes.length > 0) {
-		const lowerTypes = pubTypes.map((t) => t.toLowerCase())
-		if (lowerTypes.some((t) => t.includes('journal') || t.includes('review'))) return 'article'
-		if (lowerTypes.some((t) => t.includes('book'))) return 'book'
-		if (lowerTypes.some((t) => t.includes('conference') || t.includes('proceedings')))
-			return 'conference'
-		if (lowerTypes.some((t) => t.includes('report'))) return 'report'
-		if (lowerTypes.some((t) => t.includes('thesis') || t.includes('dissertation'))) return 'thesis'
-	}
-
-	return 'article'
-}
-
-const formatAuthorName = (name: string): string => {
-	const parts = name.trim().split(/\s+/)
-	if (parts.length > 1) {
-		const last = parts.pop()
-		const first = parts.join(' ')
-		return `${last}, ${first}`
-	}
-	return name
 }
