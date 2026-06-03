@@ -43,6 +43,9 @@ interface LatexToolbarProps {
 	isCompiling?: boolean
 	compilerMode?: 'client' | 'server' | 'server_pdflatex'
 	onCompilerModeChange?: (mode: 'client' | 'server' | 'server_pdflatex') => void
+	onSyncToPdf?: () => void
+	autoCompile?: boolean
+	toggleAutoCompile?: () => void
 }
 
 export default function LatexToolbar({
@@ -59,6 +62,9 @@ export default function LatexToolbar({
 	isCompiling,
 	compilerMode,
 	onCompilerModeChange,
+	onSyncToPdf,
+	autoCompile,
+	toggleAutoCompile,
 }: LatexToolbarProps) {
 	const insertSnippet = (snippet: string, selectionOffset: number = 0) => {
 		if (viewMode === 'source') {
@@ -243,6 +249,32 @@ export default function LatexToolbar({
 									Visual
 								</Button>
 							</div>
+							{onSyncToPdf && viewMode === 'source' && (
+								<Button
+									variant='outline'
+									size='sm'
+									onClick={onSyncToPdf}
+									disabled={isCompiling}
+									className='h-8 border border-gray-200 hover:bg-gray-50 flex items-center gap-1 px-3 text-[10px] uppercase font-bold tracking-wider text-gray-700 bg-white rounded-md mr-1'
+								>
+									Sync ➔ PDF
+								</Button>
+							)}
+
+							{typeof handleCompile === 'function' && toggleAutoCompile !== undefined && (
+								<Button
+									variant={autoCompile ? 'secondary' : 'ghost'}
+									size='sm'
+									onClick={toggleAutoCompile}
+									className={`h-8 px-2.5 text-[10px] uppercase font-bold tracking-wider mr-1 border border-gray-200 rounded-md ${
+										autoCompile
+											? 'bg-green-50 hover:bg-green-100 text-green-700 border-green-200'
+											: 'text-gray-500 hover:text-gray-700 bg-white'
+									}`}
+								>
+									Auto-Compile: {autoCompile ? 'ON' : 'OFF'}
+								</Button>
+							)}
 
 							<div className='flex items-center shadow-sm'>
 								<Button

@@ -1,12 +1,16 @@
 'use client'
 
 import { redo as cmRedo, undo as cmUndo } from '@codemirror/commands'
+import { EditorView } from '@codemirror/view'
 import { FileText } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import type React from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { useCollaborators } from '@/hooks/editor/use-collaborators'
 import { useLatexCompilation } from '@/hooks/editor/use-latex-compilation'
 import { useLatexEditor } from '@/hooks/editor/use-latex-editor'
+import { apiClient } from '@/lib/api/clients/api-client'
 import { useDocumentFiles } from '@/lib/api/hooks/use-document-files'
 import { laTeXService } from '@/lib/latex/LaTeXService'
 import { computeCodeMirrorChanges } from '@/lib/utils/diff'
@@ -18,6 +22,9 @@ import {
 } from '@/lib/utils/latex-merge-utils'
 import { MergePreview } from '../mergeview/MergePreview'
 import { LatexVisualEditor } from './LatexVisualEditor'
+import type { PdfViewerRefActions } from './PdfViewer'
+
+const PdfViewer = dynamic(() => import('./PdfViewer').then((mod) => mod.PdfViewer), { ssr: false })
 
 interface LatexEditorProps {
 	documentId?: string | null
@@ -65,6 +72,9 @@ export function LatexEditor({
 		failed: number
 	} | null>(null)
 
+	const [autoCompile, setAutoCompile] = useState(false)
+	const autoCompileTimerRef = useRef<NodeJS.Timeout | null>(null)
+
 	const { data: files = [], refetch: refetchFiles } = useDocumentFiles(documentId)
 	const { visibleCollaborators, hiddenCollaboratorsCount } = useCollaborators()
 	const { isCompiling, compileResult, pdfUrl, showLog, setShowLog, handleCompile } =
@@ -72,6 +82,19 @@ export function LatexEditor({
 
 	const containerRef = useRef<HTMLDivElement>(null)
 	const activePendingMerge = pendingMerges[0] ?? null
+	const pdfViewerRef = useRef<PdfViewerRefActions | null>(null)
+
+	const handleDocChange = useCallback(
+		(content: string) => {
+			if (!autoCompile) return
+			if (!content || !content.trim()) return
+			if (autoCompileTimerRef.current) clearTimeout(autoCompileTimerRef.current)
+			autoCompileTimerRef.current = setTimeout(() => {
+				handleCompile(content)
+			}, 3000)
+		},
+		[autoCompile, handleCompile]
+	)
 
 	const enqueuePendingMerge = useCallback((data: PendingMergeChange | null) => {
 		if (!data) return
@@ -97,7 +120,50 @@ export function LatexEditor({
 		user,
 		initialContent,
 		readOnly,
+		onDocChange: handleDocChange,
 	})
+
+	const handleSyncToCode = useCallback(
+		(_file: string, line: number) => {
+			if (!view) return
+			try {
+				const lineInfo = view.state.doc.line(line)
+				view.dispatch({
+					selection: { anchor: lineInfo.from },
+					effects: EditorView.scrollIntoView(lineInfo.from, { y: 'center' }),
+				})
+				view.focus()
+			} catch (e) {
+				console.error('[LatexEditor] Could not sync to line:', line, e)
+			}
+		},
+		[view]
+	)
+
+	const handleSyncToPdf = useCallback(async () => {
+		if (!view || !documentId) return
+		const state = view.state
+		const cursor = state.selection.main.head
+		const line = state.doc.lineAt(cursor)
+		const lineNum = line.number
+		const colNum = cursor - line.from
+
+		try {
+			const file = 'main.tex'
+			const resJson = await apiClient.get<any>(
+				`/latex/sync/pdf?documentId=${documentId}&file=${file}&line=${lineNum}&column=${colNum}`
+			)
+			if (resJson && resJson.page !== undefined) {
+				const { page, x, y, width, height } = resJson
+				pdfViewerRef.current?.scrollToPosition(page, x, y, width, height)
+			}
+		} catch (error: any) {
+			console.error('Error in syncToPdf:', error)
+			toast.warning(
+				'Tidak dapat melakukan sync pada baris ini. Pastikan baris memiliki teks/konten dokumen yang terkompilasi.'
+			)
+		}
+	}, [view, documentId])
 
 	const getRebasedPreview = useCallback(
 		(merge: PendingMergeChange): { modified: string; isRebased: boolean; reason?: string } => {
@@ -312,6 +378,10 @@ export function LatexEditor({
 	const onCompile = useCallback(() => {
 		if (!view) return
 		const content = activePendingMerge ? activePendingMerge.modified : view.state.doc.toString()
+		if (!content || !content.trim()) {
+			toast.error('LaTeX content cannot be empty.')
+			return
+		}
 		handleCompile(content)
 	}, [view, activePendingMerge, handleCompile])
 
@@ -337,6 +407,9 @@ export function LatexEditor({
 				setPendingMerge: enqueuePendingMerge,
 				getInternalView: () => view,
 				visualEditor,
+				syncToPdf: handleSyncToPdf,
+				autoCompile,
+				toggleAutoCompile: () => setAutoCompile((a) => !a),
 			})
 		}
 	}, [
@@ -352,6 +425,8 @@ export function LatexEditor({
 		compileResult,
 		handleInsertSnippet,
 		visualEditor,
+		handleSyncToPdf,
+		autoCompile,
 	])
 
 	useEffect(() => {
@@ -456,10 +531,11 @@ export function LatexEditor({
 					}}
 				>
 					{pdfUrl ? (
-						<iframe
-							src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
-							className='w-full h-full border-none'
-							title='PDF Preview'
+						<PdfViewer
+							url={pdfUrl}
+							documentId={documentId || ''}
+							onSyncToCode={handleSyncToCode}
+							pdfViewerRef={pdfViewerRef}
 						/>
 					) : (
 						<div className='absolute inset-0 flex flex-col items-center justify-center text-gray-400 p-4 text-center text-sm'>

@@ -293,6 +293,9 @@ function DocumentPageContent() {
 					visualEditor={editorFunctions?.visualEditor}
 					compilerMode={editorFunctions?.compilerMode}
 					onCompilerModeChange={editorFunctions?.setCompilerMode}
+					syncToPdf={editorFunctions?.syncToPdf}
+					autoCompile={editorFunctions?.autoCompile}
+					toggleAutoCompile={editorFunctions?.toggleAutoCompile}
 					debugContentExtraction={editorFunctions?.debugContentExtraction}
 				/>
 

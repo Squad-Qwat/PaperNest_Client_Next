@@ -35,6 +35,7 @@ interface UseLatexEditorOptions {
 	enabled?: boolean
 	autoSaveInterval?: number
 	readOnly?: boolean
+	onDocChange?: (content: string) => void
 }
 
 const collabCompartment = new Compartment()
@@ -47,6 +48,7 @@ export function useLatexEditor({
 	enabled = true,
 	autoSaveInterval = 2000,
 	readOnly = false,
+	onDocChange,
 }: UseLatexEditorOptions = {}) {
 	const editorRef = useRef<HTMLDivElement>(null)
 	const viewRef = useRef<EditorView | null>(null)
@@ -71,6 +73,9 @@ export function useLatexEditor({
 
 	const onUpdate = useCallback(
 		(update: ViewUpdate) => {
+			if (update.docChanged) {
+				onDocChange?.(update.state.doc.toString())
+			}
 			if (update.docChanged && documentId && !collaborationReady) {
 				if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
 				autoSaveTimerRef.current = setTimeout(async () => {
@@ -96,8 +101,13 @@ export function useLatexEditor({
 				}, autoSaveInterval)
 			}
 		},
-		[documentId, autoSaveInterval, batchUpdate, collaborationReady]
+		[documentId, autoSaveInterval, batchUpdate, collaborationReady, onDocChange]
 	)
+
+	const onUpdateRef = useRef(onUpdate)
+	useEffect(() => {
+		onUpdateRef.current = onUpdate
+	}, [onUpdate])
 
 	useEffect(() => {
 		if (!editorRef.current || viewRef.current) return
@@ -130,7 +140,9 @@ export function useLatexEditor({
 			]),
 			latex(),
 			EditorView.lineWrapping,
-			EditorView.updateListener.of(onUpdate),
+			EditorView.updateListener.of((update) => {
+				onUpdateRef.current?.(update)
+			}),
 			collabCompartment.of([]),
 			readOnlyCompartment.of(EditorState.readOnly.of(readOnly)),
 		]
@@ -155,7 +167,7 @@ export function useLatexEditor({
 			viewRef.current = null
 			setIsReady(false)
 		}
-	}, [onUpdate, readOnly, documentId, enabled])
+	}, [readOnly, documentId, enabled])
 
 	useEffect(() => {
 		const view = viewRef.current
