@@ -67,10 +67,7 @@ export function useRegister() {
 		mutationFn: (data: RegisterDto) => authService.register(data),
 		onSuccess: async (response) => {
 			if (response.isVerificationRequired && response.firebaseToken) {
-				const result = await signInWithCustomToken(auth, response.firebaseToken)
-				const idToken = await result.user.getIdToken()
-
-				await authService.sendOTP(idToken)
+				await signInWithCustomToken(auth, response.firebaseToken)
 				toast.success('Pendaftaran berhasil! Silakan cek email Anda untuk kode OTP.')
 				router.push('/auth/verify-email')
 				return
