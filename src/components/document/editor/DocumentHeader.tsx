@@ -46,6 +46,9 @@ interface DocumentHeaderProps {
 	hiddenCollaboratorsCount: number
 	compilerMode: 'client' | 'server' | 'server_pdflatex'
 	onCompilerModeChange: (mode: 'client' | 'server' | 'server_pdflatex') => void
+	syncToPdf?: () => void
+	autoCompile?: boolean
+	toggleAutoCompile?: () => void
 	aiAssistantOpen?: boolean
 	toggleAiAssistant?: () => void
 	user?: any
@@ -87,6 +90,9 @@ const DocumentHeader = ({
 	hiddenCollaboratorsCount,
 	compilerMode,
 	onCompilerModeChange,
+	syncToPdf,
+	autoCompile,
+	toggleAutoCompile,
 	aiAssistantOpen,
 	toggleAiAssistant,
 	workspace,
@@ -595,6 +601,9 @@ const DocumentHeader = ({
 				visualEditor={visualEditor}
 				compilerMode={compilerMode}
 				onCompilerModeChange={onCompilerModeChange}
+				onSyncToPdf={syncToPdf}
+				autoCompile={autoCompile}
+				toggleAutoCompile={toggleAutoCompile}
 			/>
 		</header>
 	)

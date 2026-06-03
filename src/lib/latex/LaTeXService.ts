@@ -87,12 +87,9 @@ export class LaTeXService {
 
 		try {
 			// 1. Write Assets to MemFS
-			console.log(`[LaTeXService] Writing ${assets.length} assets to MemFS...`)
 			for (const asset of assets) {
 				try {
 					const proxyUrl = `${API_CONFIG.baseURL}/upload/download?url=${encodeURIComponent(asset.url)}`
-					console.log(`[LaTeXService] Fetching asset via proxy: ${asset.name} from ${proxyUrl}`)
-
 					const response = await fetch(proxyUrl, {
 						mode: 'cors',
 						headers: apiClient.getHeaders() as any,
@@ -103,44 +100,35 @@ export class LaTeXService {
 					}
 
 					const buffer = await response.arrayBuffer()
-					console.log(`[LaTeXService] Asset ${asset.name} loaded, size: ${buffer.byteLength} bytes`)
 					const uint8Array = new Uint8Array(buffer)
 
-					// Ensure directory exists if filename contains path
 					if (asset.name.includes('/')) {
 						const parts = asset.name.split('/')
-						parts.pop() // Remove filename
+						parts.pop()
 						let currentPath = '/work'
 						for (const part of parts) {
 							currentPath += `/${part}`
 							try {
 								engine.makeMemFSFolder(currentPath)
-							} catch (_e) {
-								// Folder might already exist
-							}
+							} catch (_e) {}
 						}
 					}
 
 					const memPath = `/work/${asset.name}`
 					engine.writeMemFSFile(memPath, uint8Array)
-					console.log(`[LaTeXService] Asset ${asset.name} written to ${memPath}`)
 				} catch (assetError: any) {
-					console.error(`[LaTeXService] CRITICAL: Failed to load asset ${asset.name}:`, assetError)
-					// Throwing here prevents compilation with missing assets which leads to confusing LaTeX errors
+					console.error(`[LaTeXService] Failed to load asset ${asset.name}:`, assetError)
 					throw new Error(
 						`Failed to load asset "${asset.name}": ${assetError.message}. Please check if the file is accessible.`
 					)
 				}
 			}
 
-			// 2. Write Main file
 			engine.writeMemFSFile(`/work/${mainFileName}`, content)
 			engine.setEngineMainFile(mainFileName)
 
-			// 3. Compile
 			let result = await engine.compile(mainFileName, [])
 
-			// Handle XDV if using XeTeX
 			if (result.status === 0 && !result.pdf && (result as any).xdv) {
 				result = await this.processDviToPdf((result as any).xdv, mainFileName, result.log)
 			}
@@ -218,8 +206,11 @@ export class LaTeXService {
 
 			if (!response.ok) {
 				const errorData = await response.json()
+				const detailedErrors = errorData.errors
+					? `\nValidation Details:\n${errorData.errors.map((e: any) => `- ${e.field}: ${e.message} (${e.type})`).join('\n')}`
+					: ''
 				return {
-					log: errorData.log || errorData.error || 'Unknown server error',
+					log: (errorData.log || errorData.error || 'Unknown server error') + detailedErrors,
 					status: errorData.status || response.status,
 					pdf: undefined,
 				}
