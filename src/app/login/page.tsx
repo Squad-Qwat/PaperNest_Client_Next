@@ -1,6 +1,6 @@
 'use client'
 
-import { Link2 } from 'lucide-react'
+import { EyeIcon, EyeOffIcon, Link2 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -42,6 +42,7 @@ export default function LoginPage() {
 	const [password, setPassword] = useState('')
 	const [localError, setLocalError] = useState('')
 	const [turnstileToken, setTurnstileToken] = useState('')
+	const [showPassword, setShowPassword] = useState(false)
 
 	const isLinking = linkMutation.isPending
 	const loading = isEmailPending || isSocialPending || isLinking
@@ -237,14 +238,31 @@ export default function LoginPage() {
 							<Label htmlFor='password' className='text-gray-900 font-normal'>
 								Password
 							</Label>
-							<Input
-								id='password'
-								type='password'
-								value={password}
-								onChange={(e) => setPassword(e.target.value)}
-								placeholder='Password'
-								disabled={loading}
-							/>
+							<div className='relative'>
+								<Input
+									id='password'
+									type={showPassword ? 'text' : 'password'}
+									value={password}
+									onChange={(e) => setPassword(e.target.value)}
+									placeholder='Password'
+									disabled={loading}
+									className='pr-9'
+								/>
+								<Button
+									variant='ghost'
+									size='icon'
+									type='button'
+									onClick={() => setShowPassword(!showPassword)}
+									className='text-muted-foreground focus-visible:ring-ring/50 absolute inset-y-0 right-0 rounded-l-none hover:bg-transparent'
+									disabled={loading}
+								>
+									{showPassword ? (
+										<EyeOffIcon className='size-4' />
+									) : (
+										<EyeIcon className='size-4' />
+									)}
+								</Button>
+							</div>
 							<div className='text-right'>
 								<Link
 									href='#'

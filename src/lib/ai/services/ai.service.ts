@@ -1,3 +1,4 @@
+import { useAuthStore } from '@/lib/store/auth-store'
 import { API_CONFIG } from '../../api/config'
 import type { AIStreamPayload } from '../types/chat'
 
@@ -11,15 +12,22 @@ export const aiService = {
 	 */
 	async streamChat(payload: AIStreamPayload, signal: AbortSignal): Promise<ReadableStream> {
 		const backendUrl = API_CONFIG.directBackendURL
+		const token = useAuthStore.getState().accessToken
 
 		console.log(`[AIService] Starting stream request to ${backendUrl}/ai/stream`)
 
+		const headers: Record<string, string> = {
+			'Content-Type': 'application/json',
+			'ngrok-skip-browser-warning': 'true',
+		}
+
+		if (token) {
+			headers.Authorization = `Bearer ${token}`
+		}
+
 		const response = await fetch(`${backendUrl}/ai/stream`, {
 			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				'ngrok-skip-browser-warning': 'true',
-			},
+			headers,
 			body: JSON.stringify({
 				...payload,
 				agentId: payload.agentId,
@@ -50,10 +58,19 @@ export const aiService = {
 	 */
 	async indexPDF(documentId: string, fileKey: string) {
 		const backendUrl = API_CONFIG.baseURL
+		const token = useAuthStore.getState().accessToken
+		const headers: Record<string, string> = {
+			'Content-Type': 'application/json',
+		}
+
+		if (token) {
+			headers.Authorization = `Bearer ${token}`
+		}
+
 		try {
 			const response = await fetch(`${backendUrl}/ai/rag/index`, {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers,
 				body: JSON.stringify({ documentId, fileKey }),
 			})
 
