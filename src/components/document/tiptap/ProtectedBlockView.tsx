@@ -89,7 +89,7 @@ const cleanTabularBody = (body: string): string => {
 		.replace(/(^|[^\\])%[^\n]*/g, '$1') // remove comments
 		.replace(/\\(hline|toprule|midrule|bottomrule|rowcolor|arrayrulewidth)\b/g, '') // remove hlines and booktabs rules
 		.replace(/\\cline\s*\{[^}]*\}/g, '') // remove clines
-		.replace(/\\\[\s*[^\]]*\s*\]/g, '\\\\') // convert \\[1em] to \\
+		.replace(/\\\[[^\]]*\]/g, '\\\\') // convert \\[1em] to \\
 }
 
 const parseLatexTabular = (latex: string): TabularData | null => {
