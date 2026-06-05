@@ -25,7 +25,7 @@ const getFigureImageName = (latex: string): string | null => {
 	if (openBraceIdx === -1) return null
 
 	const intermediate = latex.slice(idx + marker.length, openBraceIdx).trim()
-	if (intermediate !== '' && !/^[\[].*[\]]$/.test(intermediate)) {
+	if (intermediate !== '' && !/^[[].*[\]]$/.test(intermediate)) {
 		return null
 	}
 

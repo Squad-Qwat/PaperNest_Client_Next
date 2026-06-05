@@ -460,7 +460,6 @@ export function LatexEditor({
 		visualEditor,
 		handleSyncToPdf,
 		autoCompile,
-		activeAuxiliaryFile,
 	])
 
 	useEffect(() => {
