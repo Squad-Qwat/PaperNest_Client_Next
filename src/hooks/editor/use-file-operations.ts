@@ -125,8 +125,64 @@ export function useFileOperations(documentId: string | null | undefined, files: 
 		},
 	})
 
+	const createFileMutation = useMutation({
+		mutationFn: async ({
+			name,
+			initialContent = '',
+		}: {
+			name: string
+			initialContent?: string
+		}) => {
+			if (!documentId) return
+			const fileName = name.trim()
+			if (!fileName) throw new Error('Filename cannot be empty')
+
+			const { presignedUrl, publicUrl, key } = await apiClient.post<{
+				presignedUrl: string
+				publicUrl: string
+				key: string
+			}>('/upload/presigned-url', {
+				filename: fileName,
+				contentType: 'text/plain',
+				folder: `documents/${documentId}`,
+			})
+
+			const uploadResponse = await fetch(presignedUrl, {
+				method: 'PUT',
+				body: initialContent,
+				headers: { 'Content-Type': 'text/plain' },
+			})
+
+			if (!uploadResponse.ok) throw new Error('Failed to create file on storage')
+
+			await addDocumentFile.mutateAsync({
+				documentId,
+				file: {
+					name: fileName,
+					type: 'text/plain',
+					url: publicUrl,
+					r2Key: key,
+					size: initialContent.length,
+					createdAt: new Date() as unknown as Date,
+				},
+			})
+
+			return { fileName }
+		},
+		onSuccess: (data) => {
+			if (data) toast.success(`Created file ${data.fileName}`)
+			if (documentId) {
+				queryClient.invalidateQueries({ queryKey: DOCUMENT_FILE_KEYS.detail(documentId) })
+			}
+		},
+		onError: (error: any) => {
+			console.error('File creation error:', error)
+			toast.error('Failed to create file')
+		},
+	})
+
 	return {
-		isUploading: uploadMutation.isPending,
+		isUploading: uploadMutation.isPending || createFileMutation.isPending,
 		processUpload: (file: File, folderPath?: string) =>
 			uploadMutation.mutateAsync({ file, folderPath }),
 		handleDeleteFile: (fileId: string) => {
@@ -136,5 +192,7 @@ export function useFileOperations(documentId: string | null | undefined, files: 
 		},
 		handleInternalMove: (item: any, targetPath: string | null) =>
 			moveMutation.mutate({ item, targetPath }),
+		handleCreateFile: (name: string, initialContent?: string) =>
+			createFileMutation.mutateAsync({ name, initialContent }),
 	}
 }

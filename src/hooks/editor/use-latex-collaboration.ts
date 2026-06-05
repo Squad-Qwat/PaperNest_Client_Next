@@ -61,6 +61,7 @@ export function useLatexCollaboration({
 	useEffect(() => {
 		if (enabled && room) {
 			let mounted = true
+			let cleanupProvider: (() => void) | null = null
 
 			const setupYjs = async () => {
 				try {
@@ -103,7 +104,7 @@ export function useLatexCollaboration({
 
 					provider.on('sync', handleSync)
 
-					return () => {
+					cleanupProvider = () => {
 						provider.off('sync', handleSync)
 						if (undoManagerInstance) undoManagerInstance.destroy()
 					}
@@ -116,7 +117,14 @@ export function useLatexCollaboration({
 			setupYjs()
 			return () => {
 				mounted = false
+				if (cleanupProvider) cleanupProvider()
 			}
+		} else {
+			setIsReady(false)
+			setIsConnected(false)
+			setYProvider(null)
+			setYDoc(null)
+			setUndoManager(null)
 		}
 	}, [enabled, room, user?.id, user?.uid])
 

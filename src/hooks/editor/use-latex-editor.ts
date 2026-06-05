@@ -4,7 +4,7 @@ import {
 	closeBracketsKeymap,
 	completionKeymap,
 } from '@codemirror/autocomplete'
-import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
+import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
 import { bracketMatching, foldGutter, foldKeymap, indentOnInput } from '@codemirror/language'
 import { lintKeymap } from '@codemirror/lint'
 import { highlightSelectionMatches, searchKeymap } from '@codemirror/search'
@@ -21,6 +21,7 @@ import {
 	rectangularSelection,
 	type ViewUpdate,
 } from '@codemirror/view'
+import { indentationMarkers } from '@replit/codemirror-indentation-markers'
 import { latex } from 'codemirror-lang-latex'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { yCollab } from 'y-codemirror.next'
@@ -121,6 +122,7 @@ export function useLatexEditor({
 			dropCursor(),
 			EditorState.allowMultipleSelections.of(true),
 			indentOnInput(),
+			indentationMarkers({ hideFirstIndent: true, highlightActiveBlock: false }),
 			...paperNestThemeExtension,
 			bracketMatching(),
 			closeBrackets(),
@@ -130,6 +132,7 @@ export function useLatexEditor({
 			highlightActiveLine(),
 			highlightSelectionMatches(),
 			keymap.of([
+				indentWithTab,
 				...closeBracketsKeymap,
 				...defaultKeymap,
 				...searchKeymap,

@@ -141,6 +141,12 @@
 	--radius-2xl: calc(var(--radius-lg) * 1.5);
 	--radius-3xl: calc(var(--radius-lg) * 2);
 	--radius-4xl: calc(var(--radius-lg) * 3);
+
+	/* Overleaf Light Editor Theme variables */
+	--editor-comment: #0080ff;
+	--editor-macro: #3f7f7f;
+	--editor-value: #5a5cad;
+	--editor-keyword: #3f7f7f;
 }
 
 .dark {
@@ -217,6 +223,12 @@
 	--chart-3: oklch(0.777 0.152 181.912);
 	--chart-4: oklch(0.855 0.138 181.071);
 	--chart-5: oklch(0.91 0.096 180.426);
+
+	/* Overleaf Dark Editor Theme variables */
+	--editor-comment: #6272a4;
+	--editor-macro: #8be9fd;
+	--editor-value: #f1fa8c;
+	--editor-keyword: #ff79c6;
 }
 
 @layer base {
