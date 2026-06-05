@@ -20,11 +20,11 @@ import {
 	getMergeSignature,
 	normalizeText,
 } from '@/lib/utils/latex-merge-utils'
+import { EditorTabs } from '../editor/EditorTabs'
 import { MergePreview } from '../mergeview/MergePreview'
+import { FileViewerManager } from '../viewers/FileViewerManager'
 import { LatexVisualEditor } from './LatexVisualEditor'
 import type { PdfViewerRefActions } from './PdfViewer'
-import { EditorTabs } from '../editor/EditorTabs'
-import { FileViewerManager } from '../viewers/FileViewerManager'
 
 const PdfViewer = dynamic(() => import('./PdfViewer').then((mod) => mod.PdfViewer), { ssr: false })
 
@@ -417,7 +417,7 @@ export function LatexEditor({
 			return
 		}
 		handleCompile(content)
-	}, [view, activePendingMerge, handleCompile])
+	}, [view, activePendingMerge, handleCompile, activeAuxiliaryFile])
 
 	useEffect(() => {
 		if (view && onEditorReady) {
@@ -450,6 +450,7 @@ export function LatexEditor({
 		view,
 		onEditorReady,
 		isCompiling,
+		compileResult,
 		visibleCollaborators,
 		hiddenCollaboratorsCount,
 		viewMode,
