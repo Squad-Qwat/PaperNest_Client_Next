@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 import { useParams } from 'next/navigation'
 import type React from 'react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { apiClient } from '@/lib/api/clients/api-client'
 import {
@@ -60,6 +60,7 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 	const [isSyncingBib, setIsSyncingBib] = useState(false)
 	const [syncSuccess, setSyncSuccess] = useState(false)
 	const [editingCitation, setEditingCitation] = useState<Citation | null>(null)
+	const isSyncPending = useRef(false)
 
 	const [manualType, setManualType] = useState('article')
 	const [manualTitle, setManualTitle] = useState('')
@@ -177,6 +178,13 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 		}
 	}
 
+	useEffect(() => {
+		if (isSyncPending.current && !isCitationsLoading) {
+			handleSyncBibTeX()
+			isSyncPending.current = false
+		}
+	}, [isCitationsLoading, handleSyncBibTeX])
+
 	// Copy to clipboard cite format
 	const handleCopyCite = (citationId: string) => {
 		const citeCommand = `\\cite{${citationId}}`
@@ -211,6 +219,7 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 			}
 
 			await createCitationMutation.mutateAsync(citationData)
+			isSyncPending.current = true
 			toast.success('Reference imported to document!')
 		} catch (err) {
 			console.error(err)
@@ -237,6 +246,7 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 				},
 			})
 
+			isSyncPending.current = true
 			toast.success('Reference updated successfully!')
 			setEditingCitation(null)
 		} catch (err) {
@@ -265,6 +275,7 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 					citationId,
 					documentId,
 				})
+				isSyncPending.current = true
 				toast.success('Reference removed')
 			} catch (err) {
 				console.error(err)
@@ -311,6 +322,7 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 			}
 
 			await createCitationMutation.mutateAsync(citationData)
+			isSyncPending.current = true
 			toast.success('Added scholarly paper to references!')
 		} catch (err) {
 			console.error(err)

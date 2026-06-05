@@ -17,6 +17,7 @@ import { DocumentEditorSkeleton } from '@/components/document/editor/DocumentEdi
 import { DesktopOnlyGuard } from '@/components/layout/DesktopOnlyGuard'
 import { useAuth } from '@/context/AuthContext'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { apiClient } from '@/lib/api/clients/api-client'
 import type { BatchOperation, OperationType } from '@/lib/api/types/batchOperation.types'
 
 function DocumentPageContent() {
@@ -49,6 +50,74 @@ function DocumentPageContent() {
 	const [paperSizeSubmenuOpen, setPaperSizeSubmenuOpen] = useState(false)
 	const [editorFunctions, setEditorFunctions] = useState<any>(null)
 	const [isPdfHidden, setIsPdfHidden] = useState(false)
+
+	// Auxiliary File State (.bib, .sty, etc.)
+	const [openAuxiliaryFiles, setOpenAuxiliaryFiles] = useState<
+		{
+			fileId: string
+			name: string
+			content: string
+			url: string
+			isDirty?: boolean
+		}[]
+	>([])
+	const [activeFileId, setActiveFileId] = useState<string>('main')
+
+	const activeAuxiliaryFile = useMemo(
+		() => openAuxiliaryFiles.find((f) => f.fileId === activeFileId) || null,
+		[openAuxiliaryFiles, activeFileId]
+	)
+
+	const handleOpenFile = useCallback(
+		(file: { fileId: string; name: string; content: string; url: string } | null) => {
+			if (!file) return
+			setOpenAuxiliaryFiles((prev) => {
+				if (!prev.find((f) => f.fileId === file.fileId)) {
+					return [...prev, file]
+				}
+				return prev.map((f) => (f.fileId === file.fileId ? file : f))
+			})
+			setActiveFileId(file.fileId)
+		},
+		[]
+	)
+
+	const handleCloseFile = useCallback(
+		(fileId: string) => {
+			setOpenAuxiliaryFiles((prev) => {
+				const next = prev.filter((f) => f.fileId !== fileId)
+				if (activeFileId === fileId) {
+					setActiveFileId('main')
+				}
+				return next
+			})
+		},
+		[activeFileId]
+	)
+
+	const handleAuxiliaryFileChange = useCallback((fileId: string, newContent: string) => {
+		setOpenAuxiliaryFiles((prev) =>
+			prev.map((f) => {
+				if (f.fileId === fileId) {
+					return { ...f, content: newContent, isDirty: true }
+				}
+				return f
+			})
+		)
+	}, [])
+
+	// Listen for autosave success from LatexEditor to clear isDirty
+	useEffect(() => {
+		const handler = (e: Event) => {
+			const { fileId, content } = (e as CustomEvent).detail
+			setOpenAuxiliaryFiles((prev) =>
+				prev.map((f) => (f.fileId === fileId ? { ...f, content, isDirty: false } : f))
+			)
+			setLastSavedAt(new Date())
+		}
+		window.addEventListener('aux-file-autosaved', handler)
+		return () => window.removeEventListener('aux-file-autosaved', handler)
+	}, [])
 
 	const defaultFontFamily = '"Times New Roman", Times, serif'
 	const defaultFontSize = '11pt'
@@ -137,6 +206,57 @@ function DocumentPageContent() {
 		if (!documentData || !user) return
 
 		try {
+			// Save Auxiliary File
+			if (activeAuxiliaryFile) {
+				console.log('💾 Saving auxiliary file:', activeAuxiliaryFile.name)
+				// Prefer content from CodeMirror (live), fallback to last known state content
+				const currentContent = editorFunctions?.getCurrentContent
+					? editorFunctions.getCurrentContent()
+					: activeAuxiliaryFile.content
+
+				// Extract the existing R2 key from the file's public URL
+				// e.g. "https://assets.papernest.com/latex-assets/uuid-ts.bib" → "latex-assets/uuid-ts.bib"
+				const _r2PublicDomain = process.env.NEXT_PUBLIC_R2_PUBLIC_DOMAIN
+				let r2Key: string
+				try {
+					const urlObj = new URL(activeAuxiliaryFile.url)
+					r2Key = urlObj.pathname.replace(/^\//, '') // remove leading slash
+				} catch {
+					toast.error('Cannot determine file location to save')
+					return
+				}
+
+				// Generate a presigned PUT URL targeting the EXISTING R2 key (in-place overwrite)
+				const presignedRes = await apiClient.post<{ presignedUrl: string; key: string }>(
+					'/upload/overwrite-url',
+					{
+						r2Key,
+						contentType: 'text/plain',
+					}
+				)
+
+				// Upload to R2 — this OVERWRITES the existing object at the same key
+				const uploadRes = await fetch(presignedRes.presignedUrl, {
+					method: 'PUT',
+					headers: { 'Content-Type': 'text/plain' },
+					body: currentContent,
+				})
+
+				if (!uploadRes.ok) throw new Error('Failed to upload file to R2')
+
+				// Clear dirty flag and update stored content in state
+				setOpenAuxiliaryFiles((prev) =>
+					prev.map((f) =>
+						f.fileId === activeAuxiliaryFile.fileId
+							? { ...f, content: currentContent, isDirty: false }
+							: f
+					)
+				)
+				setLastSavedAt(new Date())
+				toast.success(`${activeAuxiliaryFile.name} saved successfully`)
+				return
+			}
+
 			console.log('💾 Saving document with batch operation:', documentId)
 
 			// Get current content from editor
@@ -182,7 +302,28 @@ function DocumentPageContent() {
 			console.error('❌ Error saving document:', error)
 			toast.error('Failed to save document')
 		}
-	}, [documentData, user, documentId, editorFunctions, title, paperSize, batchUpdateMutation])
+	}, [
+		documentData,
+		user,
+		documentId,
+		editorFunctions,
+		title,
+		paperSize,
+		batchUpdateMutation,
+		activeAuxiliaryFile,
+	])
+
+	// Capture Ctrl+S / Cmd+S globally to save document or active auxiliary file
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+				e.preventDefault()
+				handleSave()
+			}
+		}
+		window.addEventListener('keydown', handleKeyDown)
+		return () => window.removeEventListener('keydown', handleKeyDown)
+	}, [handleSave])
 
 	const onEditorReady = useCallback((functions: any) => {
 		setEditorFunctions(functions)
@@ -314,6 +455,7 @@ function DocumentPageContent() {
 							documentId={documentId}
 							onInsertText={handleInsertTextAtCursor}
 							getCurrentContent={editorFunctions?.getCurrentContent}
+							onOpenFile={handleOpenFile}
 						/>
 
 						<DocumentEditor
@@ -324,6 +466,12 @@ function DocumentPageContent() {
 							isPdfHidden={isPdfHidden}
 							initialContent={initialContent}
 							readOnly={isReadOnly}
+							activeAuxiliaryFile={activeAuxiliaryFile}
+							openAuxiliaryFiles={openAuxiliaryFiles}
+							activeFileId={activeFileId}
+							setActiveFileId={setActiveFileId}
+							onCloseAuxiliaryFile={handleCloseFile}
+							onAuxiliaryFileChange={handleAuxiliaryFileChange}
 						/>
 
 						<AIAssistant

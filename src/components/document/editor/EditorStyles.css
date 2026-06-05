@@ -438,3 +438,35 @@
 	pointer-events: none;
 	z-index: 1000;
 }
+
+/* ===================================
+   CodeMirror Scroll Fix
+   Makes the editor scrollable with mouse/touchpad
+   instead of requiring Page Up/Down keys
+   =================================== */
+
+/* The container div gets flex-1 min-h-0, so cm-editor must fill it */
+.cm-editor-container {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+/* cm-editor fills the container, cm-scroller handles the actual scroll */
+.cm-editor-container .cm-editor {
+	height: 100%;
+	overflow: hidden;
+}
+
+.cm-editor-container .cm-scroller {
+	overflow-y: auto;
+	overflow-x: auto;
+	scroll-behavior: auto;
+	/* Smooth scrolling with mouse wheel / touchpad */
+	-webkit-overflow-scrolling: touch;
+}
+
+/* Ensure proper sizing when tabs are present */
+.cm-editor-container .cm-gutters {
+	min-height: 100%;
+}

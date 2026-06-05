@@ -12,6 +12,24 @@ interface DocumentEditorProps {
 	isPdfHidden?: boolean
 	initialContent?: string
 	readOnly?: boolean
+	activeAuxiliaryFile?: {
+		fileId: string
+		name: string
+		content: string
+		url: string
+		isDirty?: boolean
+	} | null
+	openAuxiliaryFiles?: {
+		fileId: string
+		name: string
+		content: string
+		url: string
+		isDirty?: boolean
+	}[]
+	activeFileId?: string
+	setActiveFileId?: (id: string) => void
+	onCloseAuxiliaryFile?: (id: string) => void
+	onAuxiliaryFileChange?: (id: string, newContent: string) => void
 }
 
 // Komponen Editor yang ada di dalam Room
@@ -23,6 +41,12 @@ export default function DocumentEditor({
 	isPdfHidden,
 	initialContent,
 	readOnly,
+	activeAuxiliaryFile,
+	openAuxiliaryFiles = [],
+	activeFileId = 'main',
+	setActiveFileId,
+	onCloseAuxiliaryFile,
+	onAuxiliaryFileChange,
 }: DocumentEditorProps) {
 	return (
 		<div className='w-full h-full flex-1 overflow-hidden bg-white'>
@@ -34,6 +58,12 @@ export default function DocumentEditor({
 				onEditorReady={onEditorReady}
 				isPdfHidden={isPdfHidden}
 				readOnly={readOnly}
+				activeAuxiliaryFile={activeAuxiliaryFile}
+				openAuxiliaryFiles={openAuxiliaryFiles}
+				activeFileId={activeFileId}
+				setActiveFileId={setActiveFileId}
+				onCloseAuxiliaryFile={onCloseAuxiliaryFile}
+				onAuxiliaryFileChange={onAuxiliaryFileChange}
 			/>
 		</div>
 	)

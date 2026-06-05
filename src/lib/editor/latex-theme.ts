@@ -17,8 +17,9 @@ export const paperNestTheme = EditorView.theme(
 		},
 		'.cm-content': {
 			caretColor: 'var(--primary)',
-			fontFamily: "var(--font-mono, 'JetBrains Mono', 'Fira Code', monospace)",
-			fontSize: '13px',
+			fontFamily:
+				"var(--font-sourceCodePro, 'Source Code Pro'), var(--font-dmMono, 'DM Mono'), var(--font-mono, 'JetBrains Mono', monospace)",
+			fontSize: '13.5px',
 			lineHeight: '1.6',
 			padding: '16px 0',
 		},
@@ -107,19 +108,19 @@ export const paperNestTheme = EditorView.theme(
  * Optimized for LaTeX documents with a clear, readable syntax.
  */
 export const paperNestHighlightStyle = HighlightStyle.define([
-	{ tag: t.keyword, color: 'var(--primary)', fontWeight: '600' },
-	{ tag: t.atom, color: 'oklch(0.65 0.15 20)' }, // Consistent with Red/Danger
-	{ tag: t.number, color: 'oklch(0.7 0.1 140)' }, // Greenish
-	{ tag: t.string, color: 'oklch(0.6 0.12 160)' }, // Success-like
-	{ tag: t.comment, color: 'var(--muted-foreground)', fontStyle: 'italic' },
-	{ tag: t.meta, color: 'var(--primary)', fontWeight: '500' }, // Commands like \begin, \section
-	{ tag: t.heading, color: 'var(--primary)', fontWeight: 'bold', fontSize: '1.1em' },
-	{ tag: t.labelName, color: 'var(--primary-subtle-foreground)' },
+	{ tag: t.keyword, color: 'var(--editor-keyword)', fontWeight: '600' },
+	{ tag: t.atom, color: 'var(--editor-value)' },
+	{ tag: t.number, color: 'var(--editor-value)' },
+	{ tag: t.string, color: 'var(--editor-value)' },
+	{ tag: t.comment, color: 'var(--editor-comment)', fontStyle: 'italic' },
+	{ tag: t.meta, color: 'var(--editor-macro)', fontWeight: '500' }, // Commands like \begin, \section
+	{ tag: t.heading, color: 'var(--editor-macro)', fontWeight: 'bold', fontSize: '1.1em' },
+	{ tag: t.labelName, color: 'var(--editor-value)' },
 	{ tag: t.operator, color: 'var(--muted-foreground)' },
-	{ tag: t.bracket, color: 'var(--muted-foreground)' },
-	{ tag: t.tagName, color: 'var(--primary)' },
-	{ tag: [t.function(t.variableName), t.propertyName], color: 'var(--primary)' },
-	{ tag: t.processingInstruction, color: 'oklch(0.7 0.15 50)' }, // Math modes
+	{ tag: t.bracket, color: 'var(--editor-value)' },
+	{ tag: t.tagName, color: 'var(--editor-macro)' },
+	{ tag: [t.function(t.variableName), t.propertyName], color: 'var(--editor-macro)' },
+	{ tag: t.processingInstruction, color: 'var(--editor-value)' }, // Math modes
 ])
 
 export const paperNestThemeExtension = [paperNestTheme, syntaxHighlighting(paperNestHighlightStyle)]

@@ -20,7 +20,9 @@ import {
 	getMergeSignature,
 	normalizeText,
 } from '@/lib/utils/latex-merge-utils'
+import { EditorTabs } from '../editor/EditorTabs'
 import { MergePreview } from '../mergeview/MergePreview'
+import { FileViewerManager } from '../viewers/FileViewerManager'
 import { LatexVisualEditor } from './LatexVisualEditor'
 import type { PdfViewerRefActions } from './PdfViewer'
 
@@ -35,6 +37,24 @@ interface LatexEditorProps {
 	onAutoSaveStateChange?: (isSaving: boolean, lastSavedAt: Date | null) => void
 	isPdfHidden?: boolean
 	readOnly?: boolean
+	activeAuxiliaryFile?: {
+		fileId: string
+		name: string
+		content: string
+		url: string
+		isDirty?: boolean
+	} | null
+	openAuxiliaryFiles?: {
+		fileId: string
+		name: string
+		content: string
+		url: string
+		isDirty?: boolean
+	}[]
+	activeFileId?: string
+	setActiveFileId?: (id: string) => void
+	onCloseAuxiliaryFile?: (id: string) => void
+	onAuxiliaryFileChange?: (id: string, newContent: string) => void
 }
 
 type PendingMergeChange = {
@@ -54,10 +74,17 @@ export function LatexEditor({
 	documentId,
 	user,
 	initialContent,
+	title,
 	onEditorReady,
 	onAutoSaveStateChange,
 	isPdfHidden = false,
 	readOnly = false,
+	activeAuxiliaryFile = null,
+	openAuxiliaryFiles = [],
+	activeFileId = 'main',
+	setActiveFileId,
+	onCloseAuxiliaryFile,
+	onAuxiliaryFileChange,
 }: LatexEditorProps) {
 	const [editorPdfSplitWidth, setEditorPdfSplitWidth] = useState(55)
 	const [isEditorPdfResizing, setIsEditorPdfResizing] = useState(false)
@@ -119,6 +146,7 @@ export function LatexEditor({
 		documentId,
 		user,
 		initialContent,
+		enabled: activeFileId === 'main',
 		readOnly,
 		onDocChange: handleDocChange,
 	})
@@ -377,13 +405,19 @@ export function LatexEditor({
 
 	const onCompile = useCallback(() => {
 		if (!view) return
+		if (activeAuxiliaryFile) {
+			toast.info(
+				'Cannot compile while editing an auxiliary file. Switch back to the main document.'
+			)
+			return
+		}
 		const content = activePendingMerge ? activePendingMerge.modified : view.state.doc.toString()
 		if (!content || !content.trim()) {
 			toast.error('LaTeX content cannot be empty.')
 			return
 		}
 		handleCompile(content)
-	}, [view, activePendingMerge, handleCompile])
+	}, [view, activePendingMerge, handleCompile, activeAuxiliaryFile])
 
 	useEffect(() => {
 		if (view && onEditorReady) {
@@ -416,13 +450,13 @@ export function LatexEditor({
 		view,
 		onEditorReady,
 		isCompiling,
+		compileResult,
 		visibleCollaborators,
 		hiddenCollaboratorsCount,
 		viewMode,
 		enqueuePendingMerge,
 		compilerMode,
 		onCompile,
-		compileResult,
 		handleInsertSnippet,
 		visualEditor,
 		handleSyncToPdf,
@@ -462,13 +496,37 @@ export function LatexEditor({
 		<div className='flex flex-col h-full w-full bg-white overflow-hidden'>
 			<div className='flex flex-1 overflow-hidden' ref={containerRef}>
 				<div
-					className='overflow-hidden relative bg-white border-r border-gray-100'
+					className='relative bg-white border-r border-gray-100 flex flex-col min-h-0'
 					style={{ width: `${editorPdfSplitWidth}%` }}
 				>
+					{openAuxiliaryFiles.length > 0 && setActiveFileId && onCloseAuxiliaryFile && (
+						<EditorTabs
+							openFiles={openAuxiliaryFiles}
+							activeFileId={activeFileId}
+							setActiveFileId={setActiveFileId}
+							onCloseFile={onCloseAuxiliaryFile}
+						/>
+					)}
 					<div
 						ref={editorRef}
-						className={`h-full w-full cm-editor-container ${viewMode !== 'source' || activePendingMerge ? 'hidden' : ''}`}
+						style={{
+							display:
+								viewMode !== 'source' || activePendingMerge || activeFileId !== 'main'
+									? 'none'
+									: 'block',
+						}}
+						className='flex-1 min-h-0 w-full cm-editor-container'
 					/>
+
+					{activeFileId !== 'main' && activeAuxiliaryFile && (
+						<FileViewerManager
+							file={activeAuxiliaryFile}
+							readOnly={readOnly}
+							onChange={(newContent) => {
+								onAuxiliaryFileChange?.(activeAuxiliaryFile.fileId, newContent)
+							}}
+						/>
+					)}
 
 					{activePendingMerge && (
 						<MergePreview
@@ -501,7 +559,7 @@ export function LatexEditor({
 						/>
 					)}
 
-					{viewMode === 'visual' && !activePendingMerge && (
+					{viewMode === 'visual' && !activePendingMerge && activeFileId === 'main' && (
 						<LatexVisualEditor
 							content={view?.state.doc.toString() || initialContent || ''}
 							onEditorReady={setVisualEditor}

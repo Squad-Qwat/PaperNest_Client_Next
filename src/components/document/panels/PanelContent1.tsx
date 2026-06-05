@@ -2,9 +2,11 @@
 
 import {
 	ExternalLink,
+	FilePlus,
 	FileText,
 	Folder,
 	FolderOpen,
+	FolderPlus,
 	Loader2,
 	Trash2,
 	Upload,
@@ -17,6 +19,7 @@ import { type TreeDataItem, TreeView } from '@/components/tree-view'
 import { useFileOperations } from '@/hooks/editor/use-file-operations'
 import { useDocumentFiles } from '@/lib/api/hooks/use-document-files'
 import type { DocumentFile } from '@/lib/api/types/document.types'
+import { useAuthStore } from '@/lib/store/auth-store'
 import { buildFileTree } from '@/lib/utils/file-tree-utils'
 
 // --- Types ---
@@ -24,6 +27,7 @@ import { buildFileTree } from '@/lib/utils/file-tree-utils'
 interface FilesPanelProps {
 	documentId?: string | null
 	onInsertText?: (text: string) => void
+	onOpenFile?: (file: { fileId: string; name: string; content: string; url: string } | null) => void
 }
 
 interface FileTreeItemProps {
@@ -40,6 +44,16 @@ interface FileTreeItemProps {
 }
 
 // --- Sub-Components ---
+
+const getFileIconColor = (name: string) => {
+	const ext = name.split('.').pop()?.toLowerCase() || ''
+	if (ext === 'tex') return 'text-orange-500 dark:text-orange-400'
+	if (ext === 'bib') return 'text-sky-500 dark:text-sky-400'
+	if (['sty', 'cls'].includes(ext)) return 'text-violet-500 dark:text-violet-400'
+	if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext))
+		return 'text-emerald-500 dark:text-emerald-400'
+	return 'text-gray-400'
+}
 
 const FileTreeItem: React.FC<FileTreeItemProps> = ({
 	item,
@@ -114,12 +128,12 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({
 			<div className='flex items-center gap-2 flex-1 min-w-0'>
 				{isFolder ? (
 					isOpen ? (
-						<FolderOpen className='h-4 w-4 shrink-0 text-primary/70' />
+						<FolderOpen className='h-4 w-4 shrink-0 text-amber-500 dark:text-amber-400 fill-amber-500/10' />
 					) : (
-						<Folder className='h-4 w-4 shrink-0 text-primary/70' />
+						<Folder className='h-4 w-4 shrink-0 text-amber-500 dark:text-amber-400 fill-amber-500/10' />
 					)
 				) : (
-					item.icon && <item.icon className='h-4 w-4 shrink-0 text-gray-400' />
+					item.icon && <item.icon className={`h-4 w-4 shrink-0 ${getFileIconColor(item.name)}`} />
 				)}
 				<span
 					className={`text-sm truncate ${
@@ -139,12 +153,10 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({
 
 // --- Main Component ---
 
-const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, onInsertText }) => {
+const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, onInsertText, onOpenFile }) => {
 	const { data: files = [], isLoading } = useDocumentFiles(documentId)
-	const { isUploading, processUpload, handleDeleteFile, handleInternalMove } = useFileOperations(
-		documentId,
-		files
-	)
+	const { isUploading, processUpload, handleDeleteFile, handleInternalMove, handleCreateFile } =
+		useFileOperations(documentId, files)
 
 	const scrollContainerRef = React.useRef<HTMLDivElement>(null)
 	const [isDragging, setIsDragging] = useState(false)
@@ -155,6 +167,47 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, onInsertText }) => 
 		type: 'file' | 'folder'
 	} | null>(null)
 	const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null)
+
+	const [isCreating, setIsCreating] = useState<'file' | 'folder' | null>(null)
+	const [newName, setNewName] = useState('')
+	const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
+
+	const handleConfirmCreate = async (nameToCreate: string) => {
+		let name = nameToCreate.trim()
+		if (!name) {
+			setIsCreating(null)
+			return
+		}
+
+		// Prefix with selected folder if not already prefixed
+		if (selectedFolder && !name.startsWith(`${selectedFolder}/`)) {
+			name = `${selectedFolder}/${name}`
+		}
+
+		try {
+			if (isCreating === 'file') {
+				await handleCreateFile(name, `% New file: ${name}`)
+			} else {
+				const folderPath = `${name.replace(/\/$/, '')}/.gitkeep`
+				await handleCreateFile(folderPath, `% Placeholder file for folder: ${name}`)
+			}
+		} catch (err) {
+			console.error(err)
+		} finally {
+			setIsCreating(null)
+			setNewName('')
+		}
+	}
+
+	const onNewFile = useCallback(() => {
+		setIsCreating('file')
+		setNewName('')
+	}, [])
+
+	const onNewFolder = useCallback(() => {
+		setIsCreating('folder')
+		setNewName('')
+	}, [])
 
 	useEffect(() => {
 		setPortalTarget(document.getElementById('panel-header-actions'))
@@ -207,41 +260,112 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, onInsertText }) => 
 		[onInsertText]
 	)
 
+	const handleEditFile = useCallback(
+		async (file: DocumentFile) => {
+			if (!onOpenFile) return
+
+			const isImage =
+				file.type?.startsWith('image/') || file.name.match(/\.(png|jpe?g|gif|webp|svg)$/i)
+
+			try {
+				toast.loading(isImage ? 'Loading image...' : 'Loading file...', { id: 'load-file' })
+
+				const { accessToken } = useAuthStore.getState()
+				const proxyUrl = `${process.env.NEXT_PUBLIC_API_URL}/upload/download?url=${encodeURIComponent(file.url)}&t=${Date.now()}`
+
+				const response = await fetch(proxyUrl, {
+					headers: {
+						Authorization: `Bearer ${accessToken}`,
+					},
+				})
+
+				if (!response.ok)
+					throw new Error(
+						isImage ? 'Failed to fetch image content' : 'Failed to fetch file content'
+					)
+
+				let content = ''
+				if (isImage) {
+					let blob = await response.blob()
+					if (blob.type === 'application/octet-stream' || !blob.type) {
+						let mimeType = 'image/png'
+						const ext = file.name.split('.').pop()?.toLowerCase()
+						if (ext === 'jpg' || ext === 'jpeg') mimeType = 'image/jpeg'
+						else if (ext === 'gif') mimeType = 'image/gif'
+						else if (ext === 'webp') mimeType = 'image/webp'
+						else if (ext === 'svg') mimeType = 'image/svg+xml'
+
+						blob = new Blob([blob], { type: mimeType })
+					}
+					content = URL.createObjectURL(blob)
+				} else {
+					content = await response.text()
+				}
+
+				onOpenFile({
+					fileId: file.fileId,
+					name: file.name,
+					content: content,
+					url: file.url,
+				})
+				toast.dismiss('load-file')
+			} catch (error) {
+				console.error(error)
+				toast.dismiss('load-file')
+				toast.error(isImage ? 'Failed to open image' : 'Failed to open file for editing')
+			}
+		},
+		[onOpenFile]
+	)
+
 	const treeData = useMemo(() => {
-		return buildFileTree(files, (file) => (
-			<div className='flex items-center gap-1'>
-				<button
-					type='button'
-					onClick={(e) => {
-						e.stopPropagation()
-						handleInsertToEditor(file)
-					}}
-					className='p-1 hover:bg-white hover:text-primary rounded text-gray-400'
-				>
-					<Wand2 className='h-3.5 w-3.5' />
-				</button>
-				<a
-					href={file.url}
-					target='_blank'
-					rel='noopener noreferrer'
-					onClick={(e) => e.stopPropagation()}
-					className='p-1 hover:bg-white hover:text-blue-600 rounded text-gray-400'
-				>
-					<ExternalLink className='h-3.5 w-3.5' />
-				</a>
-				<button
-					type='button'
-					onClick={(e) => {
-						e.stopPropagation()
-						handleDeleteFile(file.fileId)
-					}}
-					className='p-1 hover:bg-white hover:text-red-600 rounded text-gray-400'
-				>
-					<Trash2 className='h-3.5 w-3.5' />
-				</button>
-			</div>
-		))
-	}, [files, handleDeleteFile, handleInsertToEditor])
+		return buildFileTree(
+			files,
+			(file) => (
+				<div className='flex items-center gap-1'>
+					<button
+						type='button'
+						onClick={(e) => {
+							e.stopPropagation()
+							handleInsertToEditor(file)
+						}}
+						className='p-1 hover:bg-white hover:text-primary rounded text-gray-400'
+					>
+						<Wand2 className='h-3.5 w-3.5' />
+					</button>
+					{!file.name.toLowerCase().endsWith('.bib') && (
+						<a
+							href={file.url}
+							target='_blank'
+							rel='noopener noreferrer'
+							onClick={(e) => e.stopPropagation()}
+							className='p-1 hover:bg-white hover:text-blue-600 rounded text-gray-400'
+						>
+							<ExternalLink className='h-3.5 w-3.5' />
+						</a>
+					)}
+					<button
+						type='button'
+						onClick={(e) => {
+							e.stopPropagation()
+							handleDeleteFile(file.fileId)
+						}}
+						className='p-1 hover:bg-white hover:text-red-600 rounded text-gray-400'
+					>
+						<Trash2 className='h-3.5 w-3.5' />
+					</button>
+				</div>
+			),
+			(file) => {
+				const isEditable = file.name.match(/\.(bib|sty|cls|tex|txt)$/i)
+				const isImage =
+					file.type?.startsWith('image/') || file.name.match(/\.(png|jpe?g|gif|webp|svg)$/i)
+				if (isEditable || isImage) {
+					handleEditFile(file)
+				}
+			}
+		)
+	}, [files, handleDeleteFile, handleInsertToEditor, handleEditFile])
 
 	return (
 		<section
@@ -280,43 +404,104 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, onInsertText }) => 
 
 			{portalTarget &&
 				createPortal(
-					<label className='cursor-pointer'>
-						<input
-							type='file'
-							className='hidden'
-							onChange={async (e) => {
-								const file = e.target.files?.[0]
-								if (file) await processUpload(file)
-								e.target.value = ''
-							}}
+					<div className='flex items-center gap-1'>
+						<button
+							type='button'
+							onClick={onNewFile}
 							disabled={isUploading || !documentId}
-							multiple
-						/>
-						<div
-							className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-semibold transition-all ${
-								isUploading
-									? 'text-gray-400 cursor-not-allowed'
-									: 'text-primary hover:bg-primary/10'
-							}`}
+							className='flex items-center justify-center p-1.5 rounded-md text-primary hover:bg-primary/10 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer'
+							title='New File'
 						>
-							{isUploading ? (
-								<Loader2 className='h-3.5 w-3.5 animate-spin' />
-							) : (
-								<Upload className='h-3.5 w-3.5' />
-							)}
-							<span className='hidden sm:inline'>{isUploading ? 'Uploading...' : 'Upload'}</span>
-						</div>
-					</label>,
+							<FilePlus className='h-4 w-4' />
+						</button>
+						<button
+							type='button'
+							onClick={onNewFolder}
+							disabled={isUploading || !documentId}
+							className='flex items-center justify-center p-1.5 rounded-md text-primary hover:bg-primary/10 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer'
+							title='New Folder'
+						>
+							<FolderPlus className='h-4 w-4' />
+						</button>
+						<label className='cursor-pointer'>
+							<input
+								type='file'
+								className='hidden'
+								onChange={async (e) => {
+									const file = e.target.files?.[0]
+									if (file) await processUpload(file)
+									e.target.value = ''
+								}}
+								disabled={isUploading || !documentId}
+								multiple
+							/>
+							<div
+								className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-semibold transition-all ${
+									isUploading
+										? 'text-gray-400 cursor-not-allowed'
+										: 'text-primary hover:bg-primary/10'
+								}`}
+							>
+								{isUploading ? (
+									<Loader2 className='h-3.5 w-3.5 animate-spin' />
+								) : (
+									<Upload className='h-3.5 w-3.5' />
+								)}
+								<span className='hidden sm:inline'>{isUploading ? 'Uploading...' : 'Upload'}</span>
+							</div>
+						</label>
+					</div>,
 					portalTarget
 				)}
 
-			<div className='flex-1 overflow-y-auto custom-scrollbar' ref={scrollContainerRef}>
+			<div
+				className='flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1'
+				ref={scrollContainerRef}
+			>
+				{isCreating && (
+					<div className='flex items-center gap-2.5 py-1 px-2 pl-4 rounded-md min-w-0 w-full'>
+						<div className='flex items-center gap-2 flex-1 min-w-0'>
+							<div className='w-4 mr-1 shrink-0' />
+							{isCreating === 'folder' ? (
+								<FolderOpen className='h-4 w-4 shrink-0 text-amber-500 dark:text-amber-400 fill-amber-500/10' />
+							) : (
+								<FileText className='h-4 w-4 shrink-0 text-gray-400' />
+							)}
+							<input
+								type='text'
+								value={newName}
+								onChange={(e) => setNewName(e.target.value)}
+								onKeyDown={async (e) => {
+									if (e.key === 'Enter') {
+										await handleConfirmCreate(newName)
+									} else if (e.key === 'Escape') {
+										setIsCreating(null)
+										setNewName('')
+									}
+								}}
+								onBlur={() => {
+									setTimeout(() => {
+										setIsCreating(null)
+										setNewName('')
+									}, 200)
+								}}
+								className='flex-1 bg-white dark:bg-gray-900 text-sm text-gray-700 outline-none border border-blue-500 rounded px-1.5 py-0.5 focus:ring-1 focus:ring-blue-500/50'
+								placeholder={
+									isCreating === 'folder'
+										? `${selectedFolder ? `${selectedFolder}/` : ''}folder-name`
+										: `${selectedFolder ? `${selectedFolder}/` : ''}file-name.tex`
+								}
+							/>
+						</div>
+					</div>
+				)}
+
 				{isLoading ? (
 					<div className='flex flex-col items-center justify-center h-40 gap-2 opacity-50'>
 						<Loader2 className='h-6 w-6 animate-spin text-primary' />
 						<span className='text-xs text-gray-500 font-medium'>Syncing...</span>
 					</div>
-				) : treeData.length === 0 ? (
+				) : treeData.length === 0 && !isCreating ? (
 					<div className='flex flex-col items-center justify-center p-8 text-center gap-3 opacity-40'>
 						<div className='p-3 bg-gray-50 rounded-full'>
 							<FileText className='h-8 w-8 text-gray-400' />
@@ -324,22 +509,40 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, onInsertText }) => 
 						<p className='text-sm font-medium text-gray-600'>No files yet</p>
 					</div>
 				) : (
-					<TreeView
-						data={treeData}
-						className='w-full'
-						expandAll={true}
-						renderItem={(params) => (
-							<FileTreeItem
-								{...params}
-								draggedItem={draggedItem}
-								setDraggedItem={setDraggedItem}
-								dragOverFolder={dragOverFolder}
-								setDragOverFolder={setDragOverFolder}
-								onInternalMove={handleInternalMove as any}
-								onExternalUpload={processUpload as any}
-							/>
-						)}
-					/>
+					(treeData.length > 0 || isCreating) && (
+						<TreeView
+							data={treeData}
+							className='w-full'
+							expandAll={true}
+							onSelectChange={(item) => {
+								if (item) {
+									if (item.children) {
+										// It's a folder
+										setSelectedFolder(item.id.replace('folder-', ''))
+									} else {
+										// It's a file, get its parent folder
+										const fullName = (item.metadata?.fullName as string) || item.name
+										const parts = fullName.split('/')
+										parts.pop()
+										setSelectedFolder(parts.length > 0 ? parts.join('/') : null)
+									}
+								} else {
+									setSelectedFolder(null)
+								}
+							}}
+							renderItem={(params) => (
+								<FileTreeItem
+									{...params}
+									draggedItem={draggedItem}
+									setDraggedItem={setDraggedItem}
+									dragOverFolder={dragOverFolder}
+									setDragOverFolder={setDragOverFolder}
+									onInternalMove={handleInternalMove as any}
+									onExternalUpload={processUpload as any}
+								/>
+							)}
+						/>
+					)
 				)}
 			</div>
 		</section>

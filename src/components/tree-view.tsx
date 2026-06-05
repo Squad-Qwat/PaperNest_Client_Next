@@ -23,6 +23,7 @@ interface TreeDataItem {
 	children?: TreeDataItem[]
 	actions?: React.ReactNode
 	onClick?: () => void
+	onDoubleClick?: () => void
 	draggable?: boolean
 	droppable?: boolean
 	disabled?: boolean
@@ -436,6 +437,11 @@ const TreeLeaf = React.forwardRef<
 					if (item.disabled) return
 					handleSelectChange(item)
 					item.onClick?.()
+				}}
+				onDoubleClick={(e) => {
+					if (item.disabled) return
+					e.stopPropagation()
+					item.onDoubleClick?.()
 				}}
 				onKeyDown={(e) => {
 					if (item.disabled) return

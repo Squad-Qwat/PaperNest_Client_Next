@@ -59,6 +59,7 @@
 		"@radix-ui/react-toast": "^1.2.15",
 		"@radix-ui/react-tooltip": "^1.2.8",
 		"@radix-ui/react-use-controllable-state": "^1.2.2",
+		"@replit/codemirror-indentation-markers": "^6.5.3",
 		"@rive-app/react-webgl2": "^4.27.2",
 		"@sentry/nextjs": "^10.53.1",
 		"@shikijs/langs": "^4.0.2",

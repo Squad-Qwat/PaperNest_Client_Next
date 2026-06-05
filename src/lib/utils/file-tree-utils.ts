@@ -17,7 +17,8 @@ export const getFileIcon = (name: string, type?: string) => {
  */
 export const buildFileTree = (
 	files: DocumentFile[],
-	actionsRenderer: (file: DocumentFile) => React.ReactNode
+	actionsRenderer: (file: DocumentFile) => React.ReactNode,
+	onItemDoubleClick?: (file: DocumentFile) => void
 ): TreeDataItem[] => {
 	const root: TreeDataItem[] = []
 	const folderMap: Record<string, TreeDataItem> = {}
@@ -37,6 +38,7 @@ export const buildFileTree = (
 					icon: getFileIcon(file.name, file.type),
 					metadata: { fullName: file.name },
 					actions: actionsRenderer(file),
+					onDoubleClick: onItemDoubleClick ? () => onItemDoubleClick(file) : undefined,
 				})
 			} else {
 				if (!folderMap[pathSoFar]) {
