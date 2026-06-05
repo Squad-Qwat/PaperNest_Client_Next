@@ -17,8 +17,22 @@ import { validateProtectedBlock } from '@/lib/latex/LaTeXProtectedBlockValidator
 
 // Helper to extract image name from LaTeX figure command
 const getFigureImageName = (latex: string): string | null => {
-	const match = latex.match(/\\includegraphics\s*(?:\[[^\]]*\])?\s*\{([^{}]+)\}/)
-	return match ? match[1].trim() : null
+	const marker = '\\includegraphics'
+	const idx = latex.indexOf(marker)
+	if (idx === -1) return null
+
+	const openBraceIdx = latex.indexOf('{', idx + marker.length)
+	if (openBraceIdx === -1) return null
+
+	const intermediate = latex.slice(idx + marker.length, openBraceIdx).trim()
+	if (intermediate !== '' && !/^[\[].*[\]]$/.test(intermediate)) {
+		return null
+	}
+
+	const closeBraceIdx = latex.indexOf('}', openBraceIdx)
+	if (closeBraceIdx === -1) return null
+
+	return latex.slice(openBraceIdx + 1, closeBraceIdx).trim()
 }
 
 // Helper to extract basename from path (e.g. "images/photo.png" -> "photo.png")
