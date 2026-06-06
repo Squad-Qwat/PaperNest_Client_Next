@@ -24,6 +24,7 @@ interface ToolExecutionContext {
 	store: any
 	toolRetryCount: Map<string, number>
 	workingDocTextRef: { current: string }
+	docVersionToken: string | null
 }
 
 const prepareChatAttachments = (files?: any[]) => {
@@ -69,7 +70,15 @@ const executeSingleTool = async (
 	toolData: any,
 	ctx: ToolExecutionContext
 ): Promise<{ result: any; shouldStop?: boolean }> => {
-	const { assistantKey, documentId, editor, store, toolRetryCount, workingDocTextRef } = ctx
+	const {
+		assistantKey,
+		documentId,
+		editor,
+		store,
+		toolRetryCount,
+		workingDocTextRef,
+		docVersionToken,
+	} = ctx
 	const toolSignature = `${toolData.name}:${JSON.stringify(toolData.args)}`
 	const retryCount = (toolRetryCount.get(toolSignature) || 0) + 1
 	toolRetryCount.set(toolSignature, retryCount)
@@ -116,7 +125,13 @@ const executeSingleTool = async (
 			toolArgs.stage = true
 		}
 
-		const result = await executeEditorTool(editor, toolData.name, toolArgs, documentId)
+		const result = await executeEditorTool(
+			editor,
+			toolData.name,
+			toolArgs,
+			documentId,
+			docVersionToken
+		)
 
 		if (result && typeof result === 'object' && result.type === 'staged_change') {
 			if (editor?.setPendingMerge) {
@@ -262,6 +277,11 @@ export function useAIChat({ editor, documentId, workspaceId }: UseAIChatOptions)
 
 			workingDocTextRef.current = editorRef.current?.getCurrentContent?.() ?? ''
 
+			// Capture a lightweight version token at the start of this conversation turn.
+			// Forwarded to executeEditorTool so it can detect document changes for
+			// non-staged direct tool applications.
+			const snapshotToken = editorRef.current?.getDocVersionToken?.() ?? null
+
 			try {
 				const MAX_STEPS = 20
 				let currentStep = 0
@@ -271,6 +291,13 @@ export function useAIChat({ editor, documentId, workspaceId }: UseAIChatOptions)
 
 				while (shouldContinue && currentStep < MAX_STEPS) {
 					currentStep++
+
+					// Refresh document snapshot every iteration so the LLM always plans
+					// against the current document state, not the stale T₀ snapshot.
+					const freshContent = editorRef.current?.getCurrentContent?.()
+					if (freshContent !== undefined) {
+						workingDocTextRef.current = freshContent
+					}
 
 					const currentState = useAIChatStore.getState()
 					const conversationHistory = buildConversationHistory(currentState.messages)
@@ -293,6 +320,7 @@ export function useAIChat({ editor, documentId, workspaceId }: UseAIChatOptions)
 						files: currentStep === 1 ? attachments : undefined,
 						taggedDocumentIds: currentStep === 1 ? taggedDocumentIds : undefined,
 						activeFileName: editorRef.current?.getActiveFileName?.() ?? 'main.tex',
+						docVersionToken: snapshotToken ?? undefined,
 					}
 
 					const stream = await aiService.streamChat(payload, combinedSignal)
@@ -304,6 +332,7 @@ export function useAIChat({ editor, documentId, workspaceId }: UseAIChatOptions)
 						store,
 						toolRetryCount,
 						workingDocTextRef,
+						docVersionToken: snapshotToken,
 					}
 
 					const streamResult = await processSSEEventStream(stream, streamCtx)

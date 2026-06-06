@@ -87,9 +87,12 @@ export const createCodeMirrorTools = () => {
 			{
 				name: 'search_text_lines',
 				description:
-					'Search for text within the document by line content. Returns matching line numbers and text.',
+					'Search for text within the document by line content. Returns matching line numbers and text. ' +
+					'IMPORTANT: The query is a literal string matched exactly as it appears in the document. ' +
+					'For LaTeX backslash commands, use a single backslash in the query ' +
+					'(e.g., search "begin{abstract}" or "\\begin{abstract}", NOT "\\\\begin{abstract}").',
 				schema: z.object({
-					query: z.string().describe('Text to search for'),
+					query: z.string().describe('Text to search for, exactly as it appears in the document'),
 					caseSensitive: z
 						.boolean()
 						.optional()
@@ -98,16 +101,31 @@ export const createCodeMirrorTools = () => {
 			}
 		),
 		tool(
-			async ({ fromLine, toLine, newContent }) =>
-				JSON.stringify({ action: 'replace_lines', fromLine, toLine, newContent }),
+			async ({ fromLine, toLine, newContent, expectedFirstLineContent }) =>
+				JSON.stringify({
+					action: 'replace_lines',
+					fromLine,
+					toLine,
+					newContent,
+					expectedFirstLineContent,
+				}),
 			{
 				name: 'replace_lines',
 				description:
-					'Replace content in a range of lines. More robust than apply_diff_edit for multi-line changes.',
+					'Replace content in a range of lines. More robust than apply_diff_edit for multi-line changes. ' +
+					'Always include expectedFirstLineContent (copy the exact text of fromLine from read_document) ' +
+					'so the system can verify the target line has not shifted before applying.',
 				schema: z.object({
 					fromLine: z.number().describe('Start line number (1-based)'),
 					toLine: z.number().describe('End line number (inclusive)'),
 					newContent: z.string().describe('New content to insert'),
+					expectedFirstLineContent: z
+						.string()
+						.optional()
+						.describe(
+							'Exact text of the fromLine as returned by read_document. Used to verify the ' +
+								'target line has not shifted due to concurrent edits. Always include this.'
+						),
 				}),
 			}
 		),

@@ -35,6 +35,17 @@ const createStagedChangeId = (): string => {
 	return `staged_${Date.now()}_${Date.now().toString(36)}`
 }
 
+/**
+ * Lightweight document version token — mirrors the one in LatexEditor.tsx.
+ * Cheap enough to compute on every tool call for change detection.
+ */
+const computeDocToken = (content: string): string => {
+	const len = content.length
+	const head = content.slice(0, 64)
+	const tail = content.slice(-64)
+	return `${len}:${head}|${tail}`
+}
+
 const createAnchoredReplacePair = (
 	docText: string,
 	from: number,
@@ -273,7 +284,8 @@ export const executeEditorTool = async (
 	editor: any,
 	toolName: string,
 	args: any,
-	_documentId?: string
+	_documentId?: string,
+	docVersionToken?: string | null
 ): Promise<any> => {
 	if (!editor) return 'Error: Editor not available'
 
@@ -287,6 +299,22 @@ export const executeEditorTool = async (
 			? editor.getCurrentContent()
 			: view.state.doc.toString()
 	const doc = Text.of(rawContent.split('\n'))
+
+	// For non-staged direct-apply tools: detect if the document changed since the LLM
+	// took its snapshot. Staged tools go through MergePreview + user review, so they
+	// are already protected by getRebasedPreview. Direct tools apply immediately.
+	const NON_STAGED_DIRECT_TOOLS = new Set(['apply_diff_edit', 'replace_lines', 'insert_content'])
+	const isNonStagedDirectApply = NON_STAGED_DIRECT_TOOLS.has(toolName) && !args.stage
+	if (isNonStagedDirectApply && docVersionToken) {
+		const currentToken = computeDocToken(rawContent)
+		if (currentToken !== docVersionToken) {
+			return (
+				`Warning: Document changed since your last read_document call. ` +
+				`Your line numbers and text positions may be stale. ` +
+				`Call read_document first to get the current document state, then retry your edit.`
+			)
+		}
+	}
 
 	try {
 		switch (toolName) {
@@ -383,10 +411,25 @@ export const executeEditorTool = async (
 			}
 
 			case 'replace_lines': {
-				const { fromLine, toLine, newContent, stage } = args
+				const { fromLine, toLine, newContent, stage, expectedFirstLineContent } = args
 
 				if (fromLine < 1 || toLine > doc.lines || fromLine > toLine) {
 					return `Error: Invalid line range ${fromLine}-${toLine}. Total lines: ${doc.lines}`
+				}
+
+				// Verify the target line content matches what the LLM saw when it called
+				// read_document. If lines shifted (user typed before this range), the LLM's
+				// line numbers are stale — reject and ask it to re-read.
+				if (expectedFirstLineContent) {
+					const actualFirstLineText = doc.line(fromLine).text
+					if (!actualFirstLineText.includes(expectedFirstLineContent.trim())) {
+						return (
+							`Error: Line ${fromLine} content mismatch — document may have shifted. ` +
+							`Expected to contain: "${expectedFirstLineContent.trim()}" ` +
+							`but found: "${actualFirstLineText}". ` +
+							`REQUIRED: Call read_document again to get current line numbers before retrying.`
+						)
+					}
 				}
 
 				const fromPos = doc.line(fromLine).from

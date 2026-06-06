@@ -2,7 +2,7 @@
 
 import { redo as cmRedo, undo as cmUndo } from '@codemirror/commands'
 import { EditorView } from '@codemirror/view'
-import { FileText } from 'lucide-react'
+import { FileText, Loader2 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import type React from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -70,6 +70,18 @@ type PendingMergeChange = {
 }
 
 const MAX_PENDING_MERGES = 50
+
+/**
+ * Lightweight document version token — cheap change detector.
+ * Not cryptographically secure; only used to detect if document changed
+ * between an LLM snapshot and a subsequent tool call.
+ */
+const computeDocToken = (content: string): string => {
+	const len = content.length
+	const head = content.slice(0, 64)
+	const tail = content.slice(-64)
+	return `${len}:${head}|${tail}`
+}
 
 export function LatexEditor({
 	documentId,
@@ -452,6 +464,10 @@ export function LatexEditor({
 		if (onEditorReady) {
 			onEditorReady({
 				getCurrentContent: () => getActiveView()?.state.doc.toString() ?? '',
+				getDocVersionToken: () => {
+					const content = getActiveView()?.state.doc.toString() ?? ''
+					return computeDocToken(content)
+				},
 				undo: () => {
 					const activeView = getActiveView()
 					if (activeView) cmUndo(activeView)
@@ -515,8 +531,9 @@ export function LatexEditor({
 			const containerWidth = containerRef.current?.offsetWidth || 1
 
 			const handleMouseMove = (moveEvent: MouseEvent) => {
+				moveEvent.preventDefault()
 				const deltaPercent = ((moveEvent.clientX - startX) / containerWidth) * 100
-				setEditorPdfSplitWidth(Math.min(Math.max(startWidth + deltaPercent, 30), 70))
+				setEditorPdfSplitWidth(Math.min(Math.max(startWidth + deltaPercent, 20), 80))
 			}
 
 			const handleMouseUp = () => {
@@ -533,9 +550,13 @@ export function LatexEditor({
 
 	return (
 		<div className='flex flex-col h-full w-full bg-white overflow-hidden'>
-			<div className='flex flex-1 overflow-hidden' ref={containerRef}>
+			<div
+				className={`flex flex-1 overflow-hidden relative ${isEditorPdfResizing ? 'select-none' : ''}`}
+				ref={containerRef}
+			>
+				{isEditorPdfResizing && <div className='absolute inset-0 z-50 cursor-ew-resize' />}
 				<div
-					className='relative bg-white border-r border-gray-100 flex flex-col min-h-0'
+					className='relative bg-white flex flex-col min-h-0 shrink-0'
 					style={{ width: `${editorPdfSplitWidth}%` }}
 				>
 					{openAuxiliaryFiles.length > 0 && setActiveFileId && onCloseAuxiliaryFile && (
@@ -637,26 +658,37 @@ export function LatexEditor({
 				</div>
 
 				<hr
-					className={`w-1 cursor-col-resize hover:bg-blue-400 transition-colors border-none ${
-						isEditorPdfResizing ? 'bg-blue-500' : 'bg-gray-200'
+					className={`w-1 h-full cursor-ew-resize transition-colors border-none relative z-30 shrink-0 ${
+						isEditorPdfResizing ? 'bg-gray-400' : 'bg-gray-200 hover:bg-gray-300'
 					}`}
 					onMouseDown={handleSplitMouseDown}
 				/>
 
 				<div
-					className={`overflow-hidden relative transition-all duration-200 ${pdfUrl ? 'bg-[#525659]' : 'bg-gray-50'}`}
+					className={`overflow-hidden relative flex-1 min-w-0 ${isEditorPdfResizing ? 'pointer-events-none' : 'transition-all duration-200'} ${pdfUrl ? 'bg-[#525659]' : 'bg-gray-50'}`}
 					style={{
-						width: `${100 - editorPdfSplitWidth}%`,
-						display: isEditorPdfResizing || isPdfHidden ? 'none' : 'flex',
+						display: isPdfHidden ? 'none' : 'flex',
 					}}
 				>
+					{isEditorPdfResizing && (
+						<div className='absolute inset-0 flex flex-col items-center justify-center text-gray-200 bg-[#323639] p-4 text-center text-sm z-10'>
+							<Loader2 className='w-6 h-6 animate-spin text-primary mb-2' />
+							<p className='font-medium text-xs'>Release to update preview...</p>
+						</div>
+					)}
+
 					{pdfUrl ? (
-						<PdfViewer
-							url={pdfUrl}
-							documentId={documentId || ''}
-							onSyncToCode={handleSyncToCode}
-							pdfViewerRef={pdfViewerRef}
-						/>
+						<div
+							className='w-full h-full'
+							style={{ display: isEditorPdfResizing ? 'none' : 'block' }}
+						>
+							<PdfViewer
+								url={pdfUrl}
+								documentId={documentId || ''}
+								onSyncToCode={handleSyncToCode}
+								pdfViewerRef={pdfViewerRef}
+							/>
+						</div>
 					) : (
 						<div className='absolute inset-0 flex flex-col items-center justify-center text-gray-400 p-4 text-center text-sm'>
 							<FileText className='w-10 h-10 mb-3 opacity-20' />

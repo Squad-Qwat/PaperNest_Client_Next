@@ -116,8 +116,8 @@ const DynamicContentPanel: React.FC<DynamicContentPanelProps> = ({
 		>
 			{/* Resize Handle - right edge */}
 			<hr
-				className={`absolute right-0 top-0 h-full w-1 cursor-ew-resize hover:bg-blue-500 transition-colors z-10 border-none ${
-					isResizing ? 'bg-blue-500' : 'bg-transparent hover:bg-blue-300'
+				className={`absolute right-0 top-0 h-full w-1 cursor-ew-resize transition-colors z-10 border-none ${
+					isResizing ? 'bg-gray-400' : 'bg-gray-200 hover:bg-gray-300'
 				}`}
 				onMouseDown={handleMouseDown}
 				aria-orientation='vertical'

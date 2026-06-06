@@ -134,7 +134,7 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 	}
 
 	return (
-		<div className='flex flex-col h-full w-full bg-white dark:bg-slate-950 overflow-hidden animate-in slide-in-from-right duration-300'>
+		<div className='flex flex-col h-full w-full bg-white dark:bg-slate-950 overflow-hidden'>
 			<AIChatHeader onClearChat={clearChat} onClose={onClose} />
 
 			<Conversation className='min-h-0 flex-1 border-b'>

@@ -103,6 +103,12 @@ export interface AIStreamPayload {
 	files?: MessageAttachment[]
 	taggedDocumentIds?: string[]
 	activeFileName?: string
+	/**
+	 * Lightweight document version token (content-length + head/tail hash).
+	 * Used by executeEditorTool to detect if the document changed between
+	 * the LLM snapshot and a non-staged tool application.
+	 */
+	docVersionToken?: string
 }
 
 /**
