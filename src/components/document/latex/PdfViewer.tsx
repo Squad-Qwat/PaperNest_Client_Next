@@ -1,6 +1,6 @@
 'use client'
 
-import { FileText, Loader2, ZoomIn, ZoomOut } from 'lucide-react'
+import { FileText, Loader2, Maximize2, ZoomIn, ZoomOut } from 'lucide-react'
 import * as pdfjsLib from 'pdfjs-dist'
 import type React from 'react'
 import { useEffect, useImperativeHandle, useRef, useState } from 'react'
@@ -29,6 +29,7 @@ export function PdfViewer({ url, documentId, onSyncToCode, pdfViewerRef }: PdfVi
 	const [pdf, setPdf] = useState<pdfjsLib.PDFDocumentProxy | null>(null)
 	const [numPages, setNumPages] = useState<number>(0)
 	const [scale, setScale] = useState<number>(1.2)
+	const [scaleMode, setScaleMode] = useState<'fit' | 'manual'>('fit')
 	const [loading, setLoading] = useState<boolean>(true)
 	const containerRef = useRef<HTMLDivElement>(null)
 	const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map())
@@ -84,7 +85,7 @@ export function PdfViewer({ url, documentId, onSyncToCode, pdfViewerRef }: PdfVi
 
 					const indicator = document.createElement('div')
 					indicator.className =
-						'absolute bg-blue-500/30 border border-blue-500 rounded pointer-events-none transition-opacity duration-1000 z-10'
+						'absolute bg-primary/30 border border-primary rounded pointer-events-none transition-opacity duration-1000 z-10'
 					indicator.style.left = `${left}px`
 					indicator.style.top = `${top}px`
 					indicator.style.width = `${width}px`
@@ -127,6 +128,38 @@ export function PdfViewer({ url, documentId, onSyncToCode, pdfViewerRef }: PdfVi
 		}
 	}, [url])
 
+	// Observe container size and fit page to width if scaleMode is 'fit'
+	useEffect(() => {
+		if (!pdf || scaleMode !== 'fit' || !containerRef.current) return
+
+		const handleResize = async () => {
+			try {
+				const page = await pdf.getPage(1)
+				const viewport = page.getViewport({ scale: 1 })
+				const containerWidth = containerRef.current?.clientWidth || 0
+				// Subtract padding (p-6 is 24px left + 24px right = 48px total)
+				const padding = 48
+				if (containerWidth > padding + 20) {
+					const calculatedScale = (containerWidth - padding) / viewport.width
+					setScale(Math.min(Math.max(calculatedScale, 0.3), 3.0))
+				}
+			} catch (err) {
+				console.error('Error fitting PDF to width:', err)
+			}
+		}
+
+		handleResize()
+
+		const observer = new ResizeObserver(() => {
+			handleResize()
+		})
+		observer.observe(containerRef.current)
+
+		return () => {
+			observer.disconnect()
+		}
+	}, [pdf, scaleMode])
+
 	const handlePageDoubleClick = async (e: React.MouseEvent<HTMLDivElement>, pageNumber: number) => {
 		if (!pdf || !onSyncToCode) return
 
@@ -162,24 +195,46 @@ export function PdfViewer({ url, documentId, onSyncToCode, pdfViewerRef }: PdfVi
 			{/* Toolbar */}
 			<div className='flex items-center justify-between px-4 py-2 bg-[#323639] text-white select-none z-10 shadow-md'>
 				<div className='flex items-center gap-2 text-xs font-medium text-gray-300'>
-					<FileText className='w-4 h-4 text-blue-400' />
+					<FileText className='w-4 h-4 text-primary' />
 					<span>Document Preview ({numPages} Pages)</span>
 				</div>
 				<div className='flex items-center gap-2'>
 					<button
 						type='button'
-						onClick={() => setScale((s) => Math.max(s - 0.1, 0.5))}
+						onClick={() => {
+							setScaleMode('manual')
+							setScale((s) => Math.max(s - 0.1, 0.3))
+						}}
 						className='p-1 rounded hover:bg-white/10 text-gray-300 hover:text-white transition-colors'
+						title='Zoom Out'
 					>
 						<ZoomOut className='w-4 h-4' />
 					</button>
 					<span className='text-xs font-mono px-2 text-gray-300'>{Math.round(scale * 100)}%</span>
 					<button
 						type='button'
-						onClick={() => setScale((s) => Math.min(s + 0.1, 3.0))}
+						onClick={() => {
+							setScaleMode('manual')
+							setScale((s) => Math.min(s + 0.1, 3.0))
+						}}
 						className='p-1 rounded hover:bg-white/10 text-gray-300 hover:text-white transition-colors'
+						title='Zoom In'
 					>
 						<ZoomIn className='w-4 h-4' />
+					</button>
+					<div className='w-px h-4 bg-white/20 mx-1' />
+					<button
+						type='button'
+						onClick={() => setScaleMode('fit')}
+						className={`px-2 py-1 rounded text-[10px] font-bold uppercase transition-all flex items-center gap-1 ${
+							scaleMode === 'fit'
+								? 'bg-primary text-primary-foreground'
+								: 'hover:bg-white/10 text-gray-300 hover:text-white'
+						}`}
+						title='Fit to Width'
+					>
+						<Maximize2 className='w-3 h-3' />
+						<span>Fit Width</span>
 					</button>
 				</div>
 			</div>
@@ -188,7 +243,7 @@ export function PdfViewer({ url, documentId, onSyncToCode, pdfViewerRef }: PdfVi
 			<div ref={containerRef} className='flex-1 overflow-auto p-6 flex flex-col items-center gap-6'>
 				{loading ? (
 					<div className='flex flex-col items-center justify-center h-full text-white/50 gap-2'>
-						<Loader2 className='w-8 h-8 animate-spin text-blue-400' />
+						<Loader2 className='w-8 h-8 animate-spin text-primary' />
 						<span className='text-sm'>Loading PDF document...</span>
 					</div>
 				) : (
@@ -228,6 +283,7 @@ function PdfPage({ pdf, pageNumber, scale, onDoubleClick, registerRef }: PdfPage
 
 	useEffect(() => {
 		let isCurrent = true
+		let renderTask: any = null
 
 		const renderPage = async () => {
 			try {
@@ -259,7 +315,8 @@ function PdfPage({ pdf, pageNumber, scale, onDoubleClick, registerRef }: PdfPage
 					canvas: canvas,
 				}
 
-				await page.render(renderContext).promise
+				renderTask = page.render(renderContext)
+				await renderTask.promise
 
 				// Render Text Layer
 				if (textLayerRef.current) {
@@ -277,8 +334,14 @@ function PdfPage({ pdf, pageNumber, scale, onDoubleClick, registerRef }: PdfPage
 				if (isCurrent) {
 					setRendered(true)
 				}
-			} catch (error) {
-				console.error('Error rendering page:', error)
+			} catch (error: any) {
+				// PDF.js throws a RenderingCancelledException when cancelled, which is safe to ignore
+				if (
+					error?.name !== 'RenderingCancelledException' &&
+					error?.message !== 'Rendering cancelled'
+				) {
+					console.error('Error rendering page:', error)
+				}
 			}
 		}
 
@@ -286,6 +349,13 @@ function PdfPage({ pdf, pageNumber, scale, onDoubleClick, registerRef }: PdfPage
 
 		return () => {
 			isCurrent = false
+			if (renderTask) {
+				try {
+					renderTask.cancel()
+				} catch (_e) {
+					// Ignore sync errors during cancel
+				}
+			}
 		}
 	}, [pdf, pageNumber, scale])
 

@@ -81,7 +81,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 
 	return (
 		<div
-			className='bg-white border-l border-gray-200 shadow-lg flex shrink-0 relative overflow-hidden'
+			className='bg-white border-l border-gray-200 flex shrink-0 relative overflow-hidden'
 			style={{
 				width: `${width}px`,
 				height: '100%', // Full height of parent container
@@ -93,8 +93,8 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 		>
 			{/* Resize Handle */}
 			<hr
-				className={`absolute left-0 top-0 h-full w-1 cursor-ew-resize hover:bg-blue-500 transition-colors z-10 border-none ${
-					isResizing ? 'bg-blue-500' : 'bg-transparent hover:bg-blue-300'
+				className={`absolute left-0 top-0 h-full w-1 cursor-ew-resize transition-colors z-10 border-none ${
+					isResizing ? 'bg-gray-400' : 'bg-gray-200 hover:bg-gray-300'
 				}`}
 				onMouseDown={handleMouseDown}
 				aria-orientation='vertical'
