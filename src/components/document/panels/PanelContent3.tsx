@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 import { useParams } from 'next/navigation'
 import type React from 'react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { apiClient } from '@/lib/api/clients/api-client'
 import {
@@ -100,7 +100,7 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 	}, [citations, localSearch])
 
 	// Sync to .bib file helper
-	const handleSyncBibTeX = async () => {
+	const handleSyncBibTeX = useCallback(async () => {
 		if (citations.length === 0) {
 			toast.error('No citations to sync!')
 			return
@@ -176,7 +176,7 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 		} finally {
 			setIsSyncingBib(false)
 		}
-	}
+	}, [citations, documentId, files, addDocumentFileMutation, queryClient])
 
 	useEffect(() => {
 		if (isSyncPending.current && !isCitationsLoading) {

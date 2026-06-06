@@ -135,7 +135,7 @@ export function MergePreview({
 									console.error('Merge control action failed:', err)
 									try {
 										;(action as any)()
-									} catch (e2) {}
+									} catch (_e2) {}
 								}
 							}
 							btn.onclick = (e) => {

@@ -24,6 +24,7 @@ export function EditorTabs({
 	return (
 		<div className='flex items-center overflow-x-auto bg-[#F8F9FA] border-b border-gray-200 select-none custom-scrollbar shrink-0'>
 			{/* Main Document Tab */}
+			{/* biome-ignore lint/a11y/useSemanticElements: Using div with button role for custom tab layouts */}
 			<div
 				role='button'
 				tabIndex={0}
@@ -43,6 +44,7 @@ export function EditorTabs({
 
 			{/* Auxiliary Files Tabs */}
 			{openFiles.map((file) => (
+				/* biome-ignore lint/a11y/useSemanticElements: Using div with button role for custom tab layouts */
 				<div
 					key={file.fileId}
 					role='button'
@@ -63,6 +65,7 @@ export function EditorTabs({
 					<span className='text-sm'>{file.name}</span>
 
 					{/* Dirty Indicator / Close Button */}
+					{/* biome-ignore lint/a11y/useSemanticElements: Using div with button role for nested close button */}
 					<div
 						role='button'
 						tabIndex={0}

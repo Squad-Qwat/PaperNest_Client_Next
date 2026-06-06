@@ -75,7 +75,7 @@ export function LatexEditor({
 	documentId,
 	user,
 	initialContent,
-	title,
+	title: _title,
 	onEditorReady,
 	onAutoSaveStateChange,
 	isPdfHidden = false,
@@ -125,32 +125,39 @@ export function LatexEditor({
 		[autoCompile, handleCompile]
 	)
 
-	const enqueuePendingMerge = useCallback((data: PendingMergeChange | null) => {
-		if (!data) return
+	const enqueuePendingMerge = useCallback(
+		(data: PendingMergeChange | null) => {
+			if (!data) return
 
-		const mergeData = {
-			...data,
-			targetFileId: data.targetFileId || activeFileId,
-		}
+			const mergeData = {
+				...data,
+				targetFileId: data.targetFileId || activeFileId,
+			}
 
-		setPendingMerges((prev) => {
-			if (prev.length >= MAX_PENDING_MERGES) return prev
+			setPendingMerges((prev) => {
+				if (prev.length >= MAX_PENDING_MERGES) return prev
 
-			const incomingSignature = getMergeSignature(mergeData)
-			const hasDuplicate = prev.some((item) => getMergeSignature(item) === incomingSignature)
-			if (hasDuplicate) return prev
+				const incomingSignature = getMergeSignature(mergeData)
+				const hasDuplicate = prev.some((item) => getMergeSignature(item) === incomingSignature)
+				if (hasDuplicate) return prev
 
-			setLastBatchSummary(null)
-			return [...prev, mergeData]
-		})
-	}, [activeFileId])
+				setLastBatchSummary(null)
+				return [...prev, mergeData]
+			})
+		},
+		[activeFileId]
+	)
 
 	const consumePendingMerge = useCallback(() => {
 		setPendingMerges((prev) => prev.slice(1))
 	}, [])
 
 	useEffect(() => {
-		if (activePendingMerge?.targetFileId && setActiveFileId && activeFileId !== activePendingMerge.targetFileId) {
+		if (
+			activePendingMerge?.targetFileId &&
+			setActiveFileId &&
+			activeFileId !== activePendingMerge.targetFileId
+		) {
 			setActiveFileId(activePendingMerge.targetFileId)
 		}
 	}, [activePendingMerge, activeFileId, setActiveFileId])
@@ -472,7 +479,8 @@ export function LatexEditor({
 				syncToPdf: handleSyncToPdf,
 				autoCompile,
 				toggleAutoCompile: () => setAutoCompile((a) => !a),
-				getActiveFileName: () => activeFileId === 'main' ? 'main.tex' : activeAuxiliaryFile?.name ?? 'unknown',
+				getActiveFileName: () =>
+					activeFileId === 'main' ? 'main.tex' : (activeAuxiliaryFile?.name ?? 'unknown'),
 			})
 		}
 	}, [
