@@ -124,10 +124,23 @@ export function MergePreview({
 							const btn = document.createElement('button')
 							btn.className = `cm-merge-control cm-merge-control-${type} pb-5`
 							btn.innerHTML = `<span>${type === 'accept' ? 'Accept' : 'Reject'}</span>`
+							btn.onmousedown = (e) => {
+								e.preventDefault()
+								e.stopPropagation()
+								try {
+									// Call action with event first, if it fails, call without
+									// Some CodeMirror versions expect no args for action()
+									;(action as any)(e)
+								} catch (err) {
+									console.error('Merge control action failed:', err)
+									try {
+										;(action as any)()
+									} catch (_e2) {}
+								}
+							}
 							btn.onclick = (e) => {
 								e.preventDefault()
 								e.stopPropagation()
-								action(e)
 							}
 							return btn
 						},
@@ -342,6 +355,9 @@ export function MergePreview({
                     font-family: inherit !important;
                     transition: all 0.15s ease !important;
                     outline: none !important;
+                    pointer-events: auto !important;
+                    position: relative !important;
+                    z-index: 50 !important;
                 }
                 .cm-merge-control span {
                     pointer-events: none;

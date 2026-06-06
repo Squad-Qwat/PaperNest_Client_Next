@@ -292,6 +292,7 @@ export function useAIChat({ editor, documentId, workspaceId }: UseAIChatOptions)
 						modelId,
 						files: currentStep === 1 ? attachments : undefined,
 						taggedDocumentIds: currentStep === 1 ? taggedDocumentIds : undefined,
+						activeFileName: editorRef.current?.getActiveFileName?.() ?? 'main.tex',
 					}
 
 					const stream = await aiService.streamChat(payload, combinedSignal)

@@ -264,6 +264,7 @@ export function ProtectedBlockView({ node, updateAttributes, selected }: NodeVie
 					<thead>
 						<tr className='bg-gray-50 border-b border-gray-200/70 font-semibold text-gray-600'>
 							{Array.from({ length: maxCols }).map((_, colIdx) => (
+								/* biome-ignore lint/suspicious/noArrayIndexKey: static column list */
 								<th key={colIdx} className='px-4 py-2 border-r border-gray-200/60 last:border-0'>
 									Col {colIdx + 1}
 								</th>
@@ -272,9 +273,11 @@ export function ProtectedBlockView({ node, updateAttributes, selected }: NodeVie
 					</thead>
 					<tbody>
 						{tabularData.rows.map((row, rowIdx) => (
+							/* biome-ignore lint/suspicious/noArrayIndexKey: static row list */
 							<tr key={rowIdx} className='border-b border-gray-100 hover:bg-gray-50 last:border-0'>
 								{row.map((cell, cellIdx) => (
 									<td
+										/* biome-ignore lint/suspicious/noArrayIndexKey: static cell list */
 										key={cellIdx}
 										className='px-4 py-2.5 border-r border-gray-200/60 last:border-0 font-medium text-gray-800'
 									>
@@ -284,6 +287,7 @@ export function ProtectedBlockView({ node, updateAttributes, selected }: NodeVie
 								{row.length < maxCols &&
 									Array.from({ length: maxCols - row.length }).map((_, emptyIdx) => (
 										<td
+											/* biome-ignore lint/suspicious/noArrayIndexKey: static empty placeholder cells */
 											key={`empty-${emptyIdx}`}
 											className='px-4 py-2.5 border-r border-gray-200/60 last:border-0'
 										/>

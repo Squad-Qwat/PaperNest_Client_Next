@@ -37,9 +37,10 @@ interface CodeViewerProps {
 	}
 	readOnly?: boolean
 	onChange?: (newContent: string) => void
+	onViewReady?: (view: EditorView | null) => void
 }
 
-export function CodeViewer({ file, readOnly = false, onChange }: CodeViewerProps) {
+export function CodeViewer({ file, readOnly = false, onChange, onViewReady }: CodeViewerProps) {
 	const containerRef = useRef<HTMLDivElement>(null)
 	const viewRef = useRef<EditorView | null>(null)
 	const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -150,12 +151,14 @@ export function CodeViewer({ file, readOnly = false, onChange }: CodeViewerProps
 		})
 
 		viewRef.current = view
+		onViewReady?.(view)
 
 		return () => {
 			view.destroy()
 			viewRef.current = null
+			onViewReady?.(null)
 		}
-	}, [readOnly, file.content, onChange])
+	}, [readOnly, file.content, onChange, onViewReady])
 
 	return (
 		<div className='flex-1 min-h-0 w-full relative flex flex-col h-full'>

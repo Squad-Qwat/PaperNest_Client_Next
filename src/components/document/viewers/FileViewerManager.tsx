@@ -1,5 +1,4 @@
-'use client'
-
+import type { EditorView } from '@codemirror/view'
 import { CodeViewer } from './CodeViewer'
 import { ImageViewer } from './ImageViewer'
 
@@ -12,9 +11,15 @@ interface FileViewerManagerProps {
 	}
 	readOnly?: boolean
 	onChange?: (newContent: string) => void
+	onViewReady?: (view: EditorView | null) => void
 }
 
-export function FileViewerManager({ file, readOnly = false, onChange }: FileViewerManagerProps) {
+export function FileViewerManager({
+	file,
+	readOnly = false,
+	onChange,
+	onViewReady,
+}: FileViewerManagerProps) {
 	const ext = file.name.split('.').pop()?.toLowerCase() || ''
 
 	// Image extensions
@@ -23,5 +28,7 @@ export function FileViewerManager({ file, readOnly = false, onChange }: FileView
 	}
 
 	// Default/fallback: treat as code/text
-	return <CodeViewer file={file} readOnly={readOnly} onChange={onChange} />
+	return (
+		<CodeViewer file={file} readOnly={readOnly} onChange={onChange} onViewReady={onViewReady} />
+	)
 }
