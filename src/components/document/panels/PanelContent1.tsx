@@ -16,6 +16,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import { type TreeDataItem, TreeView } from '@/components/tree-view'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useFileOperations } from '@/hooks/editor/use-file-operations'
 import { useDocumentFiles } from '@/lib/api/hooks/use-document-files'
 import type { DocumentFile } from '@/lib/api/types/document.types'
@@ -171,6 +172,13 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, onInsertText, onOpe
 	const [isCreating, setIsCreating] = useState<'file' | 'folder' | null>(null)
 	const [newName, setNewName] = useState('')
 	const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
+	const [deleteConfirmFileId, setDeleteConfirmFileId] = useState<string | null>(null)
+
+	const handleConfirmDelete = useCallback(() => {
+		if (!deleteConfirmFileId) return
+		handleDeleteFile(deleteConfirmFileId)
+		setDeleteConfirmFileId(null)
+	}, [deleteConfirmFileId, handleDeleteFile])
 
 	const handleConfirmCreate = async (nameToCreate: string) => {
 		let name = nameToCreate.trim()
@@ -348,7 +356,7 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, onInsertText, onOpe
 						type='button'
 						onClick={(e) => {
 							e.stopPropagation()
-							handleDeleteFile(file.fileId)
+							setDeleteConfirmFileId(file.fileId)
 						}}
 						className='p-1 hover:bg-white hover:text-red-600 rounded text-gray-400'
 					>
@@ -365,7 +373,7 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, onInsertText, onOpe
 				}
 			}
 		)
-	}, [files, handleDeleteFile, handleInsertToEditor, handleEditFile])
+	}, [files, handleInsertToEditor, handleEditFile])
 
 	return (
 		<section
@@ -545,6 +553,17 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, onInsertText, onOpe
 					)
 				)}
 			</div>
+
+			<ConfirmDialog
+				isOpen={deleteConfirmFileId !== null}
+				onClose={() => setDeleteConfirmFileId(null)}
+				onConfirm={handleConfirmDelete}
+				title='Delete File'
+				message='Are you sure you want to delete this file? This action cannot be undone.'
+				confirmText='Delete'
+				cancelText='Cancel'
+				variant='danger'
+			/>
 		</section>
 	)
 }
