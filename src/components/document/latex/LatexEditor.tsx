@@ -66,6 +66,7 @@ type PendingMergeChange = {
 	searchBlock?: string[]
 	replaceBlock?: string[]
 	description?: string
+	targetFileId?: string
 }
 
 const MAX_PENDING_MERGES = 50
@@ -110,6 +111,7 @@ export function LatexEditor({
 	const containerRef = useRef<HTMLDivElement>(null)
 	const activePendingMerge = pendingMerges[0] ?? null
 	const pdfViewerRef = useRef<PdfViewerRefActions | null>(null)
+	const auxViewRef = useRef<EditorView | null>(null)
 
 	const handleDocChange = useCallback(
 		(content: string) => {
@@ -126,21 +128,32 @@ export function LatexEditor({
 	const enqueuePendingMerge = useCallback((data: PendingMergeChange | null) => {
 		if (!data) return
 
+		const mergeData = {
+			...data,
+			targetFileId: data.targetFileId || activeFileId,
+		}
+
 		setPendingMerges((prev) => {
 			if (prev.length >= MAX_PENDING_MERGES) return prev
 
-			const incomingSignature = getMergeSignature(data)
+			const incomingSignature = getMergeSignature(mergeData)
 			const hasDuplicate = prev.some((item) => getMergeSignature(item) === incomingSignature)
 			if (hasDuplicate) return prev
 
 			setLastBatchSummary(null)
-			return [...prev, data]
+			return [...prev, mergeData]
 		})
-	}, [])
+	}, [activeFileId])
 
 	const consumePendingMerge = useCallback(() => {
 		setPendingMerges((prev) => prev.slice(1))
 	}, [])
+
+	useEffect(() => {
+		if (activePendingMerge?.targetFileId && setActiveFileId && activeFileId !== activePendingMerge.targetFileId) {
+			setActiveFileId(activePendingMerge.targetFileId)
+		}
+	}, [activePendingMerge, activeFileId, setActiveFileId])
 
 	const { editorRef, view, isSaving } = useLatexEditor({
 		documentId,
@@ -195,10 +208,13 @@ export function LatexEditor({
 
 	const getRebasedPreview = useCallback(
 		(merge: PendingMergeChange): { modified: string; isRebased: boolean; reason?: string } => {
-			if (!view) {
+			const targetFileId = merge.targetFileId || 'main'
+			const targetView = targetFileId === 'main' ? view : auxViewRef.current
+
+			if (!targetView) {
 				return { modified: merge.modified, isRebased: false, reason: 'editor_not_ready' }
 			}
-			const currentDoc = view.state.doc.toString()
+			const currentDoc = targetView.state.doc.toString()
 			const normalizedCurrent = normalizeText(currentDoc)
 			const normalizedOriginal = normalizeText(merge.original)
 
@@ -294,9 +310,11 @@ export function LatexEditor({
 			fallbackContent?: string,
 			options?: { allowFallback?: boolean }
 		): boolean => {
-			if (!view) return false
+			const targetFileId = merge.targetFileId || 'main'
+			const targetView = targetFileId === 'main' ? view : auxViewRef.current
+			if (!targetView) return false
 
-			const currentDoc = view.state.doc.toString()
+			const currentDoc = targetView.state.doc.toString()
 			const allowFallback = options?.allowFallback !== false
 			const isApplyDiffMerge = Array.isArray(merge.searchBlock) && Array.isArray(merge.replaceBlock)
 			let applied = false
@@ -334,7 +352,7 @@ export function LatexEditor({
 
 					if (batchValid) {
 						ranges.sort((a, b) => b.from - a.from)
-						view.dispatch({ changes: ranges, scrollIntoView: false })
+						targetView.dispatch({ changes: ranges, scrollIntoView: false })
 						applied = true
 					}
 				}
@@ -353,7 +371,7 @@ export function LatexEditor({
 			if (!applied && rebaseSuccess && mergedText) {
 				const changes = computeCodeMirrorChanges(currentDoc, mergedText)
 				if (changes.length > 0) {
-					view.dispatch({ changes, scrollIntoView: false })
+					targetView.dispatch({ changes, scrollIntoView: false })
 					applied = true
 				} else {
 					applied = true // Document is already in the merged state
@@ -364,7 +382,7 @@ export function LatexEditor({
 			if (!applied && allowFallback && typeof fallbackContent === 'string') {
 				const changes = computeCodeMirrorChanges(currentDoc, fallbackContent)
 				if (changes.length > 0) {
-					view.dispatch({ changes, scrollIntoView: false })
+					targetView.dispatch({ changes, scrollIntoView: false })
 					applied = true
 				}
 			}
@@ -419,12 +437,22 @@ export function LatexEditor({
 		handleCompile(content)
 	}, [view, activePendingMerge, handleCompile, activeAuxiliaryFile])
 
+	const getActiveView = useCallback(() => {
+		return activeFileId === 'main' ? view : auxViewRef.current
+	}, [activeFileId, view])
+
 	useEffect(() => {
-		if (view && onEditorReady) {
+		if (onEditorReady) {
 			onEditorReady({
-				getCurrentContent: () => view.state.doc.toString(),
-				undo: () => cmUndo(view),
-				redo: () => cmRedo(view),
+				getCurrentContent: () => getActiveView()?.state.doc.toString() ?? '',
+				undo: () => {
+					const activeView = getActiveView()
+					if (activeView) cmUndo(activeView)
+				},
+				redo: () => {
+					const activeView = getActiveView()
+					if (activeView) cmRedo(activeView)
+				},
 				insertSnippet: handleInsertSnippet,
 				handleCompile: onCompile,
 				isCompiling,
@@ -439,15 +467,16 @@ export function LatexEditor({
 				},
 				compilerMode,
 				setPendingMerge: enqueuePendingMerge,
-				getInternalView: () => view,
+				getInternalView: () => getActiveView(),
 				visualEditor,
 				syncToPdf: handleSyncToPdf,
 				autoCompile,
 				toggleAutoCompile: () => setAutoCompile((a) => !a),
+				getActiveFileName: () => activeFileId === 'main' ? 'main.tex' : activeAuxiliaryFile?.name ?? 'unknown',
 			})
 		}
 	}, [
-		view,
+		getActiveView,
 		onEditorReady,
 		isCompiling,
 		compileResult,
@@ -461,6 +490,8 @@ export function LatexEditor({
 		visualEditor,
 		handleSyncToPdf,
 		autoCompile,
+		activeFileId,
+		activeAuxiliaryFile,
 	])
 
 	useEffect(() => {
@@ -518,15 +549,28 @@ export function LatexEditor({
 						className='flex-1 min-h-0 w-full cm-editor-container'
 					/>
 
-					{activeFileId !== 'main' && activeAuxiliaryFile && (
-						<FileViewerManager
-							file={activeAuxiliaryFile}
-							readOnly={readOnly}
-							onChange={(newContent) => {
-								onAuxiliaryFileChange?.(activeAuxiliaryFile.fileId, newContent)
-							}}
-						/>
-					)}
+					<div
+						style={{
+							display:
+								activeFileId !== 'main' && activeAuxiliaryFile && !activePendingMerge
+									? 'block'
+									: 'none',
+						}}
+						className='flex-1 min-h-0 w-full flex flex-col'
+					>
+						{activeFileId !== 'main' && activeAuxiliaryFile && (
+							<FileViewerManager
+								file={activeAuxiliaryFile}
+								readOnly={readOnly}
+								onChange={(newContent) => {
+									onAuxiliaryFileChange?.(activeAuxiliaryFile.fileId, newContent)
+								}}
+								onViewReady={(v) => {
+									auxViewRef.current = v
+								}}
+							/>
+						)}
+					</div>
 
 					{activePendingMerge && (
 						<MergePreview

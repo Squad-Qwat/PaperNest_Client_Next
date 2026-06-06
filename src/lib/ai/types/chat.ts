@@ -102,6 +102,7 @@ export interface AIStreamPayload {
 	agentId?: string
 	files?: MessageAttachment[]
 	taggedDocumentIds?: string[]
+	activeFileName?: string
 }
 
 /**
