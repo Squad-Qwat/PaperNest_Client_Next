@@ -186,9 +186,7 @@ export function useFileOperations(documentId: string | null | undefined, files: 
 		processUpload: (file: File, folderPath?: string) =>
 			uploadMutation.mutateAsync({ file, folderPath }),
 		handleDeleteFile: (fileId: string) => {
-			if (confirm('Are you sure you want to delete this file?')) {
-				deleteMutation.mutate(fileId)
-			}
+			deleteMutation.mutate(fileId)
 		},
 		handleInternalMove: (item: any, targetPath: string | null) =>
 			moveMutation.mutate({ item, targetPath }),
