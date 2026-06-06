@@ -43,6 +43,17 @@ type StepData = {
 
 const workspaceIcons = ['📚', '🎓', '📖', '✍️', '🔬', '💼', '📊', '🎯', '🌟', '💡']
 
+const requirements = [
+	{ regex: /.{8,}/, text: 'At least 8 characters' },
+	{ regex: /[a-z]/, text: 'At least 1 lowercase letter' },
+	{ regex: /[A-Z]/, text: 'At least 1 uppercase letter' },
+	{ regex: /[0-9]/, text: 'At least 1 number' },
+	{
+		regex: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/,
+		text: 'At least 1 special character',
+	},
+]
+
 export default function RegisterPage() {
 	const _router = useRouter()
 	const { setOnboardingData } = useAuth()
@@ -73,17 +84,6 @@ export default function RegisterPage() {
 	const [isVisible, setIsVisible] = useState(false)
 	const [isConfirmVisible, setIsConfirmVisible] = useState(false)
 	const [turnstileToken, setTurnstileToken] = useState('')
-
-	const requirements = [
-		{ regex: /.{8,}/, text: 'At least 8 characters' },
-		{ regex: /[a-z]/, text: 'At least 1 lowercase letter' },
-		{ regex: /[A-Z]/, text: 'At least 1 uppercase letter' },
-		{ regex: /[0-9]/, text: 'At least 1 number' },
-		{
-			regex: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/,
-			text: 'At least 1 special character',
-		},
-	]
 
 	const strength = useMemo(() => {
 		return requirements.map((req) => ({

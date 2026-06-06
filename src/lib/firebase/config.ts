@@ -40,5 +40,4 @@ if (!getApps().length && firebaseConfig.apiKey) {
 	db = (app as any).firestore || ({} as Firestore)
 }
 
-export { app, auth, db, analytics }
-export { db as firestore } // Alias for compatibility with editor modules
+export { analytics, app, auth, db, db as firestore }

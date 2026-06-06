@@ -62,7 +62,6 @@ export function MergePreview({
 					doc: original,
 					extensions: [
 						...commonExtensions,
-						EditorView.editable.of(false),
 						EditorView.editorAttributes.of({ class: 'merge-original' }),
 					],
 				},
@@ -70,7 +69,6 @@ export function MergePreview({
 					doc: modified,
 					extensions: [
 						...commonExtensions,
-						EditorView.editable.of(false),
 						EditorView.editorAttributes.of({ class: 'merge-modified' }),
 					],
 				},
@@ -114,7 +112,6 @@ export function MergePreview({
 				doc: modified,
 				extensions: [
 					...commonExtensions,
-					EditorView.editable.of(false),
 					unifiedMergeView({
 						original,
 						collapseUnchanged: { margin: 3, minSize: 10 },
@@ -122,14 +119,12 @@ export function MergePreview({
 						syntaxHighlightDeletions: true,
 						mergeControls: (type, action) => {
 							const btn = document.createElement('button')
-							btn.className = `cm-merge-control cm-merge-control-${type} pb-5`
+							btn.className = `cm-merge-control cm-merge-control-${type}`
 							btn.innerHTML = `<span>${type === 'accept' ? 'Accept' : 'Reject'}</span>`
-							btn.onmousedown = (e) => {
+							btn.onclick = (e) => {
 								e.preventDefault()
 								e.stopPropagation()
 								try {
-									// Call action with event first, if it fails, call without
-									// Some CodeMirror versions expect no args for action()
 									;(action as any)(e)
 								} catch (err) {
 									console.error('Merge control action failed:', err)
@@ -138,8 +133,7 @@ export function MergePreview({
 									} catch (_e2) {}
 								}
 							}
-							btn.onclick = (e) => {
-								e.preventDefault()
+							btn.onmousedown = (e) => {
 								e.stopPropagation()
 							}
 							return btn
@@ -266,8 +260,8 @@ export function MergePreview({
 
 			{rebaseStatus && !rebaseStatus.isRebased && (
 				<div className='px-4 py-2 text-xs bg-rose-50 text-rose-700 border-b border-rose-100'>
-					Queue item ini stale terhadap dokumen terkini. Accept This dinonaktifkan untuk mencegah
-					perubahan lama muncul lagi.
+					This queue item is stale relative to the current document. &quot;Accept This&quot; is
+					disabled to prevent overwriting recent changes.
 				</div>
 			)}
 

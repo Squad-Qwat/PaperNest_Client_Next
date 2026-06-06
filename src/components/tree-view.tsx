@@ -556,12 +556,12 @@ const TreeActions = ({
 }
 
 export {
-	TreeView,
-	type TreeDataItem,
-	type TreeRenderItemParams,
-	AccordionTrigger,
 	AccordionContent,
+	AccordionTrigger,
+	type TreeDataItem,
+	TreeItem,
 	TreeLeaf,
 	TreeNode,
-	TreeItem,
+	type TreeRenderItemParams,
+	TreeView,
 }
