@@ -53,7 +53,7 @@ const renderMessageTextWithTags = (text: string, documents: any[]) => {
 			if (matchedDoc) {
 				return (
 					<span
-						key={`tag-${matchedDoc.id || matchedDoc.title}-${index}`}
+						key={`tag-${matchedDoc.id || matchedDoc.title}-${part}`}
 						className='inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 text-[11px] font-medium tracking-tight select-none align-middle mx-0.5 transition-all duration-200 hover:bg-primary/15 cursor-default'
 					>
 						<FileText className='size-3 shrink-0 opacity-75' />

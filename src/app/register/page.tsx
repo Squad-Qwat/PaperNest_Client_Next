@@ -90,7 +90,7 @@ export default function RegisterPage() {
 			met: req.regex.test(formData.password),
 			text: req.text,
 		}))
-	}, [formData.password])
+	}, [formData.password, requirements])
 
 	const strengthScore = useMemo(() => {
 		return strength.filter((req) => req.met).length

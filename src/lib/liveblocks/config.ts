@@ -61,29 +61,28 @@ const {
 	useEventListener,
 } = createRoomContext<Presence, Storage, UserMeta, RoomEvent>(client)
 
+// Export client for advanced usage
 export {
+	client,
 	RoomProvider,
-	useRoom,
-	useMyPresence,
-	useUpdateMyPresence,
-	useOthers,
-	useOthersMapped,
-	useOthersConnectionIds,
-	useOther,
-	useSelf,
-	useStorage,
-	useMutation,
-	useHistory,
-	useUndo,
-	useRedo,
-	useCanUndo,
 	useCanRedo,
+	useCanUndo,
 	// useBatch, // Not available in Liveblocks v3.12.1
 	useEventListener,
+	useHistory,
+	useMutation,
+	useMyPresence,
+	useOther,
+	useOthers,
+	useOthersConnectionIds,
+	useOthersMapped,
+	useRedo,
+	useRoom,
+	useSelf,
+	useStorage,
+	useUndo,
+	useUpdateMyPresence,
 }
-
-// Export client for advanced usage
-export { client }
 
 // Helper function to generate room ID from document ID
 export function getDocumentRoomId(documentId: string): string {

@@ -586,10 +586,20 @@ export function LatexEditor({
 							modified={activeMergePreview?.modified ?? activePendingMerge.modified}
 							queuePosition={pendingMerges.length > 0 ? 1 : 0}
 							queueTotal={pendingMerges.length}
-							onAccept={() => {
+							onAccept={(reviewedContent) => {
 								if (activeMergePreview?.isRebased !== true) return
-								const applied = applyPendingMerge(activePendingMerge, activeMergePreview.modified)
-								if (applied) consumePendingMerge()
+
+								const targetFileId = activePendingMerge.targetFileId || 'main'
+								const targetView = targetFileId === 'main' ? view : auxViewRef.current
+
+								if (targetView) {
+									const currentDoc = targetView.state.doc.toString()
+									const changes = computeCodeMirrorChanges(currentDoc, reviewedContent)
+									if (changes.length > 0) {
+										targetView.dispatch({ changes, scrollIntoView: false })
+									}
+									consumePendingMerge()
+								}
 							}}
 							onAcceptAll={() => {
 								let appliedCount = 0

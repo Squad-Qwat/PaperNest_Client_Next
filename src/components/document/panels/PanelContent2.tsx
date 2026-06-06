@@ -82,7 +82,7 @@ const PanelContent2: React.FC<PanelContent2Props> = ({
 					{tocEntries.map((entry, index) => (
 						<button
 							type='button'
-							key={`${entry.position}-${index}`}
+							key={`${entry.position}-${entry.heading}-${index}`}
 							onClick={() => handleNavigateToSection(entry)}
 							className={`w-full text-left px-2 py-2 rounded hover:bg-blue-50 active:bg-blue-100 transition-colors text-sm ${getLevelColor(entry.level)} ${getLevelIndent(entry.level)}`}
 							title={entry.heading}

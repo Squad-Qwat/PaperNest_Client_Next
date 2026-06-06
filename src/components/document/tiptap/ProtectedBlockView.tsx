@@ -218,6 +218,7 @@ export function ProtectedBlockView({ node, updateAttributes, selected }: NodeVie
 		return (
 			<div className='flex flex-col items-center justify-center p-6 bg-gray-50/50 rounded-lg border border-gray-200/55 min-h-[200px]'>
 				{matchedFile ? (
+					// biome-ignore lint/performance/noImgElement: Rendering dynamic external/blob images
 					<img
 						src={matchedFile.url}
 						alt={imageName}

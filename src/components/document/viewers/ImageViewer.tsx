@@ -15,6 +15,7 @@ export function ImageViewer({ file }: ImageViewerProps) {
 	return (
 		<div className='flex-1 overflow-auto bg-gray-50/50 flex items-center justify-center p-8 w-full h-full min-h-0'>
 			<div className='flex flex-col items-center gap-4 max-w-full'>
+				{/* biome-ignore lint/performance/noImgElement: Rendering dynamic external/blob images */}
 				<img
 					src={file.content || file.url}
 					alt={file.name}

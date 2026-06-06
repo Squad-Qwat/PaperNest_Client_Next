@@ -202,7 +202,7 @@ export default function LatexToolbar({
 						{groupIdx > 0 && <div className='h-4 w-[1px] bg-gray-300 mx-1 flex-shrink-0' />}
 						<div className='flex items-center gap-0.5'>
 							{group.actions.map((action, actionIdx) => (
-								<Tooltip key={`${group.name}-${actionIdx}`}>
+								<Tooltip key={`${group.name}-${action.label || actionIdx}`}>
 									<TooltipTrigger asChild>
 										<Button
 											variant='ghost'
