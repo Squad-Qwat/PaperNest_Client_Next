@@ -46,7 +46,7 @@ const renderMessageTextWithTags = (text: string, documents: any[]) => {
 	const regex = new RegExp(`(${patterns.join('|')})`, 'g')
 	const parts = text.split(regex)
 
-	return parts.map((part, index) => {
+	return parts.map((part) => {
 		if (part.startsWith('@')) {
 			const docTitle = part.slice(1)
 			const matchedDoc = sortedDocs.find((doc) => doc.title === docTitle)
