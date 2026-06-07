@@ -7,7 +7,7 @@ export interface AIModel {
 export const AI_MODELS: AIModel[] = [
 	{ id: 'google-genai:gemma-4-31b-it', name: 'Gemma 4 31B IT', chef: 'google' },
 	{
-		id: 'google-genai:gemini-3.1-flash-lite-preview',
+		id: 'google-genai:gemini-3.1-flash-lite',
 		name: 'Gemini 3.1 Flash Lite Preview',
 		chef: 'google',
 	},

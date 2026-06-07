@@ -26,6 +26,9 @@ import { latex } from 'codemirror-lang-latex'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { yCollab } from 'y-codemirror.next'
 import { useBatchUpdateDocument } from '@/lib/api/hooks/use-documents'
+import { ghostTextExtension } from '@/lib/editor/ghost-text'
+import { latexIndentKeymap } from '@/lib/editor/indent-keymap'
+import { latexAutocompleteSource } from '@/lib/editor/latex-autocomplete'
 import { paperNestThemeExtension } from '@/lib/editor/latex-theme'
 import { useLatexCollaboration } from './use-latex-collaboration'
 
@@ -126,11 +129,13 @@ export function useLatexEditor({
 			...paperNestThemeExtension,
 			bracketMatching(),
 			closeBrackets(),
-			autocompletion(),
+			autocompletion({ override: [latexAutocompleteSource] }),
 			rectangularSelection(),
 			crosshairCursor(),
 			highlightActiveLine(),
 			highlightSelectionMatches(),
+			latexIndentKeymap,
+			...ghostTextExtension(),
 			keymap.of([
 				indentWithTab,
 				...closeBracketsKeymap,
@@ -141,7 +146,7 @@ export function useLatexEditor({
 				...completionKeymap,
 				...lintKeymap,
 			]),
-			latex(),
+			latex({ enableAutocomplete: false }),
 			EditorView.lineWrapping,
 			EditorView.updateListener.of((update) => {
 				onUpdateRef.current?.(update)
