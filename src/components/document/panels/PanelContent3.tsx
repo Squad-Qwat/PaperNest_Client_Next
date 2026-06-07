@@ -20,6 +20,7 @@ import { useParams } from 'next/navigation'
 import type React from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { apiClient } from '@/lib/api/clients/api-client'
 import {
 	useCreateCitation,
@@ -37,11 +38,45 @@ import { formatAuthorName, mapReferenceType } from '@/lib/api/services/citations
 import type { Citation, CreateCitationDto } from '@/lib/api/types/citation.types'
 import { CitationForm } from './CitationForm'
 
-interface PanelContent3Props {
-	onInsertText?: (text: string) => void
+// Helper to escape special characters for BibTeX/LaTeX syntax
+const escapeBibTeX = (str: string | null | undefined): string => {
+	if (!str) return ''
+	return str
+		.replace(/\\/g, '\\\\') // Escape backslash first
+		.replace(/&/g, '\\&') // Escape ampersand
+		.replace(/_/g, '\\_') // Escape underscore
+		.replace(/%/g, '\\%') // Escape percent
+		.replace(/\$/g, '\\$') // Escape dollar
+		.replace(/#/g, '\\#') // Escape hash
 }
 
-const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
+// Helper to get raw BibTeX entry block
+const getBibTeXEntryString = (c: Citation): string => {
+	const rawCiteKey = c.citationId || `cite_${Date.now()}`
+	const citeKey = rawCiteKey.replace(/[^a-zA-Z0-9_\-:]/g, '')
+	const type = c.type === 'book' ? 'book' : 'article'
+
+	const cleanAuthor = escapeBibTeX(c.author.replace(/;\s*/g, ' and '))
+	const cleanTitle = escapeBibTeX(c.title)
+	const cleanJournal = escapeBibTeX(c.publicationInfo)
+
+	let entry = `@${type}{${citeKey},\n`
+	entry += `  author  = {${cleanAuthor}},\n`
+	entry += `  title   = {{${cleanTitle}}},\n`
+	entry += `  journal = {${cleanJournal}},\n`
+	entry += `  year    = {${c.publicationDate || new Date(c.createdAt).getFullYear()}}`
+	if (c.doi) entry += `,\n  doi     = {${escapeBibTeX(c.doi)}}`
+	if (c.url) entry += `,\n  url     = {${escapeBibTeX(c.url)}}`
+	entry += `\n}\n`
+	return entry
+}
+
+interface PanelContent3Props {
+	onInsertText?: (text: string) => void
+	activeFileName?: string
+}
+
+const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText, activeFileName }) => {
 	const params = useParams()
 	const workspaceId = params.workspaceid as string
 	const documentId = params.documentid as string
@@ -69,6 +104,7 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 	const [manualYear, setManualYear] = useState('')
 	const [manualDoi, setManualDoi] = useState('')
 	const [manualUrl, setManualUrl] = useState('')
+	const [citationToDelete, setCitationToDelete] = useState<string | null>(null)
 
 	const { data: citationsData, isLoading: isCitationsLoading } = useDocumentCitations(documentId)
 	const { data: filesData } = useDocumentFiles(documentId)
@@ -82,9 +118,12 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 	const citations = ((citationsData as any)?.citations ??
 		citationsData?.data?.citations ??
 		[]) as Citation[]
-	const workspaceCitations = ((workspaceCitationsData as any)?.citations ??
-		workspaceCitationsData?.data?.citations ??
-		[]) as Citation[]
+	const workspaceCitations = useMemo(() => {
+		const raw = ((workspaceCitationsData as any)?.citations ??
+			workspaceCitationsData?.data?.citations ??
+			[]) as Citation[]
+		return raw.filter((c) => c.documentId !== documentId)
+	}, [workspaceCitationsData, documentId])
 	const files = filesData || []
 
 	// Filter citations in memory
@@ -113,17 +152,7 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 			// Convert citations to BibTeX string
 			let bibtexString = '%% Auto-generated bibliography by PaperNest %%\n\n'
 			citations.forEach((c) => {
-				const citeKey = c.citationId || `cite_${Date.now()}`
-				const type = c.type === 'book' ? 'book' : 'article'
-
-				bibtexString += `@${type}{${citeKey},\n`
-				bibtexString += `  author  = {${c.author}},\n`
-				bibtexString += `  title   = {${c.title}},\n`
-				bibtexString += `  journal = {${c.publicationInfo}},\n`
-				bibtexString += `  year    = {${c.publicationDate || new Date(c.createdAt).getFullYear()}}`
-				if (c.doi) bibtexString += `,\n  doi     = {${c.doi}}`
-				if (c.url) bibtexString += `,\n  url     = {${c.url}}`
-				bibtexString += `\n}\n\n`
+				bibtexString += `${getBibTeXEntryString(c)}\n`
 			})
 
 			const file = new File([bibtexString], 'references.bib', { type: 'text/plain' })
@@ -192,13 +221,20 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 		toast.success(`Copied ${citeCommand} to clipboard`)
 	}
 
-	// Insert cite format to editor at cursor
-	const handleInsertCite = (citationId: string) => {
+	// Insert cite format or full bib block to editor at cursor
+	const handleInsertCite = (citation: Citation) => {
 		if (onInsertText) {
-			onInsertText(`\\cite{${citationId}}`)
-			toast.success(`Inserted \\cite{${citationId}}`)
+			const isBibFile = activeFileName?.toLowerCase().endsWith('.bib')
+			if (isBibFile) {
+				const bibBlock = getBibTeXEntryString(citation)
+				onInsertText(bibBlock)
+				toast.success(`Inserted BibTeX entry for "${citation.title}"`)
+			} else {
+				onInsertText(`\\cite{${citation.citationId}}`)
+				toast.success(`Inserted \\cite{${citation.citationId}} for "${citation.title}"`)
+			}
 		} else {
-			handleCopyCite(citationId)
+			handleCopyCite(citation.citationId)
 		}
 	}
 
@@ -268,20 +304,8 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 	}
 
 	// Delete citation helper
-	const handleDeleteCitation = async (citationId: string) => {
-		if (confirm('Are you sure you want to remove this reference?')) {
-			try {
-				await deleteCitationMutation.mutateAsync({
-					citationId,
-					documentId,
-				})
-				isSyncPending.current = true
-				toast.success('Reference removed')
-			} catch (err) {
-				console.error(err)
-				toast.error('Failed to delete reference')
-			}
-		}
+	const handleDeleteCitation = (citationId: string) => {
+		setCitationToDelete(citationId)
 	}
 
 	const handleAddScholarPaper = async (paper: any) => {
@@ -390,7 +414,7 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 					<button
 						type='button'
 						className='font-bold text-gray-800 leading-snug hover:text-primary transition text-left w-full cursor-pointer'
-						onClick={() => handleInsertCite(c.citationId)}
+						onClick={() => handleInsertCite(c)}
 					>
 						{c.title}
 					</button>
@@ -418,7 +442,7 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 				<div className='absolute right-2 top-2 flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity'>
 					<button
 						type='button'
-						onClick={() => handleInsertCite(c.citationId)}
+						onClick={() => handleInsertCite(c)}
 						className='p-1.5 hover:bg-primary/10 text-primary hover:text-primary rounded-lg transition'
 						title='Insert \cite command in LaTeX editor'
 					>
@@ -807,6 +831,30 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText }) => {
 					<div className='space-y-2 overflow-y-auto h-full'>{renderWorkspaceReferences()}</div>
 				)}
 			</div>
+
+			<ConfirmDialog
+				isOpen={!!citationToDelete}
+				onClose={() => setCitationToDelete(null)}
+				onConfirm={async () => {
+					if (!citationToDelete) return
+					try {
+						await deleteCitationMutation.mutateAsync({
+							citationId: citationToDelete,
+							documentId,
+						})
+						isSyncPending.current = true
+						toast.success('Reference removed')
+					} catch (err) {
+						console.error(err)
+						toast.error('Failed to delete reference')
+					}
+				}}
+				title='Remove Reference'
+				message='Are you sure you want to remove this reference from the document?'
+				confirmText='Remove'
+				cancelText='Cancel'
+				variant='danger'
+			/>
 		</div>
 	)
 }

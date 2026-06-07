@@ -20,6 +20,7 @@ interface DynamicContentPanelProps {
 	getCurrentContent?: () => string
 	documentId?: string | null
 	onOpenFile?: (file: { fileId: string; name: string; content: string; url: string } | null) => void
+	activeFileName?: string
 }
 
 const DynamicContentPanel: React.FC<DynamicContentPanelProps> = ({
@@ -34,6 +35,7 @@ const DynamicContentPanel: React.FC<DynamicContentPanelProps> = ({
 	getCurrentContent,
 	documentId,
 	onOpenFile,
+	activeFileName,
 }) => {
 	const [width, setWidth] = useState(320) // Default width 320px
 	const [isResizing, setIsResizing] = useState(false)
@@ -97,7 +99,7 @@ const DynamicContentPanel: React.FC<DynamicContentPanelProps> = ({
 					/>
 				)
 			case 'panel3':
-				return <PanelContent3 onInsertText={onInsertText} />
+				return <PanelContent3 onInsertText={onInsertText} activeFileName={activeFileName} />
 
 			case 'panel4':
 				return <PanelContent4 documentId={documentId} />

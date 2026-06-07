@@ -456,6 +456,9 @@ function DocumentPageContent() {
 							onInsertText={handleInsertTextAtCursor}
 							getCurrentContent={editorFunctions?.getCurrentContent}
 							onOpenFile={handleOpenFile}
+							activeFileName={
+								activeFileId === 'main' ? 'main.tex' : (activeAuxiliaryFile?.name ?? 'unknown')
+							}
 						/>
 
 						<DocumentEditor
