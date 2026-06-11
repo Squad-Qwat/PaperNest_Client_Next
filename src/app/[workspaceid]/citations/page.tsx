@@ -71,7 +71,7 @@ export default function Page() {
 				authors.add(c.author.trim())
 			}
 		})
-		return Array.from(authors).sort()
+		return Array.from(authors).sort((a, b) => a.localeCompare(b))
 	}, [citations])
 
 	const uniqueYears = useMemo(() => {
@@ -251,7 +251,7 @@ export default function Page() {
 						onOpenChange={setIsSheetOpen}
 						onSave={handleSave}
 						initialData={editingCitation}
-						// documentId={documentId}
+					// documentId={documentId}
 					/>
 
 					<CitationDetailsSheet
