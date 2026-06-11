@@ -325,8 +325,14 @@ export class DocumentService {
 	): Promise<DocumentFile> {
 		try {
 			const filesRef = collection(firestore, DocumentService.COLLECTION_NAME, docId, 'files')
+			
+			// Hapus properti fileId dan properti bernilai undefined lainnya agar tidak dikirim ke Firestore
+			const cleanFileData = Object.fromEntries(
+				Object.entries(fileData).filter(([key, value]) => key !== 'fileId' && value !== undefined)
+			)
+
 			const newFile = {
-				...fileData,
+				...cleanFileData,
 				createdAt: serverTimestamp(),
 			}
 

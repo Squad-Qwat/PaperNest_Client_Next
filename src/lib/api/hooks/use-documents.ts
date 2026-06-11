@@ -128,18 +128,11 @@ export function useSearchDocuments(workspaceId: string, params: DocumentSearchPa
 }
 
 export function useDocumentVersions(documentId: string) {
-	const q = documentId
-		? query(collection(db, 'documentBodies'), where('documentId', '==', documentId))
-		: null
-	return useFirestoreQuery<VersionsResponse>(
-		DOCUMENT_KEYS.versions(documentId),
-		q,
-		'documentBodyId',
-		'versions',
-		(a, b) => {
-			return (b.versionNumber || 0) - (a.versionNumber || 0)
-		}
-	)
+	return useQuery({
+		queryKey: DOCUMENT_KEYS.versions(documentId),
+		queryFn: () => documentsService.getVersions(documentId),
+		enabled: !!documentId,
+	})
 }
 
 export function useDocumentReviews(documentId: string) {

@@ -25,7 +25,7 @@ import { useWorkspace, useWorkspaceMembers } from '@/lib/api/hooks/use-workspace
 import type { Document, Version } from '@/lib/api/types/document.types'
 import type { Review } from '@/lib/api/types/review.types'
 import { format, id } from '@/lib/date'
-import { getAvatarUrl, getInitials } from '@/lib/utils'
+import { getAvatarUrl, getInitials, getMediaUrl } from '@/lib/utils'
 
 export default function ReviewDetailPage() {
 	const params = useParams()
@@ -75,10 +75,10 @@ export default function ReviewDetailPage() {
 			)
 		: null
 
-	const studentName = reviewData?.student?.name || studentMember?.user?.name || 'Mahasiswa'
-	const lecturerName = reviewData?.lecturer?.name || lecturerMember?.user?.name || 'Dosen Peninjau'
+	const studentName = reviewData?.student?.name || studentMember?.user?.name || 'Student'
+	const lecturerName = reviewData?.lecturer?.name || lecturerMember?.user?.name || 'Reviewer'
 	const isDocumentDeleted = !documentRes && !reviewLoading && !!reviewData
-	const docTitle = document?.title || 'Dokumen'
+	const docTitle = document?.title || 'Document'
 	const formattedDate = format(
 		reviewData?.requestedAt ? new Date(reviewData.requestedAt) : new Date(),
 		'd MMMM yyyy, HH:mm',
@@ -105,11 +105,11 @@ export default function ReviewDetailPage() {
 				reviewId: reviewId as string,
 				data: { status: decision, message: feedback },
 			})
-			toast.success(`Keputusan review (${decision.replace('_', ' ')}) berhasil dikirim`)
+			toast.success(`Review decision (${decision.replace('_', ' ')}) successfully sent`)
 			setIsModalOpen(false)
 			setFeedback('')
 		} catch (error: any) {
-			toast.error(error.message || 'Gagal memperbarui status review')
+			toast.error(error.message || 'Failed to update review status')
 		}
 	}
 
@@ -132,7 +132,7 @@ export default function ReviewDetailPage() {
 			<div className='h-screen flex items-center justify-center bg-background'>
 				<div className='flex flex-col items-center gap-4'>
 					<Loader2 className='w-8 h-8 animate-spin text-muted-foreground' />
-					<span className='text-sm text-muted-foreground'>Memuat detail review...</span>
+					<span className='text-sm text-muted-foreground'>Loading review details...</span>
 				</div>
 			</div>
 		)
@@ -141,9 +141,9 @@ export default function ReviewDetailPage() {
 	if (!reviewData) {
 		return (
 			<div className='h-screen flex flex-col items-center justify-center bg-background gap-4'>
-				<h2 className='text-lg font-semibold text-gray-900'>Review tidak ditemukan</h2>
+				<h2 className='text-lg font-semibold text-gray-900'>Review not found</h2>
 				<Button variant='outline' onClick={handleBack}>
-					Kembali ke Daftar Review
+					Back to Review List
 				</Button>
 			</div>
 		)
@@ -161,7 +161,7 @@ export default function ReviewDetailPage() {
 							variant='ghost'
 							onClick={handleBack}
 							className='h-10 w-10 hover:bg-muted rounded-lg transition-all group p-0 min-w-0 shrink-0'
-							title='Kembali ke Daftar Review'
+							title='Back to Review List'
 						>
 							<ChevronLeft className='h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors' />
 						</Button>
@@ -170,7 +170,7 @@ export default function ReviewDetailPage() {
 								Review: {docTitle}
 							</h1>
 							<p className='text-xs text-muted-foreground'>
-								Diajukan oleh {studentName} • {formattedDate}
+								Submitted by {studentName} • {formattedDate}
 							</p>
 						</div>
 					</div>
@@ -187,7 +187,7 @@ export default function ReviewDetailPage() {
 					{isCompiling ? (
 						<div className='flex flex-col items-center gap-4'>
 							<Loader2 className='w-8 h-8 animate-spin text-muted-foreground' />
-							<span className='text-sm text-muted-foreground'>Mengompilasi PDF Dokumen...</span>
+							<span className='text-sm text-muted-foreground'>Compiling Document PDF...</span>
 						</div>
 					) : pdfUrl ? (
 						<iframe
@@ -198,7 +198,7 @@ export default function ReviewDetailPage() {
 						/>
 					) : compileError ? (
 						<div className='p-8 text-center'>
-							<p className='text-sm font-semibold text-destructive'>Gagal Compile PDF</p>
+							<p className='text-sm font-semibold text-destructive'>Failed to Compile PDF</p>
 							<pre className='text-xs text-muted-foreground mt-4 max-w-md mx-auto overflow-auto max-h-40 bg-muted p-4 rounded-md text-left'>
 								{compileError}
 							</pre>
@@ -206,7 +206,7 @@ export default function ReviewDetailPage() {
 					) : (
 						<div className='flex flex-col items-center gap-2 text-center p-6'>
 							<p className='text-sm text-muted-foreground'>
-								Konten dokumen versi ini tidak tersedia.
+								The content of this document version is not available.
 							</p>
 						</div>
 					)}
@@ -220,7 +220,7 @@ export default function ReviewDetailPage() {
 							<Avatar className='h-9 w-9'>
 								<AvatarImage
 									src={
-										reviewData.student?.photoURL ||
+										getMediaUrl(reviewData.student?.photoURL) ||
 										getAvatarUrl(studentName, reviewData.studentUserId)
 									}
 								/>
@@ -231,17 +231,17 @@ export default function ReviewDetailPage() {
 							<div className='flex-1 min-w-0'>
 								<p className='text-sm font-bold text-gray-900 truncate'>{studentName}</p>
 								<p className='text-xs text-muted-foreground font-semibold uppercase tracking-wider'>
-									Pengaju Review
+									Review Requester
 								</p>
 							</div>
 						</div>
 
 						<div className='space-y-2'>
 							<Label className='text-xs font-semibold text-muted-foreground uppercase tracking-wider block'>
-								Pesan Pengantar
+								Message
 							</Label>
 							<div className='p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 leading-relaxed font-normal whitespace-pre-line'>
-								{reviewData.message || 'Tidak ada pesan pengantar.'}
+								{reviewData.message || 'No message provided.'}
 							</div>
 						</div>
 					</Card>
@@ -250,7 +250,7 @@ export default function ReviewDetailPage() {
 					{isPending && isLecturer ? (
 						<Card className='p-5 space-y-4 rounded-2xl border-gray-200/60 shadow-sm bg-white'>
 							<h3 className='text-sm font-bold text-gray-900 uppercase tracking-wider border-b border-gray-100 pb-3'>
-								Tentukan Keputusan
+								Determine Decision
 							</h3>
 
 							<div className='grid grid-cols-1 gap-2.5'>
@@ -259,27 +259,27 @@ export default function ReviewDetailPage() {
 									onClick={() => openDecisionModal('approved')}
 									className='w-full font-semibold text-sm h-10'
 								>
-									Setujui (Approve)
+									Approve
 								</Button>
 								<Button
 									variant='secondary'
 									onClick={() => openDecisionModal('revision_required')}
 									className='w-full font-semibold text-sm h-10'
 								>
-									Minta Revisi
+									Request Revision
 								</Button>
 								<Button
 									variant='destructive'
 									onClick={() => openDecisionModal('rejected')}
 									className='w-full font-semibold text-sm h-10'
 								>
-									Tolak (Reject)
+									Reject
 								</Button>
 							</div>
 
 							<div className='p-3 bg-gray-50 rounded-lg border border-gray-100'>
 								<p className='text-xs text-gray-500 leading-normal'>
-									Harap tinjau dokumen di panel kiri sebelum mengambil keputusan.
+									Please review the document in the left panel before making a decision.
 								</p>
 							</div>
 						</Card>
@@ -290,7 +290,7 @@ export default function ReviewDetailPage() {
 								<Avatar className='h-9 w-9'>
 									<AvatarImage
 										src={
-											reviewData.lecturer?.photoURL ||
+											getMediaUrl(reviewData.lecturer?.photoURL) ||
 											getAvatarUrl(lecturerName, reviewData.lecturerUserId)
 										}
 									/>
@@ -301,22 +301,22 @@ export default function ReviewDetailPage() {
 								<div className='flex-1 min-w-0'>
 									<p className='text-sm font-bold text-gray-900 truncate'>{lecturerName}</p>
 									<p className='text-xs text-muted-foreground font-semibold uppercase tracking-wider'>
-										Dosen Peninjau
+										Reviewer
 									</p>
 								</div>
 							</div>
 
 							<div className='space-y-2'>
 								<Label className='text-xs font-semibold text-muted-foreground uppercase tracking-wider block'>
-									Umpan Balik / Catatan Dosen
+									Feedback / Reviewer Notes
 								</Label>
 								{isPending ? (
 									<div className='p-3 bg-yellow-50/50 border border-yellow-100 rounded-lg text-sm text-yellow-800'>
-										<span>Menunggu respon dan penilaian dari Dosen Peninjau.</span>
+										<span>Awaiting response and assessment from the Reviewer.</span>
 									</div>
 								) : (
 									<div className='p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 leading-relaxed font-normal whitespace-pre-line'>
-										{reviewData.lecturerMessage || 'Tidak ada catatan tambahan.'}
+										{reviewData.lecturerMessage || 'No additional notes.'}
 									</div>
 								)}
 							</div>
@@ -326,16 +326,16 @@ export default function ReviewDetailPage() {
 					{/* Document Navigation Card */}
 					<Card className='p-5 rounded-2xl border-gray-200/60 shadow-sm bg-white space-y-4'>
 						<h3 className='text-xs font-bold text-muted-foreground uppercase tracking-wider border-b border-gray-100 pb-3'>
-							Informasi Dokumen
+							Document Information
 						</h3>
 						<div className='space-y-3'>
 							<div className='flex items-center justify-between text-sm'>
-								<span className='text-gray-500'>Nama Dokumen</span>
+								<span className='text-gray-500'>Document Name</span>
 								<span className='font-bold text-gray-900 truncate max-w-[150px]'>{docTitle}</span>
 							</div>
 							<Separator className='opacity-50' />
 							<div className='flex items-center justify-between text-sm'>
-								<span className='text-gray-500'>Versi</span>
+								<span className='text-gray-500'>Version</span>
 								<span className='font-bold text-gray-900'>V{reviewData.versionNumber || '?'}</span>
 							</div>
 						</div>
@@ -348,7 +348,7 @@ export default function ReviewDetailPage() {
 							}
 							disabled={isDocumentDeleted}
 						>
-							{isDocumentDeleted ? 'Dokumen Terhapus' : 'Buka di Editor'}
+							{isDocumentDeleted ? 'Document Deleted' : 'Open in Editor'}
 						</Button>
 					</Card>
 				</div>
@@ -358,24 +358,24 @@ export default function ReviewDetailPage() {
 			<Modal
 				isOpen={isModalOpen}
 				onClose={() => setIsModalOpen(false)}
-				title={`Konfirmasi Keputusan: ${
+				title={`Confirm Decision: ${
 					decision === 'approved'
-						? 'Setujui'
+						? 'Approve'
 						: decision === 'revision_required'
-							? 'Minta Revisi'
-							: 'Tolak'
+							? 'Request Revision'
+							: 'Reject'
 				}`}
 			>
 				<div className='space-y-4 pt-2'>
 					<p className='text-sm text-muted-foreground'>
-						Berikan catatan atau masukan tambahan untuk mahasiswa mengenai keputusan ini.
+						Provide comments or additional feedback for the student regarding this decision.
 					</p>
 
 					<div className='space-y-2'>
-						<Label htmlFor='decision-feedback'>Catatan Peninjau</Label>
+						<Label htmlFor='decision-feedback'>Reviewer Notes</Label>
 						<Textarea
 							id='decision-feedback'
-							placeholder='Tulis pesan masukan Anda di sini (opsional)...'
+							placeholder='Write your feedback here (optional)...'
 							value={feedback}
 							onChange={(e) => setFeedback(e.target.value)}
 							className='min-h-[120px] resize-none text-sm'
@@ -384,7 +384,7 @@ export default function ReviewDetailPage() {
 
 					<ModalFooter className='px-0 pb-0 gap-2'>
 						<Button variant='outline' onClick={() => setIsModalOpen(false)}>
-							Batal
+							Cancel
 						</Button>
 						<Button
 							variant={decision === 'rejected' ? 'destructive' : 'default'}
@@ -392,7 +392,7 @@ export default function ReviewDetailPage() {
 							disabled={isUpdating}
 							className='font-semibold'
 						>
-							{isUpdating ? 'Memproses...' : 'Kirim Keputusan'}
+							{isUpdating ? 'Processing...' : 'Submit Decision'}
 						</Button>
 					</ModalFooter>
 				</div>

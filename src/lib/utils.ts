@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import { useAuthStore } from '@/lib/store/auth-store'
 
 export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs))
@@ -33,4 +34,23 @@ export function getAvatarUrl(name: string, seed?: string): string {
 	const initials = getInitials(name)
 	const identifier = seed || name
 	return `https://avatar.vercel.sh/${encodeURIComponent(identifier)}.svg?text=${encodeURIComponent(initials)}`
+}
+
+/**
+ * Resolves private Cloudflare R2 media URLs by routing them through the backend download proxy
+ */
+export function getMediaUrl(url: string | null | undefined): string | undefined {
+	if (!url) return undefined
+	if (url.startsWith('blob:')) return url
+	if (url.includes('assets.papernest.com')) {
+		const baseUrl =
+			typeof window !== 'undefined'
+				? '/api'
+				: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'
+		const { accessToken } = useAuthStore.getState()
+		const tokenParam = accessToken ? `&token=${accessToken}` : ''
+		const result = `${baseUrl}/upload/download?url=${encodeURIComponent(url)}${tokenParam}`
+		return result
+	}
+	return url
 }

@@ -12,7 +12,7 @@ import { useAuth } from '@/context/AuthContext'
 import { useDocumentReviews } from '@/lib/api/hooks/use-documents'
 import { useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
 import { documentsService } from '@/lib/api/services/documents.service'
-import { getInitials } from '@/lib/utils'
+import { getInitials, getMediaUrl } from '@/lib/utils'
 
 interface DocumentHeaderProps {
 	title: string
@@ -555,7 +555,7 @@ const DocumentHeader = ({
 						</Link>
 						<div className='ml-2'>
 							<Avatar className='h-8 w-8'>
-								<AvatarImage src={user?.photoURL || ''} alt={user?.name || 'User'} />
+								<AvatarImage src={getMediaUrl(user?.photoURL)} alt={user?.name || 'User'} />
 								<AvatarFallback className='bg-blue-600 text-white text-xs'>
 									{getInitials(user?.name || 'U')}
 								</AvatarFallback>

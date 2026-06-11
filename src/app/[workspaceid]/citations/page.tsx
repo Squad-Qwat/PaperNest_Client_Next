@@ -44,6 +44,10 @@ export default function Page() {
 	const workspaceId = params.workspaceid as string
 	const { data: workspace } = useWorkspace(workspaceId)
 	const [searchQuery, setSearchQuery] = useState('')
+	const [selectedAuthor, setSelectedAuthor] = useState('all')
+	const [selectedYear, setSelectedYear] = useState('all')
+	const [selectedType, setSelectedType] = useState('all')
+	const [viewMode, setViewMode] = useState('full')
 	const [isSheetOpen, setIsSheetOpen] = useState(false)
 	const [isDetailsSheetOpen, setIsDetailsSheetOpen] = useState(false)
 	const [editingCitation, setEditingCitation] = useState<Partial<CitationType> | undefined>()
@@ -53,14 +57,63 @@ export default function Page() {
 	// Get citations for the entire workspace
 	const { data: citationsData, isLoading: isCitationsLoading } = useWorkspaceCitations(workspaceId)
 
-	// console.log('citationsData:', JSON.stringify(citationsData, null, 2))
-
 	const citations = useMemo(() => {
 		const list = ((citationsData as any)?.citations ?? citationsData?.data?.citations) as
 			| CitationDisplay[]
 			| undefined
 		return list || []
 	}, [citationsData])
+
+	const uniqueAuthors = useMemo(() => {
+		const authors = new Set<string>()
+		citations.forEach((c) => {
+			if (c.author) {
+				authors.add(c.author.trim())
+			}
+		})
+		return Array.from(authors).sort()
+	}, [citations])
+
+	const uniqueYears = useMemo(() => {
+		const years = new Set<string>()
+		citations.forEach((c) => {
+			if (c.publicationDate) {
+				const match = c.publicationDate.match(/\b\d{4}\b/)
+				if (match) {
+					years.add(match[0])
+				} else {
+					years.add(c.publicationDate.trim())
+				}
+			}
+		})
+		return Array.from(years).sort((a, b) => b.localeCompare(a))
+	}, [citations])
+
+	const filteredCitations = useMemo(() => {
+		return citations.filter((c) => {
+			if (searchQuery) {
+				const query = searchQuery.toLowerCase()
+				const matchesSearch =
+					(c.title?.toLowerCase() || '').includes(query) ||
+					(c.author?.toLowerCase() || '').includes(query) ||
+					(c.publicationInfo?.toLowerCase() || '').includes(query) ||
+					(c.doi?.toLowerCase() || '').includes(query)
+				if (!matchesSearch) return false
+			}
+			if (selectedAuthor !== 'all') {
+				if (c.author !== selectedAuthor) return false
+			}
+			if (selectedYear !== 'all') {
+				const yearMatch = c.publicationDate?.match(/\b\d{4}\b/)
+				const year = yearMatch ? yearMatch[0] : c.publicationDate
+				if (year !== selectedYear) return false
+			}
+			if (selectedType !== 'all') {
+				if (c.type !== selectedType) return false
+			}
+			return true
+		})
+	}, [citations, searchQuery, selectedAuthor, selectedYear, selectedType])
 
 	// Still need documents to assign new citations to a document
 	// const { data: documentsData } = useWorkspaceDocuments(workspaceId)
@@ -87,11 +140,11 @@ export default function Page() {
 					onSuccess: () => {
 						setIsSheetOpen(false)
 						setIsDetailsSheetOpen(false)
-						toast.success('Referensi berhasil diperbarui')
+						toast.success('Reference updated successfully')
 					},
 					onError: (err) => {
 						console.error(err)
-						toast.error('Gagal memperbarui referensi')
+						toast.error('Failed to update reference')
 					},
 				}
 			)
@@ -105,11 +158,11 @@ export default function Page() {
 				{
 					onSuccess: () => {
 						setIsSheetOpen(false)
-						toast.success('Referensi berhasil ditambahkan')
+						toast.success('Reference added successfully')
 					},
 					onError: (err) => {
 						console.error(err)
-						toast.error('Gagal menambahkan referensi')
+						toast.error('Failed to add reference')
 					},
 				}
 			)
@@ -132,11 +185,11 @@ export default function Page() {
 			{
 				onSuccess: () => {
 					setDeleteConfirm(null)
-					toast.success('Referensi berhasil dihapus')
+					toast.success('Reference deleted successfully')
 				},
 				onError: (err) => {
 					console.error(err)
-					toast.error('Gagal menghapus referensi')
+					toast.error('Failed to delete reference')
 				},
 			}
 		)
@@ -160,7 +213,7 @@ export default function Page() {
 					</BreadcrumbItem>
 					<BreadcrumbSeparator className='hidden md:block' />
 					<BreadcrumbItem>
-						<BreadcrumbPage>Sitasi</BreadcrumbPage>
+						<BreadcrumbPage>Citations</BreadcrumbPage>
 					</BreadcrumbItem>
 				</BreadcrumbList>
 			</Breadcrumb>
@@ -181,14 +234,14 @@ export default function Page() {
 				<main className='flex-1 p-6 w-full overflow-y-auto'>
 					<div className='mb-8 flex items-center justify-between'>
 						<div>
-							<h2 className='text-2xl font-bold text-gray-900'>Sitasi</h2>
+							<h2 className='text-2xl font-bold text-gray-900'>Citations</h2>
 							<p className='text-sm text-gray-500 mt-1'>
-								Kelola sitasi Anda di workspace {workspace?.title}
+								Manage your citations in the workspace {workspace?.title}
 							</p>
 						</div>
 
 						<Button onClick={handleAdd}>
-							Tambah referensi
+							Add reference
 							<Plus />
 						</Button>
 					</div>
@@ -212,50 +265,60 @@ export default function Page() {
 							<SearchInput
 								value={searchQuery}
 								onChange={setSearchQuery}
-								placeholder='Cari sitasi...'
+								placeholder='Search citations...'
 							/>
 						</div>
 
 						<div className='flex flex-wrap items-center gap-3'>
 							<div className='flex items-center gap-2 overflow-x-auto pb-1 md:pb-0'>
-								<Select key='author-select'>
-									<SelectTrigger className='bg-white h-10'>
+								<Select value={selectedAuthor} onValueChange={setSelectedAuthor}>
+									<SelectTrigger className='bg-white h-10 min-w-[140px]'>
 										<User className='h-4 w-4 mr-2' />
-										<SelectValue placeholder='Semua Penulis' />
+										<SelectValue placeholder='All Authors' />
 									</SelectTrigger>
 									<SelectContent>
-										<SelectItem value='all'>Semua Penulis</SelectItem>
+										<SelectItem value='all'>All Authors</SelectItem>
+										{uniqueAuthors.map((author) => (
+											<SelectItem key={author} value={author}>
+												{author}
+											</SelectItem>
+										))}
 									</SelectContent>
 								</Select>
 
-								<Select key='year-select'>
-									<SelectTrigger className='bg-white h-10'>
+								<Select value={selectedYear} onValueChange={setSelectedYear}>
+									<SelectTrigger className='bg-white h-10 min-w-[130px]'>
 										<Calendar className='h-4 w-4 mr-2' />
-										<SelectValue placeholder='Semua Tahun' />
+										<SelectValue placeholder='All Years' />
 									</SelectTrigger>
 									<SelectContent>
-										<SelectItem value='all'>Semua Tahun</SelectItem>
+										<SelectItem value='all'>All Years</SelectItem>
+										{uniqueYears.map((year) => (
+											<SelectItem key={year} value={year}>
+												{year}
+											</SelectItem>
+										))}
 									</SelectContent>
 								</Select>
 
-								<Select key='type-select'>
-									<SelectTrigger className='bg-white h-10'>
+								<Select value={selectedType} onValueChange={setSelectedType}>
+									<SelectTrigger className='bg-white h-10 min-w-[120px]'>
 										<Tag className='h-4 w-4 mr-2' />
-										<SelectValue placeholder='Semua Tipe' />
+										<SelectValue placeholder='All Types' />
 									</SelectTrigger>
 									<SelectContent>
-										<SelectItem value='all'>Semua Tipe</SelectItem>
-										<SelectItem value='journal'>Jurnal</SelectItem>
-										<SelectItem value='book'>Buku</SelectItem>
-										<SelectItem value='conference'>Konferensi</SelectItem>
+										<SelectItem value='all'>All Types</SelectItem>
+										<SelectItem value='journal'>Journal</SelectItem>
+										<SelectItem value='book'>Book</SelectItem>
+										<SelectItem value='conference'>Conference</SelectItem>
 									</SelectContent>
 								</Select>
 							</div>
 
-							<Select defaultValue='full' key='view-settings'>
-								<SelectTrigger className='bg-white h-10'>
+							<Select value={viewMode} onValueChange={setViewMode}>
+								<SelectTrigger className='bg-white h-10 min-w-[130px]'>
 									<Settings2 className='h-4 w-4 mr-2' />
-									<SelectValue placeholder='Pengaturan' />
+									<SelectValue placeholder='Settings' />
 								</SelectTrigger>
 								<SelectContent>
 									<SelectGroup>
@@ -272,20 +335,21 @@ export default function Page() {
 					</div>
 
 					<CitationTable
-						data={citations}
+						data={filteredCitations}
 						isLoading={isCitationsLoading}
 						onRowClick={handleRowClick}
 						onDelete={handleDelete}
+						viewMode={viewMode}
 					/>
 
 					<ConfirmDialog
 						isOpen={deleteConfirm !== null}
 						onClose={() => setDeleteConfirm(null)}
 						onConfirm={handleConfirmDelete}
-						title='Hapus Referensi'
-						message='Apakah Anda yakin ingin menghapus referensi ini? Tindakan ini tidak dapat dibatalkan.'
-						confirmText='Hapus'
-						cancelText='Batal'
+						title='Delete Reference'
+						message='Are you sure you want to delete this reference? This action cannot be undone.'
+						confirmText='Delete'
+						cancelText='Cancel'
 						variant='danger'
 					/>
 				</main>

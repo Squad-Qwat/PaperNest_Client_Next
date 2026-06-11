@@ -207,12 +207,7 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText, activeFileN
 		}
 	}, [citations, documentId, files, addDocumentFileMutation, queryClient])
 
-	useEffect(() => {
-		if (isSyncPending.current && !isCitationsLoading) {
-			handleSyncBibTeX()
-			isSyncPending.current = false
-		}
-	}, [isCitationsLoading, handleSyncBibTeX])
+
 
 	// Copy to clipboard cite format
 	const handleCopyCite = (citationId: string) => {
@@ -255,7 +250,6 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText, activeFileN
 			}
 
 			await createCitationMutation.mutateAsync(citationData)
-			isSyncPending.current = true
 			toast.success('Reference imported to document!')
 		} catch (err) {
 			console.error(err)
@@ -282,7 +276,6 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText, activeFileN
 				},
 			})
 
-			isSyncPending.current = true
 			toast.success('Reference updated successfully!')
 			setEditingCitation(null)
 		} catch (err) {
@@ -346,7 +339,6 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText, activeFileN
 			}
 
 			await createCitationMutation.mutateAsync(citationData)
-			isSyncPending.current = true
 			toast.success('Added scholarly paper to references!')
 		} catch (err) {
 			console.error(err)

@@ -138,7 +138,7 @@ export default function ReviewsPage() {
 					<div className='flex-1 relative'>
 						<Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400' />
 						<Input
-							placeholder='Cari review...'
+							placeholder='Search reviews...'
 							className='pl-9 bg-white w-full'
 							value={searchQuery}
 							onChange={(e) => setSearchQuery(e.target.value)}
@@ -149,10 +149,10 @@ export default function ReviewsPage() {
 						<div className='w-full lg:w-[220px]'>
 							<Select value={docFilter} onValueChange={setDocFilter}>
 								<SelectTrigger className='bg-white w-full'>
-									<SelectValue placeholder='Semua Dokumen' />
+									<SelectValue placeholder='All Documents' />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value='all'>Semua Dokumen</SelectItem>
+									<SelectItem value='all'>All Documents</SelectItem>
 									{documents.map((doc: Document) => (
 										<SelectItem key={doc.documentId} value={doc.documentId}>
 											{doc.title}
@@ -165,10 +165,10 @@ export default function ReviewsPage() {
 						<div className='w-full lg:w-[180px]'>
 							<Select value={statusFilter} onValueChange={setStatusFilter}>
 								<SelectTrigger className='bg-white w-full'>
-									<SelectValue placeholder='Semua Status' />
+									<SelectValue placeholder='All Statuses' />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value='all'>Semua Status</SelectItem>
+									<SelectItem value='all'>All Statuses</SelectItem>
 									<SelectItem value='pending'>Pending</SelectItem>
 									<SelectItem value='approved'>Approved</SelectItem>
 									<SelectItem value='revision_required'>Revision Required</SelectItem>
@@ -180,11 +180,11 @@ export default function ReviewsPage() {
 						<div className='w-full lg:w-[130px]'>
 							<Select value={sortOrder} onValueChange={setSortOrder}>
 								<SelectTrigger className='bg-white w-full'>
-									<SelectValue placeholder='Urutkan' />
+									<SelectValue placeholder='Sort By' />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value='newest'>Terbaru</SelectItem>
-									<SelectItem value='oldest'>Terlama</SelectItem>
+									<SelectItem value='newest'>Newest</SelectItem>
+									<SelectItem value='oldest'>Oldest</SelectItem>
 								</SelectContent>
 							</Select>
 						</div>
@@ -192,7 +192,7 @@ export default function ReviewsPage() {
 				</div>
 
 				<h2 className='text-lg font-bold text-gray-900 mb-4'>
-					Semua Review ({filteredReviews.length})
+					All Reviews ({filteredReviews.length})
 				</h2>
 
 				{filteredReviews.length === 0 ? (

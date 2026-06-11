@@ -13,7 +13,7 @@ import { useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
 import type { Version } from '@/lib/api/types/document.types'
 import type { Review } from '@/lib/api/types/review.types'
 import { format, id } from '@/lib/date'
-import { getAvatarUrl, getInitials } from '@/lib/utils'
+import { getAvatarUrl, getInitials, getMediaUrl } from '@/lib/utils'
 
 export default function VersionsPage() {
 	const params = useParams()
@@ -172,8 +172,8 @@ export default function VersionsPage() {
 																	<Avatar className='h-5 w-5'>
 																		<AvatarImage
 																			src={
-																				version.user?.photoURL ||
-																				member?.user?.photoURL ||
+																				getMediaUrl(version.user?.photoURL) ||
+																				getMediaUrl(member?.user?.photoURL) ||
 																				getAvatarUrl(displayName, version.userId)
 																			}
 																		/>
@@ -313,7 +313,7 @@ export default function VersionsPage() {
 									<Avatar key={v.documentBodyId} className='h-8 w-8 border-2 border-background'>
 										<AvatarImage
 											src={
-												v.user?.photoURL || member?.user?.photoURL || getAvatarUrl(dName, v.userId)
+												getMediaUrl(v.user?.photoURL) || getMediaUrl(member?.user?.photoURL) || getAvatarUrl(dName, v.userId)
 											}
 										/>
 										<AvatarFallback className='text-[10px] bg-blue-50 text-blue-600'>

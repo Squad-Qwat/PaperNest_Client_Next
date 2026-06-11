@@ -34,7 +34,7 @@ import { useWorkspace, useWorkspaceMembers } from '@/lib/api/hooks/use-workspace
 import type { Version } from '@/lib/api/types/document.types'
 import type { Review } from '@/lib/api/types/review.types'
 import { format, id } from '@/lib/date'
-import { getAvatarUrl, getInitials } from '@/lib/utils'
+import { getAvatarUrl, getInitials, getMediaUrl } from '@/lib/utils'
 
 export default function VersionDetailPage() {
 	const params = useParams()
@@ -272,7 +272,7 @@ export default function VersionDetailPage() {
 										<>
 											<Avatar className='h-10 w-10 border-2 border-white shadow-sm'>
 												<AvatarImage
-													src={version.user?.photoURL || getAvatarUrl(displayName, version.userId)}
+													src={getMediaUrl(version.user?.photoURL) || getAvatarUrl(displayName, version.userId)}
 												/>
 												<AvatarFallback className='bg-primary/5 text-primary text-xs font-bold'>
 													{getInitials(displayName)}
