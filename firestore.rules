@@ -45,6 +45,10 @@ service cloud.firestore {
       allow delete: if isWorkspaceMember(resource.data.workspaceId) && 
         (resource.data.createdBy == request.auth.uid || 
          get(/databases/$(database)/documents/userWorkspaces/$(request.auth.uid + '_' + resource.data.workspaceId)).data.role == 'owner');
+
+      match /files/{fileId} {
+        allow read, write: if isWorkspaceMember(getDocumentWorkspaceId(documentId));
+      }
     }
 
     match /documentBodies/{bodyId} {

@@ -287,10 +287,10 @@ export function CitationSheet({
 			<SheetContent className='sm:max-w-md md:max-w-lg overflow-hidden flex flex-col p-0 gap-0'>
 				<SheetHeader className='p-6 shrink-0 border-b'>
 					<SheetTitle className='text-xl font-bold'>
-						{initialData ? 'Update Sitasi' : 'Tambah Sitasi'}
+						{initialData ? 'Update Citation' : 'Add Citation'}
 					</SheetTitle>
 					<SheetDescription>
-						Masukkan informasi sitasi secara manual atau cari berdasarkan identifier.
+						Enter citation details manually or search by identifier.
 					</SheetDescription>
 				</SheetHeader>
 
@@ -299,11 +299,11 @@ export function CitationSheet({
 						{/* Semantic Scholar Search Section */}
 						<div className='p-6 space-y-3 bg-muted border-b'>
 							<Label className='text-sm font-semibold text-gray-700'>
-								Cari & Isi Otomatis via Semantic Scholar
+								Search & Autofill via Semantic Scholar
 							</Label>
 							<div className='flex gap-2'>
 								<Input
-									placeholder='Cari judul, penulis, DOI, atau arXiv...'
+									placeholder='Search by title, author, DOI, or arXiv...'
 									className='flex-1 bg-white border-gray-200 focus-visible:ring-primary/20'
 									value={scholarQuery}
 									onChange={(e) => setScholarQuery(e.target.value)}
@@ -331,13 +331,13 @@ export function CitationSheet({
 
 							{isSearchingScholar && (
 								<p className='text-xs text-gray-500 animate-pulse'>
-									Mencari database Semantic Scholar...
+									Searching Semantic Scholar database...
 								</p>
 							)}
 
 							{hasSearched && !isSearchingScholar && scholarResults.length === 0 && (
 								<p className='text-xs text-destructive'>
-									Paper tidak ditemukan. Coba pencarian lain.
+									Paper not found. Try another search query.
 								</p>
 							)}
 
@@ -372,7 +372,7 @@ export function CitationSheet({
 								</div>
 							)}
 							<p className='text-[13px] text-gray-500'>
-								Cari paper secara global untuk mengisi form metadata secara instan.
+								Search for papers globally to fill metadata forms instantly.
 							</p>
 						</div>
 

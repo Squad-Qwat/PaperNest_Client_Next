@@ -35,9 +35,9 @@ if (!getApps().length && firebaseConfig.apiKey) {
 		analytics = getAnalytics(app)
 	}
 } else {
-	app = getApps()[0] || ({} as FirebaseApp)
-	auth = (app as any).auth || ({} as Auth)
-	db = (app as any).firestore || ({} as Firestore)
+	app = getApps()[0]
+	auth = getAuth(app)
+	db = getFirestore(app)
 }
 
 export { analytics, app, auth, db, db as firestore }

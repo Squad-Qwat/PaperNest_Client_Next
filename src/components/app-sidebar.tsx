@@ -23,6 +23,7 @@ import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher'
 import { useAuth } from '@/context/AuthContext'
 import { useNotifications } from '@/context/NotificationContext'
 import { useWorkspace, useWorkspaces } from '@/lib/api/hooks/use-workspaces'
+import { getMediaUrl } from '@/lib/utils'
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const { user, loading: authLoading } = useAuth()
@@ -44,7 +45,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 		user: {
 			name: user?.name || user?.email?.split('@')[0] || 'User',
 			email: user?.email || '',
-			avatar: user?.photoURL || '',
+			avatar: getMediaUrl(user?.photoURL) || '',
 		},
 		navMain: [
 			{

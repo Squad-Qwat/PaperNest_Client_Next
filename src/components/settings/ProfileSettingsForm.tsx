@@ -1,17 +1,20 @@
 'use client'
 
-import { Loader2 } from 'lucide-react'
-import { useCallback, useMemo, useState } from 'react'
+import imageCompression from 'browser-image-compression'
+import { Camera, Loader2 } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Input } from '@/components/ui/input'
 import { useAuth } from '@/context/AuthContext'
+import { apiClient } from '@/lib/api/clients/api-client'
 import { useDeleteUser, useUpdateUser } from '@/lib/api/hooks/use-users'
 import type { User } from '@/lib/api/types/user.types'
 import { getErrorMessage } from '@/lib/api/utils/error-handler'
 import { useUserStore } from '@/lib/store/user-store'
+import { getMediaUrl } from '@/lib/utils'
 
 interface ProfileSettingsFormProps {
 	user: User
@@ -27,7 +30,75 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 	const [name, setName] = useState(user.name || '')
 	const [username, setUsername] = useState(user.username || '')
 	const [photoURL, setPhotoURL] = useState(user.photoURL || '')
+	const [previewURL, setPreviewURL] = useState<string | null>(null)
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+	const [isUploading, setIsUploading] = useState(false)
+	const fileInputRef = useRef<HTMLInputElement>(null)
+
+	// Sync local states if user object changes (e.g. from react-query refetch)
+	useEffect(() => {
+		setName(user.name || '')
+		setUsername(user.username || '')
+		setPhotoURL(user.photoURL || '')
+		setPreviewURL(null)
+	}, [user])
+
+	const getDisplayAvatarUrl = useCallback((url: string | null) => {
+		if (!url) return undefined
+		if (url.startsWith('blob:')) return url
+		return getMediaUrl(url)
+	}, [])
+
+	const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+		const file = event.target.files?.[0]
+		if (!file) return
+
+		setIsUploading(true)
+		const compressionToast = toast.loading('Compressing and uploading image...')
+
+		try {
+			const options = {
+				maxSizeMB: 0.5,
+				maxWidthOrHeight: 256,
+				useWebWorker: true,
+			}
+			const compressedFile = await imageCompression(file, options)
+
+			// Generate local object URL for instant, zero-latency rendering
+			const objectUrl = URL.createObjectURL(compressedFile)
+			setPreviewURL(objectUrl)
+
+			const { presignedUrl, publicUrl } = await apiClient.post<{
+				presignedUrl: string
+				publicUrl: string
+				key: string
+			}>('/upload/presigned-url', {
+				filename: compressedFile.name || 'avatar.jpg',
+				contentType: compressedFile.type || 'image/jpeg',
+				folder: `avatars/${user.userId}`,
+			})
+
+			const uploadResponse = await fetch(presignedUrl, {
+				method: 'PUT',
+				body: compressedFile,
+				headers: {
+					'Content-Type': compressedFile.type || 'image/jpeg',
+				},
+			})
+
+			if (!uploadResponse.ok) throw new Error('Failed to upload file to storage')
+
+			setPhotoURL(publicUrl)
+			toast.success('Avatar updated! Remember to save changes.', { id: compressionToast })
+		} catch (error) {
+			console.error('Avatar upload error:', error)
+			toast.error('Failed to upload avatar image.', { id: compressionToast })
+			setPreviewURL(null)
+		} finally {
+			setIsUploading(false)
+			if (fileInputRef.current) fileInputRef.current.value = ''
+		}
+	}
 
 	const isDirty = useMemo(() => {
 		return (
@@ -40,18 +111,13 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 	const handleSaveAll = useCallback(async () => {
 		const nameInput = document.getElementById('display-name-input') as HTMLInputElement | null
 		const usernameInput = document.getElementById('username-input') as HTMLInputElement | null
-		const photoUrlInput = document.getElementById('avatar-url') as HTMLInputElement | null
 
 		const currentName = nameInput ? nameInput.value : name
 		const currentUsername = usernameInput ? usernameInput.value : username
-		const currentPhotoURL = photoUrlInput ? photoUrlInput.value : photoURL
-
-		// Sync React state back in case DOM value was modified directly by testing tool
+		const currentPhotoURL = photoURL
 		if (currentName !== name) setName(currentName)
 		if (currentUsername !== username) setUsername(currentUsername)
-		if (currentPhotoURL !== photoURL) setPhotoURL(currentPhotoURL)
 
-		// Use toast.promise for a unified, clean UI response
 		toast.promise(
 			updateUser.mutateAsync({
 				userId: user.userId,
@@ -65,6 +131,7 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 				loading: 'Saving your profile changes...',
 				success: () => {
 					setLastUpdated(new Date())
+					setPreviewURL(null) // Reset preview url setelah sukses disimpan
 					return 'Profile updated successfully!'
 				},
 				error: (err: any) => {
@@ -78,6 +145,7 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 		setName(user.name || '')
 		setUsername(user.username || '')
 		setPhotoURL(user.photoURL || '')
+		setPreviewURL(null)
 	}, [user.name, user.username, user.photoURL])
 
 	const handleDeleteAccount = useCallback(async () => {
@@ -98,40 +166,55 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 
 				<div className='bg-white border rounded-lg overflow-hidden shadow-sm'>
 					<div className='p-6 space-y-10'>
-						{/* Avatar Field - 50/50 Split */}
 						<div className='flex flex-col sm:flex-row items-start gap-8 sm:gap-12'>
 							<div className='w-full sm:w-1/2 space-y-1 text-left'>
 								<h4 className='text-sm font-semibold text-gray-900'>Avatar</h4>
 								<p className='text-xs text-gray-500'>
-									This is your avatar. Enter a URL to update your profile picture.
+									This is your avatar. Click on the profile photo to upload and update your profile
+									picture.
 								</p>
 							</div>
-							<div className='w-full sm:w-1/2 flex items-center gap-4 text-left'>
-								<Avatar className='h-12 w-12 border shadow-sm shrink-0'>
-									<AvatarImage src={photoURL || undefined} alt={name} />
-									<AvatarFallback className='bg-primary/5 text-primary text-xs font-bold'>
-										{name.substring(0, 2).toUpperCase() || '??'}
-									</AvatarFallback>
-								</Avatar>
-								<div className='flex-1 min-w-0 space-y-1'>
-									<label
-										htmlFor='avatar-url'
-										className='text-[10px] font-bold text-gray-400 uppercase tracking-wider'
-									>
-										Avatar URL
-									</label>
-									<Input
-										id='avatar-url'
-										placeholder='https://example.com/avatar.jpg'
-										value={photoURL}
-										onChange={(e) => setPhotoURL(e.target.value)}
-										className='h-9 text-sm w-full bg-background'
-									/>
-								</div>
+							<div className='w-full sm:w-1/2 flex items-center gap-6 text-left'>
+								<button
+									type='button'
+									onClick={() => !isUploading && fileInputRef.current?.click()}
+									className='relative h-16 w-16 rounded-full border shadow-sm overflow-hidden group cursor-pointer transition-all duration-300 hover:ring-2 hover:ring-primary/50 shrink-0'
+								>
+									<Avatar className='h-full w-full'>
+										<AvatarImage
+											src={getDisplayAvatarUrl(previewURL || photoURL) || undefined}
+											alt={name}
+										/>
+										<AvatarFallback className='bg-primary/5 text-primary text-xs font-bold'>
+											{name.substring(0, 2).toUpperCase() || '??'}
+										</AvatarFallback>
+									</Avatar>
+
+									<div className='absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300'>
+										<Camera className='h-4 w-4 mb-0.5' />
+										<span className='text-[9px] font-semibold uppercase tracking-wider'>
+											Change
+										</span>
+									</div>
+
+									{isUploading && (
+										<div className='absolute inset-0 bg-white/80 flex items-center justify-center'>
+											<Loader2 className='h-5 w-5 text-primary animate-spin' />
+										</div>
+									)}
+								</button>
+
+								<input
+									type='file'
+									ref={fileInputRef}
+									onChange={handleImageUpload}
+									accept='image/*'
+									className='hidden'
+									disabled={isUploading}
+								/>
 							</div>
 						</div>
 
-						{/* Display Name Field - 50/50 Split */}
 						<div className='flex flex-col sm:flex-row items-start gap-8 sm:gap-12'>
 							<div className='w-full sm:w-1/2 space-y-1 text-left'>
 								<h4 className='text-sm font-semibold text-gray-900'>Display Name</h4>
@@ -152,7 +235,6 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 							</div>
 						</div>
 
-						{/* Username Field - 50/50 Split */}
 						<div className='flex flex-col sm:flex-row items-start gap-8 sm:gap-12'>
 							<div className='w-full sm:w-1/2 space-y-1 text-left'>
 								<h4 className='text-sm font-semibold text-gray-900'>Username</h4>
@@ -179,7 +261,6 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 						</div>
 					</div>
 
-					{/* Save / Reset Footer Actions */}
 					<div className='bg-gray-50/50 border-t p-4 flex justify-end gap-3'>
 						<Button
 							variant='outline'
@@ -209,7 +290,6 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 				</div>
 			</section>
 
-			{/* Danger Zone Section */}
 			<section className='space-y-4'>
 				<h3 className='text-lg font-semibold text-red-600 text-left'>Danger Zone</h3>
 
@@ -235,7 +315,6 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 				</div>
 			</section>
 
-			{/* Deletion Confirm Dialog */}
 			<ConfirmDialog
 				isOpen={showDeleteDialog}
 				onClose={() => setShowDeleteDialog(false)}

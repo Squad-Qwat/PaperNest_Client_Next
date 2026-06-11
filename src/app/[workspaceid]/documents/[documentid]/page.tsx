@@ -437,6 +437,7 @@ function DocumentPageContent() {
 					syncToPdf={editorFunctions?.syncToPdf}
 					autoCompile={editorFunctions?.autoCompile}
 					toggleAutoCompile={editorFunctions?.toggleAutoCompile}
+					pdfUrl={editorFunctions?.pdfUrl}
 					debugContentExtraction={editorFunctions?.debugContentExtraction}
 				/>
 

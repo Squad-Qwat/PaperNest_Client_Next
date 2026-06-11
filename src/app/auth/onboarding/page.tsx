@@ -19,7 +19,7 @@ import { Textarea } from '@/components/ui/textarea'
 import Grainient from '@/components/visuals/Grainient/Grainient'
 import { useAuth } from '@/context/AuthContext'
 import { useCompleteSocialRegistration } from '@/lib/api/hooks/use-auth'
-import { useCreateWorkspace, useJoinWorkspace } from '@/lib/api/hooks/use-workspaces'
+import { useCreateWorkspace } from '@/lib/api/hooks/use-workspaces'
 import type { UserRole } from '@/lib/api/types/user.types'
 import { getErrorMessage } from '@/lib/api/utils/error-handler'
 
@@ -34,20 +34,17 @@ export default function OnboardingPage() {
 			clearOnboardingData: () => setOnboardingData(null),
 		})
 	const { mutateAsync: createWorkspace, isPending: isCreatePending } = useCreateWorkspace()
-	const { mutateAsync: joinWorkspace, isPending: isJoinPending } = useJoinWorkspace()
 
-	const loading = isCompletePending || isCreatePending || isJoinPending
+	const loading = isCompletePending || isCreatePending
 
 	const [currentStep, setCurrentStep] = useState(1)
 	const [direction, setDirection] = useState(0)
 	const [formData, setFormData] = useState({
 		username: '',
 		role: 'Student' as UserRole,
-		workspaceMode: 'create' as 'create' | 'join',
 		workspaceIcon: '📚',
 		workspaceTitle: '',
 		workspaceDescription: '',
-		invitationCode: '',
 	})
 	const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -76,16 +73,10 @@ export default function OnboardingPage() {
 
 	const validateStep2 = () => {
 		const newErrors: Record<string, string> = {}
-		if (formData.workspaceMode === 'create') {
-			if (!formData.workspaceTitle) {
-				newErrors.workspaceTitle = 'Workspace title is required'
-			} else if (formData.workspaceTitle.length < 3) {
-				newErrors.workspaceTitle = 'Workspace title must be at least 3 characters'
-			}
-		} else {
-			if (!formData.invitationCode) {
-				newErrors.invitationCode = 'Invitation code is required'
-			}
+		if (!formData.workspaceTitle) {
+			newErrors.workspaceTitle = 'Workspace title is required'
+		} else if (formData.workspaceTitle.length < 3) {
+			newErrors.workspaceTitle = 'Workspace title must be at least 3 characters'
 		}
 		setErrors(newErrors)
 		return Object.keys(newErrors).length === 0
@@ -119,16 +110,12 @@ export default function OnboardingPage() {
 				email: onboardingData.firebaseData.email,
 			})
 
-			// 2. Create or Join Workspace
-			if (formData.workspaceMode === 'create') {
-				await createWorkspace({
-					title: formData.workspaceTitle,
-					description: formData.workspaceDescription || undefined,
-					icon: formData.workspaceIcon,
-				})
-			} else {
-				await joinWorkspace(formData.invitationCode)
-			}
+			// 2. Create Workspace
+			await createWorkspace({
+				title: formData.workspaceTitle,
+				description: formData.workspaceDescription || undefined,
+				icon: formData.workspaceIcon,
+			})
 
 			router.push('/')
 		} catch (err) {
@@ -257,97 +244,43 @@ export default function OnboardingPage() {
 							{/* Step 2: Workspace Setup (Directly from register/page.tsx logic) */}
 							{currentStep === 2 && (
 								<div className='space-y-6 animate-in fade-in duration-300'>
-									<RadioGroup
-										className='w-full grid grid-cols-2 gap-3'
-										value={formData.workspaceMode}
-										onValueChange={(value) => updateField('workspaceMode', value)}
-									>
-										<div className='border-input has-data-[state=checked]:bg-teal-500 has-data-[state=checked]:text-white relative flex flex-col gap-2 border p-4 rounded-lg outline-none has-data-[state=checked]:z-10 transition-all'>
-											<div className='group flex flex-col gap-2'>
-												<div className='flex items-center gap-2'>
-													<RadioGroupItem
-														id='mode-create'
-														value='create'
-														className='bg-white data-[state=checked]:border-white data-[state=checked]:[&_svg]:fill-teal-500 after:absolute after:inset-0'
-													/>
-													<Label className='font-semibold cursor-pointer' htmlFor='mode-create'>
-														Create New
-													</Label>
-												</div>
-												<p className='text-[10px] opacity-80 pl-6'>Start your own research space</p>
-											</div>
+									<div className='space-y-2'>
+										<Label className='text-sm font-medium'>Workspace Icon</Label>
+										<div className='grid grid-cols-5 gap-2'>
+											{workspaceIcons.map((icon) => (
+												<button
+													key={icon}
+													type='button'
+													onClick={() => updateField('workspaceIcon', icon)}
+													className={`p-2 text-xl border rounded-lg transition-all ${formData.workspaceIcon === icon ? 'bg-teal-500 border-teal-400' : 'bg-white border-gray-200 hover:border-gray-300'}`}
+												>
+													{icon}
+												</button>
+											))}
 										</div>
-										<div className='border-input has-data-[state=checked]:bg-teal-500 has-data-[state=checked]:text-white relative flex flex-col gap-2 border p-4 rounded-lg outline-none has-data-[state=checked]:z-10 transition-all'>
-											<div className='group flex flex-col gap-2'>
-												<div className='flex items-center gap-2'>
-													<RadioGroupItem
-														id='mode-join'
-														value='join'
-														className='bg-white data-[state=checked]:border-white data-[state=checked]:[&_svg]:fill-teal-500 after:absolute after:inset-0'
-													/>
-													<Label className='font-semibold cursor-pointer' htmlFor='mode-join'>
-														Join Existing
-													</Label>
-												</div>
-												<p className='text-[10px] opacity-80 pl-6'>Use an invitation code</p>
-											</div>
-										</div>
-									</RadioGroup>
-
-									{formData.workspaceMode === 'create' ? (
-										<>
-											<div className='space-y-2'>
-												<Label className='text-sm font-medium'>Workspace Icon</Label>
-												<div className='grid grid-cols-5 gap-2'>
-													{workspaceIcons.map((icon) => (
-														<button
-															key={icon}
-															type='button'
-															onClick={() => updateField('workspaceIcon', icon)}
-															className={`p-2 text-xl border rounded-lg transition-all ${formData.workspaceIcon === icon ? 'bg-teal-500 border-teal-400' : 'bg-white border-gray-200 hover:border-gray-300'}`}
-														>
-															{icon}
-														</button>
-													))}
-												</div>
-											</div>
-											<div className='space-y-2'>
-												<Label htmlFor='workspaceTitle'>Workspace Title *</Label>
-												<Input
-													id='workspaceTitle'
-													value={formData.workspaceTitle}
-													onChange={(e) => updateField('workspaceTitle', e.target.value)}
-													placeholder='My Research Lab'
-												/>
-												{errors.workspaceTitle && (
-													<p className='text-xs text-red-500'>{errors.workspaceTitle}</p>
-												)}
-											</div>
-											<div className='space-y-2'>
-												<Label htmlFor='workspaceDescription'>Description (Optional)</Label>
-												<Textarea
-													id='workspaceDescription'
-													value={formData.workspaceDescription}
-													onChange={(e) => updateField('workspaceDescription', e.target.value)}
-													placeholder='Briefly describe your workspace...'
-													rows={2}
-												/>
-											</div>
-										</>
-									) : (
-										<div className='space-y-2'>
-											<Label htmlFor='invitationCode'>Invitation Code *</Label>
-											<Input
-												id='invitationCode'
-												value={formData.invitationCode}
-												onChange={(e) => updateField('invitationCode', e.target.value)}
-												placeholder='Enter workspace code'
-											/>
-											{errors.invitationCode && (
-												<p className='text-xs text-red-500'>{errors.invitationCode}</p>
-											)}
-										</div>
-									)}
+									</div>
+									<div className='space-y-2'>
+										<Label htmlFor='workspaceTitle'>Workspace Title *</Label>
+										<Input
+											id='workspaceTitle'
+											value={formData.workspaceTitle}
+											onChange={(e) => updateField('workspaceTitle', e.target.value)}
+											placeholder='My Research Lab'
+										/>
+										{errors.workspaceTitle && (
+											<p className='text-xs text-red-500'>{errors.workspaceTitle}</p>
+										)}
+									</div>
+									<div className='space-y-2'>
+										<Label htmlFor='workspaceDescription'>Description (Optional)</Label>
+										<Textarea
+											id='workspaceDescription'
+											value={formData.workspaceDescription}
+											onChange={(e) => updateField('workspaceDescription', e.target.value)}
+											placeholder='Briefly describe your workspace...'
+											rows={2}
+										/>
+									</div>
 								</div>
 							)}
 						</motion.div>

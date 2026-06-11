@@ -52,12 +52,18 @@ export async function POST(request: NextRequest) {
 
 		const color = generateColorFromString(user.userId || user.username || user.email)
 
+		let avatar = user.photoURL || undefined
+		if (avatar && avatar.includes('assets.papernest.com')) {
+			const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+			avatar = `${baseUrl}/upload/download?url=${encodeURIComponent(avatar)}`
+		}
+
 		// Start a Liveblocks session with user metadata
 		const session = liveblocks.prepareSession(user.userId, {
 			userInfo: {
 				name: user.name || user.username || 'Unknown User', // Full name from database
 				email: user.email,
-				avatar: user.photoURL || undefined,
+				avatar,
 				color,
 				colorLight: `${color}33`,
 			},

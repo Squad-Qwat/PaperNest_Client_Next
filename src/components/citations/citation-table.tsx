@@ -6,6 +6,7 @@ import {
 	type ColumnOrderState,
 	flexRender,
 	getCoreRowModel,
+	getFilteredRowModel,
 	getSortedRowModel,
 	type Header as HeaderType,
 	type Row,
@@ -38,6 +39,7 @@ interface CitationTableProps {
 	isLoading: boolean
 	onRowClick: (citation: CitationDisplay) => void
 	onDelete: (citationId: string) => void
+	viewMode?: string
 }
 
 /**
@@ -94,12 +96,30 @@ TableHeaderSection.displayName = 'TableHeaderSection'
  * Renders a single table row
  */
 const TableRowComponent = React.memo(
-	({ row, onClick }: { row: Row<CitationDisplay>; onClick: (data: CitationDisplay) => void }) => {
+	({
+		row,
+		onClick,
+		viewMode,
+	}: {
+		row: Row<CitationDisplay>
+		onClick: (data: CitationDisplay) => void
+		viewMode?: string
+	}) => {
 		return (
 			<TableRow
 				data-state={row.getIsSelected() && 'selected'}
 				className='cursor-pointer hover:bg-gray-50/50 transition-colors'
-				onClick={() => onClick(row.original)}
+				onClick={(e) => {
+					const target = e.target as HTMLElement
+					if (
+						target.closest('[role="checkbox"]') ||
+						target.closest('button') ||
+						target.closest('a')
+					) {
+						return
+					}
+					onClick(row.original)
+				}}
 			>
 				{row.getVisibleCells().map((cell: Cell<CitationDisplay, unknown>) => (
 					<TableCell
@@ -108,7 +128,19 @@ const TableRowComponent = React.memo(
 							width: cell.column.getSize(),
 							minWidth: cell.column.columnDef.minSize,
 						}}
-						className='overflow-hidden'
+						className={cn(
+							'overflow-hidden transition-all',
+							viewMode === 'compact'
+								? 'py-1.5 px-3 text-xs'
+								: viewMode === 'expanded'
+									? 'py-4 px-4 text-base'
+									: 'py-3 px-3 text-sm'
+						)}
+						onClick={(e) => {
+							if (['select', 'actions', 'link'].includes(cell.column.id)) {
+								e.stopPropagation()
+							}
+						}}
 					>
 						<div className='truncate'>
 							{flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -151,30 +183,8 @@ const LoadingState = ({ columns }: { columns: ColumnDef<CitationDisplay, any>[] 
  */
 const getCitationColumns = (onDelete: (id: string) => void): ColumnDef<CitationDisplay>[] => [
 	{
-		id: 'select',
-		header: ({ table }) => (
-			<Checkbox
-				checked={table.getIsAllPageRowsSelected()}
-				onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-				aria-label='Select all'
-			/>
-		),
-		cell: ({ row }) => (
-			<div className='flex items-center justify-center'>
-				<Checkbox
-					checked={row.getIsSelected()}
-					onCheckedChange={(value) => row.toggleSelected(!!value)}
-					onClick={(e) => e.stopPropagation()}
-					aria-label='Select row'
-				/>
-			</div>
-		),
-		enableResizing: false,
-		size: 40,
-	},
-	{
 		accessorKey: 'type',
-		header: 'Tipe',
+		header: 'Type',
 		cell: ({ row }) => <span className='capitalize'>{row.getValue('type')}</span>,
 		minSize: 80,
 		enableResizing: false,
@@ -193,7 +203,7 @@ const getCitationColumns = (onDelete: (id: string) => void): ColumnDef<CitationD
 					className='hover:bg-transparent p-0'
 					onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
 				>
-					<span className='truncate'>Judul</span>
+					<span className='truncate'>Title</span>
 					<SortIcon className='ml-2 h-4 w-4' />
 				</Button>
 			)
@@ -210,12 +220,37 @@ const getCitationColumns = (onDelete: (id: string) => void): ColumnDef<CitationD
 	},
 	{
 		accessorKey: 'author',
-		header: 'Penulis',
+		header: 'Author',
+		cell: ({ row }) => {
+			const authorString = (row.getValue('author') as string) || ''
+
+			// Penulis bisa dipisahkan oleh 'and', ',', ';'
+			// Bersihkan string dan pisahkan
+			const authors = authorString
+				.split(/, |; | and /)
+				.map((name) => name.trim())
+				.filter(Boolean)
+
+			if (authors.length === 0) return '-'
+
+			// Ambil penulis pertama
+			const firstAuthor = authors[0]
+
+			// Ambil nama belakang (kata terakhir dari nama penulis pertama)
+			// Contoh: "Muhammad Abiyyu" -> "Abiyyu", "Albert Einstein" -> "Einstein"
+			const nameParts = firstAuthor.split(/\s+/)
+			const lastName = nameParts[nameParts.length - 1] || firstAuthor
+
+			if (authors.length > 1) {
+				return `${lastName} et al.`
+			}
+			return lastName
+		},
 		minSize: 100,
 	},
 	{
 		accessorKey: 'publicationInfo',
-		header: 'Publikasi',
+		header: 'Publication',
 		minSize: 150,
 	},
 	{
@@ -240,22 +275,9 @@ const getCitationColumns = (onDelete: (id: string) => void): ColumnDef<CitationD
 					className='hover:bg-transparent p-0'
 					onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
 				>
-					<span className='truncate'>Tahun</span>
+					<span className='truncate'>Year</span>
 					<SortIcon className='ml-1 h-3 w-3 shrink-0' />
 				</Button>
-			)
-		},
-		minSize: 80,
-	},
-	{
-		accessorKey: 'annotationsCount',
-		header: 'Anotasi',
-		cell: ({ row }) => {
-			const count = row.getValue('annotationsCount') as number
-			return (
-				<div className='flex items-center justify-center bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs font-bold w-fit'>
-					{count || 0}
-				</div>
 			)
 		},
 		minSize: 80,
@@ -288,7 +310,7 @@ const getCitationColumns = (onDelete: (id: string) => void): ColumnDef<CitationD
 	},
 	{
 		id: 'actions',
-		header: () => <div className='text-right'>Aksi</div>,
+		header: () => <div className='text-right'>Action</div>,
 		cell: ({ row }) => (
 			<div className='text-right'>
 				<Button
@@ -318,11 +340,13 @@ const TableBodyContent = ({
 	tableRows,
 	columns,
 	onRowClick,
+	viewMode,
 }: {
 	isLoading: boolean
 	tableRows: Row<CitationDisplay>[]
 	columns: ColumnDef<CitationDisplay>[]
 	onRowClick: (citation: CitationDisplay) => void
+	viewMode?: string
 }) => {
 	if (isLoading) {
 		return <LoadingState columns={columns} />
@@ -332,7 +356,7 @@ const TableBodyContent = ({
 		return (
 			<>
 				{tableRows.map((row) => (
-					<TableRowComponent key={row.id} row={row} onClick={onRowClick} />
+					<TableRowComponent key={row.id} row={row} onClick={onRowClick} viewMode={viewMode} />
 				))}
 			</>
 		)
@@ -341,7 +365,7 @@ const TableBodyContent = ({
 	return (
 		<TableRow>
 			<TableCell colSpan={columns.length} className='h-24 text-center'>
-				Tidak ada data sitasi.
+				No citation data.
 			</TableCell>
 		</TableRow>
 	)
@@ -351,11 +375,22 @@ const TableBodyContent = ({
  * Main CitationTable component
  */
 export const CitationTable = React.memo(
-	({ data, isLoading, onRowClick, onDelete }: CitationTableProps) => {
+	({ data, isLoading, onRowClick, onDelete, viewMode }: CitationTableProps) => {
 		const [sorting, setSorting] = useState<SortingState>([])
 		const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([])
+		const [rowSelection, setRowSelection] = useState({})
 
 		const columns = useMemo(() => getCitationColumns(onDelete), [onDelete])
+
+		const columnVisibility = useMemo(() => {
+			if (viewMode === 'compact') {
+				return {
+					doi: false,
+					publicationInfo: false,
+				}
+			}
+			return {}
+		}, [viewMode]) as Record<string, boolean>
 
 		const table = useReactTable({
 			data,
@@ -363,11 +398,17 @@ export const CitationTable = React.memo(
 			state: {
 				sorting,
 				columnOrder,
+				rowSelection,
+				columnVisibility,
 			},
+			enableRowSelection: true,
 			onSortingChange: setSorting,
 			onColumnOrderChange: setColumnOrder,
+			onRowSelectionChange: setRowSelection,
 			getCoreRowModel: getCoreRowModel(),
 			getSortedRowModel: getSortedRowModel(),
+			getFilteredRowModel: getFilteredRowModel(),
+			getRowId: (row) => row.citationId,
 			columnResizeMode: 'onChange',
 		})
 
@@ -381,6 +422,7 @@ export const CitationTable = React.memo(
 							tableRows={table.getRowModel().rows}
 							columns={columns}
 							onRowClick={onRowClick}
+							viewMode={viewMode}
 						/>
 					</TableBody>
 				</Table>
