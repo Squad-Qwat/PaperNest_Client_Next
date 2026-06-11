@@ -11,6 +11,7 @@ import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Modal, ModalFooter } from '@/components/ui/modal'
 import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/context/AuthContext'
 import { useCompilePdf } from '@/hooks/editor/use-compile-pdf'
@@ -129,11 +130,79 @@ export default function ReviewDetailPage() {
 
 	if (authLoading || reviewLoading || (documentId && versionsLoading)) {
 		return (
-			<div className='h-screen flex items-center justify-center bg-background'>
-				<div className='flex flex-col items-center gap-4'>
-					<Loader2 className='w-8 h-8 animate-spin text-muted-foreground' />
-					<span className='text-sm text-muted-foreground'>Loading review details...</span>
-				</div>
+			<div className='h-screen flex flex-col font-sans bg-background text-foreground animate-pulse'>
+				{/* Header Skeleton */}
+				<header className='bg-background border-b sticky top-0 z-50 py-4'>
+					<div className='w-full px-4 md:px-6 flex items-center justify-between'>
+						<div className='flex items-center gap-4'>
+							<Skeleton className='h-10 w-10 rounded-lg' />
+							<div className='flex flex-col gap-2'>
+								<Skeleton className='h-4 w-40' />
+								<Skeleton className='h-3 w-60' />
+							</div>
+						</div>
+						<div className='flex items-center gap-3'>
+							<Skeleton className='h-6 w-20 rounded-full' />
+						</div>
+					</div>
+				</header>
+
+				{/* Main Layout Skeleton */}
+				<main className='flex-1 flex flex-col lg:flex-row overflow-hidden p-4 md:p-6 gap-6'>
+					{/* Left side: PDF Compiler/Preview Box */}
+					<div className='flex-1 bg-background rounded-lg border flex items-center justify-center relative overflow-hidden p-4'>
+						<Skeleton className='w-full h-full rounded-lg' />
+					</div>
+
+					{/* Right side: Review Sidebar Details */}
+					<div className='w-full lg:w-96 flex flex-col shrink-0 gap-6 overflow-y-auto'>
+						{/* Card 1: Student Requester Info & Message */}
+						<Card className='p-5 space-y-4 rounded-2xl border-gray-200/60 shadow-sm bg-white'>
+							<div className='flex items-center gap-3 border-b border-gray-100 pb-3'>
+								<Skeleton className='h-9 w-9 rounded-full' />
+								<div className='flex-1 min-w-0 space-y-2'>
+									<Skeleton className='h-4.5 w-32' />
+									<Skeleton className='h-3 w-24' />
+								</div>
+							</div>
+							<div className='space-y-2'>
+								<Skeleton className='h-3 w-16' />
+								<Skeleton className='h-16 w-full rounded-lg' />
+							</div>
+						</Card>
+
+						{/* Card 2: Decision Box / Status */}
+						<Card className='p-5 space-y-4 rounded-2xl border-gray-200/60 shadow-sm bg-white'>
+							<div className='border-b border-gray-100 pb-3'>
+								<Skeleton className='h-4 w-36' />
+							</div>
+							<div className='grid grid-cols-1 gap-2.5'>
+								<Skeleton className='h-10 w-full rounded-md' />
+								<Skeleton className='h-10 w-full rounded-md' />
+								<Skeleton className='h-10 w-full rounded-md' />
+							</div>
+						</Card>
+
+						{/* Card 3: Document Information Card */}
+						<Card className='p-5 rounded-2xl border-gray-200/60 shadow-sm bg-white space-y-4'>
+							<div className='border-b border-gray-100 pb-3'>
+								<Skeleton className='h-4 w-40' />
+							</div>
+							<div className='space-y-3'>
+								<div className='flex items-center justify-between'>
+									<Skeleton className='h-4 w-24' />
+									<Skeleton className='h-4 w-20' />
+								</div>
+								<Separator className='opacity-50' />
+								<div className='flex items-center justify-between'>
+									<Skeleton className='h-4 w-12' />
+									<Skeleton className='h-4 w-8' />
+								</div>
+							</div>
+							<Skeleton className='h-10 w-full rounded-md mt-4' />
+						</Card>
+					</div>
+				</main>
 			</div>
 		)
 	}
@@ -257,21 +326,21 @@ export default function ReviewDetailPage() {
 								<Button
 									variant='default'
 									onClick={() => openDecisionModal('approved')}
-									className='w-full font-semibold text-sm h-10'
+									className='w-full font-semibold'
 								>
 									Approve
 								</Button>
 								<Button
 									variant='secondary'
 									onClick={() => openDecisionModal('revision_required')}
-									className='w-full font-semibold text-sm h-10'
+									className='w-full font-semibold'
 								>
 									Request Revision
 								</Button>
 								<Button
 									variant='destructive'
 									onClick={() => openDecisionModal('rejected')}
-									className='w-full font-semibold text-sm h-10'
+									className='w-full font-semibold'
 								>
 									Reject
 								</Button>

@@ -136,23 +136,22 @@ export function useDocumentVersions(documentId: string) {
 }
 
 export function useDocumentReviews(documentId: string) {
-	const q = documentId
-		? query(collection(db, 'reviews'), where('documentId', '==', documentId))
-		: null
-	return useFirestoreQuery<ReviewsResponse>(
-		DOCUMENT_KEYS.reviews(documentId),
-		q,
-		'reviewId',
-		'reviews',
-		(a, b) => {
-			return new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
-		}
-	)
+	return useQuery({
+		queryKey: DOCUMENT_KEYS.reviews(documentId),
+		queryFn: () => documentsService.getReviews(documentId),
+		enabled: !!documentId,
+	})
 }
 
 export function useReviewDetail(reviewId: string) {
-	const q = reviewId ? doc(db, 'reviews', reviewId) : null
-	return useFirestoreQuery<Review>(DOCUMENT_KEYS.reviewDetail(reviewId), q, 'reviewId')
+	return useQuery({
+		queryKey: DOCUMENT_KEYS.reviewDetail(reviewId),
+		queryFn: async () => {
+			const res = await documentsService.getReview(reviewId)
+			return res.review
+		},
+		enabled: !!reviewId,
+	})
 }
 
 export function useLecturerPendingReviews(enabled = true) {

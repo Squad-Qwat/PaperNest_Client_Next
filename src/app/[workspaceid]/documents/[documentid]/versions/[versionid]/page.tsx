@@ -272,7 +272,10 @@ export default function VersionDetailPage() {
 										<>
 											<Avatar className='h-10 w-10 border-2 border-white shadow-sm'>
 												<AvatarImage
-													src={getMediaUrl(version.user?.photoURL) || getAvatarUrl(displayName, version.userId)}
+													src={
+														getMediaUrl(version.user?.photoURL) ||
+														getAvatarUrl(displayName, version.userId)
+													}
 												/>
 												<AvatarFallback className='bg-primary/5 text-primary text-xs font-bold'>
 													{getInitials(displayName)}

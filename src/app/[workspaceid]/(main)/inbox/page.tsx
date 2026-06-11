@@ -4,6 +4,8 @@ import {
 	IconBell,
 	IconCheck,
 	IconChecks,
+	IconCircleCheck,
+	IconClipboardCheck,
 	IconMessage,
 	IconTrash,
 	IconUserPlus,
@@ -11,11 +13,22 @@ import {
 import { formatDistanceToNow } from 'date-fns'
 import { useParams, useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
+import {
+	Breadcrumb,
+	BreadcrumbItem,
+	BreadcrumbLink,
+	BreadcrumbList,
+	BreadcrumbPage,
+	BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
+import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useNotifications } from '@/context/NotificationContext'
+import { useWorkspace } from '@/lib/api/hooks/use-workspaces'
 import { cn } from '@/lib/utils'
 
 export default function InboxPage() {
@@ -24,6 +37,7 @@ export default function InboxPage() {
 	const workspaceId = params.workspaceid as string
 	const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead, deleteNotification } =
 		useNotifications()
+	const { data: workspace } = useWorkspace(workspaceId)
 
 	const handleNotificationClick = async (notification: any) => {
 		if (!notification.isRead) {
@@ -32,13 +46,15 @@ export default function InboxPage() {
 
 		// Routing logic based on type
 		if (notification.type === 'comment' || notification.type === 'comment_reply') {
-			// Assuming relatedId is commentId, we might need documentId.
-			// In our current implementation, we might need to fetch the documentId related to the comment.
-			// For now, let's assume we can navigate somewhere.
-			// If relatedId is an ID but we don't know the exact path, we'll need to improve the notification schema.
-			// For invitations, it's easier.
+			if (notification.relatedId) {
+				router.push(`/${workspaceId}/documents/${notification.relatedId}`)
+			}
 		} else if (notification.type === 'invitation') {
 			router.push(`/${workspaceId}/invitations`)
+		} else if (notification.type === 'review_request' || notification.type === 'review_completed') {
+			if (notification.relatedId) {
+				router.push(`/${workspaceId}/reviews/${notification.relatedId}`)
+			}
 		}
 	}
 
@@ -49,6 +65,10 @@ export default function InboxPage() {
 				return <IconMessage className='h-5 w-5 text-teal-600' />
 			case 'invitation':
 				return <IconUserPlus className='h-5 w-5 text-blue-600' />
+			case 'review_request':
+				return <IconClipboardCheck className='h-5 w-5 text-amber-600' />
+			case 'review_completed':
+				return <IconCircleCheck className='h-5 w-5 text-green-600' />
 			default:
 				return <IconBell className='h-5 w-5 text-gray-600' />
 		}
@@ -63,121 +83,167 @@ export default function InboxPage() {
 	}
 
 	return (
-		<div className='flex h-full flex-col p-6 overflow-hidden'>
-			<div className='mb-6 flex items-center justify-between'>
-				<div>
-					<h1 className='text-3xl font-bold tracking-tight'>Inbox</h1>
-					<p className='text-muted-foreground'>Manage your notifications and alerts</p>
-				</div>
-				<div className='flex gap-2'>
-					{unreadCount > 0 && (
-						<Button variant='outline' size='sm' onClick={markAllAsRead}>
-							<IconChecks className='mr-2 h-4 w-4' />
-							Mark all as read
-						</Button>
-					)}
-				</div>
-			</div>
+		<>
+			<header className='flex h-16 shrink-0 items-center gap-2 px-4 bg-white border-b sticky top-0 z-30 rounded-t-2xl'>
+				<SidebarTrigger className='-ml-1' />
+				<Separator orientation='vertical' className='mr-2 h-4' />
+				<Breadcrumb>
+					<BreadcrumbList>
+						<BreadcrumbItem className='hidden md:block'>
+							<BreadcrumbLink href='#'>PaperNest</BreadcrumbLink>
+						</BreadcrumbItem>
+						<BreadcrumbSeparator className='hidden md:block' />
+						<BreadcrumbItem>
+							<BreadcrumbLink href={`/${workspaceId}`}>{workspace?.title}</BreadcrumbLink>
+						</BreadcrumbItem>
+						<BreadcrumbSeparator className='hidden md:block' />
+						<BreadcrumbItem>
+							<BreadcrumbPage>Inbox</BreadcrumbPage>
+						</BreadcrumbItem>
+					</BreadcrumbList>
+				</Breadcrumb>
+			</header>
 
-			<Tabs defaultValue='all' className='flex-1 flex flex-col min-h-0'>
-				<TabsList className='mb-4'>
-					<TabsTrigger value='all' className='gap-2'>
-						All
-						{notifications.length > 0 && (
-							<Badge variant='secondary' className='h-5 px-1.5'>
-								{notifications.length}
-							</Badge>
-						)}
-					</TabsTrigger>
-					<TabsTrigger value='unread' className='gap-2'>
-						Unread
-						{unreadCount > 0 && (
-							<Badge className='h-5 px-1.5 bg-primary text-primary-foreground'>{unreadCount}</Badge>
-						)}
-					</TabsTrigger>
-					<TabsTrigger value='comments'>Comments</TabsTrigger>
-					<TabsTrigger value='invitations'>Invitations</TabsTrigger>
-				</TabsList>
-
-				<ScrollArea className='flex-1'>
-					<div className='space-y-4 pr-4'>
-						<TabsContent value='all' className='m-0 space-y-4'>
-							{notifications.length === 0 ? (
-								<EmptyState />
-							) : (
-								notifications.map((n) => (
-									<NotificationCard
-										key={n.notificationId}
-										notification={n}
-										onClick={() => handleNotificationClick(n)}
-										onMarkRead={() => markAsRead(n.notificationId)}
-										onDelete={() => deleteNotification(n.notificationId)}
-										renderIcon={renderNotificationIcon}
-									/>
-								))
-							)}
-						</TabsContent>
-
-						<TabsContent value='unread' className='m-0 space-y-4'>
-							{notifications.filter((n) => !n.isRead).length === 0 ? (
-								<EmptyState message='No unread notifications' />
-							) : (
-								notifications
-									.filter((n) => !n.isRead)
-									.map((n) => (
-										<NotificationCard
-											key={n.notificationId}
-											notification={n}
-											onClick={() => handleNotificationClick(n)}
-											onMarkRead={() => markAsRead(n.notificationId)}
-											onDelete={() => deleteNotification(n.notificationId)}
-											renderIcon={renderNotificationIcon}
-										/>
-									))
-							)}
-						</TabsContent>
-
-						<TabsContent value='comments' className='m-0 space-y-4'>
-							{notifications.filter((n) => n.type.includes('comment')).length === 0 ? (
-								<EmptyState message='No comment notifications' />
-							) : (
-								notifications
-									.filter((n) => n.type.includes('comment'))
-									.map((n) => (
-										<NotificationCard
-											key={n.notificationId}
-											notification={n}
-											onClick={() => handleNotificationClick(n)}
-											onMarkRead={() => markAsRead(n.notificationId)}
-											onDelete={() => deleteNotification(n.notificationId)}
-											renderIcon={renderNotificationIcon}
-										/>
-									))
-							)}
-						</TabsContent>
-
-						<TabsContent value='invitations' className='m-0 space-y-4'>
-							{notifications.filter((n) => n.type === 'invitation').length === 0 ? (
-								<EmptyState message='No invitations' />
-							) : (
-								notifications
-									.filter((n) => n.type === 'invitation')
-									.map((n) => (
-										<NotificationCard
-											key={n.notificationId}
-											notification={n}
-											onClick={() => handleNotificationClick(n)}
-											onMarkRead={() => markAsRead(n.notificationId)}
-											onDelete={() => deleteNotification(n.notificationId)}
-											renderIcon={renderNotificationIcon}
-										/>
-									))
-							)}
-						</TabsContent>
+			<div className='flex-1 p-6 flex flex-col min-h-0 overflow-hidden'>
+				<div className='mb-8 flex items-center justify-between'>
+					<div>
+						<h2 className='text-2xl font-bold text-gray-900'>Inbox</h2>
+						<p className='text-sm text-gray-500 mt-1'>
+							Manage your notifications and alerts in the workspace {workspace?.title}
+						</p>
 					</div>
-				</ScrollArea>
-			</Tabs>
-		</div>
+					<div className='flex gap-2'>
+						{unreadCount > 0 && (
+							<Button variant='outline' size='sm' onClick={markAllAsRead}>
+								<IconChecks className='mr-2 h-4 w-4' />
+								Mark all as read
+							</Button>
+						)}
+					</div>
+				</div>
+
+				<Tabs defaultValue='all' className='flex-1 flex flex-col min-h-0'>
+					<TabsList className='mb-4'>
+						<TabsTrigger value='all' className='gap-2'>
+							All
+							{notifications.length > 0 && (
+								<Badge variant='secondary' className='h-5 px-1.5'>
+									{notifications.length}
+								</Badge>
+							)}
+						</TabsTrigger>
+						<TabsTrigger value='unread' className='gap-2'>
+							Unread
+							{unreadCount > 0 && (
+								<Badge className='h-5 px-1.5 bg-primary text-primary-foreground'>
+									{unreadCount}
+								</Badge>
+							)}
+						</TabsTrigger>
+						<TabsTrigger value='comments'>Comments</TabsTrigger>
+						<TabsTrigger value='reviews'>Reviews</TabsTrigger>
+						<TabsTrigger value='invitations'>Invitations</TabsTrigger>
+					</TabsList>
+
+					<ScrollArea className='flex-1'>
+						<div className='space-y-4 pr-4'>
+							<TabsContent value='all' className='m-0 space-y-4'>
+								{notifications.length === 0 ? (
+									<EmptyState />
+								) : (
+									notifications.map((n) => (
+										<NotificationCard
+											key={n.notificationId}
+											notification={n}
+											onClick={() => handleNotificationClick(n)}
+											onMarkRead={() => markAsRead(n.notificationId)}
+											onDelete={() => deleteNotification(n.notificationId)}
+											renderIcon={renderNotificationIcon}
+										/>
+									))
+								)}
+							</TabsContent>
+
+							<TabsContent value='unread' className='m-0 space-y-4'>
+								{notifications.filter((n) => !n.isRead).length === 0 ? (
+									<EmptyState message='No unread notifications' />
+								) : (
+									notifications
+										.filter((n) => !n.isRead)
+										.map((n) => (
+											<NotificationCard
+												key={n.notificationId}
+												notification={n}
+												onClick={() => handleNotificationClick(n)}
+												onMarkRead={() => markAsRead(n.notificationId)}
+												onDelete={() => deleteNotification(n.notificationId)}
+												renderIcon={renderNotificationIcon}
+											/>
+										))
+								)}
+							</TabsContent>
+
+							<TabsContent value='comments' className='m-0 space-y-4'>
+								{notifications.filter((n) => n.type.includes('comment')).length === 0 ? (
+									<EmptyState message='No comment notifications' />
+								) : (
+									notifications
+										.filter((n) => n.type.includes('comment'))
+										.map((n) => (
+											<NotificationCard
+												key={n.notificationId}
+												notification={n}
+												onClick={() => handleNotificationClick(n)}
+												onMarkRead={() => markAsRead(n.notificationId)}
+												onDelete={() => deleteNotification(n.notificationId)}
+												renderIcon={renderNotificationIcon}
+											/>
+										))
+								)}
+							</TabsContent>
+
+							<TabsContent value='reviews' className='m-0 space-y-4'>
+								{notifications.filter((n) => n.type.includes('review')).length === 0 ? (
+									<EmptyState message='No review notifications' />
+								) : (
+									notifications
+										.filter((n) => n.type.includes('review'))
+										.map((n) => (
+											<NotificationCard
+												key={n.notificationId}
+												notification={n}
+												onClick={() => handleNotificationClick(n)}
+												onMarkRead={() => markAsRead(n.notificationId)}
+												onDelete={() => deleteNotification(n.notificationId)}
+												renderIcon={renderNotificationIcon}
+											/>
+										))
+								)}
+							</TabsContent>
+
+							<TabsContent value='invitations' className='m-0 space-y-4'>
+								{notifications.filter((n) => n.type === 'invitation').length === 0 ? (
+									<EmptyState message='No invitations' />
+								) : (
+									notifications
+										.filter((n) => n.type === 'invitation')
+										.map((n) => (
+											<NotificationCard
+												key={n.notificationId}
+												notification={n}
+												onClick={() => handleNotificationClick(n)}
+												onMarkRead={() => markAsRead(n.notificationId)}
+												onDelete={() => deleteNotification(n.notificationId)}
+												renderIcon={renderNotificationIcon}
+											/>
+										))
+								)}
+							</TabsContent>
+						</div>
+					</ScrollArea>
+				</Tabs>
+			</div>
+		</>
 	)
 }
 
@@ -197,7 +263,7 @@ function NotificationCard({
 	return (
 		<Card
 			className={cn(
-				'cursor-pointer transition-colors hover:bg-muted/50 relative overflow-hidden',
+				'cursor-pointer transition-colors hover:bg-muted/50 relative overflow-hidden group',
 				!notification.isRead && 'border-l-4 border-l-primary bg-primary/5'
 			)}
 			onClick={onClick}

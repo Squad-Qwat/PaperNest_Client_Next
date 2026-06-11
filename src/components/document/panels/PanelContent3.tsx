@@ -207,8 +207,6 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText, activeFileN
 		}
 	}, [citations, documentId, files, addDocumentFileMutation, queryClient])
 
-
-
 	// Copy to clipboard cite format
 	const handleCopyCite = (citationId: string) => {
 		const citeCommand = `\\cite{${citationId}}`

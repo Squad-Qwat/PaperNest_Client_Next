@@ -313,7 +313,9 @@ export default function VersionsPage() {
 									<Avatar key={v.documentBodyId} className='h-8 w-8 border-2 border-background'>
 										<AvatarImage
 											src={
-												getMediaUrl(v.user?.photoURL) || getMediaUrl(member?.user?.photoURL) || getAvatarUrl(dName, v.userId)
+												getMediaUrl(v.user?.photoURL) ||
+												getMediaUrl(member?.user?.photoURL) ||
+												getAvatarUrl(dName, v.userId)
 											}
 										/>
 										<AvatarFallback className='text-[10px] bg-blue-50 text-blue-600'>

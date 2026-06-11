@@ -1,4 +1,16 @@
-import { ChevronLeft, GitCommit, History, MessageSquare, Share2 } from 'lucide-react'
+import {
+	Check,
+	ChevronLeft,
+	FileDown,
+	FileText,
+	GitCommit,
+	History,
+	MessageSquare,
+	Play,
+	Save,
+	Settings2,
+	Share2,
+} from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -7,12 +19,29 @@ import LatexToolbar from '@/components/document/latex/LatexToolbar'
 import { CommitModal } from '@/components/document/mergeview/CommitModal'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import {
+	Menubar,
+	MenubarCheckboxItem,
+	MenubarContent,
+	MenubarGroup,
+	MenubarItem,
+	MenubarLabel,
+	MenubarMenu,
+	MenubarRadioGroup,
+	MenubarRadioItem,
+	MenubarSeparator,
+	MenubarShortcut,
+	MenubarSub,
+	MenubarSubContent,
+	MenubarSubTrigger,
+	MenubarTrigger,
+} from '@/components/ui/menubar'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAuth } from '@/context/AuthContext'
 import { useDocumentReviews } from '@/lib/api/hooks/use-documents'
 import { useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
 import { documentsService } from '@/lib/api/services/documents.service'
-import { getInitials, getMediaUrl } from '@/lib/utils'
+import { cn, getInitials, getMediaUrl } from '@/lib/utils'
 
 interface DocumentHeaderProps {
 	title: string
@@ -37,7 +66,7 @@ interface DocumentHeaderProps {
 	redo: () => void
 	canUndo: boolean
 	canRedo: boolean
-	handleCompile: () => void
+	handleCompile: (content?: string) => void
 	isCompiling: boolean
 	viewMode: 'source' | 'visual'
 	toggleViewMode: () => void
@@ -54,6 +83,7 @@ interface DocumentHeaderProps {
 	user?: any
 	workspace?: any
 	debugContentExtraction?: any
+	pdfUrl?: string | null
 }
 
 const DocumentHeader = ({
@@ -96,6 +126,7 @@ const DocumentHeader = ({
 	aiAssistantOpen,
 	toggleAiAssistant,
 	workspace,
+	pdfUrl,
 }: DocumentHeaderProps) => {
 	const router = useRouter()
 	const { user } = useAuth()
@@ -117,6 +148,20 @@ const DocumentHeader = ({
 	const members = membersResponse?.members || []
 	const lecturerMember = members.find((m: any) => m.user?.role === 'Lecturer')
 	const _actualLecturerId = lecturerMember?.user?.userId || workspace?.ownerId
+
+	const handleExportPdf = () => {
+		if (!pdfUrl) {
+			toast.error('Silakan compile dokumen terlebih dahulu untuk membuat PDF.')
+			return
+		}
+		const link = document.createElement('a')
+		link.href = pdfUrl
+		link.download = `${title || 'document'}.pdf`
+		document.body.appendChild(link)
+		link.click()
+		document.body.removeChild(link)
+		toast.success('PDF berhasil diexport!')
+	}
 
 	return (
 		<header className='bg-white border-b border-gray-200 sticky top-0 z-[1001] transition-all duration-300'>
@@ -143,313 +188,117 @@ const DocumentHeader = ({
 								placeholder='Untitled Document'
 							/>
 							<div className='flex items-center gap-4 text-sm text-gray-600'>
-								<button
-									type='button'
-									className='dropdown-trigger hover:bg-gray-100 px-1 py-1 rounded relative cursor-pointer'
-									onClick={() => toggleDropdown('file')}
-								>
-									File
-									{activeDropdown === 'file' && (
-										<div className='dropdown-menu absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-2 w-48 z-50'>
-											{/* ... existing file menu items ... */}
-											{/* Copied existing logic but removed clutter for brevity in replacement if possible, but replace_file_content needs strict match. 
-                                                Since match is hard with large blocks, I will target specific imports and the button area separately or use multi_replace.
-                                                Wait, I should use multi_replace if I can't match the whole file easily.
-                                                Actually, I will just rewrite the imports and the button part.
-                                             */}
-											<button
-												type='button'
-												className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 cursor-pointer'
-											>
-												<svg
-													className='h-4 w-4'
-													viewBox='0 0 24 24'
-													fill='none'
-													stroke='currentColor'
-													strokeWidth='2'
-												>
-													<path d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'></path>
-													<polyline points='14,2 14,8 20,8'></polyline>
-												</svg>
-												New Document
-											</button>
-											<button
-												type='button'
-												className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 cursor-pointer'
-											>
-												<svg
-													className='h-4 w-4'
-													viewBox='0 0 24 24'
-													fill='none'
-													stroke='currentColor'
-													strokeWidth='2'
-												>
-													<path d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'></path>
-													<polyline points='14,2 14,8 20,8'></polyline>
-												</svg>
-												Open
-											</button>
-											<button
-												type='button'
-												className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 cursor-pointer'
-												onClick={handleSave}
-											>
-												<svg
-													className='h-4 w-4'
-													viewBox='0 0 24 24'
-													fill='none'
-													stroke='currentColor'
-													strokeWidth='2'
-												>
-													<path d='M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z'></path>
-													<polyline points='17,21 17,13 7,13 7,21'></polyline>
-													<polyline points='7,3 7,8 15,8'></polyline>
-												</svg>
-												Save
-											</button>
-											<button
-												type='button'
-												className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 cursor-pointer'
-												onClick={handleSave}
-											>
-												<svg
-													className='h-4 w-4'
-													viewBox='0 0 24 24'
-													fill='none'
-													stroke='currentColor'
-													strokeWidth='2'
-												>
-													<path d='M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z'></path>
-													<polyline points='17,21 17,13 7,13 7,21'></polyline>
-													<polyline points='7,3 7,8 15,8'></polyline>
-												</svg>
-												Save As
-											</button>
-											<hr className='my-1' />
-											<button
-												type='button'
-												className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 cursor-pointer'
-											>
-												<svg
-													className='h-4 w-4'
-													viewBox='0 0 24 24'
-													fill='none'
-													stroke='currentColor'
-													strokeWidth='2'
-												>
-													<polyline points='6,9 6,2 18,2 18,9'></polyline>
-													<path d='M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2'></path>
-													<rect x='6' y='14' width='12' height='8'></rect>
-												</svg>
-												Print
-											</button>
-											<button
-												type='button'
-												className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 cursor-pointer'
-											>
-												<svg
-													className='h-4 w-4'
-													viewBox='0 0 24 24'
-													fill='none'
-													stroke='currentColor'
-													strokeWidth='2'
-												>
-													<path d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'></path>
-													<polyline points='7,10 12,15 17,10'></polyline>
-													<line x1='12' y1='15' x2='12' y2='3'></line>
-												</svg>
-												Download
-											</button>
-											<hr className='my-1' />
-											<button
-												type='button'
-												className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 cursor-pointer'
-											>
-												<svg
-													className='h-4 w-4'
-													viewBox='0 0 24 24'
-													fill='none'
-													stroke='currentColor'
-													strokeWidth='2'
-												>
-													<path d='M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2'></path>
-													<rect x='8' y='2' width='8' height='4' rx='1' ry='1'></rect>
-												</svg>
-												Make a Copy
-											</button>
-											<button
-												type='button'
-												className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 cursor-pointer'
-											>
-												<Share2 className='h-4 w-4' />
-												Share
-											</button>
-										</div>
-									)}
-								</button>
+								<Menubar className='border-none bg-transparent shadow-none p-0 h-auto gap-0.5'>
+									{/* File Menu */}
+									<MenubarMenu>
+										<MenubarTrigger className='hover:bg-gray-100 text-gray-700 font-normal px-2.5 py-1 rounded cursor-pointer text-sm h-8 data-[state=open]:bg-gray-100'>
+											File
+										</MenubarTrigger>
+										<MenubarContent className='z-[1050] min-w-[12rem]'>
+											<MenubarGroup>
+												<MenubarItem onClick={handleSave}>
+													<Save className='mr-2 h-4 w-4 text-muted-foreground' />
+													<span>Save</span>
+													<MenubarShortcut>Ctrl+S</MenubarShortcut>
+												</MenubarItem>
 
-								<button
-									type='button'
-									className='dropdown-trigger hover:bg-gray-100 px-1 py-1 rounded relative cursor-pointer'
-									onClick={() => toggleDropdown('appearance')}
-								>
-									Appearance
-									{activeDropdown === 'appearance' && (
-										<div className='dropdown-menu absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-2 w-56 z-50'>
-											<div className='px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wide'>
-												Page Setup
-											</div>
-											<button
-												type='button'
-												className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center justify-between cursor-pointer relative'
-												onMouseEnter={() => setPaperSizeSubmenuOpen(true)}
-												onMouseLeave={() => setPaperSizeSubmenuOpen(false)}
-											>
-												<span className='flex items-center gap-2'>
-													<svg
-														className='h-4 w-4'
-														viewBox='0 0 24 24'
-														fill='none'
-														stroke='currentColor'
-														strokeWidth='2'
-													>
-														<rect x='3' y='3' width='18' height='18' rx='2' ry='2'></rect>
-													</svg>
-													Paper Size
-												</span>
-												<span className='text-gray-500 text-sm'>{paperSize}</span>
+												<MenubarItem
+													onClick={() => {
+														const content = getCurrentContent ? getCurrentContent() : ''
+														handleCompile(content)
+													}}
+												>
+													<Play className='mr-2 h-4 w-4 text-muted-foreground' />
+													<span>Compile Now</span>
+												</MenubarItem>
 
-												{/* Paper Size Submenu */}
-												{paperSizeSubmenuOpen && (
-													<div
-														className='absolute left-full top-0 ml-1 bg-white border border-gray-200 rounded-lg shadow-lg py-2 w-40 z-60'
-														onMouseEnter={() => setPaperSizeSubmenuOpen(true)}
-														onMouseLeave={() => setPaperSizeSubmenuOpen(false)}
-														role='menu'
-													>
-														<button
-															type='button'
-															className={`w-full text-left px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm flex items-center justify-between ${paperSize === 'A4' ? 'bg-blue-50 text-blue-700' : ''}`}
-															onClick={() => {
-																setPaperSize('A4')
-																toggleDropdown(null)
-															}}
-														>
-															<span>A4</span>
-															{paperSize === 'A4' && (
-																<svg
-																	className='h-4 w-4 text-blue-700'
-																	viewBox='0 0 24 24'
-																	fill='none'
-																	stroke='currentColor'
-																	strokeWidth='2'
+												<MenubarCheckboxItem
+													checked={autoCompile}
+													onCheckedChange={toggleAutoCompile}
+												>
+													Auto Compile
+												</MenubarCheckboxItem>
+											</MenubarGroup>
+
+											<MenubarSeparator />
+
+											<MenubarGroup>
+												<MenubarItem
+													onClick={handleExportPdf}
+													className='text-blue-600 focus:text-blue-700 font-medium'
+												>
+													<FileDown className='mr-2 h-4 w-4 text-blue-600 focus:text-blue-700' />
+													<span>Export PDF</span>
+												</MenubarItem>
+											</MenubarGroup>
+										</MenubarContent>
+									</MenubarMenu>
+
+									{/* History Menu */}
+									<MenubarMenu>
+										<MenubarTrigger className='hover:bg-gray-100 text-gray-700 font-normal px-2.5 py-1 rounded cursor-pointer text-sm h-8 data-[state=open]:bg-gray-100'>
+											History
+										</MenubarTrigger>
+										<MenubarContent className='z-[1050] min-w-[12rem]'>
+											<MenubarGroup>
+												<TooltipProvider>
+													<Tooltip>
+														<TooltipTrigger asChild>
+															<div className='w-full'>
+																<MenubarItem
+																	disabled={!canCommit}
+																	onClick={() => setShowCommitModal(true)}
 																>
-																	<polyline points='20,6 9,17 4,12'></polyline>
-																</svg>
-															)}
-														</button>
-														<button
-															type='button'
-															className={`w-full text-left px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm flex items-center justify-between ${paperSize === 'A3' ? 'bg-blue-50 text-blue-700' : ''}`}
-															onClick={() => {
-																setPaperSize('A3')
-																toggleDropdown(null)
-															}}
-														>
-															<span>A3</span>
-															{paperSize === 'A3' && (
-																<svg
-																	className='h-4 w-4 text-blue-700'
-																	viewBox='0 0 24 24'
-																	fill='none'
-																	stroke='currentColor'
-																	strokeWidth='2'
-																>
-																	<polyline points='20,6 9,17 4,12'></polyline>
-																</svg>
-															)}
-														</button>
-													</div>
-												)}
-											</button>
-											<button
-												type='button'
-												className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center justify-between cursor-pointer'
-											>
-												<span className='flex items-center gap-2'>
-													<svg
-														className='h-4 w-4'
-														viewBox='0 0 24 24'
-														fill='none'
-														stroke='currentColor'
-														strokeWidth='2'
-													>
-														<rect x='2' y='3' width='20' height='14' rx='2' ry='2'></rect>
-														<line x1='8' y1='21' x2='16' y2='21'></line>
-														<line x1='12' y1='17' x2='12' y2='21'></line>
-													</svg>
-													Orientation
-												</span>
-												<span className='text-gray-500 text-sm'>Portrait</span>
-											</button>
-										</div>
-									)}
-								</button>
+																	<GitCommit className='mr-2 h-4 w-4 text-muted-foreground' />
+																	<span>Commit Version...</span>
+																</MenubarItem>
+															</div>
+														</TooltipTrigger>
+														{!canCommit && (
+															<TooltipContent side='right' className='z-[1100]'>
+																<p>{commitBlockReason || 'Waiting for review'} (Check History)</p>
+															</TooltipContent>
+														)}
+													</Tooltip>
+												</TooltipProvider>
 
-								<button
-									type='button'
-									className='dropdown-trigger hover:bg-gray-100 px-1 py-1 rounded relative cursor-pointer'
-									onClick={() => toggleDropdown('settings')}
-								>
-									Settings
-									{activeDropdown === 'settings' && (
-										<div className='dropdown-menu absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-2 w-52 z-50'>
-											<div className='px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wide'>
-												Editor Settings
-											</div>
-											<button
-												type='button'
-												className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center justify-between cursor-pointer'
-											>
-												<span className='flex items-center gap-2'>
-													<svg
-														className='h-4 w-4'
-														viewBox='0 0 24 24'
-														fill='none'
-														stroke='currentColor'
-														strokeWidth='2'
-													>
-														<path d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'></path>
-														<polyline points='14,2 14,8 20,8'></polyline>
-														<line x1='16' y1='13' x2='8' y2='13'></line>
-														<line x1='16' y1='17' x2='8' y2='17'></line>
-														<polyline points='10,9 9,9 8,9'></polyline>
-													</svg>
-													Auto Save
-												</span>
-												<span className='text-green-500 text-sm'>On</span>
-											</button>
-											<button
-												type='button'
-												className='w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center justify-between cursor-pointer'
-											>
-												<span className='flex items-center gap-2'>
-													<svg
-														className='h-4 w-4'
-														viewBox='0 0 24 24'
-														fill='none'
-														stroke='currentColor'
-														strokeWidth='2'
-													>
-														<path d='M3 3h18v18H3zM9 9h6v6H9z'></path>
-													</svg>
-													Spell Check
-												</span>
-												<span className='text-green-500 text-sm'>On</span>
-											</button>
-										</div>
-									)}
-								</button>
+												<MenubarItem
+													onClick={() =>
+														router.push(`/${workspaceId}/documents/${documentId}/versions`)
+													}
+												>
+													<History className='mr-2 h-4 w-4 text-muted-foreground' />
+													<span>Version History</span>
+												</MenubarItem>
+											</MenubarGroup>
+										</MenubarContent>
+									</MenubarMenu>
+
+									{/* Settings Menu */}
+									<MenubarMenu>
+										<MenubarTrigger className='hover:bg-gray-100 text-gray-700 font-normal px-2.5 py-1 rounded cursor-pointer text-sm h-8 data-[state=open]:bg-gray-100'>
+											Settings
+										</MenubarTrigger>
+										<MenubarContent className='z-[1050] min-w-[14rem]'>
+											<MenubarGroup>
+												<MenubarLabel className='px-2 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wider'>
+													Compiler Mode
+												</MenubarLabel>
+												<MenubarRadioGroup
+													value={compilerMode}
+													onValueChange={(val) => onCompilerModeChange(val as any)}
+												>
+													<MenubarRadioItem value='server'>
+														Server Tectonic (Cloud)
+													</MenubarRadioItem>
+													<MenubarRadioItem value='server_pdflatex'>
+														Server pdfLaTeX (Cloud)
+													</MenubarRadioItem>
+												</MenubarRadioGroup>
+											</MenubarGroup>
+										</MenubarContent>
+									</MenubarMenu>
+								</Menubar>
 							</div>
 						</div>
 					</div>
@@ -513,46 +362,53 @@ const DocumentHeader = ({
 							<Share2 className='h-4 w-4' />
 							Share
 						</Button>
-						<TooltipProvider>
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<span className='inline-block'>
-										{' '}
-										{/* Wrapper for disabled button to show tooltip */}
-										<Button
-											variant='outline'
-											size='sm'
-											className='ga p-1'
-											onClick={() => setShowCommitModal(true)}
-											disabled={!canCommit}
-										>
-											<GitCommit className='h-4 w-4' />
-											Commit
-										</Button>
-									</span>
-								</TooltipTrigger>
-								{!canCommit && (
-									<TooltipContent>
-										<p>{commitBlockReason || 'Waiting for review'} (Check History)</p>
-									</TooltipContent>
-								)}
-							</Tooltip>
-						</TooltipProvider>
-
 						<Button
-							variant='ghost'
-							size='icon'
+							variant='outline'
 							onClick={toggleAiAssistant}
-							className={aiAssistantOpen ? 'bg-primary/20 text-primary' : ''}
+							className={cn(
+								'group relative overflow-hidden border-0 rounded-md p-[1.5px] transition-all duration-300 h-9 w-auto',
+								aiAssistantOpen ? 'ring-2 ring-primary/20 shadow-lg' : ''
+							)}
+							title='AI Assistant'
 						>
-							<MessageSquare className='h-5 w-5' />
+							{/* Rotating Gradient Background */}
+							<span
+								className={cn(
+									'absolute inset-[-100px] bg-[conic-gradient(from_0deg,var(--primary),var(--warning),var(--primary))] z-0',
+									aiAssistantOpen
+										? 'animate-[spin_2s_linear_infinite]'
+										: 'animate-[spin_4s_linear_infinite]'
+								)}
+							/>
+							{/* Inner Container */}
+							<span
+								className={cn(
+									'relative flex items-center justify-center gap-2 px-3 h-full w-full bg-white dark:bg-background rounded-[4.5px] text-foreground transition-colors z-10 hover:bg-accent',
+									aiAssistantOpen
+										? 'text-primary hover:text-primary'
+										: 'hover:text-accent-foreground'
+								)}
+							>
+								<MessageSquare
+									className={cn(
+										'h-4 w-4 z-20 transition-colors duration-200',
+										aiAssistantOpen
+											? 'text-primary'
+											: 'text-muted-foreground group-hover:text-foreground'
+									)}
+								/>
+								<span
+									className={cn(
+										'text-sm font-medium z-20 select-none transition-colors duration-200',
+										aiAssistantOpen
+											? 'text-primary'
+											: 'text-gray-700 dark:text-gray-300 group-hover:text-foreground'
+									)}
+								>
+									Agentic AI
+								</span>
+							</span>
 						</Button>
-
-						<Link href={`/${workspaceId}/documents/${documentId}/versions`}>
-							<Button variant='ghost' size='icon' title='History & Reviews'>
-								<History className='h-5 w-5' />
-							</Button>
-						</Link>
 						<div className='ml-2'>
 							<Avatar className='h-8 w-8'>
 								<AvatarImage src={getMediaUrl(user?.photoURL)} alt={user?.name || 'User'} />

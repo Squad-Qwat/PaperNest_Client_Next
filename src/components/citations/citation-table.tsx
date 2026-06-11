@@ -223,19 +223,19 @@ const getCitationColumns = (onDelete: (id: string) => void): ColumnDef<CitationD
 		header: 'Author',
 		cell: ({ row }) => {
 			const authorString = (row.getValue('author') as string) || ''
-			
+
 			// Penulis bisa dipisahkan oleh 'and', ',', ';'
 			// Bersihkan string dan pisahkan
 			const authors = authorString
 				.split(/, |; | and /)
-				.map(name => name.trim())
+				.map((name) => name.trim())
 				.filter(Boolean)
 
 			if (authors.length === 0) return '-'
 
 			// Ambil penulis pertama
 			const firstAuthor = authors[0]
-			
+
 			// Ambil nama belakang (kata terakhir dari nama penulis pertama)
 			// Contoh: "Muhammad Abiyyu" -> "Abiyyu", "Albert Einstein" -> "Einstein"
 			const nameParts = firstAuthor.split(/\s+/)
@@ -281,7 +281,6 @@ const getCitationColumns = (onDelete: (id: string) => void): ColumnDef<CitationD
 			)
 		},
 		minSize: 80,
-
 	},
 	{
 		id: 'link',

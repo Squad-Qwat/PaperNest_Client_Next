@@ -1,6 +1,6 @@
 'use client'
 
-import { Search } from 'lucide-react'
+import { ArrowUpDown, ClipboardCheck, FileText } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
 import { ReviewContentSkeleton } from '@/components/layout/DashboardSkeleton'
@@ -13,7 +13,7 @@ import {
 	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
-import { Input } from '@/components/ui/input'
+import { SearchInput } from '@/components/ui/search-input'
 import {
 	Select,
 	SelectContent,
@@ -126,29 +126,29 @@ export default function ReviewsPage() {
 			</header>
 
 			<main className='flex-1 p-6 w-full overflow-y-auto'>
-				<div className='mb-8'>
-					<div className='flex items-center justify-between mb-2'>
-						<div className='flex items-center gap-3'>
-							<h1 className='text-3xl font-bold text-gray-900'>Reviews</h1>
-						</div>
+				<div className='mb-8 flex items-center justify-between'>
+					<div>
+						<h2 className='text-2xl font-bold text-gray-900'>Reviews</h2>
+						<p className='text-sm text-gray-500 mt-1'>
+							Manage review requests for your documents in the workspace {workspace?.title}
+						</p>
 					</div>
 				</div>
 
-				<div className='flex flex-col lg:flex-row gap-3 mb-8'>
-					<div className='flex-1 relative'>
-						<Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400' />
-						<Input
-							placeholder='Search reviews...'
-							className='pl-9 bg-white w-full'
+				<div className='flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8'>
+					<div className='flex-1 w-full lg:max-w-full'>
+						<SearchInput
 							value={searchQuery}
-							onChange={(e) => setSearchQuery(e.target.value)}
+							onChange={setSearchQuery}
+							placeholder='Search reviews...'
 						/>
 					</div>
 
-					<div className='flex flex-col sm:flex-row gap-3'>
-						<div className='w-full lg:w-[220px]'>
+					<div className='flex flex-wrap items-center gap-3'>
+						<div className='flex items-center gap-2 overflow-x-auto pb-1 md:pb-0'>
 							<Select value={docFilter} onValueChange={setDocFilter}>
-								<SelectTrigger className='bg-white w-full'>
+								<SelectTrigger className='bg-white h-10 min-w-[200px]'>
+									<FileText className='h-4 w-4 mr-2 text-muted-foreground' />
 									<SelectValue placeholder='All Documents' />
 								</SelectTrigger>
 								<SelectContent>
@@ -160,11 +160,10 @@ export default function ReviewsPage() {
 									))}
 								</SelectContent>
 							</Select>
-						</div>
 
-						<div className='w-full lg:w-[180px]'>
 							<Select value={statusFilter} onValueChange={setStatusFilter}>
-								<SelectTrigger className='bg-white w-full'>
+								<SelectTrigger className='bg-white h-10 min-w-[160px]'>
+									<ClipboardCheck className='h-4 w-4 mr-2 text-muted-foreground' />
 									<SelectValue placeholder='All Statuses' />
 								</SelectTrigger>
 								<SelectContent>
@@ -175,11 +174,10 @@ export default function ReviewsPage() {
 									<SelectItem value='rejected'>Rejected</SelectItem>
 								</SelectContent>
 							</Select>
-						</div>
 
-						<div className='w-full lg:w-[130px]'>
 							<Select value={sortOrder} onValueChange={setSortOrder}>
-								<SelectTrigger className='bg-white w-full'>
+								<SelectTrigger className='bg-white h-10 min-w-[130px]'>
+									<ArrowUpDown className='h-4 w-4 mr-2 text-muted-foreground' />
 									<SelectValue placeholder='Sort By' />
 								</SelectTrigger>
 								<SelectContent>

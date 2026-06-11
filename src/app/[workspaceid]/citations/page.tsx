@@ -261,7 +261,7 @@ export default function Page() {
 					/>
 
 					<div className='flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8'>
-						<div className='flex-1 w-full lg:max-w-md'>
+						<div className='flex-1 w-full lg:max-w-full'>
 							<SearchInput
 								value={searchQuery}
 								onChange={setSearchQuery}

@@ -43,7 +43,9 @@ export function CitationDetailsSheet({
 
 							<div className='grid grid-cols-3 gap-4'>
 								<div className='text-sm text-gray-500'>Year</div>
-								<div className='col-span-2 text-sm font-medium'>{citation.year || citation.publicationDate}</div>
+								<div className='col-span-2 text-sm font-medium'>
+									{citation.year || citation.publicationDate}
+								</div>
 							</div>
 
 							{citation.doi && (
