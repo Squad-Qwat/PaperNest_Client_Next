@@ -259,9 +259,11 @@ export default function WorkspacePage() {
 								</div>
 							</div>
 
-							<div className='mb-6'>
-								<TemplateGallery workspaceId={workspaceId} />
-							</div>
+							{(workspace?.userRole === 'owner' || workspace?.userRole === 'editor') && (
+								<div className='mb-6'>
+									<TemplateGallery workspaceId={workspaceId} />
+								</div>
+							)}
 
 							<div className='mb-6'>
 								<h3 className='text-lg font-semibold flex items-center gap-2'>Manage Documents</h3>
@@ -310,18 +312,22 @@ export default function WorkspacePage() {
 													>
 														Open
 													</Button>
-													<button
-														type='button'
-														onClick={(e) => {
-															e.stopPropagation()
-															setDeleteConfirm(doc.documentId)
-														}}
-														disabled={isDeleting}
-														className='inline-flex items-center justify-center h-9 w-9 rounded-md border border-border text-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 transition-colors disabled:opacity-50'
-														title='Delete Document'
-													>
-														<Trash2 className='h-4 w-4' />
-													</button>
+													{(workspace?.userRole === 'owner' ||
+														workspace?.userRole === 'editor' ||
+														doc.createdBy === user?.userId) && (
+														<button
+															type='button'
+															onClick={(e) => {
+																e.stopPropagation()
+																setDeleteConfirm(doc.documentId)
+															}}
+															disabled={isDeleting}
+															className='inline-flex items-center justify-center h-9 w-9 rounded-md border border-border text-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 transition-colors disabled:opacity-50'
+															title='Delete Document'
+														>
+															<Trash2 className='h-4 w-4' />
+														</button>
+													)}
 												</div>
 											</div>
 										)

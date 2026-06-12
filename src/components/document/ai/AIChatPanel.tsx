@@ -76,17 +76,26 @@ import { AIChatHeader } from './AIChatHeader'
 
 const models = AI_MODELS
 
-const suggestions = [
-	'Bantu saya menulis abstrak paper',
-	'Cek error LaTeX dokumen ini',
-	'Buat daftar pustaka sederhana',
-	'Format judul dan section',
-	'Tambahkan tabel metodologi',
+const editorSuggestions = [
+	'Help me write a paper abstract',
+	'Check LaTeX errors in this document',
+	'Create a simple bibliography',
+	'Format title and section',
+	'Add methodology table',
+]
+
+const viewerSuggestions = [
+	'Explain the abstract of this document',
+	'Check LaTeX errors in this document',
+	'Review this document structure',
+	'Summarize this document',
+	'Search for relevant references',
 ]
 
 interface EditorFunctions {
 	editor?: any
 	setPendingMerge?: (data: any) => void
+	readOnly?: boolean
 }
 
 interface AIChatPanelProps {
@@ -96,6 +105,8 @@ interface AIChatPanelProps {
 }
 
 export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
+	const activeSuggestions = editor?.readOnly ? viewerSuggestions : editorSuggestions
+
 	// 1. Hooks & Store
 	const { sendMessage, stop, messages, isStreaming } = useAIChat({
 		editor,
@@ -281,7 +292,7 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 				className={`shrink-0 space-y-4 pt-4 bg-gradient-to-t from-card to-transparent z-20 glow-chat-divider ${isStreaming ? 'is-ai-thinking' : ''}`}
 			>
 				<Suggestions className='px-4'>
-					{suggestions.map((suggestion) => (
+					{activeSuggestions.map((suggestion) => (
 						<Suggestion key={suggestion} onClick={(s) => sendMessage(s)} suggestion={suggestion} />
 					))}
 				</Suggestions>
@@ -297,6 +308,7 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 							selectedModelData={selectedModelData}
 							agentId={agentId}
 							setAgentId={setAgentId}
+							readOnly={editor?.readOnly}
 						/>
 					</PromptInputProvider>
 				</div>
@@ -395,6 +407,7 @@ interface AIChatInputProps {
 	selectedModelData?: any
 	agentId: string
 	setAgentId: (id: string) => void
+	readOnly?: boolean
 }
 
 function AIChatInput({
@@ -406,6 +419,7 @@ function AIChatInput({
 	selectedModelData,
 	agentId,
 	setAgentId,
+	readOnly,
 }: AIChatInputProps) {
 	const controller = usePromptInputController()
 	const input = controller?.textInput.value || ''
@@ -428,7 +442,10 @@ function AIChatInput({
 		>
 			<PromptInputAttachmentsList />
 			<PromptInputBody>
-				<PromptInputTextarea className='py-3 px-4' placeholder='Ask Neptune anything...' />
+				<PromptInputTextarea
+					className='py-3 px-4'
+					placeholder={readOnly ? 'Ask Neptune anything (Read Only)...' : 'Ask Neptune anything...'}
+				/>
 			</PromptInputBody>
 			<PromptInputFooter>
 				<PromptInputTools>

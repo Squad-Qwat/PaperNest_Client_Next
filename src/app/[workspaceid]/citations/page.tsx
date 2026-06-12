@@ -43,6 +43,7 @@ export default function Page() {
 	const params = useParams()
 	const workspaceId = params.workspaceid as string
 	const { data: workspace } = useWorkspace(workspaceId)
+	const isEditorOrOwner = workspace?.userRole === 'owner' || workspace?.userRole === 'editor'
 	const [searchQuery, setSearchQuery] = useState('')
 	const [selectedAuthor, setSelectedAuthor] = useState('all')
 	const [selectedYear, setSelectedYear] = useState('all')
@@ -245,10 +246,12 @@ export default function Page() {
 							</p>
 						</div>
 
-						<Button onClick={handleAdd}>
-							Add reference
-							<Plus />
-						</Button>
+						{isEditorOrOwner && (
+							<Button onClick={handleAdd}>
+								Add reference
+								<Plus />
+							</Button>
+						)}
 					</div>
 
 					<CitationSheet
@@ -345,6 +348,7 @@ export default function Page() {
 						onRowClick={handleRowClick}
 						onDelete={handleDelete}
 						viewMode={viewMode}
+						canDelete={isEditorOrOwner}
 					/>
 
 					<ConfirmDialog

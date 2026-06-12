@@ -38,7 +38,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 		return <SidebarSkeleton />
 	}
 
-	const isOwner = user?.userId === workspace?.ownerId
+	const isOwner = workspace?.userRole === 'owner'
+	const isEditorOrOwner = workspace?.userRole === 'owner' || workspace?.userRole === 'editor'
 	const data = {
 		user: {
 			name: user?.name || user?.email?.split('@')[0] || 'User',
@@ -96,7 +97,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 				<WorkspaceSwitcher currentWorkspaceId={workspaceId} />
 			</SidebarHeader>
 			<SidebarContent>
-				<NavMain items={data.navMain} onCreateDocument={() => setShowCreateModal(true)} />
+				<NavMain
+					items={data.navMain}
+					onCreateDocument={isEditorOrOwner ? () => setShowCreateModal(true) : undefined}
+				/>
 				<NavSecondary items={data.navSecondary} className='mt-auto' />
 			</SidebarContent>
 			<SidebarFooter>

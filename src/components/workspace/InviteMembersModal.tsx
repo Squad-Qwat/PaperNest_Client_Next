@@ -34,7 +34,7 @@ export function InviteMembersModal({
 }: InviteMembersModalProps) {
 	const [emailInput, setEmailInput] = useState('')
 	const [emailList, setEmailList] = useState<string[]>([])
-	const [role, setRole] = useState<'editor' | 'viewer' | 'reviewer'>('viewer')
+	const [role, setRole] = useState<'editor' | 'viewer' | 'reviewer' | 'owner'>('viewer')
 	const [loading, setLoading] = useState(false)
 
 	const addEmails = (input: string) => {
@@ -207,12 +207,15 @@ export function InviteMembersModal({
 							<SelectItem value='viewer'>Viewer</SelectItem>
 							<SelectItem value='editor'>Editor</SelectItem>
 							<SelectItem value='reviewer'>Reviewer</SelectItem>
+							<SelectItem value='owner'>Owner</SelectItem>
 						</SelectContent>
 					</Select>
 					<p className='text-[12px] text-muted-foreground'>
 						{role === 'viewer' && 'Can only read documents.'}
 						{role === 'editor' && 'Can edit and manage documents.'}
 						{role === 'reviewer' && 'Can provide feedback and comments.'}
+						{role === 'owner' &&
+							'Full administrative access. Can invite/manage members and delete the workspace.'}
 					</p>
 				</div>
 

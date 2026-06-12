@@ -136,18 +136,32 @@ const findAtomicDiffMatches = (
 		const isDeletion = pair.replace.length === 0
 
 		while (searchFrom <= docText.length) {
-			const index = docText.indexOf(pair.search, searchFrom)
+			let index = docText.indexOf(pair.search, searchFrom)
+			let matchedLength = pair.search.length
+
+			if (index === -1) {
+				const escaped = pair.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+				const fuzzyPattern = escaped.replace(/\s+/g, '[\\s\\r\\n]+')
+				const regex = new RegExp(fuzzyPattern, 'g')
+				regex.lastIndex = searchFrom
+				const match = regex.exec(docText)
+
+				if (match) {
+					index = match.index
+					matchedLength = match[0].length
+				}
+			}
+
 			if (index === -1) break
 
 			candidates.push({
 				pairIndex: pair.index,
 				from: index,
-				to: index + pair.search.length,
+				to: index + matchedLength,
 				search: pair.search,
 				replace: pair.replace,
 			})
 
-			// For deletions, use only first match (deterministic)
 			if (isDeletion) {
 				searchFrom = docText.length + 1
 				break
@@ -299,6 +313,11 @@ export const executeEditorTool = async (
 			? editor.getCurrentContent()
 			: view.state.doc.toString()
 	const doc = Text.of(rawContent.split('\n'))
+
+	const MODIFYING_TOOLS = new Set(['replace_lines', 'insert_content', 'apply_diff_edit'])
+	if (MODIFYING_TOOLS.has(toolName) && editor.readOnly) {
+		return 'Error: You do not have permission to modify this document.'
+	}
 
 	// For non-staged direct-apply tools: detect if the document changed since the LLM
 	// took its snapshot. Staged tools go through MergePreview + user review, so they
@@ -589,13 +608,12 @@ export const executeEditorTool = async (
 				const docText = view.state.doc.toString()
 				const resolved = findAtomicDiffMatches(docText, parsed.pairs)
 
-				// Bypass strict exact match if we are staging (Fuzzy Merge will handle it)
-				if (!resolved.matches && !stage) {
+				if (!resolved.matches) {
 					return resolved.error
 				}
 
-				const matches = resolved.matches || []
-				const modified = resolved.matches ? applyMatchesToText(docText, matches) : docText
+				const matches = resolved.matches
+				const modified = applyMatchesToText(docText, matches)
 				const sortedDesc = [...matches].sort((a, b) => b.from - a.from)
 
 				if (stage) {

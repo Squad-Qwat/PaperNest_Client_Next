@@ -78,6 +78,7 @@ interface DocumentHeaderProps {
 	workspace?: any
 	debugContentExtraction?: any
 	pdfUrl?: string | null
+	readOnly?: boolean
 }
 
 const DocumentHeader = ({
@@ -121,6 +122,7 @@ const DocumentHeader = ({
 	toggleAiAssistant,
 	workspace,
 	pdfUrl,
+	readOnly,
 }: DocumentHeaderProps) => {
 	const router = useRouter()
 	const { user } = useAuth()
@@ -178,6 +180,7 @@ const DocumentHeader = ({
 								type='text'
 								value={title}
 								onChange={(e) => setTitle(e.target.value)}
+								readOnly={readOnly}
 								className='font-medium text-lg bg-transparent text-foreground focus:outline-none border-b border-transparent focus:border-blue-500 w-full'
 								placeholder='Untitled Document'
 							/>
@@ -190,11 +193,13 @@ const DocumentHeader = ({
 										</MenubarTrigger>
 										<MenubarContent className='z-[1050] min-w-[12rem]'>
 											<MenubarGroup>
-												<MenubarItem onClick={handleSave}>
-													<Save className='mr-2 h-4 w-4 text-muted-foreground' />
-													<span>Save</span>
-													<MenubarShortcut>Ctrl+S</MenubarShortcut>
-												</MenubarItem>
+												{!readOnly && (
+													<MenubarItem onClick={handleSave}>
+														<Save className='mr-2 h-4 w-4 text-muted-foreground' />
+														<span>Save</span>
+														<MenubarShortcut>Ctrl+S</MenubarShortcut>
+													</MenubarItem>
+												)}
 
 												<MenubarItem
 													onClick={() => {
@@ -235,26 +240,28 @@ const DocumentHeader = ({
 										</MenubarTrigger>
 										<MenubarContent className='z-[1050] min-w-[12rem]'>
 											<MenubarGroup>
-												<TooltipProvider>
-													<Tooltip>
-														<TooltipTrigger asChild>
-															<div className='w-full'>
-																<MenubarItem
-																	disabled={!canCommit}
-																	onClick={() => setShowCommitModal(true)}
-																>
-																	<GitCommit className='mr-2 h-4 w-4 text-muted-foreground' />
-																	<span>Commit Version...</span>
-																</MenubarItem>
-															</div>
-														</TooltipTrigger>
-														{!canCommit && (
-															<TooltipContent side='right' className='z-[1100]'>
-																<p>{commitBlockReason || 'Waiting for review'} (Check History)</p>
-															</TooltipContent>
-														)}
-													</Tooltip>
-												</TooltipProvider>
+												{!readOnly && (
+													<TooltipProvider>
+														<Tooltip>
+															<TooltipTrigger asChild>
+																<div className='w-full'>
+																	<MenubarItem
+																		disabled={!canCommit}
+																		onClick={() => setShowCommitModal(true)}
+																	>
+																		<GitCommit className='mr-2 h-4 w-4 text-muted-foreground' />
+																		<span>Commit Version...</span>
+																	</MenubarItem>
+																</div>
+															</TooltipTrigger>
+															{!canCommit && (
+																<TooltipContent side='right' className='z-[1100]'>
+																	<p>{commitBlockReason || 'Waiting for review'} (Check History)</p>
+																</TooltipContent>
+															)}
+														</Tooltip>
+													</TooltipProvider>
+												)}
 
 												<MenubarItem
 													onClick={() =>
@@ -342,15 +349,17 @@ const DocumentHeader = ({
 								</div>
 							)}
 
-							<Button
-								variant='outline'
-								size='sm'
-								className='gap-1'
-								onClick={handleSave}
-								disabled={isSaving || isAutoSaving}
-							>
-								{isSaving ? 'Saving...' : 'Save'}
-							</Button>
+							{!readOnly && (
+								<Button
+									variant='outline'
+									size='sm'
+									className='gap-1'
+									onClick={handleSave}
+									disabled={isSaving || isAutoSaving}
+								>
+									{isSaving ? 'Saving...' : 'Save'}
+								</Button>
+							)}
 						</div>
 						<Button variant='outline' size='sm' className='gap-1'>
 							<Share2 className='h-4 w-4' />
@@ -438,24 +447,26 @@ const DocumentHeader = ({
 			/>
 
 			{/* Editor Toolbar - sticky di bawah header */}
-			<LatexToolbar
-				onInsertSnippet={onInsertSnippet}
-				insertTable={insertTable}
-				undo={undo}
-				redo={redo}
-				canUndo={canUndo}
-				canRedo={canRedo}
-				handleCompile={handleCompile}
-				isCompiling={isCompiling}
-				viewMode={viewMode}
-				toggleViewMode={toggleViewMode}
-				visualEditor={visualEditor}
-				compilerMode={compilerMode}
-				onCompilerModeChange={onCompilerModeChange}
-				onSyncToPdf={syncToPdf}
-				autoCompile={autoCompile}
-				toggleAutoCompile={toggleAutoCompile}
-			/>
+			{!readOnly && (
+				<LatexToolbar
+					onInsertSnippet={onInsertSnippet}
+					insertTable={insertTable}
+					undo={undo}
+					redo={redo}
+					canUndo={canUndo}
+					canRedo={canRedo}
+					handleCompile={handleCompile}
+					isCompiling={isCompiling}
+					viewMode={viewMode}
+					toggleViewMode={toggleViewMode}
+					visualEditor={visualEditor}
+					compilerMode={compilerMode}
+					onCompilerModeChange={onCompilerModeChange}
+					onSyncToPdf={syncToPdf}
+					autoCompile={autoCompile}
+					toggleAutoCompile={toggleAutoCompile}
+				/>
+			)}
 		</header>
 	)
 }
