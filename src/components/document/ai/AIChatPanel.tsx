@@ -213,6 +213,7 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 											>
 												{(version.parts || []).map((part) => {
 													if (part.type === 'text') {
+														if (!part.content?.trim()) return null
 														return (
 															<div key={part.id} className='my-2'>
 																{message.from === 'assistant' ? (
@@ -253,7 +254,7 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 													return null
 												})}
 												{isStreaming && message.key === messages.at(-1)?.key && (
-													<div className='flex items-center gap-2 py-1 my-2'>
+													<div className='flex items-center gap-2 py-1 mt-1'>
 														<PaperNestLoader width={18} height={18} />
 														<span className='text-sm font-medium shimmer-text'>
 															Working
