@@ -36,9 +36,15 @@ interface LatexVisualEditorProps {
 	content: string
 	onChange: (latex: string) => void
 	onEditorReady?: (editor: unknown) => void
+	readOnly?: boolean
 }
 
-export function LatexVisualEditor({ content, onChange, onEditorReady }: LatexVisualEditorProps) {
+export function LatexVisualEditor({
+	content,
+	onChange,
+	onEditorReady,
+	readOnly,
+}: LatexVisualEditorProps) {
 	const docParts = useRef<{ preamble: string; body: string; postamble: string }>({
 		preamble: '',
 		body: '',
@@ -93,6 +99,7 @@ export function LatexVisualEditor({ content, onChange, onEditorReady }: LatexVis
 			LaTeXNewline,
 		],
 		content: htmlContent,
+		editable: !readOnly,
 		immediatelyRender: false,
 		onUpdate: ({ editor }) => {
 			isInternalUpdate.current = true
@@ -119,6 +126,12 @@ export function LatexVisualEditor({ content, onChange, onEditorReady }: LatexVis
 			},
 		},
 	})
+
+	useEffect(() => {
+		if (editor && editor.isEditable === readOnly) {
+			editor.setEditable(!readOnly)
+		}
+	}, [editor, readOnly])
 
 	// Handle external content changes (e.g. from Source mode)
 	useEffect(() => {
@@ -152,7 +165,7 @@ export function LatexVisualEditor({ content, onChange, onEditorReady }: LatexVis
 		<div className='h-full w-full overflow-auto bg-muted/10 p-8 flex flex-col items-center'>
 			<div className='w-full max-w-4xl relative group'>
 				{/* Bubble Menu for text selection */}
-				{editor && (
+				{editor && !readOnly && (
 					<BubbleMenu
 						editor={editor}
 						className='flex bg-popover shadow-xl border border-border text-popover-foreground rounded-lg p-1 gap-0.5 overflow-hidden ring-1 ring-black/5'
@@ -193,7 +206,7 @@ export function LatexVisualEditor({ content, onChange, onEditorReady }: LatexVis
 				)}
 
 				{/* Floating Menu for empty lines */}
-				{editor && (
+				{editor && !readOnly && (
 					<FloatingMenu
 						editor={editor}
 						className='flex bg-popover shadow-lg border border-border text-popover-foreground rounded-full p-1.5 gap-1 ring-1 ring-black/5 ml-[-60px]'

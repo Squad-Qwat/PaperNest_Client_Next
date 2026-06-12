@@ -39,6 +39,7 @@ interface CitationTableProps {
 	onRowClick: (citation: CitationDisplay) => void
 	onDelete: (citationId: string) => void
 	viewMode?: string
+	canDelete?: boolean
 }
 
 /**
@@ -376,7 +377,7 @@ const TableBodyContent = ({
  * Main CitationTable component
  */
 export const CitationTable = React.memo(
-	({ data, isLoading, onRowClick, onDelete, viewMode }: CitationTableProps) => {
+	({ data, isLoading, onRowClick, onDelete, viewMode, canDelete = true }: CitationTableProps) => {
 		const [sorting, setSorting] = useState<SortingState>([])
 		const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([])
 		const [rowSelection, setRowSelection] = useState({})
@@ -384,14 +385,16 @@ export const CitationTable = React.memo(
 		const columns = useMemo(() => getCitationColumns(onDelete), [onDelete])
 
 		const columnVisibility = useMemo(() => {
+			const visibility: Record<string, boolean> = {}
 			if (viewMode === 'compact') {
-				return {
-					doi: false,
-					publicationInfo: false,
-				}
+				visibility.doi = false
+				visibility.publicationInfo = false
 			}
-			return {}
-		}, [viewMode]) as Record<string, boolean>
+			if (!canDelete) {
+				visibility.actions = false
+			}
+			return visibility
+		}, [viewMode, canDelete]) as Record<string, boolean>
 
 		const table = useReactTable({
 			data,

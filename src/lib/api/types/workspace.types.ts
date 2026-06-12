@@ -73,7 +73,7 @@ export interface WorkspaceMember extends UserWorkspace {
  */
 export interface InviteMemberDto {
 	userId: string
-	role: Exclude<WorkspaceRole, 'owner'> // Cannot invite as owner
+	role: WorkspaceRole
 }
 
 /**

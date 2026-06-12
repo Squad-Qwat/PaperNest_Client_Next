@@ -218,7 +218,7 @@ export default function ReviewDetailPage() {
 		)
 	}
 
-	const isLecturer = user?.role === 'Lecturer'
+	const isLecturer = user?.role === 'Lecturer' && reviewData.lecturerUserId === user?.userId
 	const isPending = reviewData.status === 'pending'
 
 	return (

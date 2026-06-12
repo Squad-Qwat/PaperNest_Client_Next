@@ -498,6 +498,7 @@ export function LatexEditor({
 				toggleAutoCompile: () => setAutoCompile((a) => !a),
 				getActiveFileName: () =>
 					activeFileId === 'main' ? 'main.tex' : (activeAuxiliaryFile?.name ?? 'unknown'),
+				readOnly: readOnly,
 			})
 		}
 	}, [
@@ -518,6 +519,7 @@ export function LatexEditor({
 		autoCompile,
 		activeFileId,
 		activeAuxiliaryFile,
+		readOnly,
 	])
 
 	useEffect(() => {
@@ -558,7 +560,7 @@ export function LatexEditor({
 			>
 				{isEditorPdfResizing && <div className='absolute inset-0 z-50 cursor-ew-resize' />}
 				<div
-					className='relative bg-background flex flex-col min-h-0 shrink-0'
+					className='relative bg-background flex flex-col min-h-0 shrink-0 h-full'
 					style={{ width: `${editorPdfSplitWidth}%` }}
 				>
 					{openAuxiliaryFiles.length > 0 && setActiveFileId && onCloseAuxiliaryFile && (
@@ -648,6 +650,7 @@ export function LatexEditor({
 						<LatexVisualEditor
 							content={view?.state.doc.toString() || initialContent || ''}
 							onEditorReady={setVisualEditor}
+							readOnly={readOnly}
 							onChange={(newContent) => {
 								if (view) {
 									view.dispatch({

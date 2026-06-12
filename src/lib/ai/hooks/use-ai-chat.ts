@@ -132,6 +132,19 @@ const executeSingleTool = async (
 			documentId,
 			docVersionToken
 		)
+		if (typeof result === 'string' && result.startsWith('Error: You do not have permission')) {
+			store.appendContent(assistantKey, `\n\n*${result}*`)
+			store.updateToolResult(assistantKey, toolData.id, result, 'error')
+			return {
+				result: {
+					toolCallId: toolData.id,
+					name: toolData.name,
+					result: result,
+					success: false,
+				},
+				shouldStop: true,
+			}
+		}
 
 		if (result && typeof result === 'object' && result.type === 'staged_change') {
 			if (editor?.setPendingMerge) {
@@ -142,7 +155,6 @@ const executeSingleTool = async (
 			}
 		}
 
-		// Success status update
 		store.updateToolResult(assistantKey, toolData.id, result, 'complete')
 
 		const feedbackResult =

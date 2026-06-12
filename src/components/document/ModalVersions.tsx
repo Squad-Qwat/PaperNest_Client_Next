@@ -17,7 +17,7 @@ import {
 	useDocumentVersions,
 	useRevertVersion,
 } from '@/lib/api/hooks/use-documents'
-import { useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
+import { useWorkspace, useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
 import type { Version } from '@/lib/api/types/document.types'
 import type { Review } from '@/lib/api/types/review.types'
 import { format, id } from '@/lib/date'
@@ -45,6 +45,8 @@ export default function ModalVersions({
 	const workspaceId = params?.workspaceid as string
 
 	const { user } = useAuth()
+	const { data: workspace } = useWorkspace(workspaceId)
+	const isEditorOrOwner = workspace?.userRole === 'owner' || workspace?.userRole === 'editor'
 
 	const { data: versionsResponse, isLoading: versionsLoading } = useDocumentVersions(documentId)
 	const versions: Version[] = useMemo(() => {
@@ -155,13 +157,13 @@ export default function ModalVersions({
 				onVersionRestored()
 			}
 			onClose() // Close modal on success
-			toast.success('Versi dipulihkan', {
-				description: 'Dokumen telah dikembalikan ke versi yang dipilih.',
+			toast.success('Version restored', {
+				description: 'The document has been restored to the selected version.',
 			})
 		} catch (error: any) {
 			console.error('Rollback failed:', error)
-			toast.error('Gagal memulihkan versi', {
-				description: error.message || 'Terjadi kesalahan saat memulihkan versi.',
+			toast.error('Failed to restore version', {
+				description: error.message || 'An error occurred while restoring the version.',
 			})
 		}
 	}
@@ -172,7 +174,7 @@ export default function ModalVersions({
 			onClose={onClose}
 			size='full'
 			showCloseButton={false}
-			title='Riwayat versi'
+			title='Version history'
 			visuallyHiddenTitle={true}
 		>
 			<div className='flex flex-col h-screen w-full bg-background'>
@@ -188,7 +190,7 @@ export default function ModalVersions({
 							<ChevronLeft className='h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors' />
 						</Button>
 						<div className='flex flex-col'>
-							<span className='text-xl font-medium text-foreground'>Riwayat versi</span>
+							<span className='text-xl font-medium text-foreground'>Version history</span>
 							<span className='text-md text-muted-foreground'>
 								{selectedVersion
 									? selectedVersion.timestamp
@@ -222,7 +224,7 @@ export default function ModalVersions({
 														{selectedVersion.review.reviewer.name}
 													</span>
 													<span className='text-xs text-muted-foreground'>
-														Ditinjau pada {selectedVersion.review.date}
+														Reviewed on {selectedVersion.review.date}
 													</span>
 												</div>
 											</div>
@@ -241,7 +243,7 @@ export default function ModalVersions({
 									{isCompiling ? (
 										<div className='flex flex-col items-center gap-3 text-muted-foreground'>
 											<Loader2 className='w-10 h-10 animate-spin opacity-50' />
-											<span className='text-sm font-medium'>Menyiapkan Preview PDF...</span>
+											<span className='text-sm font-medium'>Preparing PDF Preview...</span>
 										</div>
 									) : pdfUrl ? (
 										<iframe
@@ -254,7 +256,7 @@ export default function ModalVersions({
 										<div className='flex flex-col items-center gap-3 p-8 text-center'>
 											<FileText className='w-12 h-12 text-red-200' />
 											<div className='space-y-1'>
-												<p className='text-sm font-medium text-red-600'>Gagal Memuat Preview</p>
+												<p className='text-sm font-medium text-red-600'>Failed to Load Preview</p>
 												<p className='text-xs text-muted-foreground max-w-xs line-clamp-3'>
 													{compileError}
 												</p>
@@ -266,13 +268,13 @@ export default function ModalVersions({
 													selectedVersion?.content && handleCompile(selectedVersion.content)
 												}
 											>
-												Coba Lagi
+												Try Again
 											</Button>
 										</div>
 									) : (
 										<div className='flex flex-col items-center gap-2 text-muted-foreground'>
 											<FileText className='w-10 h-10 opacity-20' />
-											<p className='text-sm italic'>Pilih versi untuk melihat pratinjau</p>
+											<p className='text-sm italic'>Select a version to view preview</p>
 										</div>
 									)}
 								</div>
@@ -282,13 +284,13 @@ export default function ModalVersions({
 
 					<div className='w-80 bg-card border-l border-border shadow-sm flex flex-col shrink-0 z-10'>
 						<div className='p-4 border-b border-border flex items-center justify-between'>
-							<h3 className='font-medium text-foreground'>Riwayat versi</h3>
+							<h3 className='font-medium text-foreground'>Version history</h3>
 						</div>
 
 						<ScrollArea className='flex-1'>
 							<div className='py-2'>
 								<div className='px-4 py-2 text-xs font-medium text-muted-foreground'>
-									{versionsLoading ? 'Memuat...' : 'Versi Dokumen'}
+									{versionsLoading ? 'Loading...' : 'Document Versions'}
 								</div>
 
 								{versionsList.map((version) => (
@@ -334,23 +336,30 @@ export default function ModalVersions({
 
 						<div className='p-4 border-t border-border space-y-3'>
 							{selectedVersion?.isCurrent ? (
-								<div className='text-center text-sm text-muted-foreground py-2'>Versi saat ini</div>
+								<div className='text-center text-sm text-muted-foreground py-2'>
+									Current version
+								</div>
 							) : (
-								<Button className='w-full' onClick={handleRollback} disabled={isRollingBack}>
-									{isRollingBack ? 'Memulihkan...' : 'Pulihkan versi ini'}
-								</Button>
+								isEditorOrOwner && (
+									<Button className='w-full' onClick={handleRollback} disabled={isRollingBack}>
+										{isRollingBack ? 'Restoring...' : 'Restore this version'}
+									</Button>
+								)
 							)}
 
 							{/* Student Request Review Button */}
-							{user?.role === 'Student' && selectedVersion && !selectedVersion.review && (
-								<Button
-									className='w-full'
-									variant='outline'
-									onClick={() => setShowReviewModal(true)}
-								>
-									Minta Review
-								</Button>
-							)}
+							{user?.role === 'Student' &&
+								isEditorOrOwner &&
+								selectedVersion &&
+								!selectedVersion.review && (
+									<Button
+										className='w-full'
+										variant='outline'
+										onClick={() => setShowReviewModal(true)}
+									>
+										Request Review
+									</Button>
+								)}
 						</div>
 					</div>
 				</div>
@@ -367,8 +376,8 @@ export default function ModalVersions({
 							documentBodyId: selectedVersion.id,
 							data: { lecturerUserId: data.lecturerId, message: data.message },
 						})
-						toast.success('Permintaan Terkirim', {
-							description: 'Permintaan review Anda telah dikirim ke dosen.',
+						toast.success('Request Sent', {
+							description: 'Your review request has been sent to the lecturer.',
 						})
 						setShowReviewModal(false)
 					} catch (e: any) {

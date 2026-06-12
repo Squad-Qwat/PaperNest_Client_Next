@@ -30,12 +30,28 @@ function DocumentPageContent() {
 	const isMobile = useIsMobile()
 	const searchParams = useSearchParams()
 
-	// Logic for Read Only: mode is review or user is Lecturer
+	// TanStack Query Hooks
+	const {
+		data: workspace,
+		isLoading: workspaceLoading,
+		error: workspaceError,
+	} = useWorkspace(workspaceId)
+
+	const {
+		data: documentWithRoomData,
+		isLoading: documentLoading,
+		error: documentError,
+	} = useDocumentWithRoomState(documentId)
+
+	const batchUpdateMutation = useBatchUpdateDocument()
+
+	// Logic for Read Only: mode is review, user is Lecturer, or user has read-only workspace role
 	const isReadOnly = useMemo(() => {
 		if (searchParams.get('mode') === 'review') return true
 		if (user?.role === 'Lecturer') return true
+		if (workspace?.userRole === 'viewer' || workspace?.userRole === 'reviewer') return true
 		return false
-	}, [searchParams, user])
+	}, [searchParams, user, workspace])
 
 	// State Management
 	const [title, setTitle] = useState('')
@@ -121,21 +137,6 @@ function DocumentPageContent() {
 
 	const defaultFontFamily = '"Times New Roman", Times, serif'
 	const defaultFontSize = '11pt'
-
-	// TanStack Query Hooks
-	const {
-		data: workspace,
-		isLoading: workspaceLoading,
-		error: workspaceError,
-	} = useWorkspace(workspaceId)
-
-	const {
-		data: documentWithRoomData,
-		isLoading: documentLoading,
-		error: documentError,
-	} = useDocumentWithRoomState(documentId)
-
-	const batchUpdateMutation = useBatchUpdateDocument()
 
 	// Derived Data
 	const documentData = documentWithRoomData?.document || null

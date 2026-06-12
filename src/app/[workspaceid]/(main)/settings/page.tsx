@@ -58,7 +58,8 @@ export default function WorkspaceSettingsPage() {
 		}
 	}, [workspace])
 
-	const isOwner = user?.userId === workspace?.ownerId
+	const isOwner = workspace?.userRole === 'owner'
+	const isEditorOrOwner = workspace?.userRole === 'owner' || workspace?.userRole === 'editor'
 
 	const handleUpdate = async () => {
 		if (!title.trim()) return
@@ -186,6 +187,7 @@ export default function WorkspaceSettingsPage() {
 											onChange={(e) => setTitle(e.target.value)}
 											className='h-9 text-sm w-full'
 											placeholder='Workspace name'
+											disabled={!isEditorOrOwner}
 										/>
 									</div>
 								</div>
@@ -204,32 +206,35 @@ export default function WorkspaceSettingsPage() {
 											onChange={(e) => setDescription(e.target.value)}
 											className='min-h-[120px] text-sm resize-none w-full'
 											placeholder='Add description...'
+											disabled={!isEditorOrOwner}
 										/>
 									</div>
 								</div>
 							</div>
 
 							{/* Single Footer Save Button */}
-							<div className='bg-muted/30 border-t border-border p-4 flex justify-end'>
-								<Button
-									size='sm'
-									onClick={handleUpdate}
-									disabled={
-										updating ||
-										(title === workspace.title && description === (workspace.description || ''))
-									}
-									className='h-9 px-8 bg-primary hover:bg-primary/90'
-								>
-									{updating ? (
-										<>
-											<Loader2 className='mr-2 h-4 w-4 animate-spin' />
-											Saving...
-										</>
-									) : (
-										'Save Changes'
-									)}
-								</Button>
-							</div>
+							{isEditorOrOwner && (
+								<div className='bg-muted/30 border-t border-border p-4 flex justify-end'>
+									<Button
+										size='sm'
+										onClick={handleUpdate}
+										disabled={
+											updating ||
+											(title === workspace.title && description === (workspace.description || ''))
+										}
+										className='h-9 px-8 bg-primary hover:bg-primary/90'
+									>
+										{updating ? (
+											<>
+												<Loader2 className='mr-2 h-4 w-4 animate-spin' />
+												Saving...
+											</>
+										) : (
+											'Save Changes'
+										)}
+									</Button>
+								</div>
+							)}
 						</div>
 					</section>
 
@@ -319,30 +324,32 @@ export default function WorkspaceSettingsPage() {
 					</section>
 
 					{/* Danger Zone Section */}
-					<section className='space-y-4'>
-						<h3 className='text-lg font-semibold text-red-600'>Danger Zone</h3>
+					{isOwner && (
+						<section className='space-y-4'>
+							<h3 className='text-lg font-semibold text-red-600'>Danger Zone</h3>
 
-						<div className='bg-card border border-red-500/20 rounded-lg overflow-hidden shadow-sm'>
-							<div className='flex flex-col sm:flex-row items-center justify-between p-6 gap-6 hover:bg-red-500/5 transition-colors'>
-								<div className='space-y-1 flex-1 text-left'>
-									<h4 className='text-sm font-semibold text-foreground'>Delete this workspace</h4>
-									<p className='text-xs text-muted-foreground max-w-xl'>
-										This action is permanent. All documents, members, and data associated with this
-										workspace will be deleted forever.
-									</p>
-								</div>
-								<div className='flex-shrink-0 w-full sm:w-auto'>
-									<Button
-										variant='destructive'
-										onClick={() => setShowDeleteDialog(true)}
-										className='h-9 px-6 text-sm font-medium w-full sm:w-auto'
-									>
-										Delete Workspace
-									</Button>
+							<div className='bg-card border border-red-500/20 rounded-lg overflow-hidden shadow-sm'>
+								<div className='flex flex-col sm:flex-row items-center justify-between p-6 gap-6 hover:bg-red-500/5 transition-colors'>
+									<div className='space-y-1 flex-1 text-left'>
+										<h4 className='text-sm font-semibold text-foreground'>Delete this workspace</h4>
+										<p className='text-xs text-muted-foreground max-w-xl'>
+											This action is permanent. All documents, members, and data associated with
+											this workspace will be deleted forever.
+										</p>
+									</div>
+									<div className='flex-shrink-0 w-full sm:w-auto'>
+										<Button
+											variant='destructive'
+											onClick={() => setShowDeleteDialog(true)}
+											className='h-9 px-6 text-sm font-medium w-full sm:w-auto'
+										>
+											Delete Workspace
+										</Button>
+									</div>
 								</div>
 							</div>
-						</div>
-					</section>
+						</section>
+					)}
 				</div>
 			</main>
 

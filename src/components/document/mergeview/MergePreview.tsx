@@ -1,6 +1,6 @@
 'use client'
 
-import { defaultHighlightStyle, foldGutter, syntaxHighlighting } from '@codemirror/language'
+import { foldGutter } from '@codemirror/language'
 import { MergeView, unifiedMergeView } from '@codemirror/merge'
 import { EditorState, type Extension } from '@codemirror/state'
 import { EditorView, highlightActiveLineGutter, lineNumbers } from '@codemirror/view'
@@ -8,6 +8,7 @@ import { latex } from 'codemirror-lang-latex'
 import { Check, Columns, Rows, X } from 'lucide-react'
 import React, { useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
+import { paperNestThemeExtension } from '@/lib/editor/latex-theme'
 
 interface MergePreviewProps {
 	original: string
@@ -51,7 +52,7 @@ export function MergePreview({
 			lineNumbers(),
 			highlightActiveLineGutter(),
 			foldGutter(),
-			syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+			...paperNestThemeExtension,
 			latex(),
 			EditorView.lineWrapping,
 		]
@@ -176,41 +177,41 @@ export function MergePreview({
 	}, [original, modified, viewMode])
 
 	return (
-		<div className='flex flex-col h-full w-full bg-white relative overflow-hidden'>
-			<div className='flex items-center justify-between px-4 py-2 border-b bg-gray-50 z-10 shrink-0'>
+		<div className='flex flex-col flex-1 min-h-0 w-full bg-background border border-border relative overflow-hidden'>
+			<div className='flex items-center justify-between px-4 py-2 border-b border-border bg-muted/40 z-10 shrink-0'>
 				<div className='flex items-center gap-4'>
 					<div className='flex items-center gap-2'>
-						<span className='text-[10px] bg-primary text-white px-1.5 py-0.5 rounded font-bold uppercase tracking-wider'>
+						<span className='text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded font-bold uppercase tracking-wider'>
 							AI Merge Preview
 						</span>
 						{queueTotal > 0 && (
-							<span className='text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold'>
+							<span className='text-[10px] bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded font-semibold'>
 								{queuePosition} of {queueTotal}
 							</span>
 						)}
 						{batchSummary && (
-							<span className='text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded font-semibold'>
+							<span className='text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded font-semibold'>
 								Applied {batchSummary.applied}, Failed {batchSummary.failed}
 							</span>
 						)}
 						{rebaseStatus && !rebaseStatus.isRebased && (
-							<span className='text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded font-semibold'>
+							<span className='text-[10px] bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 px-1.5 py-0.5 rounded font-semibold'>
 								Stale queue item
 							</span>
 						)}
 						{rebaseStatus?.isRebased && (
-							<span className='text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-semibold'>
+							<span className='text-[10px] bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.5 rounded font-semibold'>
 								Rebased
 							</span>
 						)}
 					</div>
 
-					<div className='flex bg-gray-200/50 p-0.5 rounded-md border border-gray-200'>
+					<div className='flex bg-muted p-0.5 rounded-md border border-border'>
 						<Button
 							variant='ghost'
 							size='sm'
 							onClick={() => setViewMode('side-by-side')}
-							className={`h-7 px-2 text-[10px] gap-1.5 ${viewMode === 'side-by-side' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+							className={`h-7 px-2 text-[10px] gap-1.5 ${viewMode === 'side-by-side' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
 						>
 							<Columns className='w-3 h-3' />
 							Side-by-side
@@ -219,7 +220,7 @@ export function MergePreview({
 							variant='ghost'
 							size='sm'
 							onClick={() => setViewMode('unified')}
-							className={`h-7 px-2 text-[10px] gap-1.5 ${viewMode === 'unified' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+							className={`h-7 px-2 text-[10px] gap-1.5 ${viewMode === 'unified' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
 						>
 							<Rows className='w-3 h-3' />
 							Unified
@@ -230,7 +231,7 @@ export function MergePreview({
 					<Button
 						size='sm'
 						variant='ghost'
-						className='h-8 text-xs text-gray-500 hover:text-red-600 gap-1.5'
+						className='h-8 text-xs text-muted-foreground hover:text-destructive gap-1.5'
 						onClick={onDiscard}
 					>
 						<X className='w-3.5 h-3.5' />
@@ -238,7 +239,7 @@ export function MergePreview({
 					</Button>
 					<Button
 						size='sm'
-						className='h-8 text-xs text-white gap-1.5'
+						className='h-8 text-xs text-primary-foreground gap-1.5'
 						disabled={rebaseStatus?.isRebased === false}
 						onClick={() => onAccept(getCurrentMergedContent())}
 					>
@@ -248,7 +249,7 @@ export function MergePreview({
 					{queueTotal > 1 && onAcceptAll && (
 						<Button
 							size='sm'
-							className='h-8 text-xs bg-black hover:bg-gray-800 text-white gap-1.5'
+							className='h-8 text-xs bg-foreground hover:bg-foreground/90 text-background gap-1.5'
 							onClick={onAcceptAll}
 						>
 							<Check className='w-3.5 h-3.5' />
@@ -259,7 +260,7 @@ export function MergePreview({
 			</div>
 
 			{rebaseStatus && !rebaseStatus.isRebased && (
-				<div className='px-4 py-2 text-xs bg-rose-50 text-rose-700 border-b border-rose-100'>
+				<div className='px-4 py-2 text-xs bg-destructive/10 text-destructive border-b border-destructive/20'>
 					This queue item is stale relative to the current document. &quot;Accept This&quot; is
 					disabled to prevent overwriting recent changes.
 				</div>
@@ -294,15 +295,19 @@ export function MergePreview({
                     overflow: auto !important;
                 }
                 
-                /* Side-by-side styles */
                 .merge-original {
-                    background-color: #fffafb !important;
+                    background-color: rgba(239, 68, 68, 0.04) !important;
+                }
+                .dark .merge-original {
+                    background-color: rgba(239, 68, 68, 0.15) !important;
                 }
                 .merge-modified {
-                    background-color: #f6fff8 !important;
+                    background-color: rgba(34, 197, 94, 0.04) !important;
+                }
+                .dark .merge-modified {
+                    background-color: rgba(34, 197, 94, 0.15) !important;
                 }
                 
-                /* View Colors */
                 .cm-merge-deleted {
                     background-color: rgba(239, 68, 68, 0.08) !important;
                 }
@@ -310,30 +315,51 @@ export function MergePreview({
                     background-color: rgba(34, 197, 94, 0.08) !important;
                 }
                 
-                /* Diff text highlighting */
                 .cm-deletedText {
                     background-color: rgba(239, 68, 68, 0.25) !important;
                     text-decoration: line-through;
                     color: #991b1b !important;
                 }
+                .dark .cm-deletedText {
+                    color: #fca5a5 !important;
+                    background-color: rgba(239, 68, 68, 0.4) !important;
+                }
                 .cm-insertedText {
                     background-color: rgba(34, 197, 94, 0.25) !important;
                     color: #166534 !important;
                 }
+                .dark .cm-insertedText {
+                    color: #86efac !important;
+                    background-color: rgba(34, 197, 94, 0.4) !important;
+                }
                 
-                /* Change chunk borders */
                 .cm-merge-changed-line {
                     background-color: rgba(59, 130, 246, 0.05);
                 }
                 
-                /* Gutters */
-                .cm-merge-container .cm-gutters {
-                    background-color: #ffffff !important;
-                    border-right: 1px solid #e5e7eb !important;
-                    min-width: 30px;
+                .cm-collapsedLines {
+                    background: var(--muted) !important;
+                    color: var(--muted-foreground) !important;
+                    border: 1px solid var(--border) !important;
+                    border-radius: 4px !important;
+                    padding: 4px 8px !important;
+                    font-size: 11px !important;
+                    font-weight: 500 !important;
+                    cursor: pointer !important;
+                    transition: all 0.15s ease !important;
+                }
+                .cm-collapsedLines:hover {
+                    background: var(--accent) !important;
+                    color: var(--accent-foreground) !important;
                 }
                 
-                /* Minimalist Shadcn/Vercel merge controls */
+                .cm-merge-container .cm-gutters {
+                    background-color: var(--background, #ffffff) !important;
+                    border-right: 1px solid var(--border, #e5e7eb) !important;
+                    min-width: 30px;
+                    color: var(--muted-foreground) !important;
+                }
+                
                 .cm-merge-control {
                     display: inline-flex !important;
                     align-items: center !important;
@@ -375,13 +401,12 @@ export function MergePreview({
                     transform: translateY(-0.5px);
                 }
                 
-                /* Fix for button container in unified view */
                 .cm-unified-merge-controls {
                     display: flex !important;
                     padding-top: 4px !important;
                     padding-bottom: 4px !important;
-                    border-bottom: 1px solid #f3f4f6 !important;
-                    background-color: #fafafa !important;
+                    border-bottom: 1px solid var(--border, #f3f4f6) !important;
+                    background-color: var(--muted, #fafafa) !important;
                 }
             `}</style>
 		</div>
