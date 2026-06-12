@@ -73,12 +73,12 @@ export function NavUser({
 						</DropdownMenuLabel>
 						<DropdownMenuSeparator />
 						<DropdownMenuGroup>
-							<Link href='/settings/profile'>
-								<DropdownMenuItem className='cursor-pointer'>
+							<DropdownMenuItem asChild className='cursor-pointer'>
+								<Link href='/settings/profile'>
 									<IconUserCircle />
 									Profile Settings
-								</DropdownMenuItem>
-							</Link>
+								</Link>
+							</DropdownMenuItem>
 						</DropdownMenuGroup>
 						<DropdownMenuSeparator />
 						<DropdownMenuItem onClick={logout} className='cursor-pointer' variant='destructive'>

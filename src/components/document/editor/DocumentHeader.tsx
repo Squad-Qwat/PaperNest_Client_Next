@@ -1,13 +1,4 @@
-import {
-	ChevronLeft,
-	FileDown,
-	GitCommit,
-	History,
-	MessageSquare,
-	Play,
-	Save,
-	Share2,
-} from 'lucide-react'
+import { ChevronLeft, FileDown, GitCommit, History, MessageSquare, Play, Save } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'

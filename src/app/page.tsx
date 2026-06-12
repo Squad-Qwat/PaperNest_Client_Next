@@ -1,6 +1,6 @@
 'use client'
 
-import { useRouter /*useParams*/ } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { DashboardSkeleton } from '@/components/layout/DashboardSkeleton'
 import { SplashLoader } from '@/components/layout/SplashLoader'
@@ -11,6 +11,8 @@ import { useWorkspaces } from '@/lib/api/hooks/use-workspaces'
 
 export default function Page() {
 	const router = useRouter()
+	const searchParams = useSearchParams()
+	const inviteToken = searchParams.get('inviteToken')
 	// const params = useParams()
 	const { user, loading: authLoading } = useAuth()
 	const { data: workspacesResponse, isLoading: workspacesLoading, refetch } = useWorkspaces()
@@ -24,10 +26,11 @@ export default function Page() {
 
 		if (!workspacesLoading && workspaces.length > 0) {
 			const validWorkspace = workspaces.find((w) => !!w.workspaceId)
-			// router.push(`/${workspaces[0].workspaceId}`)
 			if (validWorkspace) {
-				router.push(`/${validWorkspace.workspaceId}`)
-				// return
+				const target = inviteToken
+					? `/${validWorkspace.workspaceId}?inviteToken=${inviteToken}`
+					: `/${validWorkspace.workspaceId}`
+				router.push(target)
 			}
 
 			/*
@@ -45,7 +48,7 @@ export default function Page() {
 
 		// since the latest if-then part is "!workspacesLoading && workspaces.length > 0", here it's "workspacesLoading || workspaces.length <= 0"
 		setShowCreateModal(true)
-	}, [user, authLoading, workspaces, workspacesLoading, router])
+	}, [user, authLoading, workspaces, workspacesLoading, router, inviteToken])
 
 	const handleWorkspaceCreated = async () => {
 		await refetch()

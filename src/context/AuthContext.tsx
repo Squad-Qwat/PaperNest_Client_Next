@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { createContext, Suspense, useContext, useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { InviteConfirmationModal } from '@/components/workspace/InviteConfirmationModal'
 import { AUTH_KEYS } from '@/lib/api/hooks/use-auth'
 import { authService } from '@/lib/api/services/auth.service'
 import type { User } from '@/lib/api/types/user.types'
@@ -104,6 +105,25 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 		}
 	}, [_hasHydrated, isAuthenticated, isLoading, isInitializing, pathname, router, callbackUrl])
 
+	useEffect(() => {
+		// Clean up Radix UI scroll locks and pointer events on route transitions.
+		// We use a small timeout to ensure it runs after the old components have finished unmounting.
+		const timer = setTimeout(() => {
+			document.body.style.pointerEvents = ''
+			document.body.style.overflow = ''
+			document.body.style.paddingRight = ''
+			document.body.style.marginRight = ''
+
+			document.documentElement.style.pointerEvents = ''
+			document.documentElement.style.overflow = ''
+
+			document.body.removeAttribute('data-radix-pointer-events-non-interactive')
+			document.documentElement.removeAttribute('data-radix-pointer-events-non-interactive')
+		}, 100)
+
+		return () => clearTimeout(timer)
+	}, [])
+
 	const isInitialLoading = !_hasHydrated || isInitializing || (isAuthenticated && isLoading)
 
 	return (
@@ -118,6 +138,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 			}}
 		>
 			{children}
+			<InviteConfirmationModal />
 		</AuthContext.Provider>
 	)
 }
