@@ -14,6 +14,7 @@ import {
 	ReasoningContent,
 	ReasoningTrigger,
 } from '@/components/ui/ai-elements/reasoning'
+import { PaperNestLoader } from '@/components/layout/PaperNestLoader'
 import { preprocessLatex } from '@/lib/utils'
 
 interface ChatMessage {
@@ -166,9 +167,10 @@ export function DashboardAIChat({
 					{isThinking && (
 						<div className='animate-in fade-in duration-300 max-w-4xl'>
 							<Message from='assistant' className='max-w-4xl w-full'>
-								<div className='w-full'>
-									<span className='text-sm text-muted-foreground italic font-light animate-pulse'>
-										Neptune sedang merenung...
+								<div className='w-full flex items-center gap-2 py-1'>
+									<PaperNestLoader width={18} height={18} />
+									<span className='text-sm font-medium shimmer-text'>
+										Working
 									</span>
 								</div>
 							</Message>

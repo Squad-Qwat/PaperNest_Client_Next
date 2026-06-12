@@ -1,13 +1,20 @@
-'use client'
+import type * as React from 'react'
 
-export function PaperNestLoader() {
+interface PaperNestLoaderProps extends React.SVGProps<SVGSVGElement> {
+	width?: number | string
+	height?: number | string
+}
+
+export function PaperNestLoader({ width = 64, height = 64, className, ...props }: PaperNestLoaderProps) {
 	return (
 		<svg
 			viewBox='0 0 200 200'
-			width='64'
-			height='64'
+			width={width}
+			height={height}
+			className={className}
 			xmlns='http://www.w3.org/2000/svg'
 			aria-label='Loading...'
+			{...props}
 		>
 			<style>{`
         .hex { fill:none; stroke:#009689; stroke-width:6;

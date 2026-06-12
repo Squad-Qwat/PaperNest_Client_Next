@@ -72,6 +72,7 @@ import { useAIChat } from '@/lib/ai/hooks/use-ai-chat'
 import { useAIChatStore } from '@/lib/ai/store'
 import type { ToolStatus } from '@/lib/ai/types/chat'
 import { cn, preprocessLatex } from '@/lib/utils'
+import { PaperNestLoader } from '@/components/layout/PaperNestLoader'
 import { AIChatHeader } from './AIChatHeader'
 
 const models = AI_MODELS
@@ -277,9 +278,10 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 					))}
 					{isStreaming && !messages.at(-1)?.versions?.[0]?.parts?.length && (
 						<Message from='assistant' className='max-w-full w-full'>
-							<MessageContent className='w-full pt-1'>
-								<span className='text-sm text-slate-400 italic font-light animate-pulse'>
-									Neptune sedang merenung...
+							<MessageContent className='w-full pt-1 flex items-center gap-2'>
+								<PaperNestLoader width={18} height={18} />
+								<span className='text-sm font-medium shimmer-text'>
+									Working
 								</span>
 							</MessageContent>
 						</Message>
