@@ -256,7 +256,7 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 												{isStreaming && message.key === messages.at(-1)?.key && (
 													<div className='flex items-center gap-2 py-1 mt-1'>
 														<PaperNestLoader width={18} height={18} />
-														<span className='text-sm font-medium shimmer-text'>
+														<span className='text-sm md:text-base font-medium shimmer-text'>
 															Working
 														</span>
 													</div>

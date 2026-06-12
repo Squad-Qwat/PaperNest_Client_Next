@@ -157,7 +157,7 @@ export function DashboardAIChat({
 													{isThinking && msg.id === messages.at(-1)?.id && (
 														<div className='flex items-center gap-2 py-1 mt-1'>
 															<PaperNestLoader width={18} height={18} />
-															<span className='text-sm font-medium shimmer-text'>
+															<span className='text-sm md:text-base font-medium shimmer-text'>
 																Working
 															</span>
 														</div>
@@ -181,7 +181,7 @@ export function DashboardAIChat({
 							<Message from='assistant' className='max-w-4xl w-full'>
 								<div className='w-full flex items-center gap-2 py-1'>
 									<PaperNestLoader width={18} height={18} />
-									<span className='text-sm font-medium shimmer-text'>
+									<span className='text-sm md:text-base font-medium shimmer-text'>
 										Working
 									</span>
 								</div>
