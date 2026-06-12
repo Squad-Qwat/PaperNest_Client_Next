@@ -23,20 +23,20 @@ export function ReviewInfoCard({
 
 	return (
 		<Card className='p-5 border bg-card sticky top-24 shadow-sm'>
-			<h3 className='text-lg font-bold text-foreground mb-4'>Informasi Review</h3>
+			<h3 className='text-lg font-bold text-foreground mb-4'>Review Information</h3>
 			<div className='space-y-3.5'>
 				<div className='flex items-center justify-between text-sm'>
-					<span className='text-muted-foreground'>Dosen Penguji</span>
+					<span className='text-muted-foreground'>Reviewer</span>
 					<span className='font-bold text-foreground'>{lecturerName}</span>
 				</div>
 				<Separator className='opacity-50' />
 				<div className='flex items-center justify-between text-sm'>
-					<span className='text-muted-foreground'>Mahasiswa</span>
+					<span className='text-muted-foreground'>Student</span>
 					<span className='font-bold text-foreground'>{studentName}</span>
 				</div>
 				<Separator className='opacity-50' />
 				<div className='flex items-center justify-between text-sm'>
-					<span className='text-muted-foreground'>ID Dokumen</span>
+					<span className='text-muted-foreground'>Document ID</span>
 					<span className='font-mono text-[10px] text-muted-foreground truncate ml-4'>
 						{documentId}
 					</span>
@@ -51,7 +51,7 @@ export function ReviewInfoCard({
 				onClick={() => !isDeleted && router.push(`/${workspaceId}/documents/${documentId}`)}
 				disabled={isDeleted}
 			>
-				{isDeleted ? 'Dokumen Terhapus' : 'Buka Editor'} <ArrowRight className='w-4 h-4 ml-2' />
+				{isDeleted ? 'Document Deleted' : 'Open Editor'} <ArrowRight className='w-4 h-4 ml-2' />
 			</Button>
 		</Card>
 	)

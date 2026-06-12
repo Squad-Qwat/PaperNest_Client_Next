@@ -44,17 +44,17 @@ export function getErrorMessage(error: unknown): string {
 	if (errorCode) {
 		switch (errorCode) {
 			case 'auth/popup-closed-by-user':
-				return 'Proses login dibatalkan karena jendela ditutup. Silakan coba lagi.'
+				return 'Login process was cancelled because the popup was closed. Please try again.'
 			case 'auth/network-request-failed':
-				return 'Gagal menghubungi server. Periksa koneksi internet Anda.'
+				return 'Failed to connect to the server. Please check your internet connection.'
 			case 'auth/user-disabled':
-				return 'Akun Anda telah dinonaktifkan. Silakan hubungi dukungan.'
+				return 'Your account has been disabled. Please contact support.'
 			case 'auth/invalid-credential':
-				return 'Email atau kata sandi salah. Silakan periksa kembali.'
+				return 'Incorrect email or password. Please check again.'
 			case 'auth/too-many-requests':
-				return 'Terlalu banyak percobaan login. Silakan coba lagi nanti.'
+				return 'Too many login attempts. Please try again later.'
 			case 'auth/operation-not-allowed':
-				return 'Metode login ini belum diaktifkan. Silakan hubungi admin.'
+				return 'This login method is not enabled. Please contact support.'
 		}
 	}
 

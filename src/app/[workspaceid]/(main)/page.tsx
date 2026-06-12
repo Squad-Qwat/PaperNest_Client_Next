@@ -253,7 +253,7 @@ export default function WorkspacePage() {
 										onSearchSubmit={handleAIPromptSubmit}
 										status={aiStatus}
 										documents={documents}
-										placeholder='Search documents or ask PaperNest AI...'
+										placeholder='Search documents or ask Aurora...'
 										onStop={handleAIStop}
 									/>
 								</div>
@@ -436,7 +436,7 @@ export default function WorkspacePage() {
 										onSearchSubmit={handleAIPromptSubmit}
 										status={aiStatus}
 										documents={documents}
-										placeholder='Ask PaperNest AI anything else...'
+										placeholder='Ask Aurora anything else...'
 										onStop={handleAIStop}
 									/>
 								</div>

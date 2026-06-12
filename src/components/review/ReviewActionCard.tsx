@@ -11,7 +11,7 @@ export function ReviewActionCard({ onAction }: Readonly<ReviewActionCardProps>) 
 		<Card className='p-6 border shadow-sm bg-card sticky top-24'>
 			<h3 className='text-lg font-bold text-foreground mb-6 flex items-center gap-2'>
 				<CheckCircle2 className='w-5 h-5 text-teal-600 dark:text-teal-400' />
-				Tentukan Keputusan
+				Take Action
 			</h3>
 
 			<div className='grid grid-cols-1 gap-3 mb-6'>
@@ -26,7 +26,7 @@ export function ReviewActionCard({ onAction }: Readonly<ReviewActionCardProps>) 
 					onClick={() => onAction('revision_required')}
 					className='w-full border-amber-200/50 dark:border-amber-800/60 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/20 font-bold'
 				>
-					<AlertCircle className='w-4 h-4 mr-2' /> Minta Revisi
+					<AlertCircle className='w-4 h-4 mr-2' /> Request Revision
 				</Button>
 				<Button
 					variant='outline'
@@ -41,7 +41,7 @@ export function ReviewActionCard({ onAction }: Readonly<ReviewActionCardProps>) 
 				<div className='flex gap-2'>
 					<Info className='w-4 h-4 text-muted-foreground mt-0.5' />
 					<p className='text-xs text-muted-foreground leading-normal'>
-						Pastikan Anda telah memeriksa konten dokumen terbaru sebelum mengambil keputusan.
+						Make sure you have reviewed the latest document content before making a decision.
 					</p>
 				</div>
 			</div>

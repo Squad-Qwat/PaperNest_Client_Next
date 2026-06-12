@@ -53,7 +53,7 @@ export function ReviewHero({
 						>
 							<UserIcon className='w-3 h-3' />
 							<span>
-								Oleh <span className='font-bold text-foreground'>{studentName}</span>
+								By <span className='font-bold text-foreground'>{studentName}</span>
 							</span>
 						</Badge>
 						<Badge
@@ -71,7 +71,7 @@ export function ReviewHero({
 							disabled={isDeleted}
 						>
 							<ExternalLink className='w-3.5 h-3.5 mr-1' />{' '}
-							{isDeleted ? 'Dokumen Terhapus' : 'Lihat Dokumen'}
+							{isDeleted ? 'Document Deleted' : 'View Document'}
 						</Button>
 					</div>
 				</div>

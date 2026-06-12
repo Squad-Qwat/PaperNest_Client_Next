@@ -27,10 +27,10 @@ export function useCompilePdf(documentId: string, files: any[]) {
 						return url
 					})
 				} else {
-					setCompileError(result.log || 'Kompilasi PDF gagal.')
+					setCompileError(result.log || 'PDF compilation failed.')
 				}
 			} catch (error: any) {
-				setCompileError(error.message || 'Error saat mengompilasi PDF')
+				setCompileError(error.message || 'Error compiling PDF')
 			} finally {
 				setIsCompiling(false)
 			}
