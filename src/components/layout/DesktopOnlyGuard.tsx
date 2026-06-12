@@ -64,12 +64,12 @@ export function DesktopOnlyGuard({ workspaceId }: DesktopOnlyGuardProps) {
 						</Button>
 
 						<Button
-							variant='ghost'
+							variant='outline'
 							onClick={() => setHidden(true)}
-							className='text-xs font-semibold text-muted-foreground hover:text-foreground transition-all h-9 flex items-center gap-1.5'
+							className='w-full transition-all shadow-none rounded-lg text-xs font-medium flex items-center justify-center gap-1.5'
 						>
-							<Eye className='h-3 w-3' />
-							Continue anyway (View only)
+							<Eye className='h-3.5 w-3.5' />
+							Continue anyway
 						</Button>
 					</div>
 				</motion.div>
