@@ -348,7 +348,7 @@ export default function WorkspacePage() {
 							<div className='flex-1 overflow-y-auto min-h-0 w-full'>
 								<DashboardAIChat
 									messages={mappedChatMessages}
-									isThinking={isStreaming && aiStatus === 'submitted'}
+									isThinking={isStreaming}
 									userDisplayName={(user as any)?.displayName || user?.email || 'User'}
 									documents={documents}
 								/>
