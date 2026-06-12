@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/ai-elements/reasoning'
 import { PaperNestLoader } from '@/components/layout/PaperNestLoader'
 import { preprocessLatex } from '@/lib/utils'
+import { AnimatePresence, motion } from 'motion/react'
 
 interface ChatMessage {
 	id: string
@@ -154,14 +155,22 @@ export function DashboardAIChat({
 															{preprocessLatex(msg.text)}
 														</MessageResponse>
 													)}
-													{isThinking && msg.id === messages.at(-1)?.id && (
-														<div className='flex items-center gap-2 py-1 mt-1'>
-															<PaperNestLoader width={18} height={18} />
-															<span className='text-sm md:text-base font-medium shimmer-text'>
-																Working
-															</span>
-														</div>
-													)}
+													<AnimatePresence>
+														{isThinking && msg.id === messages.at(-1)?.id && (
+															<motion.div
+																initial={{ opacity: 0, height: 0 }}
+																animate={{ opacity: 1, height: 'auto' }}
+																exit={{ opacity: 0, height: 0 }}
+																transition={{ duration: 0.25, ease: 'easeInOut' }}
+																className='flex items-center gap-2 py-1 mt-1 overflow-hidden'
+															>
+																<PaperNestLoader width={18} height={18} />
+																<span className='text-sm md:text-base font-medium shimmer-text'>
+																	Working
+																</span>
+															</motion.div>
+														)}
+													</AnimatePresence>
 												</>
 											) : (
 												<div className='text-foreground leading-relaxed text-sm md:text-base whitespace-pre-wrap break-words'>
@@ -176,18 +185,26 @@ export function DashboardAIChat({
 					)}
 
 					{/* Thinking Animation */}
-					{isThinking && messages.at(-1)?.from !== 'assistant' && (
-						<div className='animate-in fade-in duration-300 max-w-4xl'>
-							<Message from='assistant' className='max-w-4xl w-full'>
-								<div className='w-full flex items-center gap-2 py-1'>
-									<PaperNestLoader width={18} height={18} />
-									<span className='text-sm md:text-base font-medium shimmer-text'>
-										Working
-									</span>
-								</div>
-							</Message>
-						</div>
-					)}
+					<AnimatePresence>
+						{isThinking && messages.at(-1)?.from !== 'assistant' && (
+							<motion.div
+								initial={{ opacity: 0, height: 0 }}
+								animate={{ opacity: 1, height: 'auto' }}
+								exit={{ opacity: 0, height: 0 }}
+								transition={{ duration: 0.25, ease: 'easeInOut' }}
+								className='animate-in fade-in duration-300 max-w-4xl overflow-hidden'
+							>
+								<Message from='assistant' className='max-w-4xl w-full'>
+									<div className='w-full flex items-center gap-2 py-1'>
+										<PaperNestLoader width={18} height={18} />
+										<span className='text-sm md:text-base font-medium shimmer-text'>
+											Working
+										</span>
+									</div>
+								</Message>
+							</motion.div>
+						)}
+					</AnimatePresence>
 				</ConversationContent>
 				<ConversationScrollButton />
 			</Conversation>

@@ -74,6 +74,7 @@ import type { ToolStatus } from '@/lib/ai/types/chat'
 import { cn, preprocessLatex } from '@/lib/utils'
 import { PaperNestLoader } from '@/components/layout/PaperNestLoader'
 import { AIChatHeader } from './AIChatHeader'
+import { AnimatePresence, motion } from 'motion/react'
 
 const models = AI_MODELS
 
@@ -253,14 +254,22 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 													}
 													return null
 												})}
-												{isStreaming && message.key === messages.at(-1)?.key && (
-													<div className='flex items-center gap-2 py-1 mt-1'>
-														<PaperNestLoader width={18} height={18} />
-														<span className='text-sm md:text-base font-medium shimmer-text'>
-															Working
-														</span>
-													</div>
-												)}
+												<AnimatePresence>
+													{isStreaming && message.key === messages.at(-1)?.key && (
+														<motion.div
+															initial={{ opacity: 0, height: 0 }}
+															animate={{ opacity: 1, height: 'auto' }}
+															exit={{ opacity: 0, height: 0 }}
+															transition={{ duration: 0.25, ease: 'easeInOut' }}
+															className='flex items-center gap-2 py-1 mt-1 overflow-hidden'
+														>
+															<PaperNestLoader width={18} height={18} />
+															<span className='text-sm md:text-base font-medium shimmer-text'>
+																Working
+															</span>
+														</motion.div>
+													)}
+												</AnimatePresence>
 											</MessageContent>
 										</div>
 									</Message>
