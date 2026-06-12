@@ -1,6 +1,6 @@
 'use client'
 
-import { IconCreditCard, IconKey, IconReceipt, IconUser } from '@tabler/icons-react'
+import { IconCreditCard, IconUser } from '@tabler/icons-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -16,12 +16,10 @@ import {
 } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
 
-const accountItems = [{ title: 'Profile', icon: IconUser, href: '/settings/profile' }]
+const accountItems = [{ title: 'Profile Settings', icon: IconUser, href: '/settings/profile' }]
 
 const billingItems = [
 	{ title: 'Billing Information', icon: IconCreditCard, href: '/settings/billing' },
-	{ title: 'Invoices', icon: IconReceipt, href: '/settings/invoices', disabled: true },
-	{ title: 'Tokens', icon: IconKey, href: '/settings/tokens', disabled: true },
 ]
 
 export function SettingsSidebar() {
@@ -66,6 +64,7 @@ export function SettingsSidebar() {
 
 	return (
 		<Sidebar
+			collapsible='none'
 			mobileWidth='100%'
 			mobileSide='bottom'
 			modal={false}

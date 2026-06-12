@@ -41,11 +41,12 @@ export default function InboxPage() {
 	const { data: workspace } = useWorkspace(workspaceId)
 
 	const handleNotificationClick = async (notification: any) => {
+		if (notification.isRead) return
+
 		if (!notification.isRead) {
 			await markAsRead(notification.notificationId)
 		}
 
-		// Routing logic based on type
 		if (notification.type === 'comment' || notification.type === 'comment_reply') {
 			if (notification.relatedId) {
 				router.push(`/${workspaceId}/documents/${notification.relatedId}`)
@@ -266,13 +267,15 @@ function NotificationCard({
 	onDelete: () => void
 	renderIcon: (type: string) => React.ReactNode
 }) {
+	const isRead = !!notification.isRead
 	return (
 		<Card
 			className={cn(
-				'cursor-pointer transition-colors hover:bg-muted/50 relative overflow-hidden group',
-				!notification.isRead && 'border-l-4 border-l-primary bg-primary/5'
+				'transition-colors relative overflow-hidden group',
+				isRead ? 'cursor-default' : 'cursor-pointer hover:bg-muted/50',
+				!isRead && 'border-l-4 border-l-primary bg-primary/5'
 			)}
-			onClick={onClick}
+			onClick={isRead ? undefined : onClick}
 		>
 			{!notification.isRead && (
 				<div className='absolute top-4 right-4 h-2 w-2 rounded-full bg-primary' />
