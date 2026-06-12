@@ -345,7 +345,7 @@ export default function WorkspacePage() {
 							className='w-full flex-1 flex flex-col justify-between h-full relative bg-muted/10'
 						>
 							{/* Scrollable Conversation Content */}
-							<div className='flex-1 overflow-y-auto min-h-0 w-full'>
+							<div className='flex-1 overflow-y-auto thin-scrollbar min-h-0 w-full'>
 								<DashboardAIChat
 									messages={mappedChatMessages}
 									isThinking={isStreaming}

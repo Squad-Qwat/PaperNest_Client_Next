@@ -277,3 +277,27 @@
 	display: inline-block;
 }
 
+.thin-scrollbar {
+	scrollbar-width: thin;
+	scrollbar-color: var(--border) transparent;
+}
+
+.thin-scrollbar::-webkit-scrollbar {
+	width: 5px;
+	height: 5px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb {
+	background: var(--input);
+	border-radius: 9999px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb:hover {
+	background: var(--muted-foreground);
+}
+
+
