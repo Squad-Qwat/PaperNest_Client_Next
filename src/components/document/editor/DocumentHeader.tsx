@@ -361,10 +361,7 @@ const DocumentHeader = ({
 								</Button>
 							)}
 						</div>
-						<Button variant='outline' size='sm' className='gap-1'>
-							<Share2 className='h-4 w-4' />
-							Share
-						</Button>
+
 						<Button
 							variant='outline'
 							onClick={toggleAiAssistant}
