@@ -110,7 +110,7 @@ const DynamicContentPanel: React.FC<DynamicContentPanelProps> = ({
 
 	return (
 		<div
-			className='bg-white border-r border-gray-200 shadow-lg flex shrink-0 relative overflow-hidden'
+			className='bg-card border-r border-border shadow-lg flex shrink-0 relative overflow-hidden text-foreground'
 			style={{
 				width: `${width}px`,
 				height: '100%',
@@ -119,7 +119,7 @@ const DynamicContentPanel: React.FC<DynamicContentPanelProps> = ({
 			{/* Resize Handle - right edge */}
 			<hr
 				className={`absolute right-0 top-0 h-full w-1 cursor-ew-resize transition-colors z-10 border-none ${
-					isResizing ? 'bg-gray-400' : 'bg-gray-200 hover:bg-gray-300'
+					isResizing ? 'bg-muted-foreground/50' : 'bg-border hover:bg-muted-foreground/30'
 				}`}
 				onMouseDown={handleMouseDown}
 				aria-orientation='vertical'
@@ -131,8 +131,8 @@ const DynamicContentPanel: React.FC<DynamicContentPanelProps> = ({
 
 			{/* Content */}
 			<div className='flex-1 flex flex-col overflow-hidden'>
-				<div className='flex items-center justify-between gap-2 border-b border-gray-100 p-3 shrink-0'>
-					<h3 className='text-sm font-semibold text-gray-700 truncate'>
+				<div className='flex items-center justify-between gap-2 border-b border-border p-3 shrink-0'>
+					<h3 className='text-sm font-semibold text-foreground truncate'>
 						{panelLabels[activePanel] || 'Panel'}
 					</h3>
 					<div className='flex items-center gap-2'>
@@ -140,10 +140,10 @@ const DynamicContentPanel: React.FC<DynamicContentPanelProps> = ({
 						<button
 							type='button'
 							onClick={onClose}
-							className='p-2 hover:bg-gray-100 rounded-lg transition-colors'
+							className='p-2 hover:bg-muted rounded-lg transition-colors'
 							title='Close panel'
 						>
-							<X className='h-5 w-5 text-gray-500 hover:text-gray-700' />
+							<X className='h-5 w-5 text-muted-foreground hover:text-foreground' />
 						</button>
 					</div>
 				</div>

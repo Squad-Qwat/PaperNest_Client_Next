@@ -115,7 +115,7 @@ export function LatexVisualEditor({ content, onChange, onEditorReady }: LatexVis
 		editorProps: {
 			attributes: {
 				class:
-					'prose prose-sm sm:prose lg:prose-lg xl:prose-xl mx-auto focus:outline-none min-h-[600px] p-12 bg-white shadow-xl ring-1 ring-gray-100 rounded-xl transition-all duration-300',
+					'prose prose-sm sm:prose lg:prose-lg xl:prose-xl mx-auto focus:outline-none min-h-[600px] p-12 bg-background shadow-xl ring-1 ring-border rounded-xl transition-all duration-300',
 			},
 		},
 	})
@@ -149,13 +149,13 @@ export function LatexVisualEditor({ content, onChange, onEditorReady }: LatexVis
 	}
 
 	return (
-		<div className='h-full w-full overflow-auto bg-gray-50/30 p-8 flex flex-col items-center'>
+		<div className='h-full w-full overflow-auto bg-muted/10 p-8 flex flex-col items-center'>
 			<div className='w-full max-w-4xl relative group'>
 				{/* Bubble Menu for text selection */}
 				{editor && (
 					<BubbleMenu
 						editor={editor}
-						className='flex bg-white shadow-xl border border-gray-100 rounded-lg p-1 gap-0.5 overflow-hidden ring-1 ring-black/5'
+						className='flex bg-popover shadow-xl border border-border text-popover-foreground rounded-lg p-1 gap-0.5 overflow-hidden ring-1 ring-black/5'
 					>
 						<MenuButton
 							onClick={() => editor.chain().focus().toggleBold().run()}
@@ -167,7 +167,7 @@ export function LatexVisualEditor({ content, onChange, onEditorReady }: LatexVis
 							active={editor.isActive('italic')}
 							icon={<Italic className='w-4 h-4' />}
 						/>
-						<div className='w-[1px] h-4 bg-gray-200 mx-1 self-center' />
+						<div className='w-[1px] h-4 bg-border mx-1 self-center' />
 						<MenuButton
 							onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
 							active={editor.isActive('heading', { level: 1 })}
@@ -178,7 +178,7 @@ export function LatexVisualEditor({ content, onChange, onEditorReady }: LatexVis
 							active={editor.isActive('heading', { level: 2 })}
 							icon={<Heading2 className='w-4 h-4' />}
 						/>
-						<div className='w-[1px] h-4 bg-gray-200 mx-1 self-center' />
+						<div className='w-[1px] h-4 bg-border mx-1 self-center' />
 						<MenuButton
 							onClick={() => editor.chain().focus().toggleBulletList().run()}
 							active={editor.isActive('bulletList')}
@@ -196,7 +196,7 @@ export function LatexVisualEditor({ content, onChange, onEditorReady }: LatexVis
 				{editor && (
 					<FloatingMenu
 						editor={editor}
-						className='flex bg-white shadow-lg border border-gray-100 rounded-full p-1.5 gap-1 ring-1 ring-black/5 ml-[-60px]'
+						className='flex bg-popover shadow-lg border border-border text-popover-foreground rounded-full p-1.5 gap-1 ring-1 ring-black/5 ml-[-60px]'
 					>
 						<MenuButton
 							onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
@@ -225,7 +225,7 @@ export function LatexVisualEditor({ content, onChange, onEditorReady }: LatexVis
 				<EditorContent editor={editor} className='min-h-full' />
 
 				{/* Character Count Indicator */}
-				<div className='absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 bg-white/50 backdrop-blur-md rounded-full border border-gray-100 text-[10px] font-mono text-gray-500 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300'>
+				<div className='absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 bg-popover/50 backdrop-blur-md rounded-full border border-border text-[10px] font-mono text-muted-foreground shadow-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300'>
 					<span className='font-bold text-primary'>
 						{editor.storage.characterCount.characters()}
 					</span>
@@ -355,11 +355,11 @@ function MenuButton({
 			className={`
                 flex items-center justify-center transition-all duration-200
                 ${round ? 'w-8 h-8 rounded-full' : 'w-9 h-9 rounded-md'}
-                ${
-									active
-										? 'bg-primary text-white shadow-md scale-105'
-										: 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
-								}
+				${
+					active
+						? 'bg-primary text-white shadow-md scale-105'
+						: 'text-muted-foreground hover:bg-muted hover:text-foreground'
+				}
             `}
 		>
 			{icon}

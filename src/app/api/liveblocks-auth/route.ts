@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
 		const color = generateColorFromString(user.userId || user.username || user.email)
 
 		let avatar = user.photoURL || undefined
-		if (avatar && avatar.includes('assets.papernest.com')) {
+		if (avatar?.includes('assets.papernest.com')) {
 			const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 			avatar = `${baseUrl}/upload/download?url=${encodeURIComponent(avatar)}`
 		}

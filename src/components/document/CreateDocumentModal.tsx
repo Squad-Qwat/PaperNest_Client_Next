@@ -91,7 +91,7 @@ export function CreateDocumentModal({
 							<p className='text-xs font-medium text-primary uppercase tracking-wider'>
 								Using Template
 							</p>
-							<p className='text-sm font-semibold text-gray-900'>{templateName}</p>
+							<p className='text-sm font-semibold text-foreground'>{templateName}</p>
 						</div>
 						<div className='flex items-center gap-3'>
 							{logoUrl ? (

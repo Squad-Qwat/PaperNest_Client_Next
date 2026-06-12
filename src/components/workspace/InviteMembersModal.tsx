@@ -134,7 +134,7 @@ export function InviteMembersModal({
 						role='button'
 						tabIndex={-1}
 						className={cn(
-							'flex flex-wrap gap-2 p-1.5 min-h-[40px] bg-white border rounded-lg focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all duration-200',
+							'flex flex-wrap gap-2 p-1.5 min-h-[40px] bg-background border border-border rounded-lg focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all duration-200',
 							loading && 'opacity-50 cursor-not-allowed'
 						)}
 						onClick={() => document.getElementById('email-input')?.focus()}
@@ -153,11 +153,14 @@ export function InviteMembersModal({
 									className={cn(
 										'flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[13px] font-medium transition-colors',
 										isValid
-											? 'bg-gray-100 text-gray-700 border border-gray-200'
-											: 'bg-red-50 text-red-700 border border-red-200'
+											? 'bg-muted text-foreground border border-border'
+											: 'bg-destructive/10 text-destructive border border-destructive/20'
 									)}
 								>
-									<Mail size={12} className={isValid ? 'text-gray-400' : 'text-red-400'} />
+									<Mail
+										size={12}
+										className={isValid ? 'text-muted-foreground' : 'text-destructive'}
+									/>
 									{email}
 									<button
 										type='button'
@@ -165,7 +168,7 @@ export function InviteMembersModal({
 											e.stopPropagation()
 											removeEmail(email)
 										}}
-										className='hover:text-black focus:outline-none'
+										className='hover:text-foreground focus:outline-none'
 									>
 										<X size={14} />
 									</button>
@@ -187,7 +190,7 @@ export function InviteMembersModal({
 							disabled={loading}
 						/>
 					</div>
-					<p className='text-[12px] text-gray-500'>
+					<p className='text-[12px] text-muted-foreground'>
 						Press Enter, Comma, or Space to add multiple emails.
 					</p>
 				</div>
@@ -206,7 +209,7 @@ export function InviteMembersModal({
 							<SelectItem value='reviewer'>Reviewer</SelectItem>
 						</SelectContent>
 					</Select>
-					<p className='text-[12px] text-gray-500'>
+					<p className='text-[12px] text-muted-foreground'>
 						{role === 'viewer' && 'Can only read documents.'}
 						{role === 'editor' && 'Can edit and manage documents.'}
 						{role === 'reviewer' && 'Can provide feedback and comments.'}

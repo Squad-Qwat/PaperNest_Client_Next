@@ -54,7 +54,7 @@ export function ReviewCard({
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: wrapper contains nested interactive button
 		<div
-			className='bg-white border rounded-lg p-6 hover:border-primary transition-all group relative text-left w-full flex flex-col h-full cursor-pointer'
+			className='bg-card border border-border rounded-lg p-6 hover:border-primary transition-all group relative text-left w-full flex flex-col h-full cursor-pointer'
 			onClick={handleCardClick}
 			onKeyDown={handleKeyDown}
 			role='button'
@@ -64,7 +64,9 @@ export function ReviewCard({
 			<div className='flex items-start justify-between gap-4 mb-2.5'>
 				<h3
 					className={`text-lg font-semibold line-clamp-2 leading-snug transition-colors flex-1 ${
-						isDocumentDeleted ? 'text-gray-400 italic' : 'text-gray-900 group-hover:text-primary'
+						isDocumentDeleted
+							? 'text-muted-foreground italic'
+							: 'text-foreground group-hover:text-primary'
 					}`}
 				>
 					{isDocumentDeleted ? 'Dokumen Terhapus' : title || 'Dokumen Tanpa Judul'}
@@ -75,7 +77,7 @@ export function ReviewCard({
 			</div>
 
 			{/* Meta: Version and Date (Date replaces student name) */}
-			<div className='flex items-center gap-2 text-xs text-gray-500 mb-3'>
+			<div className='flex items-center gap-2 text-xs text-muted-foreground mb-3'>
 				{versionNumber && (
 					<span className='font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded'>
 						Versi V{versionNumber}
@@ -85,7 +87,7 @@ export function ReviewCard({
 			</div>
 
 			{/* Middle: Request Message (Plain text description style, non-italic) */}
-			<p className='text-gray-600 text-sm mb-4 line-clamp-2 min-h-[40px] leading-relaxed font-normal'>
+			<p className='text-muted-foreground text-sm mb-4 line-clamp-2 min-h-[40px] leading-relaxed font-normal'>
 				{message || 'Tidak ada pesan pengantar.'}
 			</p>
 
@@ -96,7 +98,7 @@ export function ReviewCard({
 						e.stopPropagation()
 						handleCardClick()
 					}}
-					className='flex-1 h-9 bg-primary hover:bg-primary/90 text-white font-semibold text-xs rounded-lg transition-all shadow-sm'
+					className='flex-1 h-9 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs rounded-lg transition-all shadow-sm'
 				>
 					Lihat Detail
 				</Button>

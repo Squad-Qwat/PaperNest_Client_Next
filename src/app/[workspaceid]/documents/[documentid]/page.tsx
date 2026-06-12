@@ -379,10 +379,10 @@ function DocumentPageContent() {
 
 	if (editorError) {
 		return (
-			<div className='min-h-screen bg-white flex items-center justify-center'>
+			<div className='min-h-screen bg-background text-foreground flex items-center justify-center'>
 				<div className='text-center p-8'>
 					<h2 className='text-xl font-semibold text-red-600 mb-4'>Editor Error</h2>
-					<p className='text-gray-600 mb-4'>{editorError}</p>
+					<p className='text-muted-foreground mb-4'>{editorError}</p>
 					<button
 						type='button'
 						onClick={() => globalThis.location.reload()}
@@ -396,7 +396,7 @@ function DocumentPageContent() {
 	}
 
 	return (
-		<div className='h-svh overflow-hidden bg-white flex flex-col'>
+		<div className='h-svh overflow-hidden bg-background text-foreground flex flex-col'>
 			{isMobile && <DesktopOnlyGuard workspaceId={workspaceId} />}
 			<div className='flex flex-col flex-1 min-h-0 overflow-hidden isolate'>
 				<DocumentHeader

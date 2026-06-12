@@ -39,6 +39,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { AI_MODELS } from '@/lib/ai/constants'
 import { useAIChatStore } from '@/lib/ai/store'
+import { cn } from '@/lib/utils'
 
 interface PromptSource {
 	documentId: string
@@ -92,14 +93,15 @@ interface AISearchPromptProps {
 }
 
 const AISearchPromptInner = ({
-	placeholder = 'Search documents or ask AI...',
+	placeholder = 'Ask anything...',
 	onSearchChange,
 	onSearchSubmit,
-	status = 'ready',
+	status,
 	documents = [],
 	onStop,
 }: AISearchPromptProps) => {
-	const { model, setModel, agentId, setAgentId } = useAIChatStore()
+	const { model, setModel, agentId, setAgentId, webSearchEnabled, setWebSearchEnabled } =
+		useAIChatStore()
 	const [modelSelectorOpen, setModelSelectorOpen] = useState(false)
 	const { textInput } = usePromptInputController()
 	const { referencedSources, clearSources, setSources } = useAISearchPromptStore()
@@ -238,7 +240,7 @@ const AISearchPromptInner = ({
 						min-height: 60px !important;
 						font-size: 0.875rem !important;
 						background: transparent !important;
-						color: #1e293b !important;
+						color: var(--foreground) !important;
 						display: flex !important;
 						flex-direction: column !important;
 						width: 100% !important;
@@ -249,7 +251,7 @@ const AISearchPromptInner = ({
 						outline: none !important;
 					}
 					.mix-input-custom .is-editor-empty:before {
-						color: #94a3b8 !important;
+						color: var(--muted-foreground) !important;
 						font-weight: 400 !important;
 					}
 					.mix-input-custom .ProseMirror {
@@ -265,7 +267,7 @@ const AISearchPromptInner = ({
 					globalDrop
 					multiple
 					onSubmit={handleSubmit}
-					className='bg-white border border-primary/20 rounded-2xl relative'
+					className='bg-card border border-border rounded-2xl relative'
 				>
 					<div className='flex flex-wrap items-center gap-1.5 px-4 pt-3 empty:hidden'>
 						<SharedPromptInputAttachments />
@@ -290,9 +292,25 @@ const AISearchPromptInner = ({
 									<PromptInputActionAddScreenshot />
 								</PromptInputActionMenuContent>
 							</PromptInputActionMenu>
-							<PromptInputButton>
-								<GlobeIcon size={16} />
-								<span>Search</span>
+							<PromptInputButton
+								onClick={(e) => {
+									e.preventDefault()
+									setWebSearchEnabled(!webSearchEnabled)
+								}}
+								className={cn(
+									'gap-2 h-8 px-2.5 rounded-md transition-all duration-200 cursor-pointer',
+									webSearchEnabled
+										? 'bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15'
+										: 'text-muted-foreground hover:bg-accent hover:text-foreground'
+								)}
+							>
+								<GlobeIcon
+									className={cn(
+										'size-4',
+										webSearchEnabled ? 'text-primary' : 'text-muted-foreground'
+									)}
+								/>
+								<span className='text-xs font-medium'>Search</span>
 							</PromptInputButton>
 							<ModelSelector onOpenChange={setModelSelectorOpen} open={modelSelectorOpen}>
 								<ModelSelectorTrigger asChild>
@@ -324,21 +342,21 @@ const AISearchPromptInner = ({
 			</div>
 			<DropdownMenuContent
 				align='start'
-				className='w-80 max-h-64 overflow-y-auto z-[100] bg-white border border-slate-200 rounded-xl shadow-lg p-1'
+				className='w-80 max-h-64 overflow-y-auto z-[100] bg-popover border border-border rounded-xl shadow-lg p-1 text-popover-foreground'
 				side='bottom'
 				sideOffset={12}
 			>
-				<DropdownMenuLabel className='px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50/50 rounded-t-lg select-none'>
+				<DropdownMenuLabel className='px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest bg-muted/50 rounded-t-lg select-none'>
 					Select Reference Document
 				</DropdownMenuLabel>
 				<DropdownMenuSeparator className='my-1' />
 				{filteredDocs.map((doc) => (
 					<DropdownMenuItem
-						className='flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-slate-700 hover:text-primary transition-all cursor-pointer'
+						className='flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-foreground hover:bg-accent hover:text-accent-foreground transition-all cursor-pointer'
 						key={doc.documentId}
 						onSelect={() => handleSelectDocument(doc)}
 					>
-						<FileText className='h-4 w-4 text-slate-400 shrink-0' />
+						<FileText className='h-4 w-4 text-muted-foreground shrink-0' />
 						<span className='truncate font-medium flex-1'>{doc.title}</span>
 					</DropdownMenuItem>
 				))}

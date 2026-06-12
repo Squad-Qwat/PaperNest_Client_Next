@@ -313,13 +313,16 @@ export function useAIChat({ editor, documentId, workspaceId }: UseAIChatOptions)
 						documentId,
 						workspaceId,
 						reasoningEnabled: currentState.reasoningEnabled,
+						webSearchEnabled: currentState.webSearchEnabled,
 						agentId: currentState.agentId,
 						plan: currentState.currentPlan.length > 0 ? currentState.currentPlan : undefined,
 						providerId,
 						modelId,
 						files: currentStep === 1 ? attachments : undefined,
 						taggedDocumentIds: currentStep === 1 ? taggedDocumentIds : undefined,
-						activeFileName: editorRef.current?.getActiveFileName?.() ?? 'main.tex',
+						activeFileName: documentId
+							? (editorRef.current?.getActiveFileName?.() ?? 'main.tex')
+							: undefined,
 						docVersionToken: snapshotToken ?? undefined,
 					}
 

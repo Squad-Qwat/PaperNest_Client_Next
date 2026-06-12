@@ -4,13 +4,23 @@ import { immer } from 'zustand/middleware/immer'
 import { AI_MODELS } from './constants'
 import type { ChatMessage, MessageAttachment, PlanStep, ToolCall, ToolStatus } from './types/chat'
 
+interface ChatContext {
+	messages: ChatMessage[]
+	currentPlan: PlanStep[]
+	threadId: string
+	webSearchEnabled: boolean
+}
+
 interface AIChatState {
 	messages: ChatMessage[]
 	currentPlan: PlanStep[]
+	threadId: string
+	contexts: Record<string, ChatContext>
+	activeContextId: string
 	isStreaming: boolean
 	model: string
 	reasoningEnabled: boolean
-	threadId: string
+	webSearchEnabled: boolean
 	agentId: string
 }
 
@@ -26,19 +36,24 @@ interface AIChatActions {
 	setModel: (model: string) => void
 	setAgentId: (id: string) => void
 	setReasoningEnabled: (value: boolean) => void
+	setWebSearchEnabled: (value: boolean) => void
 	clearChat: () => void
 	resetThreadId: () => void
 	updateMessageVersion: (messageKey: string, versionIndex: number) => void
+	switchContext: (contextId: string) => void
 }
 
 export const useAIChatStore = create<AIChatState & AIChatActions>()(
 	immer((set) => ({
 		messages: [],
 		currentPlan: [],
+		threadId: `thread_${Date.now()}_${nanoid(6)}`,
+		contexts: {},
+		activeContextId: 'dashboard',
 		isStreaming: false,
 		model: AI_MODELS[0].id, // Default model
 		reasoningEnabled: false,
-		threadId: `thread_${Date.now()}_${nanoid(6)}`,
+		webSearchEnabled: false,
 		agentId: 'manual_graph',
 
 		addUserMessage: (text: string, attachments?: MessageAttachment[]) =>
@@ -145,13 +160,26 @@ export const useAIChatStore = create<AIChatState & AIChatActions>()(
 
 		setReasoningEnabled: (value: boolean) => set({ reasoningEnabled: value }),
 
+		setWebSearchEnabled: (value: boolean) => set({ webSearchEnabled: value }),
+
 		clearChat: () =>
 			set((state) => {
 				state.messages = []
 				state.currentPlan = []
+				if (state.contexts[state.activeContextId]) {
+					state.contexts[state.activeContextId].messages = []
+					state.contexts[state.activeContextId].currentPlan = []
+				}
 			}),
 
-		resetThreadId: () => set({ threadId: `thread_${Date.now()}_${nanoid(6)}` }),
+		resetThreadId: () =>
+			set((state) => {
+				const newId = `thread_${Date.now()}_${nanoid(6)}`
+				state.threadId = newId
+				if (state.contexts[state.activeContextId]) {
+					state.contexts[state.activeContextId].threadId = newId
+				}
+			}),
 
 		updateMessageVersion: (messageKey: string, versionIndex: number) =>
 			set((state) => {
@@ -159,6 +187,34 @@ export const useAIChatStore = create<AIChatState & AIChatActions>()(
 				if (msg) {
 					msg.activeVersionIndex = versionIndex
 				}
+			}),
+
+		switchContext: (contextId: string) =>
+			set((state) => {
+				const oldContextId = state.activeContextId
+				if (oldContextId === contextId) return
+
+				// Save current state to cache
+				state.contexts[oldContextId] = {
+					messages: state.messages,
+					currentPlan: state.currentPlan,
+					threadId: state.threadId,
+					webSearchEnabled: state.webSearchEnabled,
+				}
+
+				// Load or init next context
+				const next = state.contexts[contextId] || {
+					messages: [],
+					currentPlan: [],
+					threadId: `thread_${Date.now()}_${nanoid(6)}`,
+					webSearchEnabled: false,
+				}
+
+				state.messages = next.messages
+				state.currentPlan = next.currentPlan
+				state.threadId = next.threadId
+				state.webSearchEnabled = next.webSearchEnabled
+				state.activeContextId = contextId
 			}),
 	}))
 )

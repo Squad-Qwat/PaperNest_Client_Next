@@ -66,7 +66,7 @@ export function SidebarSkeleton() {
 export function DashboardContentSkeleton() {
 	return (
 		<>
-			<header className='flex h-16 shrink-0 items-center gap-2 px-6 border-b border-gray-100 bg-white/50 backdrop-blur-sm sticky top-0 z-10'>
+			<header className='flex h-16 shrink-0 items-center gap-2 px-6 border-b border-border bg-background/50 backdrop-blur-sm sticky top-0 z-10'>
 				<Skeleton className='h-8 w-8 rounded-md' />
 				<Separator orientation='vertical' className='mx-2 h-4' />
 				<Skeleton className='h-4 w-32' />
@@ -89,7 +89,7 @@ export function DashboardContentSkeleton() {
 					{[{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }, { id: 5 }, { id: 6 }].map((item) => (
 						<div
 							key={`doc-skeleton-${item.id}`}
-							className='p-6 border border-gray-100 rounded-2xl space-y-4'
+							className='p-6 border border-border bg-card rounded-2xl space-y-4'
 						>
 							<div className='flex justify-between items-start'>
 								<Skeleton className='h-6 w-3/4 rounded-md' />
@@ -114,7 +114,7 @@ export function DashboardContentSkeleton() {
 export function ReviewContentSkeleton() {
 	return (
 		<>
-			<header className='flex h-16 shrink-0 items-center gap-2 px-6 border-b border-gray-100 bg-white/50 backdrop-blur-sm sticky top-0 z-10'>
+			<header className='flex h-16 shrink-0 items-center gap-2 px-6 border-b border-border bg-background/50 backdrop-blur-sm sticky top-0 z-10'>
 				<Skeleton className='h-8 w-8 rounded-md' />
 				<Separator orientation='vertical' className='mx-2 h-4' />
 				<Skeleton className='h-4 w-48' />
@@ -127,7 +127,7 @@ export function ReviewContentSkeleton() {
 					</div>
 				</div>
 
-				<div className='flex flex-col lg:flex-row gap-4'>
+				<div className='flex gap-4'>
 					<Skeleton className='h-10 flex-1 rounded-xl' />
 					<div className='flex gap-3'>
 						<Skeleton className='h-10 w-[220px] rounded-xl' />
@@ -141,7 +141,7 @@ export function ReviewContentSkeleton() {
 					{[1, 2, 3, 4, 5].map((i) => (
 						<div
 							key={`review-skeleton-${i}`}
-							className='p-6 border border-gray-100 rounded-2xl flex flex-col gap-4'
+							className='p-6 border border-border bg-card rounded-2xl flex flex-col gap-4'
 						>
 							<div className='flex justify-between items-start'>
 								<div className='space-y-2 flex-1'>
@@ -166,7 +166,7 @@ export function DashboardSkeleton() {
 	return (
 		<SidebarProvider className='h-svh overflow-hidden bg-sidebar'>
 			<SidebarSkeleton />
-			<SidebarInset className='flex flex-col min-h-0 overflow-hidden border border-gray-200/50 isolate rounded-2xl m-2 bg-white shadow-sm'>
+			<SidebarInset className='flex flex-col min-h-0 overflow-hidden border border-border/50 isolate rounded-2xl m-2 bg-card shadow-sm'>
 				<DashboardContentSkeleton />
 			</SidebarInset>
 		</SidebarProvider>

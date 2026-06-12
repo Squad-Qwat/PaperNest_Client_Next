@@ -1,9 +1,7 @@
 'use client'
 
 import {
-	IconBook,
 	IconFileDescription,
-	IconHelp,
 	IconInbox,
 	IconMessage2,
 	IconQuote,
@@ -85,20 +83,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 					]
 				: []),
 			{
-				title: 'Settings',
+				title: 'Workspace Settings',
 				url: `/${workspaceId}/settings`,
 				icon: IconSettings,
-			},
-			{
-				title: 'Guide',
-				url: '/guide',
-				icon: IconBook,
-				isActive: pathname === '/guide',
-			},
-			{
-				title: 'Help',
-				url: '#',
-				icon: IconHelp,
 			},
 		],
 	}

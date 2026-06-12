@@ -49,15 +49,14 @@ const PanelContent2: React.FC<PanelContent2Props> = ({
 	}
 
 	const getLevelColor = (_level: number): string => {
-		// All levels use gray color
-		return 'text-gray-600'
+		return 'text-muted-foreground hover:text-foreground'
 	}
 
 	if (tocEntries.length === 0) {
 		return (
 			<div className='flex flex-col h-full'>
-				<div className='flex-1 flex flex-col items-center justify-center gap-4 p-4 text-gray-500'>
-					<List className='h-12 w-12 text-gray-300' />
+				<div className='flex-1 flex flex-col items-center justify-center gap-4 p-4 text-muted-foreground'>
+					<List className='h-12 w-12 text-muted' />
 					<div className='text-center'>
 						<p className='font-medium text-sm'>Table of Contents</p>
 						<p className='text-xs mt-1'>No sections found in document</p>
@@ -68,10 +67,10 @@ const PanelContent2: React.FC<PanelContent2Props> = ({
 	}
 
 	return (
-		<div className='flex flex-col h-full'>
+		<div className='flex flex-col h-full text-foreground'>
 			{/* Header info */}
-			<div className='border-b border-gray-100 p-3 flex-shrink-0'>
-				<p className='text-xs text-gray-500'>
+			<div className='border-b border-border p-3 flex-shrink-0'>
+				<p className='text-xs text-muted-foreground'>
 					{tocEntries.length} section{tocEntries.length !== 1 ? 's' : ''}
 				</p>
 			</div>
@@ -84,7 +83,7 @@ const PanelContent2: React.FC<PanelContent2Props> = ({
 							type='button'
 							key={`${entry.position}-${entry.heading}-${index}`}
 							onClick={() => handleNavigateToSection(entry)}
-							className={`w-full text-left px-2 py-2 rounded hover:bg-blue-50 active:bg-blue-100 transition-colors text-sm ${getLevelColor(entry.level)} ${getLevelIndent(entry.level)}`}
+							className={`w-full text-left px-2 py-2 rounded hover:bg-muted active:bg-muted/80 transition-colors text-sm ${getLevelColor(entry.level)} ${getLevelIndent(entry.level)}`}
 							title={entry.heading}
 						>
 							<span className='line-clamp-2'>{entry.heading}</span>

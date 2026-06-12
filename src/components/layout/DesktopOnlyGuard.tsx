@@ -22,14 +22,14 @@ export function DesktopOnlyGuard({ workspaceId }: DesktopOnlyGuardProps) {
 				initial={{ opacity: 0 }}
 				animate={{ opacity: 1 }}
 				exit={{ opacity: 0 }}
-				className='fixed inset-0 z-[9999] bg-white flex flex-col items-center justify-center p-6 text-center'
+				className='fixed inset-0 z-[9999] bg-background flex flex-col items-center justify-center p-6 text-center'
 			>
 				{/* Minimal Grid Background */}
 				<div
 					className='absolute inset-0 opacity-[0.05] pointer-events-none'
 					style={{
 						backgroundImage:
-							'linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)',
+							'linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)',
 						backgroundSize: '40px 40px',
 					}}
 				></div>
@@ -45,18 +45,18 @@ export function DesktopOnlyGuard({ workspaceId }: DesktopOnlyGuardProps) {
 						<span className='text-2xl font-bold text-primary'>PN</span>
 					</div>
 
-					<h1 className='text-xl font-bold text-gray-900 mb-2 tracking-tight'>
+					<h1 className='text-xl font-bold text-foreground mb-2 tracking-tight'>
 						Desktop Recommended
 					</h1>
 
-					<p className='text-gray-500 text-sm leading-relaxed mb-8'>
+					<p className='text-muted-foreground text-sm leading-relaxed mb-8'>
 						PaperNest Editor is optimized for larger screens to handle complex LaTeX layouts and
 						side-by-side PDF previewing.
 					</p>
 
-					<div className='bg-gray-50 border border-gray-100 rounded-xl p-4 mb-8 flex flex-col items-center gap-2'>
+					<div className='bg-muted border border-border rounded-xl p-4 mb-8 flex flex-col items-center gap-2'>
 						<Laptop className='h-8 w-8 text-primary/40' />
-						<p className='text-[10px] font-bold text-gray-400 uppercase tracking-widest'>
+						<p className='text-[10px] font-bold text-muted-foreground uppercase tracking-widest'>
 							Best viewed on desktop
 						</p>
 					</div>
@@ -69,7 +69,7 @@ export function DesktopOnlyGuard({ workspaceId }: DesktopOnlyGuardProps) {
 						<Button
 							variant='ghost'
 							onClick={() => setHidden(true)}
-							className='text-xs font-semibold text-gray-400 hover:text-gray-900 transition-all h-9 flex items-center gap-1.5'
+							className='text-xs font-semibold text-muted-foreground hover:text-foreground transition-all h-9 flex items-center gap-1.5'
 						>
 							<Eye className='h-3 w-3' />
 							Continue anyway (View only)
@@ -77,8 +77,8 @@ export function DesktopOnlyGuard({ workspaceId }: DesktopOnlyGuardProps) {
 					</div>
 
 					<div className='mt-12'>
-						<Separator className='w-12 mx-auto mb-4 bg-gray-100' />
-						<p className='text-[9px] uppercase tracking-[0.2em] font-bold text-gray-300'>
+						<Separator className='w-12 mx-auto mb-4 bg-border' />
+						<p className='text-[9px] uppercase tracking-[0.2em] font-bold text-muted-foreground/50'>
 							PaperNest Professional
 						</p>
 					</div>

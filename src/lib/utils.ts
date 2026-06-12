@@ -54,3 +54,20 @@ export function getMediaUrl(url: string | null | undefined): string | undefined 
 	}
 	return url
 }
+
+/**
+ * Preprocesses LaTeX delimiters from LLM output (like \( ... \) and \[ ... \])
+ * into standard dollar signs ($ and $$) that are recognized by remark-math/streamdown.
+ */
+export function preprocessLatex(content: string): string {
+	if (!content) return ''
+	return content
+		.replace(/\\\\\[/g, '$$$$')
+		.replace(/\\\\\]/g, '$$$$')
+		.replace(/\\\\\(/g, '$$')
+		.replace(/\\\\\)/g, '$$')
+		.replace(/\\\[/g, '$$$$')
+		.replace(/\\\]/g, '$$$$')
+		.replace(/\\\(/g, '$$')
+		.replace(/\\\)/g, '$$')
+}

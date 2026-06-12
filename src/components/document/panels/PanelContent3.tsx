@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 import { useParams } from 'next/navigation'
 import type React from 'react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { apiClient } from '@/lib/api/clients/api-client'
@@ -369,7 +369,7 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText, activeFileN
 	const renderLocalReferences = () => {
 		if (isCitationsLoading) {
 			return (
-				<div className='flex flex-col items-center justify-center py-12 gap-2 text-gray-400'>
+				<div className='flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground'>
 					<Loader2 className='h-6 w-6 animate-spin text-primary' />
 					<span className='text-xs'>Loading references...</span>
 				</div>
@@ -378,13 +378,13 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText, activeFileN
 
 		if (filteredCitations.length === 0) {
 			return (
-				<div className='flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed border-gray-100 rounded-xl text-center gap-4 text-gray-400 mt-2'>
-					<div className='p-3 bg-gray-50 rounded-full text-primary/40'>
+				<div className='flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed border-border rounded-xl text-center gap-4 text-muted-foreground mt-2'>
+					<div className='p-3 bg-muted rounded-full text-primary/40'>
 						<BookOpen className='h-8 w-8' />
 					</div>
 					<div>
-						<p className='text-xs font-semibold text-gray-600'>No references found</p>
-						<p className='text-[10px] text-gray-400 mt-1 max-w-[200px]'>
+						<p className='text-xs font-semibold text-foreground'>No references found</p>
+						<p className='text-[10px] text-muted-foreground mt-1 max-w-[200px]'>
 							Search the library to import scholarly papers or add them manually!
 						</p>
 					</div>
@@ -395,21 +395,23 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText, activeFileN
 		return filteredCitations.map((c) => (
 			<div
 				key={c.citationId}
-				className='group relative border border-gray-150 hover:border-primary/40 rounded-xl p-3 bg-white hover:shadow-sm transition-all duration-200'
+				className='group relative border border-border hover:border-primary/40 rounded-xl p-3 bg-card hover:shadow-sm transition-all duration-200 text-foreground'
 			>
 				<div className='pr-12 text-xs'>
-					<span className='inline-block px-1.5 py-0.5 bg-gray-100 font-mono text-[9px] text-gray-500 rounded tracking-wider mb-1.5 uppercase'>
+					<span className='inline-block px-1.5 py-0.5 bg-muted font-mono text-[9px] text-muted-foreground rounded tracking-wider mb-1.5 uppercase'>
 						{c.type}
 					</span>
 					<button
 						type='button'
-						className='font-bold text-gray-800 leading-snug hover:text-primary transition text-left w-full cursor-pointer'
+						className='font-bold text-foreground leading-snug hover:text-primary transition text-left w-full cursor-pointer'
 						onClick={() => handleInsertCite(c)}
 					>
 						{c.title}
 					</button>
-					<p className='text-gray-500 font-medium mt-1 text-[11px] line-clamp-1'>{c.author}</p>
-					<p className='text-[10px] text-gray-400 mt-0.5 line-clamp-1'>
+					<p className='text-muted-foreground font-medium mt-1 text-[11px] line-clamp-1'>
+						{c.author}
+					</p>
+					<p className='text-[10px] text-muted-foreground mt-0.5 line-clamp-1'>
 						{c.publicationInfo} {c.publicationDate ? `(${c.publicationDate})` : ''}
 					</p>
 					{c.doi && (
@@ -441,7 +443,7 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText, activeFileN
 					<button
 						type='button'
 						onClick={() => startEditing(c)}
-						className='p-1.5 hover:bg-gray-100 text-gray-500 hover:text-gray-800 rounded-lg transition'
+						className='p-1.5 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition'
 						title='Edit reference'
 					>
 						<Edit3 className='h-3.5 w-3.5' />
@@ -449,7 +451,7 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText, activeFileN
 					<button
 						type='button'
 						onClick={() => handleDeleteCitation(c.citationId)}
-						className='p-1.5 hover:bg-red-50 text-red-500 hover:text-red-600 rounded-lg transition'
+						className='p-1.5 hover:bg-red-500/10 text-red-500 hover:text-red-400 rounded-lg transition'
 						title='Delete reference'
 					>
 						<Trash2 className='h-3.5 w-3.5' />
@@ -462,7 +464,7 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText, activeFileN
 	const renderWorkspaceReferences = () => {
 		if (isWorkspaceLoading) {
 			return (
-				<div className='flex flex-col items-center justify-center py-12 gap-2 text-gray-400'>
+				<div className='flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground'>
 					<Loader2 className='h-6 w-6 animate-spin text-primary' />
 					<span className='text-xs'>Loading workspace library...</span>
 				</div>
@@ -471,13 +473,13 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText, activeFileN
 
 		if (workspaceCitations.length === 0) {
 			return (
-				<div className='flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed border-gray-100 rounded-xl text-center gap-4 text-gray-400 mt-2'>
-					<div className='p-3 bg-gray-50 rounded-full text-primary/40'>
+				<div className='flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed border-border rounded-xl text-center gap-4 text-muted-foreground mt-2'>
+					<div className='p-3 bg-muted rounded-full text-primary/40'>
 						<BookOpen className='h-8 w-8' />
 					</div>
 					<div>
-						<p className='text-xs font-semibold text-gray-600'>No workspace references</p>
-						<p className='text-[10px] text-gray-400 mt-1 max-w-[200px]'>
+						<p className='text-xs font-semibold text-foreground'>No workspace references</p>
+						<p className='text-[10px] text-muted-foreground mt-1 max-w-[200px]'>
 							Your workspace library is empty. Add references from the dashboard first!
 						</p>
 					</div>
@@ -495,15 +497,17 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText, activeFileN
 			return (
 				<div
 					key={c.citationId}
-					className='group relative border border-gray-150 hover:border-primary/40 rounded-xl p-3 bg-white hover:shadow-sm transition-all duration-200'
+					className='group relative border border-border hover:border-primary/40 rounded-xl p-3 bg-card hover:shadow-sm transition-all duration-200 text-foreground'
 				>
 					<div className='pr-24 text-xs'>
-						<span className='inline-block px-1.5 py-0.5 bg-gray-100 font-mono text-[9px] text-gray-500 rounded tracking-wider mb-1.5 uppercase'>
+						<span className='inline-block px-1.5 py-0.5 bg-muted font-mono text-[9px] text-muted-foreground rounded tracking-wider mb-1.5 uppercase'>
 							{c.type}
 						</span>
-						<h5 className='font-bold text-gray-800 leading-snug'>{c.title}</h5>
-						<p className='text-gray-500 font-medium mt-1 text-[11px] line-clamp-1'>{c.author}</p>
-						<p className='text-[10px] text-gray-400 mt-0.5 line-clamp-1'>
+						<h5 className='font-bold text-foreground leading-snug'>{c.title}</h5>
+						<p className='text-muted-foreground font-medium mt-1 text-[11px] line-clamp-1'>
+							{c.author}
+						</p>
+						<p className='text-[10px] text-muted-foreground mt-0.5 line-clamp-1'>
 							{c.publicationInfo} {c.publicationDate ? `(${c.publicationDate})` : ''}
 						</p>
 					</div>
@@ -515,7 +519,7 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText, activeFileN
 							disabled={hasBeenAdded || createCitationMutation.isPending}
 							className={`py-1 px-2.5 rounded-md font-bold text-[10px] transition-all flex items-center gap-1 ${
 								hasBeenAdded
-									? 'bg-green-50 text-green-600 border border-green-200 cursor-default'
+									? 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 cursor-default'
 									: 'bg-primary hover:bg-primary/95 text-white shadow-sm'
 							}`}
 						>
@@ -540,7 +544,7 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText, activeFileN
 	const renderScholarContent = () => {
 		if (isScholarSearching) {
 			return (
-				<div className='flex flex-col items-center justify-center py-12 gap-2 text-gray-400'>
+				<div className='flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground'>
 					<Loader2 className='h-6 w-6 animate-spin text-primary' />
 					<span className='text-xs'>Searching Semantic Scholar library...</span>
 				</div>
@@ -551,7 +555,7 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText, activeFileN
 			return (
 				<div className='text-center py-8 text-xs text-red-500'>
 					<p>Failed to load academic search results.</p>
-					<p className='text-[10px] text-gray-400 mt-1'>
+					<p className='text-[10px] text-muted-foreground mt-1'>
 						Please verify your server key or query terms.
 					</p>
 				</div>
@@ -560,11 +564,11 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText, activeFileN
 
 		if (!hasSearched) {
 			return (
-				<div className='flex flex-col items-center justify-center py-12 px-4 text-center text-gray-400 gap-3'>
-					<div className='p-3 bg-blue-50 text-primary/60 rounded-full animate-pulse'>
+				<div className='flex flex-col items-center justify-center py-12 px-4 text-center text-muted-foreground gap-3'>
+					<div className='p-3 bg-blue-500/10 text-primary/60 rounded-full animate-pulse'>
 						<Sparkles className='h-7 w-7' />
 					</div>
-					<p className='text-[11px] font-medium max-w-[220px]'>
+					<p className='text-[11px] font-medium max-w-[220px] text-muted-foreground'>
 						Find papers indexed on Semantic Scholar database and save them instantly as LaTeX bib
 						entries!
 					</p>
@@ -574,7 +578,7 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText, activeFileN
 
 		if (scholarResults.length === 0) {
 			return (
-				<div className='text-center py-12 text-xs text-gray-400'>
+				<div className='text-center py-12 text-xs text-muted-foreground'>
 					No papers found. Try different search terms.
 				</div>
 			)
@@ -587,33 +591,33 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText, activeFileN
 			return (
 				<div
 					key={p.paperId}
-					className='group border border-gray-150 hover:border-blue-300 rounded-xl p-3 bg-white hover:shadow-sm transition duration-200'
+					className='group border border-border hover:border-blue-500/30 rounded-xl p-3 bg-card hover:shadow-sm transition duration-200 text-foreground'
 				>
 					<div className='text-xs pr-8'>
 						<div className='flex items-center gap-1.5 mb-1.5 flex-wrap'>
 							{p.year && (
-								<span className='inline-block px-1.5 py-0.5 bg-blue-50 font-bold text-[9px] text-primary rounded'>
+								<span className='inline-block px-1.5 py-0.5 bg-blue-500/10 font-bold text-[9px] text-primary rounded'>
 									{p.year}
 								</span>
 							)}
 							{p.citationCount !== undefined && (
-								<span className='inline-block px-1.5 py-0.5 bg-gray-50 text-[9px] text-gray-500 rounded font-medium'>
+								<span className='inline-block px-1.5 py-0.5 bg-muted text-[9px] text-muted-foreground rounded font-medium'>
 									Citations: {p.citationCount}
 								</span>
 							)}
 						</div>
-						<h5 className='font-bold text-gray-800 leading-snug'>{p.title}</h5>
-						<p className='text-gray-500 mt-1 text-[11px] line-clamp-1'>{authors}</p>
-						<p className='text-[10px] text-gray-400 mt-0.5 line-clamp-1'>{p.venue}</p>
+						<h5 className='font-bold text-foreground leading-snug'>{p.title}</h5>
+						<p className='text-muted-foreground mt-1 text-[11px] line-clamp-1'>{authors}</p>
+						<p className='text-[10px] text-muted-foreground mt-0.5 line-clamp-1'>{p.venue}</p>
 
 						{p.abstract && (
-							<p className='text-[10px] text-gray-400/80 bg-gray-50/50 p-2 rounded border border-gray-100 mt-2 line-clamp-2 leading-relaxed'>
+							<p className='text-[10px] text-muted-foreground/80 bg-muted/30 p-2 rounded border border-border mt-2 line-clamp-2 leading-relaxed'>
 								{p.abstract}
 							</p>
 						)}
 					</div>
 
-					<div className='mt-2.5 pt-2 border-t border-gray-100 flex items-center justify-between'>
+					<div className='mt-2.5 pt-2 border-t border-border flex items-center justify-between'>
 						{p.openAccessPdf?.url ? (
 							<a
 								href={p.openAccessPdf.url}
@@ -625,7 +629,7 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText, activeFileN
 								Open Access PDF
 							</a>
 						) : (
-							<span className='text-[10px] text-gray-400'>No direct PDF link</span>
+							<span className='text-[10px] text-muted-foreground'>No direct PDF link</span>
 						)}
 
 						<button
@@ -634,7 +638,7 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText, activeFileN
 							disabled={hasBeenAdded || createCitationMutation.isPending}
 							className={`py-1 px-2.5 rounded-md font-bold text-[10px] transition-all flex items-center gap-1 ${
 								hasBeenAdded
-									? 'bg-green-50 text-green-600 border border-green-200 cursor-default'
+									? 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 cursor-default'
 									: 'bg-primary hover:bg-primary/95 text-white shadow-sm'
 							}`}
 						>
@@ -657,21 +661,21 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText, activeFileN
 	}
 
 	return (
-		<div className='flex flex-col h-full bg-white'>
+		<div className='flex flex-col h-full bg-background text-foreground'>
 			{/* Edit Citation Modal Cover Overlay */}
 			{editingCitation && (
-				<div className='absolute inset-0 bg-white/95 backdrop-blur-sm z-50 p-4 overflow-y-auto flex flex-col'>
-					<div className='flex justify-between items-center mb-4 border-b pb-2 shrink-0'>
-						<h4 className='text-sm font-bold text-gray-800 flex items-center gap-1.5'>
+				<div className='absolute inset-0 bg-background/95 backdrop-blur-sm z-50 p-4 overflow-y-auto flex flex-col'>
+					<div className='flex justify-between items-center mb-4 border-b border-border pb-2 shrink-0'>
+						<h4 className='text-sm font-bold text-foreground flex items-center gap-1.5'>
 							<Edit3 className='h-4 w-4 text-primary' />
 							Edit Reference
 						</h4>
 						<button
 							type='button'
 							onClick={() => setEditingCitation(null)}
-							className='p-1 hover:bg-gray-150 rounded'
+							className='p-1 hover:bg-muted rounded'
 						>
-							<X className='h-4 w-4 text-gray-500' />
+							<X className='h-4 w-4 text-muted-foreground' />
 						</button>
 					</div>
 
@@ -701,14 +705,14 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText, activeFileN
 			)}
 
 			{/* Sub Tabs Navigation */}
-			<div className='flex border-b border-gray-150 bg-gray-50/50 p-1 shrink-0'>
+			<div className='flex border-b border-border bg-muted/30 p-1 shrink-0'>
 				<button
 					type='button'
 					onClick={() => setActiveTab('list')}
 					className={`flex-1 py-1.5 text-[11px] font-semibold rounded-md transition-all ${
 						activeTab === 'list'
-							? 'bg-white shadow text-primary border border-gray-200'
-							: 'text-gray-500 hover:text-gray-800'
+							? 'bg-background shadow text-primary border border-border'
+							: 'text-muted-foreground hover:text-foreground'
 					}`}
 				>
 					My References
@@ -718,8 +722,8 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText, activeFileN
 					onClick={() => setActiveTab('search')}
 					className={`flex-1 py-1.5 text-[11px] font-semibold rounded-md transition-all ${
 						activeTab === 'search'
-							? 'bg-white shadow text-primary border border-gray-200'
-							: 'text-gray-500 hover:text-gray-800'
+							? 'bg-background shadow text-primary border border-border'
+							: 'text-muted-foreground hover:text-foreground'
 					}`}
 				>
 					Academic Search
@@ -729,8 +733,8 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText, activeFileN
 					onClick={() => setActiveTab('workspace')}
 					className={`flex-1 py-1.5 text-[11px] font-semibold rounded-md transition-all ${
 						activeTab === 'workspace'
-							? 'bg-white shadow text-primary border border-gray-200'
-							: 'text-gray-500 hover:text-gray-800'
+							? 'bg-background shadow text-primary border border-border'
+							: 'text-muted-foreground hover:text-foreground'
 					}`}
 				>
 					Workspace Library
@@ -745,13 +749,13 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText, activeFileN
 						{/* Search & Actions Bar */}
 						<div className='flex items-center gap-2 shrink-0'>
 							<div className='flex-1 relative'>
-								<Search className='absolute left-2.5 top-2.5 h-3.5 w-3.5 text-gray-400' />
+								<Search className='absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground' />
 								<input
 									type='text'
 									placeholder='Search references...'
 									value={localSearch}
 									onChange={(e) => setLocalSearch(e.target.value)}
-									className='w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-md outline-none text-xs focus:ring-1 focus:ring-primary bg-gray-50/50'
+									className='w-full pl-8 pr-3 py-1.5 border border-border rounded-md outline-none text-xs focus:ring-1 focus:ring-primary bg-muted/20 text-foreground'
 								/>
 							</div>
 
@@ -761,8 +765,8 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText, activeFileN
 								disabled={isSyncingBib}
 								className={`p-2 rounded-md border text-xs flex items-center justify-center transition ${
 									syncSuccess
-										? 'border-green-300 bg-green-50 text-green-600'
-										: 'border-gray-200 hover:bg-gray-50 text-gray-600'
+										? 'border-green-500/20 bg-green-500/10 text-green-600 dark:text-green-400'
+										: 'border-border hover:bg-muted text-muted-foreground'
 								}`}
 								title='Export and sync references to references.bib file'
 							>
@@ -789,7 +793,7 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText, activeFileN
 						{/* Search Bar */}
 						<form onSubmit={triggerScholarSearch} className='flex items-center gap-2 shrink-0'>
 							<div className='flex-1 relative'>
-								<Search className='absolute left-2.5 top-2.5 h-3.5 w-3.5 text-gray-400' />
+								<Search className='absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground' />
 								<input
 									type='text'
 									placeholder='Search articles by title or keywords...'
@@ -798,7 +802,7 @@ const PanelContent3: React.FC<PanelContent3Props> = ({ onInsertText, activeFileN
 										setScholarQuery(e.target.value)
 										setHasSearched(false)
 									}}
-									className='w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-md outline-none text-xs focus:ring-1 focus:ring-primary bg-gray-50/50'
+									className='w-full pl-8 pr-3 py-1.5 border border-border rounded-md outline-none text-xs focus:ring-1 focus:ring-primary bg-muted/20 text-foreground'
 								/>
 							</div>
 							<button

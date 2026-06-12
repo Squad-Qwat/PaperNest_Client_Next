@@ -551,14 +551,14 @@ export function LatexEditor({
 	)
 
 	return (
-		<div className='flex flex-col h-full w-full bg-white overflow-hidden'>
+		<div className='flex flex-col h-full w-full bg-background overflow-hidden'>
 			<div
 				className={`flex flex-1 overflow-hidden relative ${isEditorPdfResizing ? 'select-none' : ''}`}
 				ref={containerRef}
 			>
 				{isEditorPdfResizing && <div className='absolute inset-0 z-50 cursor-ew-resize' />}
 				<div
-					className='relative bg-white flex flex-col min-h-0 shrink-0'
+					className='relative bg-background flex flex-col min-h-0 shrink-0'
 					style={{ width: `${editorPdfSplitWidth}%` }}
 				>
 					{openAuxiliaryFiles.length > 0 && setActiveFileId && onCloseAuxiliaryFile && (
@@ -661,13 +661,15 @@ export function LatexEditor({
 
 				<hr
 					className={`w-1 h-full cursor-ew-resize transition-colors border-none relative z-30 shrink-0 ${
-						isEditorPdfResizing ? 'bg-gray-400' : 'bg-gray-200 hover:bg-gray-300'
+						isEditorPdfResizing
+							? 'bg-muted-foreground/50'
+							: 'bg-border hover:bg-muted-foreground/30'
 					}`}
 					onMouseDown={handleSplitMouseDown}
 				/>
 
 				<div
-					className={`overflow-hidden relative flex-1 min-w-0 ${isEditorPdfResizing ? 'pointer-events-none' : 'transition-all duration-200'} ${pdfUrl ? 'bg-[#525659]' : 'bg-gray-50'}`}
+					className={`overflow-hidden relative flex-1 min-w-0 ${isEditorPdfResizing ? 'pointer-events-none' : 'transition-all duration-200'} ${pdfUrl ? 'bg-[#525659]' : 'bg-muted/40'}`}
 					style={{
 						display: isPdfHidden ? 'none' : 'flex',
 					}}
@@ -692,7 +694,7 @@ export function LatexEditor({
 							/>
 						</div>
 					) : (
-						<div className='absolute inset-0 flex flex-col items-center justify-center text-gray-400 p-4 text-center text-sm'>
+						<div className='absolute inset-0 flex flex-col items-center justify-center text-muted-foreground p-4 text-center text-sm'>
 							<FileText className='w-10 h-10 mb-3 opacity-20' />
 							<p className='font-medium'>Ready to compile</p>
 						</div>

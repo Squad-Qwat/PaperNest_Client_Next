@@ -136,8 +136,8 @@ export default function BillingSettingsPage() {
 			/>
 
 			<div>
-				<h2 className='text-2xl font-bold text-gray-900 dark:text-gray-100'>Billing Settings</h2>
-				<p className='text-sm text-gray-500 dark:text-gray-400 mt-1'>
+				<h2 className='text-2xl font-bold text-foreground'>Billing Settings</h2>
+				<p className='text-sm text-muted-foreground mt-1'>
 					Manage your plan, check resource usage, and update payment methods.
 				</p>
 			</div>
@@ -210,7 +210,7 @@ export default function BillingSettingsPage() {
 					{/* Plan details info */}
 					<div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
 						<div className='space-y-2'>
-							<h4 className='text-sm font-semibold text-gray-700 dark:text-gray-300'>Plan Perks</h4>
+							<h4 className='text-sm font-semibold text-foreground'>Plan Perks</h4>
 							<ul className='space-y-1.5 text-sm text-muted-foreground'>
 								<li className='flex items-center gap-2'>
 									<Check className='size-4 text-emerald-500 shrink-0' />
@@ -234,9 +234,7 @@ export default function BillingSettingsPage() {
 						</div>
 
 						<div className='space-y-2'>
-							<h4 className='text-sm font-semibold text-gray-700 dark:text-gray-300'>
-								Billing Details
-							</h4>
+							<h4 className='text-sm font-semibold text-foreground'>Billing Details</h4>
 							{hasActiveSubscription ? (
 								<p className='text-sm text-muted-foreground'>
 									Your subscription is active.{' '}
@@ -292,8 +290,8 @@ export default function BillingSettingsPage() {
 			{!isEnterprise && (
 				<div className='space-y-6 pt-4'>
 					<div>
-						<h3 className='text-lg font-bold text-gray-900 dark:text-gray-100'>Available Plans</h3>
-						<p className='text-sm text-gray-500 dark:text-gray-400'>
+						<h3 className='text-lg font-bold text-foreground'>Available Plans</h3>
+						<p className='text-sm text-muted-foreground'>
 							Choose the plan that fits your writing and research workflow.
 						</p>
 					</div>
@@ -360,15 +358,15 @@ export default function BillingSettingsPage() {
 							</CardHeader>
 							<CardContent className='flex-1 py-4 space-y-4'>
 								<ul className='space-y-2.5 text-sm'>
-									<li className='flex items-center gap-2 font-medium text-gray-800 dark:text-gray-200'>
+									<li className='flex items-center gap-2 font-medium text-foreground'>
 										<Check className='size-4 text-violet-500' />
 										Unlimited documents
 									</li>
-									<li className='flex items-center gap-2 font-medium text-gray-800 dark:text-gray-200'>
+									<li className='flex items-center gap-2 font-medium text-foreground'>
 										<Check className='size-4 text-violet-500' />
 										Unlimited LaTeX compiles
 									</li>
-									<li className='flex items-center gap-2 font-medium text-gray-800 dark:text-gray-200'>
+									<li className='flex items-center gap-2 font-medium text-foreground'>
 										<Check className='size-4 text-violet-500' />
 										50,000 AI tokens daily
 									</li>
@@ -414,9 +412,7 @@ export default function BillingSettingsPage() {
 							<CardHeader>
 								<div className='flex justify-between items-start'>
 									<div>
-										<CardTitle className='text-xl font-bold text-gray-900 dark:text-gray-100'>
-											Enterprise
-										</CardTitle>
+										<CardTitle className='text-xl font-bold text-foreground'>Enterprise</CardTitle>
 										<CardDescription>For power users and teams</CardDescription>
 									</div>
 									<Sparkles className='size-5 text-amber-500 animate-pulse' />
@@ -430,15 +426,15 @@ export default function BillingSettingsPage() {
 							</CardHeader>
 							<CardContent className='flex-1 py-4 space-y-4'>
 								<ul className='space-y-2.5 text-sm'>
-									<li className='flex items-center gap-2 font-medium text-gray-800 dark:text-gray-200'>
+									<li className='flex items-center gap-2 font-medium text-foreground'>
 										<Check className='size-4 text-amber-500' />
 										Everything in Pro plan
 									</li>
-									<li className='flex items-center gap-2 font-medium text-gray-800 dark:text-gray-200'>
+									<li className='flex items-center gap-2 font-medium text-foreground'>
 										<Check className='size-4 text-amber-500' />
 										200,000 AI tokens daily
 									</li>
-									<li className='flex items-center gap-2 font-medium text-gray-800 dark:text-gray-200'>
+									<li className='flex items-center gap-2 font-medium text-foreground'>
 										<Check className='size-4 text-amber-500' />
 										Dedicated workspace channels
 									</li>

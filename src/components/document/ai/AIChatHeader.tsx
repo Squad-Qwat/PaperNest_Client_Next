@@ -9,9 +9,9 @@ interface AIChatHeaderProps {
 
 export function AIChatHeader({ onClose, onClearChat }: AIChatHeaderProps) {
 	return (
-		<div className='flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-transparent'>
+		<div className='flex items-center justify-between px-4 py-3 border-b border-border bg-transparent'>
 			<div className='flex items-center gap-3'>
-				<h2 className='text-lg font-semibold text-gray-900'>Neptune</h2>
+				<h2 className='text-lg font-semibold text-foreground'>Neptune</h2>
 			</div>
 			<div className='flex items-center gap-2'>
 				<Button variant='outline' size='sm' onClick={onClearChat}>

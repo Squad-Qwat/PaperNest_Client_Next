@@ -175,21 +175,21 @@ export default function ModalVersions({
 			title='Riwayat versi'
 			visuallyHiddenTitle={true}
 		>
-			<div className='flex flex-col h-screen w-full bg-white'>
-				<div className='h-20 border-b flex items-center justify-between px-3'>
+			<div className='flex flex-col h-screen w-full bg-background'>
+				<div className='h-20 border-b border-border flex items-center justify-between px-3'>
 					<div className='flex items-center gap-4'>
 						<Button
 							type='button'
 							variant='ghost'
 							onClick={onClose}
-							className='p-2 hover:bg-gray-100 rounded-lg transition-colors group'
+							className='p-2 hover:bg-accent rounded-lg transition-colors group'
 							title='Back'
 						>
-							<ChevronLeft className='h-5 w-5 text-gray-500 group-hover:text-primary transition-colors' />
+							<ChevronLeft className='h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors' />
 						</Button>
 						<div className='flex flex-col'>
-							<span className='text-xl font-medium text-gray-900'>Riwayat versi</span>
-							<span className='text-md text-gray-500'>
+							<span className='text-xl font-medium text-foreground'>Riwayat versi</span>
+							<span className='text-md text-muted-foreground'>
 								{selectedVersion
 									? selectedVersion.timestamp
 									: versionsLoading
@@ -203,25 +203,25 @@ export default function ModalVersions({
 				</div>
 
 				<div className='flex-1 flex overflow-hidden h-full'>
-					<div className='flex-1 bg-gray-100 relative h-full flex flex-col min-w-0'>
+					<div className='flex-1 bg-muted/30 relative h-full flex flex-col min-w-0'>
 						<ScrollArea className='h-full w-full'>
 							<div className='flex flex-col items-center p-8 min-h-full gap-6'>
 								{/* Review Card */}
 								{selectedVersion?.review && (
-									<div className='w-[816px] bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden shrink-0'>
-										<div className='p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50'>
+									<div className='w-[816px] bg-card rounded-xl border border-border shadow-sm overflow-hidden shrink-0'>
+										<div className='p-4 border-b border-border flex items-center justify-between bg-muted/50'>
 											<div className='flex items-center gap-3'>
-												<Avatar className='h-8 w-8 border border-gray-200'>
+												<Avatar className='h-8 w-8 border border-border'>
 													<AvatarImage src={selectedVersion.review.reviewer.avatarUrl} />
 													<AvatarFallback className='text-xs bg-blue-50 text-blue-600 font-medium'>
 														L
 													</AvatarFallback>
 												</Avatar>
 												<div className='flex flex-col'>
-													<span className='text-sm font-medium text-gray-900'>
+													<span className='text-sm font-medium text-foreground'>
 														{selectedVersion.review.reviewer.name}
 													</span>
-													<span className='text-xs text-gray-500'>
+													<span className='text-xs text-muted-foreground'>
 														Ditinjau pada {selectedVersion.review.date}
 													</span>
 												</div>
@@ -229,7 +229,7 @@ export default function ModalVersions({
 											<ReviewStatusBadge status={selectedVersion.review.status} />
 										</div>
 										{selectedVersion.review.content && (
-											<div className='p-4 text-sm text-gray-700 leading-relaxed bg-white'>
+											<div className='p-4 text-sm text-foreground leading-relaxed bg-card'>
 												{selectedVersion.review.content}
 											</div>
 										)}
@@ -237,9 +237,9 @@ export default function ModalVersions({
 								)}
 
 								{/* PDF Viewer Mockup */}
-								<div className='bg-gray-200 shadow-sm w-[816px] aspect-[1/1.414] border border-gray-300 shrink-0 flex items-center justify-center relative overflow-hidden'>
+								<div className='bg-muted/50 shadow-sm w-[816px] aspect-[1/1.414] border border-border shrink-0 flex items-center justify-center relative overflow-hidden'>
 									{isCompiling ? (
-										<div className='flex flex-col items-center gap-3 text-gray-500'>
+										<div className='flex flex-col items-center gap-3 text-muted-foreground'>
 											<Loader2 className='w-10 h-10 animate-spin opacity-50' />
 											<span className='text-sm font-medium'>Menyiapkan Preview PDF...</span>
 										</div>
@@ -248,13 +248,14 @@ export default function ModalVersions({
 											src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
 											className='w-full min-h-full border-none'
 											title='PDF Preview'
+											suppressHydrationWarning
 										/>
 									) : compileError ? (
 										<div className='flex flex-col items-center gap-3 p-8 text-center'>
 											<FileText className='w-12 h-12 text-red-200' />
 											<div className='space-y-1'>
 												<p className='text-sm font-medium text-red-600'>Gagal Memuat Preview</p>
-												<p className='text-xs text-gray-500 max-w-xs line-clamp-3'>
+												<p className='text-xs text-muted-foreground max-w-xs line-clamp-3'>
 													{compileError}
 												</p>
 											</div>
@@ -269,7 +270,7 @@ export default function ModalVersions({
 											</Button>
 										</div>
 									) : (
-										<div className='flex flex-col items-center gap-2 text-gray-400'>
+										<div className='flex flex-col items-center gap-2 text-muted-foreground'>
 											<FileText className='w-10 h-10 opacity-20' />
 											<p className='text-sm italic'>Pilih versi untuk melihat pratinjau</p>
 										</div>
@@ -279,14 +280,14 @@ export default function ModalVersions({
 						</ScrollArea>
 					</div>
 
-					<div className='w-80 bg-white border-l shadow-sm flex flex-col shrink-0 z-10'>
-						<div className='p-4 border-b flex items-center justify-between'>
-							<h3 className='font-medium text-gray-700'>Riwayat versi</h3>
+					<div className='w-80 bg-card border-l border-border shadow-sm flex flex-col shrink-0 z-10'>
+						<div className='p-4 border-b border-border flex items-center justify-between'>
+							<h3 className='font-medium text-foreground'>Riwayat versi</h3>
 						</div>
 
 						<ScrollArea className='flex-1'>
 							<div className='py-2'>
-								<div className='px-4 py-2 text-xs font-medium text-gray-500'>
+								<div className='px-4 py-2 text-xs font-medium text-muted-foreground'>
 									{versionsLoading ? 'Memuat...' : 'Versi Dokumen'}
 								</div>
 
@@ -301,17 +302,19 @@ export default function ModalVersions({
 											}
 										}}
 										className={`w-full text-left px-4 py-3 cursor-pointer group transition-colors relative block ${
-											selectedVersionId === version.id ? 'bg-blue-50' : 'hover:bg-gray-50'
+											selectedVersionId === version.id
+												? 'bg-accent text-accent-foreground'
+												: 'hover:bg-muted'
 										}`}
 									>
 										<div className='flex items-start justify-between'>
 											<div>
-												<div className='text-sm font-medium text-gray-900 mb-1'>
+												<div className='text-sm font-medium text-foreground mb-1'>
 													{version.timestamp}
 												</div>
 												<div className='flex items-center gap-2'>
 													<div className={`w-2 h-2 rounded-full ${version.color}`} />
-													<span className='text-xs text-gray-600'>
+													<span className='text-xs text-muted-foreground'>
 														{version.author || 'Unknown'}
 													</span>
 												</div>
@@ -329,9 +332,9 @@ export default function ModalVersions({
 							</div>
 						</ScrollArea>
 
-						<div className='p-4 border-t space-y-3'>
+						<div className='p-4 border-t border-border space-y-3'>
 							{selectedVersion?.isCurrent ? (
-								<div className='text-center text-sm text-gray-500 py-2'>Versi saat ini</div>
+								<div className='text-center text-sm text-muted-foreground py-2'>Versi saat ini</div>
 							) : (
 								<Button className='w-full' onClick={handleRollback} disabled={isRollingBack}>
 									{isRollingBack ? 'Memulihkan...' : 'Pulihkan versi ini'}

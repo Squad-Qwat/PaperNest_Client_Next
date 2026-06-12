@@ -12,6 +12,7 @@ import {
 } from '@tabler/icons-react'
 import { formatDistanceToNow } from 'date-fns'
 import { useParams, useRouter } from 'next/navigation'
+import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import { Badge } from '@/components/ui/badge'
 import {
 	Breadcrumb,
@@ -70,7 +71,7 @@ export default function InboxPage() {
 			case 'review_completed':
 				return <IconCircleCheck className='h-5 w-5 text-green-600' />
 			default:
-				return <IconBell className='h-5 w-5 text-gray-600' />
+				return <IconBell className='h-5 w-5 text-muted-foreground' />
 		}
 	}
 
@@ -84,31 +85,36 @@ export default function InboxPage() {
 
 	return (
 		<>
-			<header className='flex h-16 shrink-0 items-center gap-2 px-4 bg-white border-b sticky top-0 z-30 rounded-t-2xl'>
-				<SidebarTrigger className='-ml-1' />
-				<Separator orientation='vertical' className='mr-2 h-4' />
-				<Breadcrumb>
-					<BreadcrumbList>
-						<BreadcrumbItem className='hidden md:block'>
-							<BreadcrumbLink href='#'>PaperNest</BreadcrumbLink>
-						</BreadcrumbItem>
-						<BreadcrumbSeparator className='hidden md:block' />
-						<BreadcrumbItem>
-							<BreadcrumbLink href={`/${workspaceId}`}>{workspace?.title}</BreadcrumbLink>
-						</BreadcrumbItem>
-						<BreadcrumbSeparator className='hidden md:block' />
-						<BreadcrumbItem>
-							<BreadcrumbPage>Inbox</BreadcrumbPage>
-						</BreadcrumbItem>
-					</BreadcrumbList>
-				</Breadcrumb>
+			<header className='flex h-16 shrink-0 items-center justify-between gap-2 px-4 bg-background border-b border-border sticky top-0 z-30 rounded-t-2xl'>
+				<div className='flex items-center gap-2'>
+					<SidebarTrigger className='-ml-1' />
+					<Separator orientation='vertical' className='mr-2 h-4' />
+					<Breadcrumb>
+						<BreadcrumbList>
+							<BreadcrumbItem className='hidden md:block'>
+								<BreadcrumbLink href='#'>PaperNest</BreadcrumbLink>
+							</BreadcrumbItem>
+							<BreadcrumbSeparator className='hidden md:block' />
+							<BreadcrumbItem>
+								<BreadcrumbLink href={`/${workspaceId}`}>{workspace?.title}</BreadcrumbLink>
+							</BreadcrumbItem>
+							<BreadcrumbSeparator className='hidden md:block' />
+							<BreadcrumbItem>
+								<BreadcrumbPage>Inbox</BreadcrumbPage>
+							</BreadcrumbItem>
+						</BreadcrumbList>
+					</Breadcrumb>
+				</div>
+				<div className='ml-auto'>
+					<ThemeToggle />
+				</div>
 			</header>
 
 			<div className='flex-1 p-6 flex flex-col min-h-0 overflow-hidden'>
 				<div className='mb-8 flex items-center justify-between'>
 					<div>
-						<h2 className='text-2xl font-bold text-gray-900'>Inbox</h2>
-						<p className='text-sm text-gray-500 mt-1'>
+						<h2 className='text-2xl font-bold text-foreground'>Inbox</h2>
+						<p className='text-sm text-muted-foreground mt-1'>
 							Manage your notifications and alerts in the workspace {workspace?.title}
 						</p>
 					</div>

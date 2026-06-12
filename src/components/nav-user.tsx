@@ -1,12 +1,6 @@
 'use client'
 
-import {
-	IconCreditCard,
-	IconDotsVertical,
-	IconLogout,
-	IconNotification,
-	IconUserCircle,
-} from '@tabler/icons-react'
+import { IconDotsVertical, IconLogout, IconUserCircle } from '@tabler/icons-react'
 import Link from 'next/link'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -82,20 +76,12 @@ export function NavUser({
 							<Link href='/settings/profile'>
 								<DropdownMenuItem className='cursor-pointer'>
 									<IconUserCircle />
-									Edit Profil
+									Profile Settings
 								</DropdownMenuItem>
 							</Link>
-							<DropdownMenuItem>
-								<IconCreditCard />
-								Billing
-							</DropdownMenuItem>
-							<DropdownMenuItem>
-								<IconNotification />
-								Notifications
-							</DropdownMenuItem>
 						</DropdownMenuGroup>
 						<DropdownMenuSeparator />
-						<DropdownMenuItem onClick={logout} className='cursor-pointer'>
+						<DropdownMenuItem onClick={logout} className='cursor-pointer' variant='destructive'>
 							<IconLogout />
 							Log out
 						</DropdownMenuItem>

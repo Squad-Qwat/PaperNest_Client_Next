@@ -59,8 +59,8 @@ export default function VerifyEmailPage() {
 					</div>
 
 					<div className='space-y-2'>
-						<h1 className='text-2xl font-bold tracking-tight text-gray-900'>Verify your email</h1>
-						<p className='text-sm text-gray-500 leading-relaxed max-w-[280px] mx-auto'>
+						<h1 className='text-2xl font-bold tracking-tight text-foreground'>Verify your email</h1>
+						<p className='text-sm text-muted-foreground leading-relaxed max-w-[280px] mx-auto'>
 							We've sent a 6-digit code to your email address. Please enter it below to verify your
 							account.
 						</p>
@@ -108,7 +108,7 @@ export default function VerifyEmailPage() {
 								{isVerifying ? <Loader2 className='w-4 h-4 animate-spin' /> : 'Verify Account'}
 							</Button>
 
-							<div className='flex flex-col gap-3 items-center w-full text-gray-500'>
+							<div className='flex flex-col gap-3 items-center w-full text-muted-foreground'>
 								<Button
 									variant='outline'
 									className='w-full h-9 text-sm font-medium transition-colors'
@@ -126,7 +126,7 @@ export default function VerifyEmailPage() {
 									<span>Wrong email?</span>
 									<a
 										href='/login'
-										className='text-gray-900 hover:text-primary underline transition-colors font-medium'
+										className='text-foreground hover:text-primary underline transition-colors font-medium'
 									>
 										Sign in again
 									</a>

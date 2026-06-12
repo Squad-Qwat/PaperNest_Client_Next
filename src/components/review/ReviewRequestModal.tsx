@@ -69,7 +69,7 @@ export function ReviewRequestModal({
 				</DialogHeader>
 				<form onSubmit={handleSubmit} className='grid gap-4 py-4'>
 					{error && (
-						<div className='p-3 bg-red-50 border border-red-200 rounded text-red-600 text-sm'>
+						<div className='p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded text-red-600 dark:text-red-400 text-sm'>
 							{error}
 						</div>
 					)}
@@ -82,7 +82,7 @@ export function ReviewRequestModal({
 							placeholder='e.g., user_lecturer_123'
 							disabled={loading}
 						/>
-						<p className='text-xs text-gray-400'>
+						<p className='text-xs text-muted-foreground'>
 							Enter the ID of the lecturer you want to notify.
 						</p>
 					</div>

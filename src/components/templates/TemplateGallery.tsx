@@ -35,7 +35,7 @@ export function TemplateGallery({ workspaceId }: TemplateGalleryProps) {
 		return (
 			<div className='flex items-center justify-center py-20'>
 				<Loader2 className='h-8 w-8 animate-spin text-primary' />
-				<span className='ml-3 text-gray-500'>Loading templates...</span>
+				<span className='ml-3 text-muted-foreground'>Loading templates...</span>
 			</div>
 		)
 	}
@@ -62,8 +62,8 @@ export function TemplateGallery({ workspaceId }: TemplateGalleryProps) {
 
 	if (error) {
 		return (
-			<div className='text-center py-10 bg-red-50 rounded-xl border border-red-100'>
-				<p className='text-red-600'>Failed to load templates. Please try again later.</p>
+			<div className='text-center py-10 bg-destructive/10 rounded-xl border border-destructive/20'>
+				<p className='text-destructive'>Failed to load templates. Please try again later.</p>
 			</div>
 		)
 	}
@@ -75,13 +75,13 @@ export function TemplateGallery({ workspaceId }: TemplateGalleryProps) {
 			</div>
 
 			<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
-				<div className='bg-white border rounded-lg p-6 hover:border-primary transition-all group relative text-left w-full flex flex-col'>
+				<div className='bg-card border border-border rounded-lg p-6 hover:border-primary transition-all group relative text-left w-full flex flex-col'>
 					<div className='mb-3'>
-						<h3 className='text-lg font-semibold text-gray-900 group-hover:text-primary transition-colors'>
+						<h3 className='text-lg font-semibold text-foreground group-hover:text-primary transition-colors'>
 							Blank Document
 						</h3>
 					</div>
-					<p className='text-gray-600 text-sm mb-3 line-clamp-2 min-h-[40px]'>
+					<p className='text-muted-foreground text-sm mb-3 line-clamp-2 min-h-[40px]'>
 						Start from scratch with a blank LaTeX document.
 					</p>
 					<div className='mt-auto'>
@@ -96,15 +96,15 @@ export function TemplateGallery({ workspaceId }: TemplateGalleryProps) {
 					return (
 						<div
 							key={template.id}
-							className='bg-white border rounded-lg p-6 hover:border-primary transition-all group relative text-left w-full flex flex-col'
+							className='bg-card border border-border rounded-lg p-6 hover:border-primary transition-all group relative text-left w-full flex flex-col'
 						>
 							<div className='mb-3'>
-								<h3 className='text-lg font-semibold text-gray-900 group-hover:text-primary transition-colors line-clamp-1'>
+								<h3 className='text-lg font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1'>
 									{template.name}
 								</h3>
 							</div>
 
-							<p className='text-gray-600 text-sm mb-3 line-clamp-2 min-h-[40px]'>
+							<p className='text-muted-foreground text-sm mb-3 line-clamp-2 min-h-[40px]'>
 								{template.description}
 							</p>
 

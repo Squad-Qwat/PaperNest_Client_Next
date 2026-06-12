@@ -285,7 +285,7 @@ export function CitationSheet({
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>
 			<SheetContent className='sm:max-w-md md:max-w-lg overflow-hidden flex flex-col p-0 gap-0'>
-				<SheetHeader className='p-6 shrink-0 border-b'>
+				<SheetHeader className='p-6 shrink-0 border-b border-border'>
 					<SheetTitle className='text-xl font-bold'>
 						{initialData ? 'Update Citation' : 'Add Citation'}
 					</SheetTitle>
@@ -297,14 +297,14 @@ export function CitationSheet({
 				<ScrollArea className='flex-1 min-h-0'>
 					<div className='space-y-8'>
 						{/* Semantic Scholar Search Section */}
-						<div className='p-6 space-y-3 bg-muted border-b'>
-							<Label className='text-sm font-semibold text-gray-700'>
+						<div className='p-6 space-y-3 bg-muted/50 border-b border-border'>
+							<Label className='text-sm font-semibold text-foreground'>
 								Search & Autofill via Semantic Scholar
 							</Label>
 							<div className='flex gap-2'>
 								<Input
 									placeholder='Search by title, author, DOI, or arXiv...'
-									className='flex-1 bg-white border-gray-200 focus-visible:ring-primary/20'
+									className='flex-1 bg-background border-border focus-visible:ring-primary/20 text-foreground'
 									value={scholarQuery}
 									onChange={(e) => setScholarQuery(e.target.value)}
 									onKeyDown={(e) => {
@@ -317,7 +317,7 @@ export function CitationSheet({
 								<Button
 									size='icon'
 									variant='outline'
-									className='shrink-0 bg-white border-gray-200 hover:bg-gray-50'
+									className='shrink-0 bg-background border-border hover:bg-muted text-foreground'
 									onClick={handleScholarSearch}
 									disabled={isSearchingScholar || !scholarQuery.trim()}
 								>
@@ -330,7 +330,7 @@ export function CitationSheet({
 							</div>
 
 							{isSearchingScholar && (
-								<p className='text-xs text-gray-500 animate-pulse'>
+								<p className='text-xs text-muted-foreground animate-pulse'>
 									Searching Semantic Scholar database...
 								</p>
 							)}
@@ -342,23 +342,23 @@ export function CitationSheet({
 							)}
 
 							{scholarResults.length > 0 && (
-								<div className='mt-2 border rounded-lg bg-white divide-y max-h-60 overflow-y-auto shadow-sm'>
+								<div className='mt-2 border border-border rounded-lg bg-popover divide-y divide-border max-h-60 overflow-y-auto shadow-sm text-foreground'>
 									{scholarResults.map((paper) => (
 										<button
 											key={paper.paperId}
 											type='button'
-											className='w-full p-3 text-left hover:bg-gray-50/80 transition-colors flex flex-col gap-1 focus:outline-none focus:bg-gray-50'
+											className='w-full p-3 text-left hover:bg-accent/80 transition-colors flex flex-col gap-1 focus:outline-none focus:bg-accent'
 											onClick={() => handleSelectPaper(paper)}
 										>
-											<span className='text-sm font-semibold text-gray-900 line-clamp-2'>
+											<span className='text-sm font-semibold text-foreground line-clamp-2'>
 												{paper.title}
 											</span>
 											{paper.authors && paper.authors.length > 0 && (
-												<span className='text-xs text-gray-500'>
+												<span className='text-xs text-muted-foreground'>
 													{paper.authors.map((a: any) => a.name).join(', ')}
 												</span>
 											)}
-											<span className='text-[11px] text-gray-400'>
+											<span className='text-[11px] text-muted-foreground'>
 												{[
 													paper.year,
 													paper.venue,
@@ -371,7 +371,7 @@ export function CitationSheet({
 									))}
 								</div>
 							)}
-							<p className='text-[13px] text-gray-500'>
+							<p className='text-[13px] text-muted-foreground'>
 								Search for papers globally to fill metadata forms instantly.
 							</p>
 						</div>
@@ -379,11 +379,11 @@ export function CitationSheet({
 						{/* Reference Section */}
 						<div className='space-y-6 px-6 pb-6'>
 							<Field>
-								<FieldLabel className='text-sm font-semibold text-gray-700'>
+								<FieldLabel className='text-sm font-semibold text-foreground'>
 									Reference Type <span className='text-red-500'>*</span>
 								</FieldLabel>
 								<Select value={type} onValueChange={setType}>
-									<SelectTrigger className='bg-white border-gray-200'>
+									<SelectTrigger className='bg-background border-border text-foreground'>
 										<SelectValue placeholder='Journal Article' />
 									</SelectTrigger>
 									<SelectContent>
@@ -398,22 +398,22 @@ export function CitationSheet({
 							</Field>
 
 							<Field>
-								<FieldLabel className='text-sm font-semibold text-gray-700'>
+								<FieldLabel className='text-sm font-semibold text-foreground'>
 									Title <span className='text-red-500'>*</span>
 								</FieldLabel>
 								<Input
 									placeholder='Citation title'
-									className='bg-white border-gray-200'
+									className='bg-background border-border text-foreground'
 									value={title}
 									onChange={(e) => setTitle(e.target.value)}
 								/>
 							</Field>
 
 							<div className='space-y-3'>
-								<FieldLabel className='text-sm font-semibold text-gray-700'>
+								<FieldLabel className='text-sm font-semibold text-foreground'>
 									Authors <span className='text-red-500'>*</span>
 								</FieldLabel>
-								<p className='text-[13px] text-gray-500'>
+								<p className='text-[13px] text-muted-foreground'>
 									Please enter author names as 'last name, first name' (e.g. 'Smith, Jane').
 								</p>
 								<div className='space-y-2'>
@@ -421,14 +421,14 @@ export function CitationSheet({
 										<div key={author.id} className='flex gap-2 group'>
 											<Input
 												placeholder='Smith, Jane'
-												className='bg-white border-gray-200'
+												className='bg-background border-border text-foreground'
 												value={author.name}
 												onChange={(e) => updateAuthor(author.id, e.target.value)}
 											/>
 											<Button
 												variant='ghost'
 												size='icon'
-												className='shrink-0 text-gray-400 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity'
+												className='shrink-0 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity'
 												onClick={() => removeAuthor(author.id)}
 											>
 												<Trash2 className='h-4 w-4' />
@@ -450,11 +450,11 @@ export function CitationSheet({
 							</div>
 
 							<Field>
-								<FieldLabel className='text-sm font-semibold text-gray-700'>
+								<FieldLabel className='text-sm font-semibold text-foreground'>
 									Journal / Publication <span className='text-red-500'>*</span>
 								</FieldLabel>
 								<Input
-									className='bg-white border-gray-200'
+									className='bg-background border-border text-foreground'
 									placeholder='e.g. Nature, Science, etc.'
 									value={journal}
 									onChange={(e) => setJournal(e.target.value)}
@@ -463,29 +463,29 @@ export function CitationSheet({
 
 							<div className='grid grid-cols-2 gap-6'>
 								<Field>
-									<FieldLabel className='text-sm font-semibold text-gray-700'>
+									<FieldLabel className='text-sm font-semibold text-foreground'>
 										Year <span className='text-red-500'>*</span>
 									</FieldLabel>
 									<Input
-										className='bg-white border-gray-200'
+										className='bg-background border-border text-foreground'
 										placeholder='e.g. 2023'
 										value={year}
 										onChange={(e) => setYear(e.target.value)}
 									/>
 								</Field>
 								<Field>
-									<FieldLabel className='text-sm font-semibold text-gray-700'>Pages</FieldLabel>
+									<FieldLabel className='text-sm font-semibold text-foreground'>Pages</FieldLabel>
 									<div className='flex items-center gap-2'>
 										<Input
 											placeholder='from'
-											className='bg-white border-gray-200'
+											className='bg-background border-border text-foreground'
 											value={pageFrom}
 											onChange={(e) => setPageFrom(e.target.value)}
 										/>
-										<span className='text-gray-400 font-light'>—</span>
+										<span className='text-muted-foreground font-light'>—</span>
 										<Input
 											placeholder='to'
-											className='bg-white border-gray-200'
+											className='bg-background border-border text-foreground'
 											value={pageTo}
 											onChange={(e) => setPageTo(e.target.value)}
 										/>
@@ -495,17 +495,17 @@ export function CitationSheet({
 
 							<div className='grid grid-cols-2 gap-6'>
 								<Field>
-									<FieldLabel className='text-sm font-semibold text-gray-700'>Volume</FieldLabel>
+									<FieldLabel className='text-sm font-semibold text-foreground'>Volume</FieldLabel>
 									<Input
-										className='bg-white border-gray-200'
+										className='bg-background border-border text-foreground'
 										value={volume}
 										onChange={(e) => setVolume(e.target.value)}
 									/>
 								</Field>
 								<Field>
-									<FieldLabel className='text-sm font-semibold text-gray-700'>Issue</FieldLabel>
+									<FieldLabel className='text-sm font-semibold text-foreground'>Issue</FieldLabel>
 									<Input
-										className='bg-white border-gray-200'
+										className='bg-background border-border text-foreground'
 										value={issue}
 										onChange={(e) => setIssue(e.target.value)}
 									/>
@@ -513,10 +513,10 @@ export function CitationSheet({
 							</div>
 
 							<Field>
-								<FieldLabel className='text-sm font-semibold text-gray-700'>URL</FieldLabel>
+								<FieldLabel className='text-sm font-semibold text-foreground'>URL</FieldLabel>
 								<Input
 									placeholder='https://...'
-									className='bg-white border-gray-200'
+									className='bg-background border-border text-foreground'
 									value={url}
 									onChange={(e) => setUrl(e.target.value)}
 								/>
@@ -525,10 +525,10 @@ export function CitationSheet({
 					</div>
 				</ScrollArea>
 
-				<SheetFooter className='p-6 border-t border-gray-100 bg-gray-50/80 shrink-0 flex-row gap-3 sm:justify-end'>
+				<SheetFooter className='p-6 border-t border-border bg-muted/30 shrink-0 flex-row gap-3 sm:justify-end'>
 					<Button
 						variant='ghost'
-						className='flex-1 sm:flex-none text-gray-600 hover:bg-gray-200/50 hover:text-gray-900'
+						className='flex-1 sm:flex-none text-muted-foreground hover:bg-muted hover:text-foreground'
 						onClick={() => onOpenChange(false)}
 					>
 						Cancel

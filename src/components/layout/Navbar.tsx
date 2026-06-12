@@ -1,9 +1,10 @@
 'use client'
 
-import { LogOut, Settings, Slash, User } from 'lucide-react'
+import { LogOut, Menu, Settings, Slash, User, X } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import {
 	DropdownMenu,
@@ -38,7 +39,7 @@ export function Navbar({ mode = 'workspace', documentId }: Readonly<NavbarProps>
 		{ name: 'Overview', href: `/${workspaceId}` },
 		{ name: 'Chatbot', href: `/${workspaceId}/chatbot` },
 		{ name: 'Review', href: `/${workspaceId}/reviews` },
-		{ name: 'Settings', href: `/${workspaceId}/settings` },
+		{ name: 'Workspace Settings', href: `/${workspaceId}/settings` },
 	]
 
 	// Document-specific menu items
@@ -72,24 +73,24 @@ export function Navbar({ mode = 'workspace', documentId }: Readonly<NavbarProps>
 
 	return (
 		<>
-			<nav className='sticky top-0 z-40 bg-white border-b'>
+			<nav className='sticky top-0 z-40 bg-background border-b border-border'>
 				<div className='mx-auto pt-3 px-4 sm:px-6 lg:px-8'>
 					<div className='flex items-center justify-between'>
 						{/* Logo/Brand & Workspace Switcher */}
-						<div className=''>
+						<div>
 							<div className='flex items-center gap-4'>
 								<div className='flex items-center gap-3'>
 									<Link
 										href='/'
-										className='flex items-center gap-2 text-lg font-semibold text-gray-900 hover:text-gray-700 transition-colors'
+										className='flex items-center gap-2 text-lg font-semibold text-foreground hover:text-muted-foreground transition-colors'
 									>
 										<span>PaperNest</span>
 									</Link>
-									<span className='px-2 py-0.5 bg-primary text-white text-xs font-medium rounded'>
+									<span className='px-2 py-0.5 bg-primary text-primary-foreground text-xs font-medium rounded'>
 										Hobby
 									</span>
 								</div>
-								<Slash className='text-gray-400' />
+								<Slash className='text-muted-foreground' />
 								<WorkspaceSwitcher currentWorkspaceId={workspaceId} />
 							</div>
 
@@ -102,8 +103,8 @@ export function Navbar({ mode = 'workspace', documentId }: Readonly<NavbarProps>
 										className={cn(
 											'relative px-1 py-2 text-sm font-normal transition-colors',
 											isActive(item.href)
-												? 'text-gray-900 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary'
-												: 'text-gray-600 hover:text-gray-900'
+												? 'text-foreground after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary'
+												: 'text-muted-foreground hover:text-foreground'
 										)}
 									>
 										{item.name}
@@ -114,23 +115,25 @@ export function Navbar({ mode = 'workspace', documentId }: Readonly<NavbarProps>
 
 						{/* User Actions */}
 						<div className='hidden md:flex items-center gap-3'>
+							<ThemeToggle />
+
 							{/* User Menu Dropdown */}
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
 									<button
 										type='button'
-										className='flex items-center gap-2 p-1.5 hover:bg-gray-100 rounded-lg transition-colors'
+										className='flex items-center gap-2 p-1.5 hover:bg-accent rounded-lg transition-colors cursor-pointer'
 										aria-label='User menu'
 									>
-										<div className='w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-sm font-medium'>
+										<div className='w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-medium'>
 											{user.name.charAt(0).toUpperCase()}
 										</div>
 									</button>
 								</DropdownMenuTrigger>
 								<DropdownMenuContent align='end' className='w-56'>
 									<div className='px-2 py-1.5'>
-										<p className='text-sm font-medium text-gray-900'>{user.name}</p>
-										<p className='text-xs text-gray-500 capitalize'>{user.role}</p>
+										<p className='text-sm font-medium text-foreground'>{user.name}</p>
+										<p className='text-xs text-muted-foreground capitalize'>{user.role}</p>
 									</div>
 									<DropdownMenuSeparator />
 									<DropdownMenuItem
@@ -138,19 +141,19 @@ export function Navbar({ mode = 'workspace', documentId }: Readonly<NavbarProps>
 										className='gap-2 cursor-pointer'
 									>
 										<User className='w-4 h-4' />
-										<span>Profile</span>
+										<span>Profile Settings</span>
 									</DropdownMenuItem>
 									<DropdownMenuItem
 										onClick={() => router.push('/settings')}
 										className='gap-2 cursor-pointer'
 									>
 										<Settings className='w-4 h-4' />
-										<span>Settings</span>
+										<span>Workspace Settings</span>
 									</DropdownMenuItem>
 									<DropdownMenuSeparator />
 									<DropdownMenuItem
 										onClick={() => setShowLogoutConfirm(true)}
-										className='gap-2 cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50'
+										className='gap-2 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10'
 									>
 										<LogOut className='w-4 h-4' />
 										<span>Logout</span>
@@ -163,34 +166,16 @@ export function Navbar({ mode = 'workspace', documentId }: Readonly<NavbarProps>
 						<button
 							type='button'
 							onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-							className='md:hidden p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition-colors'
+							className='md:hidden p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors'
 							aria-label='Toggle menu'
 						>
-							{isMobileMenuOpen ? (
-								<svg className='w-6 h-6' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-									<path
-										strokeLinecap='round'
-										strokeLinejoin='round'
-										strokeWidth={2}
-										d='M6 18L18 6M6 6l12 12'
-									/>
-								</svg>
-							) : (
-								<svg className='w-6 h-6' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-									<path
-										strokeLinecap='round'
-										strokeLinejoin='round'
-										strokeWidth={2}
-										d='M4 6h16M4 12h16M4 18h16'
-									/>
-								</svg>
-							)}
+							{isMobileMenuOpen ? <X className='w-6 h-6' /> : <Menu className='w-6 h-6' />}
 						</button>
 					</div>
 
 					{/* Mobile Menu */}
 					{isMobileMenuOpen && (
-						<div className='md:hidden py-4 border-t border-gray-800'>
+						<div className='md:hidden py-4 border-t border-border'>
 							<div className='flex flex-col gap-2 mb-4'>
 								{menuItems.map((item) => (
 									<Link
@@ -200,8 +185,8 @@ export function Navbar({ mode = 'workspace', documentId }: Readonly<NavbarProps>
 										className={cn(
 											'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
 											isActive(item.href)
-												? 'bg-blue-600 text-white'
-												: 'text-gray-300 hover:bg-gray-800'
+												? 'bg-primary text-primary-foreground'
+												: 'text-muted-foreground hover:bg-accent hover:text-foreground'
 										)}
 									>
 										{item.name}
@@ -209,21 +194,24 @@ export function Navbar({ mode = 'workspace', documentId }: Readonly<NavbarProps>
 								))}
 							</div>
 
-							<div className='flex items-center gap-3 px-4 py-3 bg-gray-900 rounded-lg border border-gray-800 mb-3'>
-								<button
-									type='button'
-									onClick={() => {
-										setIsMobileMenuOpen(false)
-										router.push('/profile')
-									}}
-									className='w-10 h-10 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold'
-								>
-									{user.name.charAt(0).toUpperCase()}
-								</button>
-								<div>
-									<p className='text-sm font-medium text-gray-200'>{user.name}</p>
-									<p className='text-xs text-gray-500'>{user.role}</p>
+							<div className='flex items-center justify-between px-4 py-3 bg-muted rounded-lg border border-border mb-3'>
+								<div className='flex items-center gap-3'>
+									<button
+										type='button'
+										onClick={() => {
+											setIsMobileMenuOpen(false)
+											router.push('/profile')
+										}}
+										className='w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold'
+									>
+										{user.name.charAt(0).toUpperCase()}
+									</button>
+									<div>
+										<p className='text-sm font-medium text-foreground'>{user.name}</p>
+										<p className='text-xs text-muted-foreground'>{user.role}</p>
+									</div>
 								</div>
+								<ThemeToggle />
 							</div>
 
 							<div className='flex gap-2'>
@@ -233,7 +221,7 @@ export function Navbar({ mode = 'workspace', documentId }: Readonly<NavbarProps>
 										setIsMobileMenuOpen(false)
 										router.push('/notifications')
 									}}
-									className='flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-200 text-sm font-medium rounded-lg transition-colors'
+									className='flex-1 px-4 py-2 bg-muted hover:bg-accent text-foreground text-sm font-medium rounded-lg transition-colors'
 								>
 									Notifications
 								</button>
@@ -243,7 +231,7 @@ export function Navbar({ mode = 'workspace', documentId }: Readonly<NavbarProps>
 										setIsMobileMenuOpen(false)
 										setShowLogoutConfirm(true)
 									}}
-									className='flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors'
+									className='flex-1 px-4 py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground text-sm font-medium rounded-lg transition-colors'
 								>
 									Logout
 								</button>

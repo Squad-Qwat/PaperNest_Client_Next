@@ -103,7 +103,7 @@ export default function VersionsPage() {
 
 									const getCardStyles = () => {
 										if (isLatest) return 'border-l-primary bg-primary/5'
-										if (!versionReview) return 'border-l-gray-300'
+										if (!versionReview) return 'border-l-border'
 										return versionReview.status === 'approved'
 											? 'border-l-green-500'
 											: 'border-l-amber-500'
@@ -122,7 +122,7 @@ export default function VersionsPage() {
 										<div key={version.documentBodyId} className='w-full'>
 											{/* biome-ignore lint/a11y/useSemanticElements: wrapper contains nested interactive Link elements */}
 											<div
-												className={`p-6 bg-white border border-l-2 rounded-lg ${getCardStyles()} hover:border-primary transition-all relative text-left w-full flex flex-col md:flex-row md:items-center justify-between gap-6 cursor-pointer`}
+												className={`p-6 bg-card border border-l-2 border-border ${getCardStyles()} hover:border-primary transition-all relative text-left w-full flex flex-col md:flex-row md:items-center justify-between gap-6 cursor-pointer`}
 												onClick={() =>
 													router.push(
 														`/${workspaceId}/documents/${documentId}/versions/${version.documentBodyId}`
@@ -135,7 +135,7 @@ export default function VersionsPage() {
 												<div className='flex-1 flex flex-col gap-3 min-w-0'>
 													{/* Header line: Version Title & Badges */}
 													<div className='flex items-center gap-3 flex-wrap'>
-														<span className='text-sm font-semibold text-gray-900'>
+														<span className='text-sm font-semibold text-foreground'>
 															Versi V{version.versionNumber}
 														</span>
 														{isLatest && (
@@ -144,7 +144,7 @@ export default function VersionsPage() {
 															</span>
 														)}
 														{!versionReview && !isLatest && (
-															<span className='px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-xs font-semibold uppercase'>
+															<span className='px-2 py-0.5 bg-muted text-muted-foreground rounded text-xs font-semibold uppercase'>
 																Snapshot
 															</span>
 														)}
@@ -156,7 +156,7 @@ export default function VersionsPage() {
 													</div>
 
 													{/* User & Date Meta */}
-													<div className='flex items-center gap-2 text-sm text-gray-500'>
+													<div className='flex items-center gap-2 text-sm text-muted-foreground'>
 														{(() => {
 															const member = members.find(
 																(m: any) =>
@@ -181,7 +181,7 @@ export default function VersionsPage() {
 																			{getInitials(displayName)}
 																		</AvatarFallback>
 																	</Avatar>
-																	<span className='font-semibold text-gray-700'>{finalName}</span>
+																	<span className='font-semibold text-foreground'>{finalName}</span>
 																</>
 															)
 														})()}
@@ -194,7 +194,7 @@ export default function VersionsPage() {
 													{/* Commit Message & Feedback Preview */}
 													<div className='space-y-2'>
 														{version.message && (
-															<p className='text-gray-600 text-sm leading-relaxed font-normal'>
+															<p className='text-muted-foreground text-sm leading-relaxed font-normal'>
 																{version.message}
 															</p>
 														)}
@@ -206,11 +206,11 @@ export default function VersionsPage() {
 																	versionReview.lecturerMessage || versionReview.message
 																if (feedback) {
 																	return (
-																		<div className='border-l-2 border-gray-100 pl-3 mt-1'>
-																			<span className='text-sm font-semibold text-gray-400 uppercase tracking-wider block mb-0.5'>
+																		<div className='border-l-2 border-border pl-3 mt-1'>
+																			<span className='text-sm font-semibold text-muted-foreground uppercase tracking-wider block mb-0.5'>
 																				Umpan Balik Dosen
 																			</span>
-																			<p className='text-sm text-gray-500 leading-relaxed font-normal'>
+																			<p className='text-sm text-muted-foreground leading-relaxed font-normal'>
 																				{feedback}
 																			</p>
 																		</div>
@@ -230,7 +230,7 @@ export default function VersionsPage() {
 														>
 															<Button
 																variant='outline'
-																className='rounded-lg shadow-sm border-gray-200'
+																className='rounded-lg shadow-sm border-border'
 															>
 																Detail Review
 															</Button>
@@ -318,7 +318,7 @@ export default function VersionsPage() {
 												getAvatarUrl(dName, v.userId)
 											}
 										/>
-										<AvatarFallback className='text-[10px] bg-blue-50 text-blue-600'>
+										<AvatarFallback className='text-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400'>
 											{getInitials(dName)}
 										</AvatarFallback>
 									</Avatar>

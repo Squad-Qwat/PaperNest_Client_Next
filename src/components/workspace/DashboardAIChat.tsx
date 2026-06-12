@@ -14,6 +14,7 @@ import {
 	ReasoningContent,
 	ReasoningTrigger,
 } from '@/components/ui/ai-elements/reasoning'
+import { preprocessLatex } from '@/lib/utils'
 
 interface ChatMessage {
 	id: string
@@ -96,10 +97,10 @@ export function DashboardAIChat({
 							<div className='w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 border border-primary/20'>
 								<Sparkles className='h-6 w-6 text-primary animate-pulse' />
 							</div>
-							<h3 className='text-lg font-semibold text-gray-900'>
+							<h3 className='text-lg font-semibold text-foreground'>
 								Mulai diskusi dengan Neptune AI
 							</h3>
-							<p className='text-sm text-gray-500 max-w-md mt-1'>
+							<p className='text-sm text-muted-foreground max-w-md mt-1'>
 								Tanyakan tentang dokumen Anda, buat draf tulisan akademis, atau mintalah bantuan
 								analisis riset.
 							</p>
@@ -130,7 +131,7 @@ export function DashboardAIChat({
 											<div className='mb-2 w-full'>
 												<Reasoning
 													duration={1}
-													className='w-full border border-slate-100 shadow-xs rounded-lg'
+													className='w-full border border-border shadow-xs rounded-lg'
 												>
 													<ReasoningTrigger />
 													<ReasoningContent>{msg.reasoningText}</ReasoningContent>
@@ -142,15 +143,15 @@ export function DashboardAIChat({
 											className={
 												msg.from === 'assistant'
 													? 'w-full pt-0.5'
-													: 'w-fit min-w-[80px] max-w-full pt-0.5 group-[.is-user]:bg-slate-100/60 dark:group-[.is-user]:bg-slate-800/40 group-[.is-user]:py-2'
+													: 'w-fit min-w-[80px] max-w-full pt-0.5 group-[.is-user]:bg-secondary group-[.is-user]:py-2'
 											}
 										>
 											{msg.from === 'assistant' ? (
-												<MessageResponse className='text-gray-800 leading-relaxed text-sm md:text-base'>
-													{msg.text}
+												<MessageResponse className='text-foreground leading-relaxed text-sm md:text-base'>
+													{preprocessLatex(msg.text)}
 												</MessageResponse>
 											) : (
-												<div className='text-gray-800 leading-relaxed text-sm md:text-base whitespace-pre-wrap break-words'>
+												<div className='text-foreground leading-relaxed text-sm md:text-base whitespace-pre-wrap break-words'>
 													{renderMessageTextWithTags(msg.text, documents)}
 												</div>
 											)}
@@ -166,7 +167,7 @@ export function DashboardAIChat({
 						<div className='animate-in fade-in duration-300 max-w-4xl'>
 							<Message from='assistant' className='max-w-4xl w-full'>
 								<div className='w-full'>
-									<span className='text-sm text-slate-400 italic font-light animate-pulse'>
+									<span className='text-sm text-muted-foreground italic font-light animate-pulse'>
 										Neptune sedang merenung...
 									</span>
 								</div>

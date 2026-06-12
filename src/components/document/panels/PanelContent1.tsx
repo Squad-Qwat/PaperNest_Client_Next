@@ -123,7 +123,7 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({
 			onDragLeave={() => setDragOverFolder(null)}
 			onDrop={handleDrop}
 			className={`group flex items-center gap-2.5 flex-1 min-w-0 transition-all py-1 px-2 rounded-md cursor-pointer ${
-				isBeingDraggedOver ? 'bg-primary/10 ring-1 ring-primary/20' : 'hover:bg-gray-50/80'
+				isBeingDraggedOver ? 'bg-primary/10 ring-1 ring-primary/20' : 'hover:bg-muted/50'
 			}`}
 		>
 			<div className='flex items-center gap-2 flex-1 min-w-0'>
@@ -138,7 +138,7 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({
 				)}
 				<span
 					className={`text-sm truncate ${
-						isSelected ? 'text-primary font-medium' : 'text-gray-600'
+						isSelected ? 'text-primary font-medium' : 'text-muted-foreground'
 					} ${isBeingDraggedOver ? 'text-primary font-bold' : ''}`}
 				>
 					{item.name}
@@ -337,7 +337,7 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, onInsertText, onOpe
 							e.stopPropagation()
 							handleInsertToEditor(file)
 						}}
-						className='p-1 hover:bg-white hover:text-primary rounded text-gray-400'
+						className='p-1 hover:bg-muted hover:text-primary rounded text-muted-foreground'
 					>
 						<Wand2 className='h-3.5 w-3.5' />
 					</button>
@@ -347,7 +347,7 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, onInsertText, onOpe
 							target='_blank'
 							rel='noopener noreferrer'
 							onClick={(e) => e.stopPropagation()}
-							className='p-1 hover:bg-white hover:text-blue-600 rounded text-gray-400'
+							className='p-1 hover:bg-muted hover:text-blue-600 rounded text-muted-foreground'
 						>
 							<ExternalLink className='h-3.5 w-3.5' />
 						</a>
@@ -358,7 +358,7 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, onInsertText, onOpe
 							e.stopPropagation()
 							setDeleteConfirmFileId(file.fileId)
 						}}
-						className='p-1 hover:bg-white hover:text-red-600 rounded text-gray-400'
+						className='p-1 hover:bg-muted hover:text-red-600 rounded text-muted-foreground'
 					>
 						<Trash2 className='h-3.5 w-3.5' />
 					</button>
@@ -378,7 +378,7 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, onInsertText, onOpe
 	return (
 		<section
 			aria-label='File explorer drop zone'
-			className={`flex flex-col h-full bg-white transition-all relative ${
+			className={`flex flex-col h-full bg-background transition-all relative ${
 				isDragging ? 'bg-primary/5' : ''
 			}`}
 			onDragOver={handleDragOverGlobal}
@@ -400,7 +400,7 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, onInsertText, onOpe
 		>
 			{isDragging && !draggedItem && (
 				<div className='absolute inset-0 z-50 flex items-center justify-center p-4 pointer-events-none'>
-					<div className='absolute inset-0 bg-white/60 backdrop-blur-[2px]' />
+					<div className='absolute inset-0 bg-background/60 backdrop-blur-[2px]' />
 					<div className='relative w-full h-full border-2 border-dashed border-primary/30 rounded-lg flex flex-col items-center justify-center gap-2 bg-primary/[0.02]'>
 						<Upload className='h-6 w-6 text-primary animate-bounce mb-2' />
 						<p className='text-xs font-semibold text-primary uppercase tracking-widest'>
@@ -446,7 +446,7 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, onInsertText, onOpe
 							<div
 								className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-semibold transition-all ${
 									isUploading
-										? 'text-gray-400 cursor-not-allowed'
+										? 'text-muted-foreground cursor-not-allowed'
 										: 'text-primary hover:bg-primary/10'
 								}`}
 							>
@@ -493,7 +493,7 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, onInsertText, onOpe
 										setNewName('')
 									}, 200)
 								}}
-								className='flex-1 bg-white dark:bg-gray-900 text-sm text-gray-700 outline-none border border-blue-500 rounded px-1.5 py-0.5 focus:ring-1 focus:ring-blue-500/50'
+								className='flex-1 bg-background text-sm text-foreground outline-none border border-blue-500 rounded px-1.5 py-0.5 focus:ring-1 focus:ring-blue-500/50'
 								placeholder={
 									isCreating === 'folder'
 										? `${selectedFolder ? `${selectedFolder}/` : ''}folder-name`
@@ -507,14 +507,14 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, onInsertText, onOpe
 				{isLoading ? (
 					<div className='flex flex-col items-center justify-center h-40 gap-2 opacity-50'>
 						<Loader2 className='h-6 w-6 animate-spin text-primary' />
-						<span className='text-xs text-gray-500 font-medium'>Syncing...</span>
+						<span className='text-xs text-muted-foreground font-medium'>Syncing...</span>
 					</div>
 				) : treeData.length === 0 && !isCreating ? (
 					<div className='flex flex-col items-center justify-center p-8 text-center gap-3 opacity-40'>
-						<div className='p-3 bg-gray-50 rounded-full'>
-							<FileText className='h-8 w-8 text-gray-400' />
+						<div className='p-3 bg-muted rounded-full'>
+							<FileText className='h-8 w-8 text-muted-foreground' />
 						</div>
-						<p className='text-sm font-medium text-gray-600'>No files yet</p>
+						<p className='text-sm font-medium text-muted-foreground'>No files yet</p>
 					</div>
 				) : (
 					(treeData.length > 0 || isCreating) && (

@@ -983,7 +983,7 @@ const EditorToolbar = ({
 	}
 
 	return (
-		<div className='bg-white border-t border-gray-200 px-11 py-1 sticky top-0 z-[1002] transition-all duration-300'>
+		<div className='bg-background border-t border-border px-11 py-1 sticky top-0 z-[1002] transition-all duration-300'>
 			<div className='flex items-center gap-1 overflow-x-auto pb-1 scrollbar-hide min-h-[40px]'>
 				{/* Text Style Dropdown */}
 				<div className='relative' ref={textStyleRef}>
@@ -1017,7 +1017,7 @@ const EditorToolbar = ({
 									aria-label='Close menu'
 								/>
 								<div
-									className='fixed bg-white border border-gray-200 rounded-md shadow-xl z-[9999] min-w-[170px]'
+									className='fixed bg-popover border border-border text-popover-foreground rounded-md shadow-xl z-[9999] min-w-[170px]'
 									style={getDropdownPosition(textStyleRef)}
 								>
 									{textStyles.map((style) => (
@@ -1038,8 +1038,8 @@ const EditorToolbar = ({
 														console.error('Error applying style:', error)
 													}
 												}}
-												className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-100 flex items-center justify-between ${
-													activeTextStyle === style.name ? 'bg-blue-50 text-blue-600' : ''
+												className={`w-full text-left px-3 py-2 text-xs hover:bg-accent hover:text-accent-foreground flex items-center justify-between ${
+													activeTextStyle === style.name ? 'bg-primary/10 text-primary' : ''
 												}`}
 												style={{
 													fontSize: getStyleFontSize(style.name),
@@ -1056,7 +1056,7 @@ const EditorToolbar = ({
 
 											{/* Submenu for apply/update */}
 											{hoveredStyle === style.name && (
-												<div className='absolute left-full top-0 bg-white border border-gray-200 rounded-md shadow-md min-w-[200px] z-[10000]'>
+												<div className='absolute left-full top-0 bg-popover border border-border text-popover-foreground rounded-md shadow-md min-w-[200px] z-[10000]'>
 													<button
 														type='button'
 														onClick={() => {
@@ -1067,10 +1067,10 @@ const EditorToolbar = ({
 																console.error('Error applying style:', error)
 															}
 														}}
-														className='w-full text-left px-3 py-2 text-xs hover:bg-gray-100 border-b border-gray-100'
+														className='w-full text-left px-3 py-2 text-xs hover:bg-accent hover:text-accent-foreground border-b border-border'
 													>
 														<div className='font-medium'>Apply &quot;{style.name}&quot;</div>
-														<div className='text-gray-500 text-[10px]'>
+														<div className='text-muted-foreground text-[10px]'>
 															Change current paragraph to this style
 														</div>
 													</button>
@@ -1084,12 +1084,12 @@ const EditorToolbar = ({
 																console.error('Error updating style:', error)
 															}
 														}}
-														className='w-full text-left px-3 py-2 text-xs hover:bg-gray-100'
+														className='w-full text-left px-3 py-2 text-xs hover:bg-accent hover:text-accent-foreground'
 													>
 														<div className='font-medium'>
 															Update &quot;{style.name}&quot; to match
 														</div>
-														<div className='text-gray-500 text-[10px]'>
+														<div className='text-muted-foreground text-[10px]'>
 															Update all instances in document
 														</div>
 													</button>
@@ -1129,7 +1129,7 @@ const EditorToolbar = ({
 									aria-label='Close menu'
 								/>
 								<div
-									className='fixed bg-white border border-gray-200 rounded-md shadow-xl z-[9999] min-w-[140px]'
+									className='fixed bg-popover border border-border text-popover-foreground rounded-md shadow-xl z-[9999] min-w-[140px]'
 									style={getDropdownPosition(fontFamilyRef)}
 								>
 									{fontFamilies.map((font) => (
@@ -1145,9 +1145,9 @@ const EditorToolbar = ({
 													console.error('Error setting font family:', error)
 												}
 											}}
-											className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-100 first:rounded-t-md last:rounded-b-md ${
+											className={`w-full text-left px-3 py-2 text-xs hover:bg-accent hover:text-accent-foreground first:rounded-t-md last:rounded-b-md ${
 												editor?.isActive('textStyle', { fontFamily: font.value })
-													? 'bg-blue-50 text-blue-600'
+													? 'bg-primary/10 text-primary'
 													: ''
 											}`}
 											style={{ fontFamily: font.value }}
@@ -1162,12 +1162,12 @@ const EditorToolbar = ({
 				</div>
 
 				{/* Font Size Controls */}
-				<div className='flex items-center border border-gray-200 rounded-md'>
+				<div className='flex items-center border border-border rounded-md'>
 					<Button
 						variant='ghost'
 						size='icon'
 						onClick={decreaseFontSize}
-						className='h-7 w-7 rounded-r-none border-r border-gray-200'
+						className='h-7 w-7 rounded-r-none border-r border-border'
 						disabled={!editor || getCurrentFontSize() <= 8}
 						title='Decrease font size'
 					>
@@ -1178,7 +1178,7 @@ const EditorToolbar = ({
 						variant='ghost'
 						size='icon'
 						onClick={increaseFontSize}
-						className='h-7 w-7 rounded-l-none border-l border-gray-200'
+						className='h-7 w-7 rounded-l-none border-l border-border'
 						disabled={!editor || getCurrentFontSize() >= 72}
 						title='Increase font size'
 					>
@@ -1214,7 +1214,7 @@ const EditorToolbar = ({
 									aria-label='Close menu'
 								/>
 								<div
-									className='fixed bg-white border border-gray-200 rounded-md shadow-xl z-[9999] min-w-[100px]'
+									className='fixed bg-popover border border-border text-popover-foreground rounded-md shadow-xl z-[9999] min-w-[100px]'
 									style={getDropdownPosition(lineSpacingRef)}
 								>
 									{lineSpacingOptions.map((option) => (
@@ -1222,8 +1222,8 @@ const EditorToolbar = ({
 											type='button'
 											key={option.value}
 											onClick={() => setLineSpacing(option.value)}
-											className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-100 first:rounded-t-md last:rounded-b-md ${
-												getCurrentLineSpacing() === option.value ? 'bg-blue-50 text-blue-600' : ''
+											className={`w-full text-left px-3 py-2 text-xs hover:bg-accent hover:text-accent-foreground first:rounded-t-md last:rounded-b-md ${
+												getCurrentLineSpacing() === option.value ? 'bg-primary/10 text-primary' : ''
 											}`}
 										>
 											{option.name}
@@ -1236,19 +1236,19 @@ const EditorToolbar = ({
 				</div>
 
 				{/* Text Alignment Buttons */}
-				<div className='flex items-center border border-gray-200 rounded-md'>
+				<div className='flex items-center border border-border rounded-md'>
 					<Button
 						variant='ghost'
 						size='icon'
 						onClick={() => setTextAlignment('left')}
-						className={`h-7 w-7 rounded-r-none border-r border-gray-200 ${
+						className={`h-7 w-7 rounded-r-none border-r border-border ${
 							editor?.isActive({ textAlign: 'left' }) ||
 							(
 								!editor?.isActive({ textAlign: 'center' }) &&
 									!editor?.isActive({ textAlign: 'right' }) &&
 									!editor?.isActive({ textAlign: 'justify' })
 							)
-								? 'bg-gray-200'
+								? 'bg-muted'
 								: ''
 						}`}
 						disabled={!editor}
@@ -1260,8 +1260,8 @@ const EditorToolbar = ({
 						variant='ghost'
 						size='icon'
 						onClick={() => setTextAlignment('center')}
-						className={`h-7 w-7 rounded-none border-r border-gray-200 ${
-							editor?.isActive({ textAlign: 'center' }) ? 'bg-gray-200' : ''
+						className={`h-7 w-7 rounded-none border-r border-border ${
+							editor?.isActive({ textAlign: 'center' }) ? 'bg-muted' : ''
 						}`}
 						disabled={!editor}
 						title='Align Center'
@@ -1272,8 +1272,8 @@ const EditorToolbar = ({
 						variant='ghost'
 						size='icon'
 						onClick={() => setTextAlignment('right')}
-						className={`h-7 w-7 rounded-none border-r border-gray-200 ${
-							editor?.isActive({ textAlign: 'right' }) ? 'bg-gray-200' : ''
+						className={`h-7 w-7 rounded-none border-r border-border ${
+							editor?.isActive({ textAlign: 'right' }) ? 'bg-muted' : ''
 						}`}
 						disabled={!editor}
 						title='Align Right'
@@ -1285,7 +1285,7 @@ const EditorToolbar = ({
 						size='icon'
 						onClick={() => setTextAlignment('justify')}
 						className={`h-7 w-7 rounded-l-none ${
-							editor?.isActive({ textAlign: 'justify' }) ? 'bg-gray-200' : ''
+							editor?.isActive({ textAlign: 'justify' }) ? 'bg-muted' : ''
 						}`}
 						disabled={!editor}
 						title='Justify'
@@ -1294,12 +1294,12 @@ const EditorToolbar = ({
 					</Button>
 				</div>
 
-				<span className='w-px h-6 bg-gray-300 mx-1'></span>
+				<span className='w-px h-6 bg-border mx-1'></span>
 				<Button
 					variant='ghost'
 					size='icon'
 					onClick={() => editor?.chain().focus().toggleBold().run()}
-					className={`${editor?.isActive('bold') ? 'bg-gray-200' : ''}`}
+					className={`${editor?.isActive('bold') ? 'bg-muted' : ''}`}
 					disabled={!editor}
 				>
 					<BoldIcon className='h-4 w-4' />
@@ -1308,7 +1308,7 @@ const EditorToolbar = ({
 					variant='ghost'
 					size='icon'
 					onClick={() => editor?.chain().focus().toggleItalic().run()}
-					className={`${editor?.isActive('italic') ? 'bg-gray-200' : ''}`}
+					className={`${editor?.isActive('italic') ? 'bg-muted' : ''}`}
 					disabled={!editor}
 				>
 					<ItalicIcon className='h-4 w-4' />
@@ -1317,7 +1317,7 @@ const EditorToolbar = ({
 					variant='ghost'
 					size='icon'
 					onClick={() => editor?.chain().focus().toggleUnderline().run()}
-					className={`${editor?.isActive('underline') ? 'bg-gray-200' : ''}`}
+					className={`${editor?.isActive('underline') ? 'bg-muted' : ''}`}
 					disabled={!editor}
 				>
 					<UnderlineIcon className='h-4 w-4' />
@@ -1326,17 +1326,17 @@ const EditorToolbar = ({
 					variant='ghost'
 					size='icon'
 					onClick={() => editor?.chain().focus().toggleStrike().run()}
-					className={`${editor?.isActive('strike') ? 'bg-gray-200' : ''}`}
+					className={`${editor?.isActive('strike') ? 'bg-muted' : ''}`}
 					disabled={!editor}
 				>
 					<Strikethrough className='h-4 w-4' />
 				</Button>
-				<span className='w-px h-6 bg-gray-300 mx-1'></span>
+				<span className='w-px h-6 bg-border mx-1'></span>
 				<Button
 					variant='ghost'
 					size='icon'
 					onClick={() => editor?.chain().focus().toggleBulletList().run()}
-					className={`${editor?.isActive('bulletList') ? 'bg-gray-200' : ''}`}
+					className={`${editor?.isActive('bulletList') ? 'bg-muted' : ''}`}
 					disabled={!editor}
 				>
 					<List className='h-4 w-4' />
@@ -1345,7 +1345,7 @@ const EditorToolbar = ({
 					variant='ghost'
 					size='icon'
 					onClick={() => editor?.chain().focus().toggleOrderedList().run()}
-					className={`${editor?.isActive('orderedList') ? 'bg-gray-200' : ''}`}
+					className={`${editor?.isActive('orderedList') ? 'bg-muted' : ''}`}
 					disabled={!editor}
 				>
 					<ListOrdered className='h-4 w-4' />
@@ -1354,7 +1354,7 @@ const EditorToolbar = ({
 					variant='ghost'
 					size='icon'
 					onClick={() => editor?.chain().focus().toggleBlockquote().run()}
-					className={`${editor?.isActive('blockquote') ? 'bg-gray-200' : ''}`}
+					className={`${editor?.isActive('blockquote') ? 'bg-muted' : ''}`}
 					disabled={!editor}
 				>
 					<Quote className='h-4 w-4' />
@@ -1363,12 +1363,12 @@ const EditorToolbar = ({
 					variant='ghost'
 					size='icon'
 					onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
-					className={`${editor?.isActive('codeBlock') ? 'bg-gray-200' : ''}`}
+					className={`${editor?.isActive('codeBlock') ? 'bg-muted' : ''}`}
 					disabled={!editor}
 				>
 					<CodeIcon className='h-4 w-4' />
 				</Button>
-				<span className='w-px h-6 bg-gray-300 mx-1'></span>
+				<span className='w-px h-6 bg-border mx-1'></span>
 				<Button
 					variant='ghost'
 					size='icon'
@@ -1404,7 +1404,7 @@ const EditorToolbar = ({
 					<Redo className='h-4 w-4' />
 				</Button>
 
-				<span className='w-px h-6 bg-gray-300 mx-1'></span>
+				<span className='w-px h-6 bg-border mx-1'></span>
 				<Button
 					variant='ghost'
 					size='sm'
@@ -1429,7 +1429,7 @@ const EditorToolbar = ({
 					Table
 				</Button>
 
-				<span className='w-px h-6 bg-gray-300 mx-1'></span>
+				<span className='w-px h-6 bg-border mx-1'></span>
 				<Button
 					variant='ghost'
 					size='sm'

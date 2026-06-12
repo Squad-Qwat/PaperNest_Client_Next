@@ -123,13 +123,13 @@ export default function LoginPage() {
 				<div className='w-full max-w-sm space-y-6'>
 					{/* Title */}
 					<div className='text-center'>
-						<h1 className='text-2xl font-bold text-gray-900 mb-2'>Log in to your account</h1>
-						<p className='text-sm text-gray-500'>Welcome back to PaperNest</p>
+						<h1 className='text-2xl font-bold text-foreground mb-2'>Log in to your account</h1>
+						<p className='text-sm text-muted-foreground'>Welcome back to PaperNest</p>
 					</div>
 
 					{/* Error Message */}
 					{displayError && (
-						<div className='mb-6 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm text-center font-medium'>
+						<div className='mb-6 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm text-center font-medium'>
 							{displayError}
 						</div>
 					)}
@@ -209,10 +209,12 @@ export default function LoginPage() {
 					{/* Divider */}
 					<div className='relative'>
 						<div className='absolute inset-0 flex items-center'>
-							<div className='w-full border-t border-gray-200'></div>
+							<div className='w-full border-t border-border'></div>
 						</div>
 						<div className='relative flex justify-center text-sm'>
-							<span className='px-4 bg-white text-gray-500'>Or Continue With Your Credentials</span>
+							<span className='px-4 bg-background text-muted-foreground'>
+								Or Continue With Your Credentials
+							</span>
 						</div>
 					</div>
 
@@ -220,7 +222,7 @@ export default function LoginPage() {
 					<form onSubmit={handleSubmit} className='space-y-6'>
 						{/* Email */}
 						<div className='space-y-2'>
-							<Label htmlFor='email' className='text-gray-900 font-normal'>
+							<Label htmlFor='email' className='text-foreground font-normal'>
 								Email
 							</Label>
 							<Input
@@ -235,7 +237,7 @@ export default function LoginPage() {
 
 						{/* Password */}
 						<div className='space-y-2'>
-							<Label htmlFor='password' className='text-gray-900 font-normal'>
+							<Label htmlFor='password' className='text-foreground font-normal'>
 								Password
 							</Label>
 							<div className='relative'>
@@ -282,11 +284,11 @@ export default function LoginPage() {
 					</form>
 
 					{/* Sign Up Link */}
-					<div className='mt-6 text-center text-sm text-gray-600'>
+					<div className='mt-6 text-center text-sm text-muted-foreground'>
 						Don't have an account?{' '}
 						<Link
 							href='/register'
-							className='text-gray-900 hover:text-gray-700 font-medium underline transition-colors'
+							className='text-foreground hover:text-muted-foreground font-medium underline transition-colors'
 						>
 							Join PaperNest
 						</Link>
