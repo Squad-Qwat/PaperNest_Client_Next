@@ -252,6 +252,14 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 													}
 													return null
 												})}
+												{isStreaming && message.key === messages.at(-1)?.key && (
+													<div className='flex items-center gap-2 py-1 my-2'>
+														<PaperNestLoader width={18} height={18} />
+														<span className='text-sm font-medium shimmer-text'>
+															Working
+														</span>
+													</div>
+												)}
 											</MessageContent>
 										</div>
 									</Message>
@@ -276,16 +284,6 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 							)}
 						</MessageBranch>
 					))}
-					{isStreaming && !messages.at(-1)?.versions?.[0]?.parts?.length && (
-						<Message from='assistant' className='max-w-full w-full'>
-							<MessageContent className='w-full pt-1 flex items-center gap-2'>
-								<PaperNestLoader width={18} height={18} />
-								<span className='text-sm font-medium shimmer-text'>
-									Working
-								</span>
-							</MessageContent>
-						</Message>
-					)}
 				</ConversationContent>
 				<ConversationScrollButton />
 			</Conversation>
