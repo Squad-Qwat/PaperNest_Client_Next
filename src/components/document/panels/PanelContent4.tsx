@@ -52,9 +52,9 @@ const PanelContent4: React.FC<PanelContent4Props> = ({ documentId }) => {
 			<div className='flex flex-col items-center justify-center gap-4 p-8 text-muted-foreground min-h-[300px] bg-background'>
 				<MessageSquare className='h-12 w-12 text-muted' />
 				<div className='text-center space-y-1.5'>
-					<p className='font-semibold text-sm text-foreground'>Belum Ada Review</p>
+					<p className='font-semibold text-sm text-foreground'>No Reviews Yet</p>
 					<p className='text-xs text-muted-foreground max-w-[200px] mx-auto leading-normal'>
-						Dokumen ini belum pernah diajukan untuk review oleh dosen peninjau.
+						This document has not been submitted for review yet.
 					</p>
 				</div>
 			</div>
@@ -64,17 +64,16 @@ const PanelContent4: React.FC<PanelContent4Props> = ({ documentId }) => {
 	return (
 		<div className='p-4 space-y-3.5 text-foreground bg-background'>
 			<div className='flex items-center justify-between text-xs text-muted-foreground font-semibold uppercase tracking-wider px-1 pb-1'>
-				<span>Riwayat Pengajuan</span>
-				<span>{reviews.length} Pengajuan</span>
+				<span>Submission History</span>
+				<span>{reviews.length} Submissions</span>
 			</div>
 
 			<div className='space-y-3'>
 				{reviews.map((review) => {
-					const studentName = review.student?.name || 'Mahasiswa'
+					const studentName = review.student?.name || 'Student'
 					const formattedDate = format(
 						review.requestedAt ? new Date(review.requestedAt) : new Date(),
-						'd MMMM yyyy',
-						{ locale: id }
+						'd MMMM yyyy'
 					)
 
 					return (
@@ -122,7 +121,7 @@ const PanelContent4: React.FC<PanelContent4Props> = ({ documentId }) => {
 									<span>{formattedDate}</span>
 								</div>
 								<div className='flex items-center gap-0.5 text-[10px] font-bold text-teal-600 dark:text-teal-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200'>
-									<span>Detail</span>
+									<span>Details</span>
 									<ChevronRight className='w-3 h-3' />
 								</div>
 							</div>

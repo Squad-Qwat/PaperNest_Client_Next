@@ -454,7 +454,7 @@ function AIChatInput({
 			<PromptInputBody>
 				<PromptInputTextarea
 					className='py-3 px-4'
-					placeholder={readOnly ? 'Ask Neptune anything (Read Only)...' : 'Ask Neptune anything...'}
+					placeholder={readOnly ? 'Ask Aurora anything (Read Only)...' : 'Ask Aurora anything...'}
 				/>
 			</PromptInputBody>
 			<PromptInputFooter>

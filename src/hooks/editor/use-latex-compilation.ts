@@ -38,19 +38,19 @@ export function useLatexCompilation({ documentId, files, refetchFiles }: UseLate
 				})
 
 				if (result.status !== 0) {
-					toast.warning('Kompilasi selesai dengan peringatan.')
+					toast.warning('Compilation completed with warnings.')
 					setShowLog(true)
 				} else {
 					setShowLog(false)
 				}
 			} else {
-				toast.error('Gagal membuat PDF. Periksa log untuk detailnya.')
+				toast.error('Failed to generate PDF. Check the logs for details.')
 				setShowLog(true)
 			}
 		},
 		onError: (error: any) => {
 			console.error('Compilation error:', error)
-			toast.error(`Kompilasi gagal: ${error.message || 'Terjadi kesalahan internal'}`)
+			toast.error(`Compilation failed: ${error.message || 'An internal error occurred'}`)
 		},
 	})
 	useEffect(() => {

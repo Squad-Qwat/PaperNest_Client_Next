@@ -94,11 +94,11 @@ export default function VersionDetailPage() {
 					message: reviewMessage || 'Requesting review for version',
 				},
 			})
-			toast.success('Pengajuan review berhasil dikirim!')
+			toast.success('Review request sent successfully!')
 			setIsReviewModalOpen(false)
 		} catch (error) {
 			console.error('Failed to create review:', error)
-			toast.error('Gagal mengirim pengajuan review')
+			toast.error('Failed to send review request')
 		}
 	}
 
@@ -126,9 +126,9 @@ export default function VersionDetailPage() {
 		const currentActiveUsers = latestRoomData?.room?.activeUsers || 0
 
 		if (currentActiveUsers > 0) {
-			toast.error('Tidak Dapat Melakukan Pemulihan', {
+			toast.error('Unable to Restore', {
 				description:
-					'Masih terdapat pengguna aktif di dalam editor. Harap pastikan semua pengguna telah keluar dari room sebelum melakukan pemulihan.',
+					'Active users are still in the editor. Please ensure all users have left the room before restoring.',
 				duration: 5000,
 			})
 			return
@@ -136,10 +136,10 @@ export default function VersionDetailPage() {
 
 		try {
 			await revertVersion({ documentId, versionNumber: version.versionNumber })
-			toast.success('Versi berhasil dipulihkan')
+			toast.success('Version restored successfully')
 			router.push(`/${workspaceId}/documents/${documentId}`)
 		} catch (_e: any) {
-			toast.error('Gagal memulihkan versi')
+			toast.error('Failed to restore version')
 		}
 	}
 
@@ -154,9 +154,9 @@ export default function VersionDetailPage() {
 	if (!version) {
 		return (
 			<div className='h-screen flex flex-col items-center justify-center bg-background'>
-				<p className='text-muted-foreground mb-4 text-sm'>Versi tidak ditemukan</p>
+				<p className='text-muted-foreground mb-4 text-sm'>Version not found</p>
 				<Button variant='outline' onClick={() => router.back()}>
-					Kembali
+					Go Back
 				</Button>
 			</div>
 		)
@@ -171,16 +171,16 @@ export default function VersionDetailPage() {
 							variant='ghost'
 							onClick={() => router.push(`/${workspaceId}/documents/${documentId}/versions`)}
 							className='h-10 w-10 hover:bg-muted rounded-lg transition-all group p-0 min-w-0 shrink-0'
-							title='Kembali ke Riwayat'
+							title='Back to History'
 						>
 							<ChevronLeft className='h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors' />
 						</Button>
 						<div className='flex flex-col'>
 							<h1 className='text-sm font-semibold tracking-tight'>
-								Detail Versi #{String(version.versionNumber).padStart(3, '0')}
+								Version Details #{String(version.versionNumber).padStart(3, '0')}
 							</h1>
 							<p className='text-xs text-muted-foreground'>
-								{format(version.createdAt, 'd MMMM yyyy, HH:mm', { locale: id })}
+								{format(version.createdAt, 'd MMMM yyyy, HH:mm')}
 							</p>
 						</div>
 					</div>
@@ -190,7 +190,7 @@ export default function VersionDetailPage() {
 							<Link href={`/${workspaceId}/reviews/${versionReview.reviewId}`}>
 								<Button variant='outline' size='sm' className='gap-2'>
 									<MessageSquare className='w-4 h-4' />
-									<span className='hidden sm:inline'>Lihat Review</span>
+									<span className='hidden sm:inline'>View Review</span>
 								</Button>
 							</Link>
 						) : (
@@ -202,7 +202,7 @@ export default function VersionDetailPage() {
 									onClick={() => setIsReviewModalOpen(true)}
 								>
 									<MessageSquare className='w-4 h-4' />
-									<span>Ajukan Review</span>
+									<span>Submit Review</span>
 								</Button>
 							)
 						)}
@@ -217,7 +217,7 @@ export default function VersionDetailPage() {
 						>
 							<RotateCcw className='w-4 h-4' />
 							<span className='hidden sm:inline'>
-								{isReverting ? 'Memulihkan...' : 'Pulihkan Versi Ini'}
+								{isReverting ? 'Restoring...' : 'Restore This Version'}
 							</span>
 						</Button>
 					</div>
@@ -229,7 +229,7 @@ export default function VersionDetailPage() {
 					{isCompiling ? (
 						<div className='flex flex-col items-center gap-4'>
 							<Loader2 className='w-8 h-8 animate-spin text-muted-foreground' />
-							<span className='text-sm text-muted-foreground'>Mengompilasi PDF...</span>
+							<span className='text-sm text-muted-foreground'>Compiling PDF...</span>
 						</div>
 					) : pdfUrl ? (
 						<iframe
@@ -243,7 +243,7 @@ export default function VersionDetailPage() {
 							<div className='w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4'>
 								<FileText className='w-6 h-6 text-destructive' />
 							</div>
-							<p className='text-sm font-semibold text-destructive'>Gagal Compile</p>
+							<p className='text-sm font-semibold text-destructive'>Compilation Failed</p>
 							<pre className='text-xs text-muted-foreground mt-4 max-w-md mx-auto overflow-auto max-h-40 bg-muted p-4 rounded-md text-left'>
 								{compileError}
 							</pre>
@@ -255,7 +255,7 @@ export default function VersionDetailPage() {
 					<Card className='p-6 space-y-6 rounded-2xl border-border/60 shadow-sm bg-card'>
 						<div className='flex items-center justify-between border-b border-border pb-4'>
 							<h3 className='text-sm font-bold text-foreground uppercase tracking-wider'>
-								Metadata Versi
+								Version Metadata
 							</h3>
 							<div className='px-2 py-1 bg-muted rounded text-[10px] font-bold text-muted-foreground'>
 								V{version.versionNumber}
@@ -290,7 +290,7 @@ export default function VersionDetailPage() {
 														Author
 													</span>
 													<span className='opacity-30'>•</span>
-													<span>{format(version.createdAt, 'HH:mm, d MMM', { locale: id })}</span>
+													<span>{format(version.createdAt, 'HH:mm, d MMM')}</span>
 												</div>
 											</div>
 										</>
@@ -302,11 +302,11 @@ export default function VersionDetailPage() {
 							<div className='space-y-2'>
 								<div className='flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest'>
 									<MessageSquare className='w-3 h-3' />
-									Pesan Komit
+									Commit Message
 								</div>
 								<div className='bg-muted/50 rounded-xl p-4 border border-border'>
 									<p className='text-sm text-foreground leading-relaxed italic'>
-										"{version.message || 'Tidak ada pesan komit.'}"
+										"{version.message || 'No commit message.'}"
 									</p>
 								</div>
 							</div>
@@ -316,7 +316,7 @@ export default function VersionDetailPage() {
 								<div className='pt-6 border-t border-border space-y-4'>
 									<div className='flex items-center justify-between'>
 										<div className='text-[10px] font-bold text-muted-foreground uppercase tracking-widest'>
-											Status Review
+											Review Status
 										</div>
 										<ReviewStatusBadge status={versionReview.status} />
 									</div>
@@ -326,20 +326,19 @@ export default function VersionDetailPage() {
 											<div className='flex items-center gap-2'>
 												<div className='h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse' />
 												<span className='text-[10px] font-bold text-muted-foreground uppercase tracking-tight'>
-													Umpan Balik Dosen
+													Lecturer Feedback
 												</span>
 											</div>
 											<div className='bg-green-500/10 rounded-xl p-4 border border-green-500/20'>
 												<p className='text-sm text-foreground leading-relaxed'>
 													{versionReview.lecturerMessage ||
 														versionReview.message ||
-														'Versi telah disetujui tanpa catatan tambahan.'}
+														'Version approved with no additional notes.'}
 												</p>
 											</div>
 											{versionReview.reviewedAt && (
 												<p className='text-[10px] text-muted-foreground text-right'>
-													Ditinjau pada{' '}
-													{format(versionReview.reviewedAt, 'd MMMM yyyy', { locale: id })}
+													Reviewed on {format(versionReview.reviewedAt, 'd MMMM yyyy')}
 												</p>
 											)}
 										</div>
@@ -355,31 +354,30 @@ export default function VersionDetailPage() {
 				isOpen={showConfirm}
 				onClose={() => setShowConfirm(false)}
 				onConfirm={activeUsers > 0 ? () => {} : handleRestore}
-				title={activeUsers > 0 ? 'Editor Sedang Digunakan' : 'Konfirmasi Pemulihan'}
+				title={activeUsers > 0 ? 'Editor Currently in Use' : 'Confirm Restore'}
 				message={
 					activeUsers > 0
-						? `Terdapat ${activeUsers} pengguna yang sedang aktif di room editor. Untuk menjaga integritas data, semua pengguna harus keluar dari room editor sebelum pemulihan dapat dilakukan.`
-						: 'Apakah Anda yakin ingin memulihkan dokumen ini ke versi yang dipilih? Tindakan ini akan menghapus semua versi yang dibuat setelah versi ini.'
+						? `There are ${activeUsers} users currently active in the editor. To maintain data integrity, all users must leave the editor before restoring.`
+						: 'Are you sure you want to restore this document to the selected version? This action will overwrite any newer changes.'
 				}
-				confirmText={activeUsers > 0 ? 'Mengerti' : 'Ya, Pulihkan'}
-				cancelText={activeUsers > 0 ? undefined : 'Batal'}
+				confirmText={activeUsers > 0 ? 'Understand' : 'Yes, Restore'}
+				cancelText={activeUsers > 0 ? undefined : 'Cancel'}
 				variant={activeUsers > 0 ? 'info' : 'warning'}
 			/>
 
 			<Modal
 				isOpen={isReviewModalOpen}
 				onClose={() => setIsReviewModalOpen(false)}
-				title='Ajukan Review Dokumen'
+				title='Submit Document Review'
 			>
 				<form onSubmit={handleRequestReviewSubmit} className='space-y-4 pt-2'>
 					<p className='text-sm text-muted-foreground'>
-						Pilih dosen peninjau dan tambahkan pesan opsional untuk menjelaskan perubahan atau fokus
-						peninjauan Anda.
+						Choose a reviewer and add an optional message to explain your changes or focus areas.
 					</p>
 
 					<div className='space-y-2'>
 						<Label htmlFor='lecturer-select'>
-							Dosen Peninjau <span className='text-red-500'>*</span>
+							Reviewer <span className='text-red-500'>*</span>
 						</Label>
 						<Select
 							value={selectedLecturerId}
@@ -387,26 +385,26 @@ export default function VersionDetailPage() {
 							required
 						>
 							<SelectTrigger id='lecturer-select' className='w-full bg-background border-border'>
-								<SelectValue placeholder='-- Pilih Dosen --' />
+								<SelectValue placeholder='-- Choose Reviewer --' />
 							</SelectTrigger>
 							<SelectContent className='z-[1025]'>
 								{lecturers.map((m: any) => (
 									<SelectItem key={m.user?.userId} value={m.user?.userId}>
-										{m.user?.name || m.user?.username || 'Dosen'}
+										{m.user?.name || m.user?.username || 'Reviewer'}
 									</SelectItem>
 								))}
 								{lecturers.length === 0 && workspace?.ownerId && (
-									<SelectItem value={workspace.ownerId}>Pemilik Workspace (Default)</SelectItem>
+									<SelectItem value={workspace.ownerId}>Workspace Owner (Default)</SelectItem>
 								)}
 							</SelectContent>
 						</Select>
 					</div>
 
 					<div className='space-y-2'>
-						<Label htmlFor='review-message'>Pesan Tambahan (Opsional)</Label>
+						<Label htmlFor='review-message'>Additional Message (Optional)</Label>
 						<Textarea
 							id='review-message'
-							placeholder='Tulis catatan atau instruksi khusus untuk peninjau...'
+							placeholder='Write notes or specific instructions for the reviewer...'
 							value={reviewMessage}
 							onChange={(e) => setReviewMessage(e.target.value)}
 							disabled={isCreatingReview}
@@ -422,7 +420,7 @@ export default function VersionDetailPage() {
 							onClick={() => setIsReviewModalOpen(false)}
 							disabled={isCreatingReview}
 						>
-							Batal
+							Cancel
 						</Button>
 						<Button
 							type='submit'
@@ -430,7 +428,7 @@ export default function VersionDetailPage() {
 							className='bg-primary text-white hover:bg-primary/90 flex items-center gap-1.5'
 						>
 							{isCreatingReview && <Loader2 className='w-4 h-4 animate-spin' />}
-							{isCreatingReview ? 'Mengirim...' : 'Kirim Pengajuan'}
+							{isCreatingReview ? 'Sending...' : 'Submit Request'}
 						</Button>
 					</ModalFooter>
 				</form>

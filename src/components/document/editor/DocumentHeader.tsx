@@ -138,7 +138,7 @@ const DocumentHeader = ({
 
 	const handleExportPdf = () => {
 		if (!pdfUrl) {
-			toast.error('Silakan compile dokumen terlebih dahulu untuk membuat PDF.')
+			toast.error('Please compile the document first to generate a PDF.')
 			return
 		}
 		const link = document.createElement('a')
@@ -147,7 +147,7 @@ const DocumentHeader = ({
 		document.body.appendChild(link)
 		link.click()
 		document.body.removeChild(link)
-		toast.success('PDF berhasil diexport!')
+		toast.success('PDF exported successfully!')
 	}
 
 	return (

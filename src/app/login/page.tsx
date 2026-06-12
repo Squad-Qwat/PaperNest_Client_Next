@@ -89,7 +89,7 @@ export default function LoginPage() {
 			}
 			if (err.message === 'PASSWORD_CONFLICT') {
 				setLocalError(
-					'Email ini sudah terdaftar menggunakan password. Silakan login menggunakan form email & password.'
+					'This email is already registered using a password. Please log in using the email & password form.'
 				)
 				return
 			}

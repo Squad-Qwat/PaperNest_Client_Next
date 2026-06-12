@@ -100,11 +100,11 @@ export function DashboardAIChat({
 								<Sparkles className='h-6 w-6 text-primary animate-pulse' />
 							</div>
 							<h3 className='text-lg font-semibold text-foreground'>
-								Mulai diskusi dengan Neptune AI
+								Start a conversation with Aurora AI
 							</h3>
 							<p className='text-sm text-muted-foreground max-w-md mt-1'>
-								Tanyakan tentang dokumen Anda, buat draf tulisan akademis, atau mintalah bantuan
-								analisis riset.
+								Ask about your documents, draft academic writing, or request research analysis
+								assistance.
 							</p>
 						</div>
 					) : (

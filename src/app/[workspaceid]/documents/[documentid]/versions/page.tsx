@@ -50,9 +50,9 @@ export default function VersionsPage() {
 			const date = new Date(version.createdAt)
 			const time = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
 
-			let title = format(version.createdAt, 'd MMMM yyyy', { locale: id })
-			if (time === today) title = 'Hari ini'
-			else if (time === yesterday) title = 'Kemarin'
+			let title = format(version.createdAt, 'd MMMM yyyy')
+			if (time === today) title = 'Today'
+			else if (time === yesterday) title = 'Yesterday'
 
 			const existingGroup = groups.find((g) => g.title === title)
 			if (existingGroup) {
@@ -136,7 +136,7 @@ export default function VersionsPage() {
 													{/* Header line: Version Title & Badges */}
 													<div className='flex items-center gap-3 flex-wrap'>
 														<span className='text-sm font-semibold text-foreground'>
-															Versi V{version.versionNumber}
+															Version V{version.versionNumber}
 														</span>
 														{isLatest && (
 															<span className='px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-semibold uppercase'>
@@ -186,9 +186,7 @@ export default function VersionsPage() {
 															)
 														})()}
 														<span>•</span>
-														<span>
-															{format(version.createdAt, 'd MMMM yyyy HH:mm', { locale: id })}
-														</span>
+														<span>{format(version.createdAt, 'd MMMM yyyy HH:mm')}</span>
 													</div>
 
 													{/* Commit Message & Feedback Preview */}
@@ -208,7 +206,7 @@ export default function VersionsPage() {
 																	return (
 																		<div className='border-l-2 border-border pl-3 mt-1'>
 																			<span className='text-sm font-semibold text-muted-foreground uppercase tracking-wider block mb-0.5'>
-																				Umpan Balik Dosen
+																				Lecturer Feedback
 																			</span>
 																			<p className='text-sm text-muted-foreground leading-relaxed font-normal'>
 																				{feedback}
@@ -232,7 +230,7 @@ export default function VersionsPage() {
 																variant='outline'
 																className='rounded-lg shadow-sm border-border'
 															>
-																Detail Review
+																Review Details
 															</Button>
 														</Link>
 													)}
@@ -241,7 +239,7 @@ export default function VersionsPage() {
 														onClick={(e) => e.stopPropagation()}
 													>
 														<Button variant='default' className='rounded-lg shadow-sm'>
-															Buka
+															Open
 														</Button>
 													</Link>
 												</div>
@@ -261,16 +259,16 @@ export default function VersionsPage() {
 				<div className='bg-muted w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4'>
 					<History className='w-6 h-6 text-muted-foreground' />
 				</div>
-				<h3 className='text-lg font-semibold'>Riwayat Kosong</h3>
+				<h3 className='text-lg font-semibold'>No History</h3>
 				<p className='text-sm text-muted-foreground max-w-sm mx-auto mt-2'>
-					Belum ada versi yang tersimpan.
+					No versions saved yet.
 				</p>
 				<Button
 					onClick={() => router.push(`/${workspaceId}/documents/${documentId}`)}
 					variant='outline'
 					className='mt-6'
 				>
-					Ke Editor
+					Back to Editor
 				</Button>
 			</div>
 		)
@@ -285,20 +283,20 @@ export default function VersionsPage() {
 							variant='ghost'
 							onClick={() => router.push(`/${workspaceId}/documents/${documentId}`)}
 							className='h-10 w-10 hover:bg-muted rounded-lg transition-all group p-0 min-w-0 shrink-0'
-							title='Kembali ke Editor'
+							title='Back to Editor'
 						>
 							<ChevronLeft className='h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors' />
 						</Button>
 						<div className='flex flex-col'>
 							<div className='flex items-center gap-3'>
-								<h1 className='text-xl font-semibold tracking-tight'>Riwayat Versi</h1>
+								<h1 className='text-xl font-semibold tracking-tight'>Version History</h1>
 								<div className='bg-muted px-2 py-0.5 rounded-md'>
 									<span className='text-xs font-medium text-muted-foreground'>
 										{versions.length}
 									</span>
 								</div>
 							</div>
-							<p className='text-sm text-muted-foreground'>Monitor jejak perubahan dokumen</p>
+							<p className='text-sm text-muted-foreground'>Monitor the track of document changes</p>
 						</div>
 					</div>
 

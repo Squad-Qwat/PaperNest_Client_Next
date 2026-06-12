@@ -220,7 +220,7 @@ export function LatexEditor({
 		} catch (error: any) {
 			console.error('Error in syncToPdf:', error)
 			toast.warning(
-				'Tidak dapat melakukan sync pada baris ini. Pastikan baris memiliki teks/konten dokumen yang terkompilasi.'
+				'Unable to sync to this line. Make sure the line contains text/content from a compiled document.'
 			)
 		}
 	}, [view, documentId])

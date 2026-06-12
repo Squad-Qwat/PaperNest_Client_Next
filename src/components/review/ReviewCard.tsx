@@ -38,7 +38,7 @@ export function ReviewCard({
 }: Readonly<ReviewCardProps>) {
 	const router = useRouter()
 
-	const displayDate = format(requestedAt, 'd MMMM yyyy HH:mm', { locale: id })
+	const displayDate = format(requestedAt, 'd MMMM yyyy HH:mm')
 
 	const handleCardClick = () => {
 		router.push(`/${workspaceId}/reviews/${reviewId}`)
@@ -69,7 +69,7 @@ export function ReviewCard({
 							: 'text-foreground group-hover:text-primary'
 					}`}
 				>
-					{isDocumentDeleted ? 'Dokumen Terhapus' : title || 'Dokumen Tanpa Judul'}
+					{isDocumentDeleted ? 'Document Deleted' : title || 'Untitled Document'}
 				</h3>
 				<div className='shrink-0 scale-95 origin-right'>
 					<ReviewStatusBadge status={status as any} />
@@ -80,7 +80,7 @@ export function ReviewCard({
 			<div className='flex items-center gap-2 text-xs text-muted-foreground mb-3'>
 				{versionNumber && (
 					<span className='font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded'>
-						Versi V{versionNumber}
+						Version V{versionNumber}
 					</span>
 				)}
 				<span>{displayDate}</span>
@@ -88,7 +88,7 @@ export function ReviewCard({
 
 			{/* Middle: Request Message (Plain text description style, non-italic) */}
 			<p className='text-muted-foreground text-sm mb-4 line-clamp-2 min-h-[40px] leading-relaxed font-normal'>
-				{message || 'Tidak ada pesan pengantar.'}
+				{message || 'No introduction message.'}
 			</p>
 
 			{/* Footer: Button "Lihat Detail" (Matches the dashboard "Open Editor" button layout and classes) */}
@@ -100,7 +100,7 @@ export function ReviewCard({
 					}}
 					className='flex-1 h-9 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs rounded-lg transition-all shadow-sm'
 				>
-					Lihat Detail
+					View Details
 				</Button>
 			</div>
 		</div>
