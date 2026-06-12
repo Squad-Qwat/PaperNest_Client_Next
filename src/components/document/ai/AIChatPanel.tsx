@@ -1,7 +1,9 @@
 'use client'
 
 import { GlobeIcon } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
 import { type MouseEvent, useEffect } from 'react'
+import { PaperNestLoader } from '@/components/layout/PaperNestLoader'
 import { Attachment, AttachmentPreview, Attachments } from '@/components/ui/ai-elements/attachments'
 import {
 	Conversation,
@@ -72,9 +74,7 @@ import { useAIChat } from '@/lib/ai/hooks/use-ai-chat'
 import { useAIChatStore } from '@/lib/ai/store'
 import type { ToolStatus } from '@/lib/ai/types/chat'
 import { cn, preprocessLatex } from '@/lib/utils'
-import { PaperNestLoader } from '@/components/layout/PaperNestLoader'
 import { AIChatHeader } from './AIChatHeader'
-import { AnimatePresence, motion } from 'motion/react'
 
 const models = AI_MODELS
 

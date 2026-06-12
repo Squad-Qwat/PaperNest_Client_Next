@@ -1,7 +1,9 @@
 'use client'
 
 import { FileText, Sparkles } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useRef } from 'react'
+import { PaperNestLoader } from '@/components/layout/PaperNestLoader'
 import { Attachment, AttachmentPreview, Attachments } from '@/components/ui/ai-elements/attachments'
 import {
 	Conversation,
@@ -14,9 +16,7 @@ import {
 	ReasoningContent,
 	ReasoningTrigger,
 } from '@/components/ui/ai-elements/reasoning'
-import { PaperNestLoader } from '@/components/layout/PaperNestLoader'
 import { preprocessLatex } from '@/lib/utils'
-import { AnimatePresence, motion } from 'motion/react'
 
 interface ChatMessage {
 	id: string
@@ -131,10 +131,7 @@ export function DashboardAIChat({
 
 										{msg.from === 'assistant' && msg.reasoningText && (
 											<div className='mb-2 w-full'>
-												<Reasoning
-													duration={1}
-													className='w-full border border-border shadow-xs rounded-lg'
-												>
+												<Reasoning duration={1} className='w-full'>
 													<ReasoningTrigger />
 													<ReasoningContent>{msg.reasoningText}</ReasoningContent>
 												</Reasoning>
@@ -197,9 +194,7 @@ export function DashboardAIChat({
 								<Message from='assistant' className='max-w-4xl w-full'>
 									<div className='w-full flex items-center gap-2 py-1'>
 										<PaperNestLoader width={18} height={18} />
-										<span className='text-sm md:text-base font-medium shimmer-text'>
-											Working
-										</span>
+										<span className='text-sm md:text-base font-medium shimmer-text'>Working</span>
 									</div>
 								</Message>
 							</motion.div>

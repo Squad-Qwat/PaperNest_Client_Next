@@ -268,7 +268,12 @@
 }
 
 .shimmer-text {
-	background: linear-gradient(90deg, var(--muted-foreground) 20%, var(--foreground) 50%, var(--muted-foreground) 80%);
+	background: linear-gradient(
+		90deg,
+		var(--muted-foreground) 20%,
+		var(--foreground) 50%,
+		var(--muted-foreground) 80%
+	);
 	background-size: 200% auto;
 	color: transparent;
 	background-clip: text;
@@ -299,5 +304,3 @@
 .thin-scrollbar::-webkit-scrollbar-thumb:hover {
 	background: var(--muted-foreground);
 }
-
-

@@ -5,7 +5,12 @@ interface PaperNestLoaderProps extends React.SVGProps<SVGSVGElement> {
 	height?: number | string
 }
 
-export function PaperNestLoader({ width = 64, height = 64, className, ...props }: PaperNestLoaderProps) {
+export function PaperNestLoader({
+	width = 64,
+	height = 64,
+	className,
+	...props
+}: PaperNestLoaderProps) {
 	return (
 		<svg
 			viewBox='0 0 200 200'
