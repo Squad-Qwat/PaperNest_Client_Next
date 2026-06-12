@@ -148,9 +148,21 @@ export function DashboardAIChat({
 											}
 										>
 											{msg.from === 'assistant' ? (
-												<MessageResponse className='text-foreground leading-relaxed text-sm md:text-base'>
-													{preprocessLatex(msg.text)}
-												</MessageResponse>
+												<>
+													{msg.text && (
+														<MessageResponse className='text-foreground leading-relaxed text-sm md:text-base'>
+															{preprocessLatex(msg.text)}
+														</MessageResponse>
+													)}
+													{isThinking && msg.id === messages.at(-1)?.id && (
+														<div className='flex items-center gap-2 py-1 mt-1'>
+															<PaperNestLoader width={18} height={18} />
+															<span className='text-sm font-medium shimmer-text'>
+																Working
+															</span>
+														</div>
+													)}
+												</>
 											) : (
 												<div className='text-foreground leading-relaxed text-sm md:text-base whitespace-pre-wrap break-words'>
 													{renderMessageTextWithTags(msg.text, documents)}
@@ -164,7 +176,7 @@ export function DashboardAIChat({
 					)}
 
 					{/* Thinking Animation */}
-					{isThinking && (
+					{isThinking && messages.at(-1)?.from !== 'assistant' && (
 						<div className='animate-in fade-in duration-300 max-w-4xl'>
 							<Message from='assistant' className='max-w-4xl w-full'>
 								<div className='w-full flex items-center gap-2 py-1'>
