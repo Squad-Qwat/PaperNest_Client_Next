@@ -8,6 +8,7 @@ import { AppSidebar } from '@/components/app-sidebar'
 import { CitationDetailsSheet } from '@/components/citations/citation-details-sheet'
 import { CitationSheet, type Citation as CitationType } from '@/components/citations/citation-sheet'
 import { type CitationDisplay, CitationTable } from '@/components/citations/citation-table'
+import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -36,7 +37,6 @@ import {
 	useUpdateCitation,
 	useWorkspaceCitations,
 } from '@/lib/api/hooks/use-citations'
-
 import { useWorkspace } from '@/lib/api/hooks/use-workspaces'
 
 export default function Page() {
@@ -224,18 +224,23 @@ export default function Page() {
 	return (
 		<SidebarProvider className='h-svh overflow-hidden bg-sidebar'>
 			<AppSidebar />
-			<SidebarInset className='flex flex-col min-h-0 overflow-hidden border border-gray-200/50 transition-all duration-300 isolate rounded-2xl m-2'>
-				<header className='flex h-16 shrink-0 items-center gap-2 px-4 bg-white border-b sticky top-0 z-30 rounded-t-2xl'>
-					<SidebarTrigger className='-ml-1' />
-					<Separator orientation='vertical' className='mr-2 h-4' />
-					{BreadcrumbSection}
+			<SidebarInset className='flex flex-col min-h-0 overflow-hidden border border-border/50 transition-all duration-300 isolate rounded-2xl m-2'>
+				<header className='flex h-16 shrink-0 items-center justify-between gap-2 px-4 bg-background border-b border-border sticky top-0 z-30 rounded-t-2xl'>
+					<div className='flex items-center gap-2'>
+						<SidebarTrigger className='-ml-1' />
+						<Separator orientation='vertical' className='mr-2 h-4' />
+						{BreadcrumbSection}
+					</div>
+					<div className='ml-auto'>
+						<ThemeToggle />
+					</div>
 				</header>
 
 				<main className='flex-1 p-6 w-full overflow-y-auto'>
 					<div className='mb-8 flex items-center justify-between'>
 						<div>
-							<h2 className='text-2xl font-bold text-gray-900'>Citations</h2>
-							<p className='text-sm text-gray-500 mt-1'>
+							<h2 className='text-2xl font-bold text-foreground'>Citations</h2>
+							<p className='text-sm text-muted-foreground mt-1'>
 								Manage your citations in the workspace {workspace?.title}
 							</p>
 						</div>
@@ -272,7 +277,7 @@ export default function Page() {
 						<div className='flex flex-wrap items-center gap-3'>
 							<div className='flex items-center gap-2 overflow-x-auto pb-1 md:pb-0'>
 								<Select value={selectedAuthor} onValueChange={setSelectedAuthor}>
-									<SelectTrigger className='bg-white h-10 min-w-[140px]'>
+									<SelectTrigger className='bg-background h-10 min-w-[140px]'>
 										<User className='h-4 w-4 mr-2' />
 										<SelectValue placeholder='All Authors' />
 									</SelectTrigger>
@@ -287,7 +292,7 @@ export default function Page() {
 								</Select>
 
 								<Select value={selectedYear} onValueChange={setSelectedYear}>
-									<SelectTrigger className='bg-white h-10 min-w-[130px]'>
+									<SelectTrigger className='bg-background h-10 min-w-[130px]'>
 										<Calendar className='h-4 w-4 mr-2' />
 										<SelectValue placeholder='All Years' />
 									</SelectTrigger>
@@ -302,7 +307,7 @@ export default function Page() {
 								</Select>
 
 								<Select value={selectedType} onValueChange={setSelectedType}>
-									<SelectTrigger className='bg-white h-10 min-w-[120px]'>
+									<SelectTrigger className='bg-background h-10 min-w-[120px]'>
 										<Tag className='h-4 w-4 mr-2' />
 										<SelectValue placeholder='All Types' />
 									</SelectTrigger>
@@ -316,7 +321,7 @@ export default function Page() {
 							</div>
 
 							<Select value={viewMode} onValueChange={setViewMode}>
-								<SelectTrigger className='bg-white h-10 min-w-[130px]'>
+								<SelectTrigger className='bg-background h-10 min-w-[130px]'>
 									<Settings2 className='h-4 w-4 mr-2' />
 									<SelectValue placeholder='Settings' />
 								</SelectTrigger>

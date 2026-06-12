@@ -1,22 +1,19 @@
 import {
-	Check,
 	ChevronLeft,
 	FileDown,
-	FileText,
 	GitCommit,
 	History,
 	MessageSquare,
 	Play,
 	Save,
-	Settings2,
 	Share2,
 } from 'lucide-react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import LatexToolbar from '@/components/document/latex/LatexToolbar'
 import { CommitModal } from '@/components/document/mergeview/CommitModal'
+import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -31,9 +28,6 @@ import {
 	MenubarRadioItem,
 	MenubarSeparator,
 	MenubarShortcut,
-	MenubarSub,
-	MenubarSubContent,
-	MenubarSubTrigger,
 	MenubarTrigger,
 } from '@/components/ui/menubar'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -164,19 +158,19 @@ const DocumentHeader = ({
 	}
 
 	return (
-		<header className='bg-white border-b border-gray-200 sticky top-0 z-[1001] transition-all duration-300'>
+		<header className='bg-background border-b border-border sticky top-0 z-[1001] transition-all duration-300'>
 			<div className='px-4 py-2'>
 				<div className='flex items-center justify-between'>
 					<div className='flex items-center gap-2'>
 						<Button
 							variant='ghost'
 							onClick={() => router.push(`/${workspaceId}`)}
-							className='h-10 w-10 hover:bg-gray-100 rounded-lg transition-all group p-0 min-w-0'
+							className='h-10 w-10 hover:bg-muted rounded-lg transition-all group p-0 min-w-0'
 							title='Back to Workspace'
 						>
 							<ChevronLeft
 								style={{ width: '20px', height: '20px' }}
-								className='text-gray-500 group-hover:text-primary transition-colors'
+								className='text-muted-foreground group-hover:text-primary transition-colors'
 							/>
 						</Button>
 						<div className='flex flex-col'>
@@ -184,14 +178,14 @@ const DocumentHeader = ({
 								type='text'
 								value={title}
 								onChange={(e) => setTitle(e.target.value)}
-								className='font-medium text-lg text-gray-900 focus:outline-none border-b border-transparent focus:border-blue-500 w-full'
+								className='font-medium text-lg bg-transparent text-foreground focus:outline-none border-b border-transparent focus:border-blue-500 w-full'
 								placeholder='Untitled Document'
 							/>
-							<div className='flex items-center gap-4 text-sm text-gray-600'>
+							<div className='flex items-center gap-4 text-sm text-muted-foreground'>
 								<Menubar className='border-none bg-transparent shadow-none p-0 h-auto gap-0.5'>
 									{/* File Menu */}
 									<MenubarMenu>
-										<MenubarTrigger className='hover:bg-gray-100 text-gray-700 font-normal px-2.5 py-1 rounded cursor-pointer text-sm h-8 data-[state=open]:bg-gray-100'>
+										<MenubarTrigger className='hover:bg-muted text-muted-foreground data-[state=open]:text-foreground font-normal px-2.5 py-1 rounded cursor-pointer text-sm h-8 data-[state=open]:bg-muted'>
 											File
 										</MenubarTrigger>
 										<MenubarContent className='z-[1050] min-w-[12rem]'>
@@ -236,7 +230,7 @@ const DocumentHeader = ({
 
 									{/* History Menu */}
 									<MenubarMenu>
-										<MenubarTrigger className='hover:bg-gray-100 text-gray-700 font-normal px-2.5 py-1 rounded cursor-pointer text-sm h-8 data-[state=open]:bg-gray-100'>
+										<MenubarTrigger className='hover:bg-muted text-muted-foreground data-[state=open]:text-foreground font-normal px-2.5 py-1 rounded cursor-pointer text-sm h-8 data-[state=open]:bg-muted'>
 											History
 										</MenubarTrigger>
 										<MenubarContent className='z-[1050] min-w-[12rem]'>
@@ -276,12 +270,12 @@ const DocumentHeader = ({
 
 									{/* Settings Menu */}
 									<MenubarMenu>
-										<MenubarTrigger className='hover:bg-gray-100 text-gray-700 font-normal px-2.5 py-1 rounded cursor-pointer text-sm h-8 data-[state=open]:bg-gray-100'>
+										<MenubarTrigger className='hover:bg-muted text-muted-foreground data-[state=open]:text-foreground font-normal px-2.5 py-1 rounded cursor-pointer text-sm h-8 data-[state=open]:bg-muted'>
 											Settings
 										</MenubarTrigger>
 										<MenubarContent className='z-[1050] min-w-[14rem]'>
 											<MenubarGroup>
-												<MenubarLabel className='px-2 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wider'>
+												<MenubarLabel className='px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
 													Compiler Mode
 												</MenubarLabel>
 												<MenubarRadioGroup
@@ -306,7 +300,7 @@ const DocumentHeader = ({
 					<div className='flex items-center gap-3'>
 						<div className='flex items-center gap-2'>
 							{(isAutoSaving || lastSavedAt) && (
-								<div className='flex items-center gap-1.5 text-xs text-gray-500'>
+								<div className='flex items-center gap-1.5 text-xs text-muted-foreground'>
 									{isAutoSaving ? (
 										<>
 											<div className='w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse'></div>
@@ -322,12 +316,12 @@ const DocumentHeader = ({
 							)}
 
 							{visibleCollaborators && visibleCollaborators.length > 0 && (
-								<div className='flex items-center gap-1.5 pr-2 mr-1 border-r border-gray-200'>
+								<div className='flex items-center gap-1.5 pr-2 mr-1 border-r border-border'>
 									<div className='flex -space-x-3'>
 										{visibleCollaborators.map((collaborator: any) => (
 											<Avatar
 												key={collaborator.id}
-												className='h-8 w-8 border-2 border-white shadow-sm'
+												className='h-8 w-8 border-2 border-background shadow-sm'
 												title={collaborator.name}
 											>
 												<AvatarImage src={collaborator.avatar} alt={collaborator.name} />
@@ -341,7 +335,7 @@ const DocumentHeader = ({
 										))}
 									</div>
 									{hiddenCollaboratorsCount > 0 && (
-										<span className='text-xs font-medium text-gray-500'>
+										<span className='text-xs font-medium text-muted-foreground'>
 											+{hiddenCollaboratorsCount}
 										</span>
 									)}
@@ -409,10 +403,11 @@ const DocumentHeader = ({
 								</span>
 							</span>
 						</Button>
+						<ThemeToggle />
 						<div className='ml-2'>
 							<Avatar className='h-8 w-8'>
 								<AvatarImage src={getMediaUrl(user?.photoURL)} alt={user?.name || 'User'} />
-								<AvatarFallback className='bg-blue-600 text-white text-xs'>
+								<AvatarFallback className='bg-primary text-primary-foreground text-xs'>
 									{getInitials(user?.name || 'U')}
 								</AvatarFallback>
 							</Avatar>

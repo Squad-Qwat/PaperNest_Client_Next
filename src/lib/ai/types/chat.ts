@@ -96,6 +96,7 @@ export interface AIStreamPayload {
 	documentId?: string
 	workspaceId?: string
 	reasoningEnabled: boolean
+	webSearchEnabled?: boolean
 	plan?: PlanStep[]
 	providerId: string
 	modelId: string

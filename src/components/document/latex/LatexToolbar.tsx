@@ -196,10 +196,10 @@ export default function LatexToolbar({
 
 	return (
 		<TooltipProvider delayDuration={400}>
-			<div className='flex items-center gap-1 px-4 py-1 bg-white/50 backdrop-blur-sm border-b border-gray-200 overflow-x-auto no-scrollbar'>
+			<div className='flex items-center gap-1 px-4 py-1 bg-background/50 backdrop-blur-sm border-b border-border overflow-x-auto no-scrollbar'>
 				{toolbarGroups.map((group, groupIdx) => (
 					<React.Fragment key={group.name}>
-						{groupIdx > 0 && <div className='h-4 w-[1px] bg-gray-300 mx-1 flex-shrink-0' />}
+						{groupIdx > 0 && <div className='h-4 w-[1px] bg-border mx-1 flex-shrink-0' />}
 						<div className='flex items-center gap-0.5'>
 							{group.actions.map((action, actionIdx) => (
 								<Tooltip key={`${group.name}-${action.label || actionIdx}`}>
@@ -207,7 +207,7 @@ export default function LatexToolbar({
 										<Button
 											variant='ghost'
 											size='icon'
-											className='w-8 h-8 hover:bg-gray-100 text-gray-600 flex-shrink-0'
+											className='w-8 h-8 hover:bg-muted text-muted-foreground flex-shrink-0'
 											onClick={action.onClick}
 											disabled={action.disabled}
 										>
@@ -216,7 +216,7 @@ export default function LatexToolbar({
 									</TooltipTrigger>
 									<TooltipContent
 										side='bottom'
-										className='text-[10px] font-bold uppercase tracking-widest bg-gray-900 border-gray-800'
+										className='text-[10px] font-bold uppercase tracking-widest bg-popover border-border text-popover-foreground'
 									>
 										{action.label}
 									</TooltipContent>
@@ -228,14 +228,14 @@ export default function LatexToolbar({
 
 				{handleCompile && (
 					<>
-						<div className='h-4 w-[1px] bg-gray-300 mx-1 flex-shrink-0' />
+						<div className='h-4 w-[1px] bg-border mx-1 flex-shrink-0' />
 						<div className='flex items-center ml-auto pr-2 gap-2'>
 							{/* Mode Toggle */}
-							<div className='flex items-center bg-gray-100 rounded-md p-1'>
+							<div className='flex items-center bg-muted rounded-md p-1'>
 								<Button
 									variant={viewMode === 'source' ? 'secondary' : 'ghost'}
 									size='sm'
-									className={`h-7 px-3 text-[10px] uppercase font-bold tracking-wider ${viewMode === 'source' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+									className={`h-7 px-3 text-[10px] uppercase font-bold tracking-wider ${viewMode === 'source' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
 									onClick={() => viewMode !== 'source' && toggleViewMode?.()}
 								>
 									Source
@@ -243,7 +243,7 @@ export default function LatexToolbar({
 								<Button
 									variant={viewMode === 'visual' ? 'secondary' : 'ghost'}
 									size='sm'
-									className={`h-7 px-3 text-[10px] uppercase font-bold tracking-wider ${viewMode === 'visual' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+									className={`h-7 px-3 text-[10px] uppercase font-bold tracking-wider ${viewMode === 'visual' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
 									onClick={() => viewMode !== 'visual' && toggleViewMode?.()}
 								>
 									Visual
@@ -255,7 +255,7 @@ export default function LatexToolbar({
 									size='sm'
 									onClick={onSyncToPdf}
 									disabled={isCompiling}
-									className='h-8 border border-gray-200 hover:bg-gray-50 flex items-center gap-1 px-3 text-[10px] uppercase font-bold tracking-wider text-gray-700 bg-white rounded-md mr-1'
+									className='h-8 border border-border hover:bg-muted flex items-center gap-1 px-3 text-[10px] uppercase font-bold tracking-wider text-foreground bg-background rounded-md mr-1'
 								>
 									Sync ➔ PDF
 								</Button>
@@ -266,10 +266,10 @@ export default function LatexToolbar({
 									variant={autoCompile ? 'secondary' : 'ghost'}
 									size='sm'
 									onClick={toggleAutoCompile}
-									className={`h-8 px-2.5 text-[10px] uppercase font-bold tracking-wider mr-1 border border-gray-200 rounded-md ${
+									className={`h-8 px-2.5 text-[10px] uppercase font-bold tracking-wider mr-1 border border-border rounded-md ${
 										autoCompile
-											? 'bg-green-50 hover:bg-green-100 text-green-700 border-green-200'
-											: 'text-gray-500 hover:text-gray-700 bg-white'
+											? 'bg-green-500/10 hover:bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/20'
+											: 'text-muted-foreground hover:text-foreground bg-background'
 									}`}
 								>
 									Auto-Compile: {autoCompile ? 'ON' : 'OFF'}
@@ -302,37 +302,40 @@ export default function LatexToolbar({
 											<ChevronDown className='h-3.5 w-3.5' />
 										</Button>
 									</DropdownMenuTrigger>
-									<DropdownMenuContent align='end' className='w-48 text-xs font-medium z-[2000]'>
-										<div className='px-2 py-1.5 text-[10px] uppercase text-gray-500 font-bold tracking-wider'>
+									<DropdownMenuContent
+										align='end'
+										className='w-48 text-xs font-medium z-[2000] bg-popover text-popover-foreground border-border'
+									>
+										<div className='px-2 py-1.5 text-[10px] uppercase text-muted-foreground font-bold tracking-wider'>
 											Compiler Engine
 										</div>
 										<DropdownMenuItem
 											onClick={() => onCompilerModeChange?.('server')}
-											className={`flex items-center justify-between cursor-pointer py-2 ${compilerMode === 'server' ? 'bg-blue-50 text-blue-700' : ''}`}
+											className={`flex items-center justify-between cursor-pointer py-2 ${compilerMode === 'server' ? 'bg-primary/10 text-primary font-semibold' : ''}`}
 										>
 											<span className='flex flex-col gap-0.5'>
 												<span>Tectonic (Server)</span>
-												<span className='text-[10px] text-gray-500 font-normal'>
+												<span className='text-[10px] text-muted-foreground font-normal'>
 													Modern LaTeX engine with auto-package management
 												</span>
 											</span>
 											{compilerMode === 'server' && (
-												<div className='w-1.5 h-1.5 rounded-full bg-blue-600'></div>
+												<div className='w-1.5 h-1.5 rounded-full bg-primary'></div>
 											)}
 										</DropdownMenuItem>
-										<DropdownMenuSeparator />
+										<DropdownMenuSeparator className='bg-border' />
 										<DropdownMenuItem
 											onClick={() => onCompilerModeChange?.('server_pdflatex')}
-											className={`flex items-center justify-between cursor-pointer py-2 ${compilerMode === 'server_pdflatex' ? 'bg-blue-50 text-blue-700' : ''}`}
+											className={`flex items-center justify-between cursor-pointer py-2 ${compilerMode === 'server_pdflatex' ? 'bg-primary/10 text-primary font-semibold' : ''}`}
 										>
 											<span className='flex flex-col gap-0.5'>
 												<span>pdflatex (Server)</span>
-												<span className='text-[10px] text-gray-500 font-normal'>
+												<span className='text-[10px] text-muted-foreground font-normal'>
 													Standard pdflatex on backend
 												</span>
 											</span>
 											{compilerMode === 'server_pdflatex' && (
-												<div className='w-1.5 h-1.5 rounded-full bg-blue-600'></div>
+												<div className='w-1.5 h-1.5 rounded-full bg-primary'></div>
 											)}
 										</DropdownMenuItem>
 									</DropdownMenuContent>

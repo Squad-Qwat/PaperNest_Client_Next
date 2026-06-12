@@ -204,7 +204,7 @@ export function CodeViewer({ file, readOnly = false, onChange, onViewReady }: Co
 		<div className='flex-1 min-h-0 w-full relative flex flex-col h-full'>
 			<div ref={containerRef} className='flex-1 min-h-0 w-full cm-editor-container' />
 			{isSaving && (
-				<div className='absolute bottom-3 right-3 bg-white/90 backdrop-blur border border-gray-200 px-2 py-1 rounded shadow-sm flex items-center gap-1.5 text-xs text-gray-500 z-10'>
+				<div className='absolute bottom-3 right-3 bg-popover/90 backdrop-blur border border-border px-2 py-1 rounded shadow-sm flex items-center gap-1.5 text-xs text-muted-foreground z-10'>
 					<Loader2 className='w-3.5 h-3.5 animate-spin text-blue-500' />
 					Saving...
 				</div>

@@ -4,6 +4,7 @@ import { ArrowUpDown, ClipboardCheck, FileText } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
 import { ReviewContentSkeleton } from '@/components/layout/DashboardSkeleton'
+import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import { ReviewCard } from '@/components/review/ReviewCard'
 import {
 	Breadcrumb,
@@ -105,31 +106,36 @@ export default function ReviewsPage() {
 
 	return (
 		<>
-			<header className='flex h-16 shrink-0 items-center gap-2 px-4 bg-white border-b sticky top-0 z-30 rounded-t-2xl'>
-				<SidebarTrigger className='-ml-1' />
-				<Separator orientation='vertical' className='mr-2 h-4' />
-				<Breadcrumb>
-					<BreadcrumbList>
-						<BreadcrumbItem className='hidden md:block'>
-							<BreadcrumbLink href='#'>PaperNest</BreadcrumbLink>
-						</BreadcrumbItem>
-						<BreadcrumbSeparator className='hidden md:block' />
-						<BreadcrumbItem>
-							<BreadcrumbLink href={`/${workspaceId}`}>{workspace?.title}</BreadcrumbLink>
-						</BreadcrumbItem>
-						<BreadcrumbSeparator className='hidden md:block' />
-						<BreadcrumbItem>
-							<BreadcrumbPage>Reviews</BreadcrumbPage>
-						</BreadcrumbItem>
-					</BreadcrumbList>
-				</Breadcrumb>
+			<header className='flex h-16 shrink-0 items-center justify-between gap-2 px-4 bg-background border-b border-border sticky top-0 z-30 rounded-t-2xl'>
+				<div className='flex items-center gap-2'>
+					<SidebarTrigger className='-ml-1' />
+					<Separator orientation='vertical' className='mr-2 h-4' />
+					<Breadcrumb>
+						<BreadcrumbList>
+							<BreadcrumbItem className='hidden md:block'>
+								<BreadcrumbLink href='#'>PaperNest</BreadcrumbLink>
+							</BreadcrumbItem>
+							<BreadcrumbSeparator className='hidden md:block' />
+							<BreadcrumbItem>
+								<BreadcrumbLink href={`/${workspaceId}`}>{workspace?.title}</BreadcrumbLink>
+							</BreadcrumbItem>
+							<BreadcrumbSeparator className='hidden md:block' />
+							<BreadcrumbItem>
+								<BreadcrumbPage>Reviews</BreadcrumbPage>
+							</BreadcrumbItem>
+						</BreadcrumbList>
+					</Breadcrumb>
+				</div>
+				<div className='ml-auto'>
+					<ThemeToggle />
+				</div>
 			</header>
 
 			<main className='flex-1 p-6 w-full overflow-y-auto'>
 				<div className='mb-8 flex items-center justify-between'>
 					<div>
-						<h2 className='text-2xl font-bold text-gray-900'>Reviews</h2>
-						<p className='text-sm text-gray-500 mt-1'>
+						<h2 className='text-2xl font-bold text-foreground'>Reviews</h2>
+						<p className='text-sm text-muted-foreground mt-1'>
 							Manage review requests for your documents in the workspace {workspace?.title}
 						</p>
 					</div>
@@ -147,7 +153,7 @@ export default function ReviewsPage() {
 					<div className='flex flex-wrap items-center gap-3'>
 						<div className='flex items-center gap-2 overflow-x-auto pb-1 md:pb-0'>
 							<Select value={docFilter} onValueChange={setDocFilter}>
-								<SelectTrigger className='bg-white h-10 min-w-[200px]'>
+								<SelectTrigger className='bg-background h-10 min-w-[200px]'>
 									<FileText className='h-4 w-4 mr-2 text-muted-foreground' />
 									<SelectValue placeholder='All Documents' />
 								</SelectTrigger>
@@ -162,7 +168,7 @@ export default function ReviewsPage() {
 							</Select>
 
 							<Select value={statusFilter} onValueChange={setStatusFilter}>
-								<SelectTrigger className='bg-white h-10 min-w-[160px]'>
+								<SelectTrigger className='bg-background h-10 min-w-[160px]'>
 									<ClipboardCheck className='h-4 w-4 mr-2 text-muted-foreground' />
 									<SelectValue placeholder='All Statuses' />
 								</SelectTrigger>
@@ -176,7 +182,7 @@ export default function ReviewsPage() {
 							</Select>
 
 							<Select value={sortOrder} onValueChange={setSortOrder}>
-								<SelectTrigger className='bg-white h-10 min-w-[130px]'>
+								<SelectTrigger className='bg-background h-10 min-w-[130px]'>
 									<ArrowUpDown className='h-4 w-4 mr-2 text-muted-foreground' />
 									<SelectValue placeholder='Sort By' />
 								</SelectTrigger>
@@ -189,15 +195,15 @@ export default function ReviewsPage() {
 					</div>
 				</div>
 
-				<h2 className='text-lg font-bold text-gray-900 mb-4'>
+				<h2 className='text-lg font-bold text-foreground mb-4'>
 					All Reviews ({filteredReviews.length})
 				</h2>
 
 				{filteredReviews.length === 0 ? (
-					<div className='text-center py-16 bg-white rounded-lg border border-dashed border-gray-200'>
-						<div className='inline-flex items-center justify-center h-12 w-12 rounded-full bg-gray-100 mb-4'>
+					<div className='text-center py-16 bg-card rounded-lg border border-dashed border-border'>
+						<div className='inline-flex items-center justify-center h-12 w-12 rounded-full bg-muted mb-4'>
 							<svg
-								className='h-6 w-6 text-gray-400'
+								className='h-6 w-6 text-muted-foreground'
 								fill='none'
 								stroke='currentColor'
 								viewBox='0 0 24 24'
@@ -210,8 +216,10 @@ export default function ReviewsPage() {
 								/>
 							</svg>
 						</div>
-						<p className='text-gray-600 font-medium mb-1'>No reviews found</p>
-						<p className='text-gray-500 text-sm'>Try adjusting your search or filter criteria</p>
+						<p className='text-foreground font-medium mb-1'>No reviews found</p>
+						<p className='text-muted-foreground text-sm'>
+							Try adjusting your search or filter criteria
+						</p>
 					</div>
 				) : (
 					<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>

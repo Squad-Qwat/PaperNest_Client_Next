@@ -129,13 +129,13 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
 		<Modal isOpen={isOpen} onClose={handleClose} title='Create New Workspace'>
 			<form onSubmit={handleSubmit} className='space-y-4'>
 				{error && (
-					<div className='p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm'>
+					<div className='p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm'>
 						{error}
 					</div>
 				)}
 
 				<div className='space-y-2'>
-					<Label className='text-gray-900 font-normal'>Workspace Icon</Label>
+					<Label className='text-foreground font-normal'>Workspace Icon</Label>
 					<div className='grid grid-cols-5 gap-2'>
 						{workspaceIcons.map((iconOption) => (
 							<button
@@ -145,7 +145,7 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
 								className={`p-3 text-2xl border rounded-lg transition-all hover:scale-105 ${
 									icon === iconOption
 										? 'bg-primary/10 border-primary text-primary'
-										: 'bg-white border-gray-200 hover:border-gray-300'
+										: 'bg-card border-border hover:border-muted-foreground text-foreground'
 								}`}
 								disabled={loading}
 							>

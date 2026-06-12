@@ -12,14 +12,8 @@ import type {
 	DocumentWithRoomStateResponse,
 	UpdateDocumentContentDto,
 	UpdateDocumentDto,
-	VersionsResponse,
 } from '../types/document.types'
-import type {
-	CreateReviewDto,
-	Review,
-	ReviewsResponse,
-	UpdateReviewStatusDto,
-} from '../types/review.types'
+import type { CreateReviewDto, UpdateReviewStatusDto } from '../types/review.types'
 
 export const DOCUMENT_KEYS = {
 	all: ['documents'] as const,

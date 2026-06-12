@@ -54,12 +54,12 @@ export const CitationForm: React.FC<CitationFormProps> = ({
 	return (
 		<form onSubmit={onSubmit} className='space-y-3.5 text-xs p-1'>
 			<div>
-				<label className='block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1'>
+				<label className='block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1'>
 					<span>Reference Type</span>
 					<select
 						value={type}
 						onChange={(e) => setType(e.target.value)}
-						className='w-full p-2 border rounded border-gray-200 outline-none focus:ring-1 focus:ring-primary mt-1 bg-white'
+						className='w-full p-2 border rounded border-border outline-none focus:ring-1 focus:ring-primary mt-1 bg-background text-foreground'
 					>
 						<option value='article'>Journal Article</option>
 						<option value='book'>Book</option>
@@ -71,27 +71,27 @@ export const CitationForm: React.FC<CitationFormProps> = ({
 			</div>
 
 			<div>
-				<label className='block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1'>
+				<label className='block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1'>
 					<span>Title *</span>
 					<textarea
 						value={title}
 						placeholder={titlePlaceholder}
 						onChange={(e) => setTitle(e.target.value)}
-						className='w-full p-2 border rounded border-gray-200 outline-none focus:ring-1 focus:ring-primary h-14 resize-none mt-1'
+						className='w-full p-2 border rounded border-border outline-none focus:ring-1 focus:ring-primary h-14 resize-none mt-1 bg-background text-foreground'
 						required
 					/>
 				</label>
 			</div>
 
 			<div>
-				<label className='block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1'>
+				<label className='block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1'>
 					<span>Author(s) *</span>
 					<input
 						type='text'
 						placeholder={authorPlaceholder}
 						value={author}
 						onChange={(e) => setAuthor(e.target.value)}
-						className='w-full p-2 border rounded border-gray-200 outline-none focus:ring-1 focus:ring-primary mt-1'
+						className='w-full p-2 border rounded border-border outline-none focus:ring-1 focus:ring-primary mt-1 bg-background text-foreground'
 						required
 					/>
 				</label>
@@ -99,26 +99,26 @@ export const CitationForm: React.FC<CitationFormProps> = ({
 
 			<div className='grid grid-cols-2 gap-2'>
 				<div>
-					<label className='block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1'>
+					<label className='block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1'>
 						<span>Journal/Venue</span>
 						<input
 							type='text'
 							placeholder='e.g., Nature AI'
 							value={venue}
 							onChange={(e) => setVenue(e.target.value)}
-							className='w-full p-2 border rounded border-gray-200 outline-none focus:ring-1 focus:ring-primary mt-1'
+							className='w-full p-2 border rounded border-border outline-none focus:ring-1 focus:ring-primary mt-1 bg-background text-foreground'
 						/>
 					</label>
 				</div>
 				<div>
-					<label className='block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1'>
+					<label className='block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1'>
 						<span>Year</span>
 						<input
 							type='text'
 							placeholder='e.g., 2025'
 							value={year}
 							onChange={(e) => setYear(e.target.value)}
-							className='w-full p-2 border rounded border-gray-200 outline-none focus:ring-1 focus:ring-primary mt-1'
+							className='w-full p-2 border rounded border-border outline-none focus:ring-1 focus:ring-primary mt-1 bg-background text-foreground'
 						/>
 					</label>
 				</div>
@@ -126,26 +126,26 @@ export const CitationForm: React.FC<CitationFormProps> = ({
 
 			<div className='grid grid-cols-2 gap-2'>
 				<div>
-					<label className='block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1'>
+					<label className='block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1'>
 						<span>DOI</span>
 						<input
 							type='text'
 							placeholder='e.g., 10.1038/s415'
 							value={doi}
 							onChange={(e) => setDoi(e.target.value)}
-							className='w-full p-2 border rounded border-gray-200 outline-none focus:ring-1 focus:ring-primary mt-1'
+							className='w-full p-2 border rounded border-border outline-none focus:ring-1 focus:ring-primary mt-1 bg-background text-foreground'
 						/>
 					</label>
 				</div>
 				<div>
-					<label className='block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1'>
+					<label className='block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1'>
 						<span>URL</span>
 						<input
 							type='url'
 							placeholder='e.g., https://example.com'
 							value={url}
 							onChange={(e) => setUrl(e.target.value)}
-							className='w-full p-2 border rounded border-gray-200 outline-none focus:ring-1 focus:ring-primary mt-1'
+							className='w-full p-2 border rounded border-border outline-none focus:ring-1 focus:ring-primary mt-1 bg-background text-foreground'
 						/>
 					</label>
 				</div>
@@ -156,7 +156,7 @@ export const CitationForm: React.FC<CitationFormProps> = ({
 					<button
 						type='button'
 						onClick={onCancel}
-						className='flex-1 py-2 px-3 border border-gray-200 hover:bg-gray-50 font-semibold text-gray-600 rounded-md transition'
+						className='flex-1 py-2 px-3 border border-border hover:bg-muted font-semibold text-muted-foreground rounded-md transition'
 					>
 						Cancel
 					</button>

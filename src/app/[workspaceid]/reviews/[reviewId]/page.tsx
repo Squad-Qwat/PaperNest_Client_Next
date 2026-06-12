@@ -210,7 +210,7 @@ export default function ReviewDetailPage() {
 	if (!reviewData) {
 		return (
 			<div className='h-screen flex flex-col items-center justify-center bg-background gap-4'>
-				<h2 className='text-lg font-semibold text-gray-900'>Review not found</h2>
+				<h2 className='text-lg font-semibold text-foreground'>Review not found</h2>
 				<Button variant='outline' onClick={handleBack}>
 					Back to Review List
 				</Button>
@@ -284,8 +284,8 @@ export default function ReviewDetailPage() {
 				{/* Right side: Review Sidebar Details */}
 				<div className='w-full lg:w-96 flex flex-col shrink-0 gap-6 overflow-y-auto'>
 					{/* Student Requester Info & Message Card */}
-					<Card className='p-5 space-y-4 rounded-2xl border-gray-200/60 shadow-sm bg-white'>
-						<div className='flex items-center gap-3 border-b border-gray-100 pb-3'>
+					<Card className='p-5 space-y-4 rounded-2xl border-border/60 shadow-sm bg-card'>
+						<div className='flex items-center gap-3 border-b border-border pb-3'>
 							<Avatar className='h-9 w-9'>
 								<AvatarImage
 									src={
@@ -298,7 +298,7 @@ export default function ReviewDetailPage() {
 								</AvatarFallback>
 							</Avatar>
 							<div className='flex-1 min-w-0'>
-								<p className='text-sm font-bold text-gray-900 truncate'>{studentName}</p>
+								<p className='text-sm font-bold text-foreground truncate'>{studentName}</p>
 								<p className='text-xs text-muted-foreground font-semibold uppercase tracking-wider'>
 									Review Requester
 								</p>
@@ -309,7 +309,7 @@ export default function ReviewDetailPage() {
 							<Label className='text-xs font-semibold text-muted-foreground uppercase tracking-wider block'>
 								Message
 							</Label>
-							<div className='p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 leading-relaxed font-normal whitespace-pre-line'>
+							<div className='p-3 bg-muted/50 border border-border rounded-lg text-sm text-foreground leading-relaxed font-normal whitespace-pre-line'>
 								{reviewData.message || 'No message provided.'}
 							</div>
 						</div>
@@ -317,8 +317,8 @@ export default function ReviewDetailPage() {
 
 					{/* Review Status or Actions Card */}
 					{isPending && isLecturer ? (
-						<Card className='p-5 space-y-4 rounded-2xl border-gray-200/60 shadow-sm bg-white'>
-							<h3 className='text-sm font-bold text-gray-900 uppercase tracking-wider border-b border-gray-100 pb-3'>
+						<Card className='p-5 space-y-4 rounded-2xl border-border/60 shadow-sm bg-card'>
+							<h3 className='text-sm font-bold text-foreground uppercase tracking-wider border-b border-border pb-3'>
 								Determine Decision
 							</h3>
 
@@ -346,16 +346,16 @@ export default function ReviewDetailPage() {
 								</Button>
 							</div>
 
-							<div className='p-3 bg-gray-50 rounded-lg border border-gray-100'>
-								<p className='text-xs text-gray-500 leading-normal'>
+							<div className='p-3 bg-muted/50 rounded-lg border border-border'>
+								<p className='text-xs text-muted-foreground leading-normal'>
 									Please review the document in the left panel before making a decision.
 								</p>
 							</div>
 						</Card>
 					) : (
 						/* Decided Review Card */
-						<Card className='p-5 space-y-4 rounded-2xl border-gray-200/60 shadow-sm bg-white'>
-							<div className='flex items-center gap-3 border-b border-gray-100 pb-3'>
+						<Card className='p-5 space-y-4 rounded-2xl border-border/60 shadow-sm bg-card'>
+							<div className='flex items-center gap-3 border-b border-border pb-3'>
 								<Avatar className='h-9 w-9'>
 									<AvatarImage
 										src={
@@ -368,7 +368,7 @@ export default function ReviewDetailPage() {
 									</AvatarFallback>
 								</Avatar>
 								<div className='flex-1 min-w-0'>
-									<p className='text-sm font-bold text-gray-900 truncate'>{lecturerName}</p>
+									<p className='text-sm font-bold text-foreground truncate'>{lecturerName}</p>
 									<p className='text-xs text-muted-foreground font-semibold uppercase tracking-wider'>
 										Reviewer
 									</p>
@@ -380,11 +380,11 @@ export default function ReviewDetailPage() {
 									Feedback / Reviewer Notes
 								</Label>
 								{isPending ? (
-									<div className='p-3 bg-yellow-50/50 border border-yellow-100 rounded-lg text-sm text-yellow-800'>
+									<div className='p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-sm text-yellow-600 dark:text-yellow-400'>
 										<span>Awaiting response and assessment from the Reviewer.</span>
 									</div>
 								) : (
-									<div className='p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 leading-relaxed font-normal whitespace-pre-line'>
+									<div className='p-3 bg-muted/50 border border-border rounded-lg text-sm text-foreground leading-relaxed font-normal whitespace-pre-line'>
 										{reviewData.lecturerMessage || 'No additional notes.'}
 									</div>
 								)}
@@ -393,19 +393,21 @@ export default function ReviewDetailPage() {
 					)}
 
 					{/* Document Navigation Card */}
-					<Card className='p-5 rounded-2xl border-gray-200/60 shadow-sm bg-white space-y-4'>
-						<h3 className='text-xs font-bold text-muted-foreground uppercase tracking-wider border-b border-gray-100 pb-3'>
+					<Card className='p-5 rounded-2xl border-border/60 shadow-sm bg-card space-y-4'>
+						<h3 className='text-xs font-bold text-muted-foreground uppercase tracking-wider border-b border-border pb-3'>
 							Document Information
 						</h3>
 						<div className='space-y-3'>
 							<div className='flex items-center justify-between text-sm'>
-								<span className='text-gray-500'>Document Name</span>
-								<span className='font-bold text-gray-900 truncate max-w-[150px]'>{docTitle}</span>
+								<span className='text-muted-foreground'>Document Name</span>
+								<span className='font-bold text-foreground truncate max-w-[150px]'>{docTitle}</span>
 							</div>
 							<Separator className='opacity-50' />
 							<div className='flex items-center justify-between text-sm'>
-								<span className='text-gray-500'>Version</span>
-								<span className='font-bold text-gray-900'>V{reviewData.versionNumber || '?'}</span>
+								<span className='text-muted-foreground'>Version</span>
+								<span className='font-bold text-foreground'>
+									V{reviewData.versionNumber || '?'}
+								</span>
 							</div>
 						</div>
 

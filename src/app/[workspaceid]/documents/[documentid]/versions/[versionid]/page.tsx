@@ -252,12 +252,12 @@ export default function VersionDetailPage() {
 				</div>
 
 				<div className='w-full lg:w-96 flex flex-col shrink-0 gap-6 overflow-y-auto'>
-					<Card className='p-6 space-y-6 rounded-2xl border-gray-200/60 shadow-sm'>
-						<div className='flex items-center justify-between border-b border-gray-100 pb-4'>
-							<h3 className='text-sm font-bold text-gray-900 uppercase tracking-wider'>
+					<Card className='p-6 space-y-6 rounded-2xl border-border/60 shadow-sm bg-card'>
+						<div className='flex items-center justify-between border-b border-border pb-4'>
+							<h3 className='text-sm font-bold text-foreground uppercase tracking-wider'>
 								Metadata Versi
 							</h3>
-							<div className='px-2 py-1 bg-gray-100 rounded text-[10px] font-bold text-gray-500'>
+							<div className='px-2 py-1 bg-muted rounded text-[10px] font-bold text-muted-foreground'>
 								V{version.versionNumber}
 							</div>
 						</div>
@@ -270,7 +270,7 @@ export default function VersionDetailPage() {
 										version.user?.name || version.user?.username || version.userId || 'User'
 									return (
 										<>
-											<Avatar className='h-10 w-10 border-2 border-white shadow-sm'>
+											<Avatar className='h-10 w-10 border-2 border-background shadow-sm'>
 												<AvatarImage
 													src={
 														getMediaUrl(version.user?.photoURL) ||
@@ -282,11 +282,11 @@ export default function VersionDetailPage() {
 												</AvatarFallback>
 											</Avatar>
 											<div className='flex flex-col'>
-												<span className='text-sm font-bold text-gray-900 leading-none mb-1'>
+												<span className='text-sm font-bold text-foreground leading-none mb-1'>
 													{displayName}
 												</span>
-												<div className='flex items-center gap-1.5 text-[10px] text-gray-500 font-medium'>
-													<span className='px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-sm uppercase tracking-tight'>
+												<div className='flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium'>
+													<span className='px-1.5 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-sm uppercase tracking-tight'>
 														Author
 													</span>
 													<span className='opacity-30'>•</span>
@@ -300,12 +300,12 @@ export default function VersionDetailPage() {
 
 							{/* Commit Message / Student Request */}
 							<div className='space-y-2'>
-								<div className='flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest'>
+								<div className='flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest'>
 									<MessageSquare className='w-3 h-3' />
 									Pesan Komit
 								</div>
-								<div className='bg-gray-50/80 rounded-xl p-4 border border-gray-100'>
-									<p className='text-sm text-gray-700 leading-relaxed italic'>
+								<div className='bg-muted/50 rounded-xl p-4 border border-border'>
+									<p className='text-sm text-foreground leading-relaxed italic'>
 										"{version.message || 'Tidak ada pesan komit.'}"
 									</p>
 								</div>
@@ -313,9 +313,9 @@ export default function VersionDetailPage() {
 
 							{/* Review Section */}
 							{versionReview && (
-								<div className='pt-6 border-t border-gray-100 space-y-4'>
+								<div className='pt-6 border-t border-border space-y-4'>
 									<div className='flex items-center justify-between'>
-										<div className='text-[10px] font-bold text-gray-400 uppercase tracking-widest'>
+										<div className='text-[10px] font-bold text-muted-foreground uppercase tracking-widest'>
 											Status Review
 										</div>
 										<ReviewStatusBadge status={versionReview.status} />
@@ -325,19 +325,19 @@ export default function VersionDetailPage() {
 										<div className='space-y-3 animate-in fade-in slide-in-from-top-2 duration-300'>
 											<div className='flex items-center gap-2'>
 												<div className='h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse' />
-												<span className='text-[10px] font-bold text-gray-500 uppercase tracking-tight'>
+												<span className='text-[10px] font-bold text-muted-foreground uppercase tracking-tight'>
 													Umpan Balik Dosen
 												</span>
 											</div>
-											<div className='bg-green-50/30 rounded-xl p-4 border border-green-100/50'>
-												<p className='text-sm text-gray-800 leading-relaxed'>
+											<div className='bg-green-500/10 rounded-xl p-4 border border-green-500/20'>
+												<p className='text-sm text-foreground leading-relaxed'>
 													{versionReview.lecturerMessage ||
 														versionReview.message ||
 														'Versi telah disetujui tanpa catatan tambahan.'}
 												</p>
 											</div>
 											{versionReview.reviewedAt && (
-												<p className='text-[10px] text-gray-400 text-right'>
+												<p className='text-[10px] text-muted-foreground text-right'>
 													Ditinjau pada{' '}
 													{format(versionReview.reviewedAt, 'd MMMM yyyy', { locale: id })}
 												</p>
@@ -386,7 +386,7 @@ export default function VersionDetailPage() {
 							onValueChange={(value) => setSelectedLecturerId(value)}
 							required
 						>
-							<SelectTrigger id='lecturer-select' className='w-full bg-white'>
+							<SelectTrigger id='lecturer-select' className='w-full bg-background border-border'>
 								<SelectValue placeholder='-- Pilih Dosen --' />
 							</SelectTrigger>
 							<SelectContent className='z-[1025]'>

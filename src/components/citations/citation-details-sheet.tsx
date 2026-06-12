@@ -26,23 +26,23 @@ export function CitationDetailsSheet({
 				<ScrollArea className='flex-1'>
 					<div className='p-6 space-y-6'>
 						<div>
-							<h3 className='text-lg font-bold text-gray-900'>{citation.title}</h3>
-							<p className='text-gray-500 mt-1'>{citation.author}</p>
+							<h3 className='text-lg font-bold text-foreground'>{citation.title}</h3>
+							<p className='text-muted-foreground mt-1'>{citation.author}</p>
 						</div>
 
 						<div className='space-y-4'>
 							<div className='grid grid-cols-3 gap-4'>
-								<div className='text-sm text-gray-500'>Type</div>
+								<div className='text-sm text-muted-foreground'>Type</div>
 								<div className='col-span-2 text-sm font-medium capitalize'>{citation.type}</div>
 							</div>
 
 							<div className='grid grid-cols-3 gap-4'>
-								<div className='text-sm text-gray-500'>Publication</div>
+								<div className='text-sm text-muted-foreground'>Publication</div>
 								<div className='col-span-2 text-sm font-medium'>{citation.publicationInfo}</div>
 							</div>
 
 							<div className='grid grid-cols-3 gap-4'>
-								<div className='text-sm text-gray-500'>Year</div>
+								<div className='text-sm text-muted-foreground'>Year</div>
 								<div className='col-span-2 text-sm font-medium'>
 									{citation.year || citation.publicationDate}
 								</div>
@@ -50,14 +50,14 @@ export function CitationDetailsSheet({
 
 							{citation.doi && (
 								<div className='grid grid-cols-3 gap-4'>
-									<div className='text-sm text-gray-500'>DOI</div>
+									<div className='text-sm text-muted-foreground'>DOI</div>
 									<div className='col-span-2 text-sm font-mono text-primary'>{citation.doi}</div>
 								</div>
 							)}
 
 							{citation.url && (
-								<div className='grid grid-cols-3 gap-4 pt-4 border-t border-gray-100'>
-									<div className='text-sm text-gray-500'>URL</div>
+								<div className='grid grid-cols-3 gap-4 pt-4 border-t border-border'>
+									<div className='text-sm text-muted-foreground'>URL</div>
 									<div className='col-span-2'>
 										<Button variant='outline' className='w-full justify-start' asChild>
 											<a href={citation.url} target='_blank' rel='noopener noreferrer'>

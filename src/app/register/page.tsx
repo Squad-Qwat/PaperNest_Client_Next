@@ -335,7 +335,7 @@ export default function RegisterPage() {
 				<div className='w-full max-w-sm space-y-6 overflow-hidden'>
 					{/* Error Message */}
 					{displayError && (
-						<div className='mb-6 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm text-center'>
+						<div className='mb-6 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm text-center'>
 							{displayError}
 						</div>
 					)}
@@ -355,8 +355,8 @@ export default function RegisterPage() {
 								<div className='space-y-6'>
 									{/* Title */}
 									<div className='text-center'>
-										<h1 className='text-2xl font-bold text-gray-900 mb-2'>Create your account</h1>
-										<p className='text-sm text-gray-500'>
+										<h1 className='text-2xl font-bold text-foreground mb-2'>Create your account</h1>
+										<p className='text-sm text-muted-foreground'>
 											Step {currentStep} of {totalSteps} - Account
 										</p>
 									</div>
@@ -395,10 +395,10 @@ export default function RegisterPage() {
 									{/* Divider */}
 									<div className='relative'>
 										<div className='absolute inset-0 flex items-center'>
-											<div className='w-full border-t border-gray-200'></div>
+											<div className='w-full border-t border-border'></div>
 										</div>
 										<div className='relative flex justify-center text-sm'>
-											<span className='px-4 bg-white text-gray-500'>
+											<span className='px-4 bg-background text-muted-foreground'>
 												Or Continue With Your Credentials
 											</span>
 										</div>
@@ -406,7 +406,7 @@ export default function RegisterPage() {
 
 									{/* Email Input */}
 									<div className='space-y-2'>
-										<Label htmlFor='email' className='text-gray-900 font-normal'>
+										<Label htmlFor='email' className='text-foreground font-normal'>
 											Email
 										</Label>
 										<Input
@@ -427,8 +427,10 @@ export default function RegisterPage() {
 							{currentStep === 2 && (
 								<div className='space-y-6'>
 									<div className='text-center'>
-										<h1 className='text-2xl font-bold text-gray-900 mb-2'>Create a new password</h1>
-										<p className='text-sm text-gray-500'>
+										<h1 className='text-2xl font-bold text-foreground mb-2'>
+											Create a new password
+										</h1>
+										<p className='text-sm text-muted-foreground'>
 											Step {currentStep} of {totalSteps} - Password
 										</p>
 									</div>
@@ -536,14 +538,14 @@ export default function RegisterPage() {
 								<div className='space-y-6'>
 									{/* Title */}
 									<div className='text-center'>
-										<h1 className='text-2xl font-bold text-gray-900 mb-2'>Your credentials</h1>
-										<p className='text-sm text-gray-500'>
+										<h1 className='text-2xl font-bold text-foreground mb-2'>Your credentials</h1>
+										<p className='text-sm text-muted-foreground'>
 											Step {currentStep} of {totalSteps} - User Details
 										</p>
 									</div>
 
 									<div className='space-y-2'>
-										<Label htmlFor='name' className='text-gray-900 font-normal'>
+										<Label htmlFor='name' className='text-foreground font-normal'>
 											Full Name
 										</Label>
 										<Input
@@ -557,7 +559,7 @@ export default function RegisterPage() {
 									</div>
 
 									<div className='space-y-2'>
-										<Label htmlFor='username' className='text-gray-900 font-normal'>
+										<Label htmlFor='username' className='text-foreground font-normal'>
 											Username
 										</Label>
 										<Input
@@ -571,7 +573,7 @@ export default function RegisterPage() {
 									</div>
 
 									<div className='space-y-2'>
-										<Label className='text-gray-900 font-normal'>Select role</Label>
+										<Label className='text-foreground font-normal'>Select role</Label>
 										<div className=''>
 											<Select
 												value={formData.role}
@@ -595,8 +597,10 @@ export default function RegisterPage() {
 								<div className='space-y-6'>
 									{/* Title */}
 									<div className='text-center'>
-										<h1 className='text-2xl font-bold text-gray-900 mb-2'>Create Your Workspace</h1>
-										<p className='text-sm text-gray-500'>
+										<h1 className='text-2xl font-bold text-foreground mb-2'>
+											Create Your Workspace
+										</h1>
+										<p className='text-sm text-muted-foreground'>
 											Step {currentStep} of {totalSteps} - Workspace Setup
 										</p>
 									</div>
@@ -604,7 +608,7 @@ export default function RegisterPage() {
 									{/* Create Workspace Form */}
 									<div className='space-y-6'>
 										<div className='space-y-2'>
-											<Label className='text-gray-900 font-normal'>Workspace Icon</Label>
+											<Label className='text-foreground font-normal'>Workspace Icon</Label>
 											<div className='grid grid-cols-5 gap-2'>
 												{workspaceIcons.map((icon) => (
 													<button
@@ -613,8 +617,8 @@ export default function RegisterPage() {
 														onClick={() => updateFormData('workspaceIcon', icon)}
 														className={`p-3 text-2xl border rounded-lg transition-all hover:scale-105 ${
 															formData.workspaceIcon === icon
-																? 'bg-teal-500 border-teal-400'
-																: 'bg-white border-gray-200 hover:border-gray-300'
+																? 'bg-teal-500 border-teal-400 text-white'
+																: 'bg-muted/50 border-border hover:bg-muted text-foreground'
 														}`}
 													>
 														{icon}
@@ -624,7 +628,7 @@ export default function RegisterPage() {
 										</div>
 
 										<div className='space-y-2'>
-											<Label htmlFor='workspaceTitle' className='text-gray-900 font-normal'>
+											<Label htmlFor='workspaceTitle' className='text-foreground font-normal'>
 												Workspace Title <span className='text-red-500'>*</span>
 											</Label>
 											<Input
@@ -640,7 +644,7 @@ export default function RegisterPage() {
 										</div>
 
 										<div className='space-y-2'>
-											<Label htmlFor='workspaceDescription' className='text-gray-900 font-normal'>
+											<Label htmlFor='workspaceDescription' className='text-foreground font-normal'>
 												Workspace Description (Optional)
 											</Label>
 											<Textarea
@@ -689,11 +693,11 @@ export default function RegisterPage() {
 
 					{/* Login Link */}
 					{currentStep === 1 && (
-						<div className='mt-6 text-center text-sm text-gray-600'>
+						<div className='mt-6 text-center text-sm text-muted-foreground'>
 							Have an account?{' '}
 							<Link
 								href='/login'
-								className='text-gray-900 hover:text-gray-700 font-medium underline transition-colors'
+								className='text-foreground hover:text-muted-foreground font-medium underline transition-colors'
 							>
 								Log in
 							</Link>

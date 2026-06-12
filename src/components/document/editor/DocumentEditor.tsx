@@ -49,7 +49,7 @@ export default function DocumentEditor({
 	onAuxiliaryFileChange,
 }: DocumentEditorProps) {
 	return (
-		<div className='w-full h-full flex-1 overflow-hidden bg-white'>
+		<div className='w-full h-full flex-1 overflow-hidden bg-background'>
 			<LatexEditor
 				documentId={document?.documentId}
 				user={user}

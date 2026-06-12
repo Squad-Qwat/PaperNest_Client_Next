@@ -3,9 +3,10 @@
 import { FileText, Trash2 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useParams, useRouter } from 'next/navigation'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { DashboardContentSkeleton } from '@/components/layout/DashboardSkeleton'
+import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import { TemplateGallery } from '@/components/templates/TemplateGallery'
 import {
 	Breadcrumb,
@@ -57,7 +58,11 @@ export default function WorkspacePage() {
 		documentId: undefined,
 		workspaceId,
 	})
-	const { clearChat } = useAIChatStore()
+	const { clearChat, switchContext } = useAIChatStore()
+
+	useEffect(() => {
+		switchContext(workspaceId ? `${workspaceId}_dashboard` : 'dashboard')
+	}, [workspaceId, switchContext])
 
 	const aiStatus = useMemo(() => {
 		if (!isStreaming) return 'ready'
@@ -155,10 +160,10 @@ export default function WorkspacePage() {
 
 	if (workspaceError) {
 		return (
-			<div className='min-h-screen bg-white flex items-center justify-center'>
+			<div className='min-h-screen bg-background flex items-center justify-center'>
 				<div className='text-center'>
-					<p className='text-red-600 mb-4'>{workspaceError}</p>
-					<p className='text-gray-600 mb-4'>You don't have access to this workspace</p>
+					<p className='text-destructive mb-4'>{workspaceError}</p>
+					<p className='text-muted-foreground mb-4'>You don't have access to this workspace</p>
 					<Button onClick={() => router.push('/')}>Go to Home</Button>
 				</div>
 			</div>
@@ -167,9 +172,9 @@ export default function WorkspacePage() {
 
 	if (!workspace) {
 		return (
-			<div className='min-h-screen bg-white flex items-center justify-center'>
+			<div className='min-h-screen bg-background flex items-center justify-center'>
 				<div className='text-center'>
-					<p className='text-gray-600 mb-4'>Workspace not found</p>
+					<p className='text-muted-foreground mb-4'>Workspace not found</p>
 					<Button onClick={() => router.push('/')}>Go to Home</Button>
 				</div>
 			</div>
@@ -178,7 +183,7 @@ export default function WorkspacePage() {
 
 	return (
 		<>
-			<header className='flex h-16 shrink-0 items-center justify-between gap-2 px-4 bg-white border-b sticky top-0 z-30 rounded-t-2xl'>
+			<header className='flex h-16 shrink-0 items-center justify-between gap-2 px-4 bg-background border-b border-border sticky top-0 z-30 rounded-t-2xl'>
 				<div className='flex items-center gap-2'>
 					<SidebarTrigger className='-ml-1' />
 					<Separator orientation='vertical' className='mr-2 h-4' />
@@ -195,25 +200,24 @@ export default function WorkspacePage() {
 					</Breadcrumb>
 				</div>
 
-				{/* Back Button in header when in AI chat mode */}
-				{isChatActive && (
-					<motion.div
-						initial={{ opacity: 0, scale: 0.95 }}
-						animate={{ opacity: 1, scale: 1 }}
-						className='ml-auto'
-					>
-						<Button
-							variant='outline'
-							onClick={() => {
-								setIsChatActive(false)
-								clearChat()
-							}}
-							className='h-9 px-4 text-xs font-semibold rounded-xl text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800/80 transition-all shadow-2xs'
-						>
-							Back to Dashboard
-						</Button>
-					</motion.div>
-				)}
+				<div className='flex items-center gap-3 ml-auto'>
+					{/* Back Button in header when in AI chat mode */}
+					{isChatActive && (
+						<motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
+							<Button
+								variant='outline'
+								onClick={() => {
+									setIsChatActive(false)
+									clearChat()
+								}}
+								className='h-9 px-4 text-xs font-semibold rounded-xl text-foreground bg-background border border-border hover:bg-accent hover:text-accent-foreground transition-all shadow-2xs'
+							>
+								Back to Dashboard
+							</Button>
+						</motion.div>
+					)}
+					<ThemeToggle />
+				</div>
 			</header>
 
 			<main
@@ -233,8 +237,10 @@ export default function WorkspacePage() {
 							className='w-full flex-1 flex flex-col'
 						>
 							<div className='mb-8 flex flex-col items-center text-center'>
-								<h2 className='text-3xl font-bold text-gray-900'>What are we researching today?</h2>
-								<p className='text-gray-500 mt-2'>
+								<h2 className='text-3xl font-bold text-foreground'>
+									What are we researching today?
+								</h2>
+								<p className='text-muted-foreground mt-2'>
 									Find documents or start a new research in workspace {workspace?.title}
 								</p>
 							</div>
@@ -278,19 +284,19 @@ export default function WorkspacePage() {
 										return (
 											<div
 												key={doc.documentId}
-												className='bg-white border rounded-lg p-6 hover:border-primary transition-all group relative text-left w-full'
+												className='bg-card border border-border rounded-lg p-6 hover:border-primary transition-all group relative text-left w-full'
 											>
 												<div className='flex items-start justify-between mb-3'>
-													<h3 className='text-lg font-semibold text-gray-900 group-hover:text-primary transition-colors line-clamp-2 flex-1'>
+													<h3 className='text-lg font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2 flex-1'>
 														{doc.title}
 													</h3>
 												</div>
 
-												<p className='text-gray-600 text-sm mb-3 line-clamp-2 min-h-[40px]'>
+												<p className='text-muted-foreground text-sm mb-3 line-clamp-2 min-h-[40px]'>
 													{doc.description || 'No description'}
 												</p>
 
-												<div className='flex items-center justify-between text-xs text-gray-500 mb-4'>
+												<div className='flex items-center justify-between text-xs text-muted-foreground mb-4'>
 													<span>{format(doc.updatedAt || doc.createdAt, 'd MMMM yyyy')}</span>
 												</div>
 
@@ -311,7 +317,7 @@ export default function WorkspacePage() {
 															setDeleteConfirm(doc.documentId)
 														}}
 														disabled={isDeleting}
-														className='inline-flex items-center justify-center h-9 w-9 rounded-md border border-gray-300 text-gray-600 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors disabled:opacity-50'
+														className='inline-flex items-center justify-center h-9 w-9 rounded-md border border-border text-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 transition-colors disabled:opacity-50'
 														title='Delete Document'
 													>
 														<Trash2 className='h-4 w-4' />
@@ -330,7 +336,7 @@ export default function WorkspacePage() {
 							animate={{ opacity: 1, scale: 1 }}
 							exit={{ opacity: 0, scale: 0.995 }}
 							transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
-							className='w-full flex-1 flex flex-col justify-between h-full relative bg-slate-50/30'
+							className='w-full flex-1 flex flex-col justify-between h-full relative bg-muted/10'
 						>
 							{/* Scrollable Conversation Content */}
 							<div className='flex-1 overflow-y-auto min-h-0 w-full'>
@@ -414,7 +420,7 @@ export default function WorkspacePage() {
 							`}</style>
 							{/* Bottom Fixed Sticky Prompt Area inside Chat Mode */}
 							<div
-								className={`sticky bottom-0 left-0 right-0 w-full pt-4 pb-6 bg-gradient-to-t from-slate-50 via-slate-50/98 to-transparent dark:from-slate-950 dark:via-slate-950/98 dark:to-transparent z-20 glow-chat-divider ${
+								className={`sticky bottom-0 left-0 right-0 w-full pt-4 pb-6 bg-gradient-to-t from-background via-background/98 to-transparent z-20 glow-chat-divider ${
 									aiStatus === 'streaming' || aiStatus === 'submitted' ? 'is-ai-thinking' : ''
 								}`}
 							>

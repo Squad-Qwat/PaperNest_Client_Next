@@ -17,7 +17,6 @@ import {
 import { ArrowDown, ArrowUp, ArrowUpDown, ExternalLink, Trash2 } from 'lucide-react'
 import React, { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
 	Table,
@@ -47,7 +46,7 @@ interface CitationTableProps {
  */
 const TableHeaderSection = React.memo(({ table }: { table: TableType<CitationDisplay> }) => {
 	return (
-		<TableHeader className='bg-gray-50/50'>
+		<TableHeader className='bg-muted/50'>
 			{table.getHeaderGroups().map((headerGroup) => (
 				<TableRow key={headerGroup.id}>
 					{headerGroup.headers.map((header: HeaderType<CitationDisplay, unknown>) => (
@@ -77,7 +76,7 @@ const TableHeaderSection = React.memo(({ table }: { table: TableType<CitationDis
 											'h-full w-1 mx-auto transition-colors',
 											header.column.getIsResizing()
 												? 'bg-primary'
-												: 'bg-transparent group-hover/resizer:bg-gray-300'
+												: 'bg-transparent group-hover/resizer:bg-muted-foreground'
 										)}
 									/>
 								</button>
@@ -108,7 +107,7 @@ const TableRowComponent = React.memo(
 		return (
 			<TableRow
 				data-state={row.getIsSelected() && 'selected'}
-				className='cursor-pointer hover:bg-gray-50/50 transition-colors'
+				className='cursor-pointer hover:bg-muted/50 transition-colors'
 				onClick={(e) => {
 					const target = e.target as HTMLElement
 					if (
@@ -257,7 +256,9 @@ const getCitationColumns = (onDelete: (id: string) => void): ColumnDef<CitationD
 		accessorKey: 'doi',
 		header: 'DOI',
 		cell: ({ row }) => (
-			<span className='text-gray-500 font-mono text-xs truncate block'>{row.getValue('doi')}</span>
+			<span className='text-muted-foreground font-mono text-xs truncate block'>
+				{row.getValue('doi')}
+			</span>
 		),
 		minSize: 120,
 	},
@@ -413,7 +414,7 @@ export const CitationTable = React.memo(
 		})
 
 		return (
-			<div className='bg-white border rounded-xl overflow-hidden'>
+			<div className='bg-card border border-border rounded-xl overflow-hidden'>
 				<Table style={{ width: table.getTotalSize(), minWidth: '100%' }}>
 					<TableHeaderSection table={table} />
 					<TableBody>

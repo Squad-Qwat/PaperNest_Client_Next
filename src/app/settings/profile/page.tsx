@@ -28,8 +28,8 @@ export default function ProfileSettingsPage() {
 	return (
 		<div className='space-y-8 text-left'>
 			<div>
-				<h2 className='text-2xl font-bold text-gray-900'>Profile Settings</h2>
-				<p className='text-sm text-gray-500 mt-1'>
+				<h2 className='text-2xl font-bold text-foreground'>Profile Settings</h2>
+				<p className='text-sm text-muted-foreground mt-1'>
 					Manage your public profile and personal information.
 				</p>
 			</div>

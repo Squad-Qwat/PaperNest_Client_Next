@@ -4,6 +4,7 @@ import { Loader2, UserMinus } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -114,47 +115,52 @@ export default function WorkspaceSettingsPage() {
 	return (
 		<>
 			{/* Top Bar */}
-			<header className='flex h-16 shrink-0 items-center gap-2 px-4 bg-white border-b sticky top-0 z-30 rounded-t-2xl'>
-				<SidebarTrigger className='-ml-1' />
-				<Separator orientation='vertical' className='mr-2 h-4' />
-				<Breadcrumb>
-					<BreadcrumbList>
-						<BreadcrumbItem className='hidden md:block'>
-							<BreadcrumbLink
-								href='#'
-								onClick={(e) => {
-									e.preventDefault()
-									router.push('/')
-								}}
-							>
-								PaperNest
-							</BreadcrumbLink>
-						</BreadcrumbItem>
-						<BreadcrumbSeparator className='hidden md:block' />
-						<BreadcrumbItem className='hidden md:block'>
-							<BreadcrumbLink
-								href='#'
-								onClick={(e) => {
-									e.preventDefault()
-									router.push(`/${workspaceId}`)
-								}}
-							>
-								{workspace?.title}
-							</BreadcrumbLink>
-						</BreadcrumbItem>
-						<BreadcrumbSeparator className='hidden md:block' />
-						<BreadcrumbItem>
-							<BreadcrumbPage>Settings</BreadcrumbPage>
-						</BreadcrumbItem>
-					</BreadcrumbList>
-				</Breadcrumb>
+			<header className='flex h-16 shrink-0 items-center justify-between gap-2 px-4 bg-background border-b border-border sticky top-0 z-30 rounded-t-2xl'>
+				<div className='flex items-center gap-2'>
+					<SidebarTrigger className='-ml-1' />
+					<Separator orientation='vertical' className='mr-2 h-4' />
+					<Breadcrumb>
+						<BreadcrumbList>
+							<BreadcrumbItem className='hidden md:block'>
+								<BreadcrumbLink
+									href='#'
+									onClick={(e) => {
+										e.preventDefault()
+										router.push('/')
+									}}
+								>
+									PaperNest
+								</BreadcrumbLink>
+							</BreadcrumbItem>
+							<BreadcrumbSeparator className='hidden md:block' />
+							<BreadcrumbItem className='hidden md:block'>
+								<BreadcrumbLink
+									href='#'
+									onClick={(e) => {
+										e.preventDefault()
+										router.push(`/${workspaceId}`)
+									}}
+								>
+									{workspace?.title}
+								</BreadcrumbLink>
+							</BreadcrumbItem>
+							<BreadcrumbSeparator className='hidden md:block' />
+							<BreadcrumbItem>
+								<BreadcrumbPage>Settings</BreadcrumbPage>
+							</BreadcrumbItem>
+						</BreadcrumbList>
+					</Breadcrumb>
+				</div>
+				<div className='ml-auto'>
+					<ThemeToggle />
+				</div>
 			</header>
 
 			<main className='flex-1 p-6 w-full overflow-y-auto'>
 				{/* Content Header Section */}
 				<div className='mb-8 text-left'>
-					<h2 className='text-2xl font-bold text-gray-900'>Workspace Settings</h2>
-					<p className='text-sm text-gray-500 mt-1'>
+					<h2 className='text-2xl font-bold text-foreground'>Workspace Settings</h2>
+					<p className='text-sm text-muted-foreground mt-1'>
 						Manage configuration and member access for workspace {workspace?.title}
 					</p>
 				</div>
@@ -162,15 +168,15 @@ export default function WorkspaceSettingsPage() {
 				<div className='space-y-12'>
 					{/* General Configuration Section */}
 					<section className='space-y-4'>
-						<h3 className='text-lg font-semibold text-gray-900'>General Configuration</h3>
+						<h3 className='text-lg font-semibold text-foreground'>General Configuration</h3>
 
-						<div className='bg-white border rounded-lg overflow-hidden shadow-sm'>
+						<div className='bg-card border border-border rounded-lg overflow-hidden shadow-sm'>
 							<div className='p-6 space-y-10'>
 								{/* Workspace Name Field - 50/50 Split */}
 								<div className='flex flex-col sm:flex-row items-start gap-8 sm:gap-12'>
 									<div className='w-full sm:w-1/2 space-y-1 text-left'>
-										<h4 className='text-sm font-semibold text-gray-900'>Workspace Name</h4>
-										<p className='text-xs text-gray-500'>
+										<h4 className='text-sm font-semibold text-foreground'>Workspace Name</h4>
+										<p className='text-xs text-muted-foreground'>
 											This name will be visible to all team members.
 										</p>
 									</div>
@@ -187,8 +193,8 @@ export default function WorkspaceSettingsPage() {
 								{/* Description Field - 50/50 Split */}
 								<div className='flex flex-col sm:flex-row items-start gap-8 sm:gap-12'>
 									<div className='w-full sm:w-1/2 space-y-1 text-left'>
-										<h4 className='text-sm font-semibold text-gray-900'>Description</h4>
-										<p className='text-xs text-gray-500'>
+										<h4 className='text-sm font-semibold text-foreground'>Description</h4>
+										<p className='text-xs text-muted-foreground'>
 											Provide a brief explanation of the purpose of this workspace.
 										</p>
 									</div>
@@ -204,7 +210,7 @@ export default function WorkspaceSettingsPage() {
 							</div>
 
 							{/* Single Footer Save Button */}
-							<div className='bg-gray-50/50 border-t p-4 flex justify-end'>
+							<div className='bg-muted/30 border-t border-border p-4 flex justify-end'>
 								<Button
 									size='sm'
 									onClick={handleUpdate}
@@ -229,27 +235,27 @@ export default function WorkspaceSettingsPage() {
 
 					{/* Members Management Section */}
 					<section className='space-y-4'>
-						<h3 className='text-lg font-semibold text-gray-900'>Manage Members</h3>
+						<h3 className='text-lg font-semibold text-foreground'>Manage Members</h3>
 
-						<div className='bg-white border rounded-lg overflow-hidden shadow-sm'>
-							<div className='divide-y'>
+						<div className='bg-card border border-border rounded-lg overflow-hidden shadow-sm'>
+							<div className='divide-y divide-border'>
 								{membersLoading
 									? [1, 2, 3].map((id) => (
 											<div key={id} className='flex items-center gap-4 p-6 animate-pulse'>
-												<div className='w-10 h-10 bg-gray-100 rounded-full' />
+												<div className='w-10 h-10 bg-muted rounded-full' />
 												<div className='flex-1 space-y-2'>
-													<div className='h-4 bg-gray-100 rounded w-1/4' />
-													<div className='h-3 bg-gray-100 rounded w-1/3' />
+													<div className='h-4 bg-muted rounded w-1/4' />
+													<div className='h-3 bg-muted rounded w-1/3' />
 												</div>
 											</div>
 										))
 									: membersData?.members.map((member) => (
 											<div
 												key={member.userWorkspaceId}
-												className='flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 gap-4 transition-all hover:bg-gray-50/50'
+												className='flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 gap-4 transition-all hover:bg-muted/30'
 											>
 												<div className='flex items-center gap-4'>
-													<Avatar className='h-10 w-10 border shadow-sm'>
+													<Avatar className='h-10 w-10 border border-border shadow-sm'>
 														<AvatarImage src={member.user.photoURL || undefined} />
 														<AvatarFallback className='bg-primary/5 text-primary text-xs font-bold'>
 															{member.user.name?.substring(0, 2).toUpperCase() || '??'}
@@ -257,16 +263,18 @@ export default function WorkspaceSettingsPage() {
 													</Avatar>
 													<div className='flex flex-col text-left'>
 														<div className='flex items-center gap-2'>
-															<span className='text-sm font-bold text-gray-900'>
+															<span className='text-sm font-bold text-foreground'>
 																{member.user.name}
 															</span>
 															{member.userId === user?.userId && (
-																<span className='text-[9px] px-1.5 py-0 bg-gray-50 text-gray-500 font-bold uppercase rounded border border-gray-200'>
+																<span className='text-[9px] px-1.5 py-0 bg-muted text-muted-foreground font-bold uppercase rounded border border-border'>
 																	You
 																</span>
 															)}
 														</div>
-														<span className='text-[12px] text-gray-500'>{member.user.email}</span>
+														<span className='text-[12px] text-muted-foreground'>
+															{member.user.email}
+														</span>
 													</div>
 												</div>
 
@@ -277,13 +285,13 @@ export default function WorkspaceSettingsPage() {
 															className={cn(
 																'text-[10px] font-bold uppercase px-2 py-0.5',
 																member.role === 'owner'
-																	? 'border-amber-200 bg-amber-50 text-amber-700'
-																	: 'bg-gray-50'
+																	? 'border-amber-200/50 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300'
+																	: 'bg-muted'
 															)}
 														>
 															{member.role}
 														</Badge>
-														<p className='text-[10px] text-gray-400 mt-1 text-left sm:text-right'>
+														<p className='text-[10px] text-muted-foreground mt-1 text-left sm:text-right'>
 															Joined {format(member.createdAt, 'd MMMM yyyy')}
 														</p>
 													</div>
@@ -297,7 +305,7 @@ export default function WorkspaceSettingsPage() {
 																	name: member.user.name,
 																})
 															}
-															className='inline-flex items-center justify-center h-9 w-9 rounded-md border border-gray-300 text-gray-600 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors'
+															className='inline-flex items-center justify-center h-9 w-9 rounded-md border border-border text-muted-foreground hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/30 transition-colors'
 															title='Remove Member'
 														>
 															<UserMinus className='h-4 w-4' />
@@ -314,11 +322,11 @@ export default function WorkspaceSettingsPage() {
 					<section className='space-y-4'>
 						<h3 className='text-lg font-semibold text-red-600'>Danger Zone</h3>
 
-						<div className='bg-white border border-red-100 rounded-lg overflow-hidden shadow-sm'>
-							<div className='flex flex-col sm:flex-row items-center justify-between p-6 gap-6 hover:bg-red-50/20 transition-colors'>
+						<div className='bg-card border border-red-500/20 rounded-lg overflow-hidden shadow-sm'>
+							<div className='flex flex-col sm:flex-row items-center justify-between p-6 gap-6 hover:bg-red-500/5 transition-colors'>
 								<div className='space-y-1 flex-1 text-left'>
-									<h4 className='text-sm font-semibold text-gray-900'>Delete this workspace</h4>
-									<p className='text-xs text-gray-500 max-w-xl'>
+									<h4 className='text-sm font-semibold text-foreground'>Delete this workspace</h4>
+									<p className='text-xs text-muted-foreground max-w-xl'>
 										This action is permanent. All documents, members, and data associated with this
 										workspace will be deleted forever.
 									</p>

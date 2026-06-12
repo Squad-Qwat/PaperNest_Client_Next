@@ -4,7 +4,7 @@ import { motion } from 'motion/react'
 
 export function SplashLoader() {
 	return (
-		<div className='min-h-screen bg-white flex flex-col items-center justify-center p-4'>
+		<div className='min-h-screen bg-background flex flex-col items-center justify-center p-4'>
 			<motion.div
 				initial={{ opacity: 0, scale: 0.9 }}
 				animate={{ opacity: 1, scale: 1 }}
@@ -28,7 +28,7 @@ export function SplashLoader() {
 				</motion.div>
 
 				{/* Brand Name */}
-				<h1 className='text-2xl font-bold text-gray-900 mb-2 tracking-tight'>PaperNest</h1>
+				<h1 className='text-2xl font-bold text-foreground mb-2 tracking-tight'>PaperNest</h1>
 
 				{/* Loading Indicator */}
 				<div className='flex items-center gap-1.5 mt-2'>

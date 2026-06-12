@@ -162,14 +162,14 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 	return (
 		<div className='space-y-12 pb-10'>
 			<section className='space-y-4'>
-				<h3 className='text-lg font-semibold text-gray-900'>Profile Information</h3>
+				<h3 className='text-lg font-semibold text-foreground'>Profile Information</h3>
 
-				<div className='bg-white border rounded-lg overflow-hidden shadow-sm'>
+				<div className='bg-card border border-border rounded-lg overflow-hidden shadow-sm'>
 					<div className='p-6 space-y-10'>
 						<div className='flex flex-col sm:flex-row items-start gap-8 sm:gap-12'>
 							<div className='w-full sm:w-1/2 space-y-1 text-left'>
-								<h4 className='text-sm font-semibold text-gray-900'>Avatar</h4>
-								<p className='text-xs text-gray-500'>
+								<h4 className='text-sm font-semibold text-foreground'>Avatar</h4>
+								<p className='text-xs text-muted-foreground'>
 									This is your avatar. Click on the profile photo to upload and update your profile
 									picture.
 								</p>
@@ -198,7 +198,7 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 									</div>
 
 									{isUploading && (
-										<div className='absolute inset-0 bg-white/80 flex items-center justify-center'>
+										<div className='absolute inset-0 bg-background/80 flex items-center justify-center'>
 											<Loader2 className='h-5 w-5 text-primary animate-spin' />
 										</div>
 									)}
@@ -217,8 +217,8 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 
 						<div className='flex flex-col sm:flex-row items-start gap-8 sm:gap-12'>
 							<div className='w-full sm:w-1/2 space-y-1 text-left'>
-								<h4 className='text-sm font-semibold text-gray-900'>Display Name</h4>
-								<p className='text-xs text-gray-500'>
+								<h4 className='text-sm font-semibold text-foreground'>Display Name</h4>
+								<p className='text-xs text-muted-foreground'>
 									Please enter your full name, or a display name you are comfortable with.
 								</p>
 							</div>
@@ -231,14 +231,14 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 									className='h-9 text-sm w-full'
 									maxLength={32}
 								/>
-								<p className='text-[10px] text-gray-400'>Max 32 characters.</p>
+								<p className='text-[10px] text-muted-foreground'>Max 32 characters.</p>
 							</div>
 						</div>
 
 						<div className='flex flex-col sm:flex-row items-start gap-8 sm:gap-12'>
 							<div className='w-full sm:w-1/2 space-y-1 text-left'>
-								<h4 className='text-sm font-semibold text-gray-900'>Username</h4>
-								<p className='text-xs text-gray-500'>
+								<h4 className='text-sm font-semibold text-foreground'>Username</h4>
+								<p className='text-xs text-muted-foreground'>
 									This is your unique URL namespace within PaperNest.
 								</p>
 							</div>
@@ -256,18 +256,18 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 										maxLength={48}
 									/>
 								</div>
-								<p className='text-[10px] text-gray-400'>Max 48 characters.</p>
+								<p className='text-[10px] text-muted-foreground'>Max 48 characters.</p>
 							</div>
 						</div>
 					</div>
 
-					<div className='bg-gray-50/50 border-t p-4 flex justify-end gap-3'>
+					<div className='bg-muted/50 border-t border-border p-4 flex justify-end gap-3'>
 						<Button
 							variant='outline'
 							size='sm'
 							onClick={handleReset}
 							disabled={!isDirty || updateUser.isPending}
-							className='h-9 px-6 text-sm font-medium border-gray-300'
+							className='h-9 px-6 text-sm font-medium border-border'
 						>
 							Reset
 						</Button>
@@ -293,11 +293,11 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 			<section className='space-y-4'>
 				<h3 className='text-lg font-semibold text-red-600 text-left'>Danger Zone</h3>
 
-				<div className='bg-white border border-red-100 rounded-lg overflow-hidden shadow-sm'>
-					<div className='flex flex-col sm:flex-row items-center justify-between p-6 gap-6 hover:bg-red-50/20 transition-colors'>
+				<div className='bg-card border border-destructive/20 rounded-lg overflow-hidden shadow-sm'>
+					<div className='flex flex-col sm:flex-row items-center justify-between p-6 gap-6 hover:bg-destructive/5 transition-colors'>
 						<div className='space-y-1 flex-1 text-left'>
-							<h4 className='text-sm font-semibold text-gray-900'>Delete Account</h4>
-							<p className='text-xs text-gray-500 max-w-xl'>
+							<h4 className='text-sm font-semibold text-foreground'>Delete Account</h4>
+							<p className='text-xs text-muted-foreground max-w-xl'>
 								Permanently delete your account and all associated workspaces, documents, and data.
 								This action cannot be undone.
 							</p>

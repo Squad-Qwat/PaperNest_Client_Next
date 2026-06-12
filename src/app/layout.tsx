@@ -3,6 +3,7 @@ import { DM_Mono, IBM_Plex_Mono, IBM_Plex_Sans, Source_Code_Pro } from 'next/fon
 import '@/app/css/globals.css'
 import Script from 'next/script'
 import { QueryProvider } from '@/components/providers/query-provider'
+import { ThemeProvider } from '@/components/providers/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from '@/context/AuthContext'
@@ -46,21 +47,27 @@ export default function RootLayout({
 	children: React.ReactNode
 }>) {
 	return (
-		<html lang='en'>
+		<html lang='en' suppressHydrationWarning>
 			<body
 				className={`${ibmPlexSans.variable} ${ibmPlexMono.variable} ${sourceCodePro.variable} ${dmMono.variable} antialiased`}
-				suppressHydrationWarning
 			>
-				<QueryProvider>
-					<AuthProvider>
-						<NotificationProvider>
-							<TooltipProvider>
-								<AppProvider>{children}</AppProvider>
-							</TooltipProvider>
-							<Toaster position='bottom-right' richColors closeButton />
-						</NotificationProvider>
-					</AuthProvider>
-				</QueryProvider>
+				<ThemeProvider
+					attribute='class'
+					defaultTheme='system'
+					enableSystem
+					disableTransitionOnChange
+				>
+					<QueryProvider>
+						<AuthProvider>
+							<NotificationProvider>
+								<TooltipProvider>
+									<AppProvider>{children}</AppProvider>
+								</TooltipProvider>
+								<Toaster position='bottom-right' richColors closeButton />
+							</NotificationProvider>
+						</AuthProvider>
+					</QueryProvider>
+				</ThemeProvider>
 
 				<Script id='maze-universal-snippet' strategy='afterInteractive'>
 					{`

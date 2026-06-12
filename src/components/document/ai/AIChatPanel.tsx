@@ -1,5 +1,7 @@
 'use client'
 
+import { GlobeIcon } from 'lucide-react'
+import { type MouseEvent, useEffect } from 'react'
 import { Attachment, AttachmentPreview, Attachments } from '@/components/ui/ai-elements/attachments'
 import {
 	Conversation,
@@ -32,6 +34,7 @@ import {
 	PromptInputActionMenuContent,
 	PromptInputActionMenuTrigger,
 	PromptInputBody,
+	PromptInputButton,
 	PromptInputFooter,
 	PromptInputHeader,
 	type PromptInputMessage,
@@ -43,7 +46,6 @@ import {
 	usePromptInputAttachments,
 	usePromptInputController,
 } from '@/components/ui/ai-elements/prompt-input'
-
 import {
 	Reasoning,
 	ReasoningContent,
@@ -69,6 +71,7 @@ import { AI_MODELS } from '@/lib/ai/constants'
 import { useAIChat } from '@/lib/ai/hooks/use-ai-chat'
 import { useAIChatStore } from '@/lib/ai/store'
 import type { ToolStatus } from '@/lib/ai/types/chat'
+import { cn, preprocessLatex } from '@/lib/utils'
 import { AIChatHeader } from './AIChatHeader'
 
 const models = AI_MODELS
@@ -107,7 +110,14 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 		reasoningEnabled: _reasoningEnabled,
 		setReasoningEnabled: _setReasoningEnabled,
 		updateMessageVersion,
+		switchContext,
 	} = useAIChatStore()
+
+	useEffect(() => {
+		if (documentId) {
+			switchContext(documentId)
+		}
+	}, [documentId, switchContext])
 
 	const selectedModelData = models.find((m) => m.id === model)
 
@@ -134,10 +144,10 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 	}
 
 	return (
-		<div className='flex flex-col h-full w-full bg-white dark:bg-slate-950 overflow-hidden'>
+		<div className='flex flex-col h-full w-full bg-card overflow-hidden'>
 			<AIChatHeader onClearChat={clearChat} onClose={onClose} />
 
-			<Conversation className='min-h-0 flex-1 border-b'>
+			<Conversation className='min-h-0 flex-1 border-b border-border'>
 				<ConversationContent>
 					{messages.map((message) => (
 						<MessageBranch key={message.key} defaultBranch={message.activeVersionIndex}>
@@ -185,15 +195,23 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 											<MessageContent
 												className={
 													message.from === 'assistant'
-														? 'w-full'
-														: 'w-fit min-w-[80px] max-w-full group-[.is-user]:bg-slate-100/60 dark:group-[.is-user]:bg-slate-800/40 group-[.is-user]:py-2'
+														? 'w-full pt-0.5'
+														: 'w-fit min-w-[80px] max-w-full pt-0.5 group-[.is-user]:bg-secondary group-[.is-user]:py-2'
 												}
 											>
 												{(version.parts || []).map((part) => {
 													if (part.type === 'text') {
 														return (
 															<div key={part.id} className='my-2'>
-																<MessageResponse>{part.content || ''}</MessageResponse>
+																{message.from === 'assistant' ? (
+																	<MessageResponse>
+																		{preprocessLatex(part.content || '')}
+																	</MessageResponse>
+																) : (
+																	<div className='text-foreground leading-relaxed text-sm md:text-base whitespace-pre-wrap break-words'>
+																		{part.content || ''}
+																	</div>
+																)}
 															</div>
 														)
 													}
@@ -260,7 +278,7 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 			</Conversation>
 
 			<div
-				className={`shrink-0 space-y-4 pt-4 bg-gradient-to-t from-slate-50 via-slate-50/98 to-transparent dark:from-slate-950 dark:via-slate-950/98 dark:to-transparent z-20 glow-chat-divider ${isStreaming ? 'is-ai-thinking' : ''}`}
+				className={`shrink-0 space-y-4 pt-4 bg-gradient-to-t from-card to-transparent z-20 glow-chat-divider ${isStreaming ? 'is-ai-thinking' : ''}`}
 			>
 				<Suggestions className='px-4'>
 					{suggestions.map((suggestion) => (
@@ -392,6 +410,7 @@ function AIChatInput({
 	const controller = usePromptInputController()
 	const input = controller?.textInput.value || ''
 	const attachments = usePromptInputAttachments()
+	const { webSearchEnabled, setWebSearchEnabled } = useAIChatStore()
 
 	return (
 		<PromptInput
@@ -420,6 +439,24 @@ function AIChatInput({
 							<PromptInputActionAddScreenshot />
 						</PromptInputActionMenuContent>
 					</PromptInputActionMenu>
+
+					<PromptInputButton
+						onClick={(e: MouseEvent) => {
+							e.preventDefault()
+							setWebSearchEnabled(!webSearchEnabled)
+						}}
+						className={cn(
+							'gap-2 h-8 px-2.5 rounded-md transition-all duration-200 cursor-pointer',
+							webSearchEnabled
+								? 'bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15'
+								: 'text-muted-foreground hover:bg-accent hover:text-foreground'
+						)}
+					>
+						<GlobeIcon
+							className={cn('size-4', webSearchEnabled ? 'text-primary' : 'text-muted-foreground')}
+						/>
+						<span className='text-xs font-medium'>Search</span>
+					</PromptInputButton>
 
 					<ModelSelector>
 						<ModelSelectorTrigger asChild>

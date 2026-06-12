@@ -7,7 +7,6 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
 	Select,
 	SelectContent,
@@ -168,10 +167,10 @@ export default function OnboardingPage() {
 
 				<div className='w-full max-w-sm space-y-6'>
 					<div className='text-center'>
-						<h1 className='text-2xl font-bold text-gray-900 mb-1'>
+						<h1 className='text-2xl font-bold text-foreground mb-1'>
 							{currentStep === 1 ? 'Complete Your Profile' : 'Setup Your Workspace'}
 						</h1>
-						<p className='text-sm text-gray-500'>Step {currentStep} of 2</p>
+						<p className='text-sm text-muted-foreground'>Step {currentStep} of 2</p>
 					</div>
 
 					<AnimatePresence mode='wait' custom={direction}>
@@ -188,7 +187,7 @@ export default function OnboardingPage() {
 							{currentStep === 1 && (
 								<div className='space-y-6'>
 									{/* Profile Preview */}
-									<div className='flex flex-col items-center gap-3 p-4 bg-gray-50 rounded-xl'>
+									<div className='flex flex-col items-center gap-3 p-4 bg-muted rounded-xl'>
 										{onboardingData.firebaseData.picture ? (
 											<div className='relative w-16 h-16'>
 												<Image
@@ -205,10 +204,12 @@ export default function OnboardingPage() {
 											</div>
 										)}
 										<div className='text-center'>
-											<p className='font-medium text-gray-900'>
+											<p className='font-medium text-foreground'>
 												{onboardingData.firebaseData.name}
 											</p>
-											<p className='text-xs text-gray-500'>{onboardingData.firebaseData.email}</p>
+											<p className='text-xs text-muted-foreground'>
+												{onboardingData.firebaseData.email}
+											</p>
 										</div>
 									</div>
 
@@ -252,7 +253,7 @@ export default function OnboardingPage() {
 													key={icon}
 													type='button'
 													onClick={() => updateField('workspaceIcon', icon)}
-													className={`p-2 text-xl border rounded-lg transition-all ${formData.workspaceIcon === icon ? 'bg-teal-500 border-teal-400' : 'bg-white border-gray-200 hover:border-gray-300'}`}
+													className={`p-2 text-xl border rounded-lg transition-all ${formData.workspaceIcon === icon ? 'bg-teal-500 border-teal-400 text-white' : 'bg-muted/50 border-border hover:border-muted-foreground text-foreground'}`}
 												>
 													{icon}
 												</button>
@@ -287,7 +288,7 @@ export default function OnboardingPage() {
 					</AnimatePresence>
 
 					{errors.submit && (
-						<div className='mb-6 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm text-center'>
+						<div className='mb-6 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm text-center'>
 							{errors.submit}
 						</div>
 					)}

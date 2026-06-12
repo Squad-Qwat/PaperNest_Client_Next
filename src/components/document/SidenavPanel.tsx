@@ -17,7 +17,7 @@ const SidenavPanel: React.FC<SidenavPanelProps> = ({ activePanel, onPanelClick }
 	]
 
 	return (
-		<div className='w-12 bg-white border-r border-gray-200 flex shrink-0 flex-col items-center gap-2 py-4'>
+		<div className='w-12 bg-card border-r border-border flex shrink-0 flex-col items-center gap-2 py-4'>
 			{panels.map((panel) => {
 				const Icon = panel.icon
 				const isActive = activePanel === panel.id
@@ -28,7 +28,7 @@ const SidenavPanel: React.FC<SidenavPanelProps> = ({ activePanel, onPanelClick }
 						onClick={() => onPanelClick(panel.id)}
 						title={panel.label}
 						className={`p-2 rounded-lg transition-colors ${
-							isActive ? 'bg-primary/20 text-primary' : 'text-gray-600 hover:bg-gray-100'
+							isActive ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:bg-muted'
 						}`}
 					>
 						<Icon className='h-5 w-5' />
