@@ -2,10 +2,10 @@
 
 import { Eye, Laptop } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
 
 interface DesktopOnlyGuardProps {
 	workspaceId: string
@@ -24,25 +24,22 @@ export function DesktopOnlyGuard({ workspaceId }: DesktopOnlyGuardProps) {
 				exit={{ opacity: 0 }}
 				className='fixed inset-0 z-[9999] bg-background flex flex-col items-center justify-center p-6 text-center'
 			>
-				{/* Minimal Grid Background */}
-				<div
-					className='absolute inset-0 opacity-[0.05] pointer-events-none'
-					style={{
-						backgroundImage:
-							'linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)',
-						backgroundSize: '40px 40px',
-					}}
-				></div>
-
 				<motion.div
 					initial={{ y: 10, opacity: 0 }}
 					animate={{ y: 0, opacity: 1 }}
 					transition={{ duration: 0.4, ease: 'easeOut' }}
 					className='max-w-[320px] w-full relative'
 				>
-					{/* Brand Logo - Consistent with SplashLoader */}
-					<div className='w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-primary/20'>
-						<span className='text-2xl font-bold text-primary'>PN</span>
+					{/* Brand Logo - Using PaperNest-logo.svg */}
+					<div className='flex justify-center mb-6'>
+						<Image
+							src='/PaperNest-logo.svg'
+							alt='PaperNest Logo'
+							width={64}
+							height={64}
+							className='w-16 h-16'
+							priority
+						/>
 					</div>
 
 					<h1 className='text-xl font-bold text-foreground mb-2 tracking-tight'>
@@ -67,20 +64,13 @@ export function DesktopOnlyGuard({ workspaceId }: DesktopOnlyGuardProps) {
 						</Button>
 
 						<Button
-							variant='ghost'
+							variant='outline'
 							onClick={() => setHidden(true)}
-							className='text-xs font-semibold text-muted-foreground hover:text-foreground transition-all h-9 flex items-center gap-1.5'
+							className='w-full transition-all shadow-none rounded-lg text-xs font-medium flex items-center justify-center gap-1.5'
 						>
-							<Eye className='h-3 w-3' />
-							Continue anyway (View only)
+							<Eye className='h-3.5 w-3.5' />
+							Continue anyway
 						</Button>
-					</div>
-
-					<div className='mt-12'>
-						<Separator className='w-12 mx-auto mb-4 bg-border' />
-						<p className='text-[9px] uppercase tracking-[0.2em] font-bold text-muted-foreground/50'>
-							PaperNest Professional
-						</p>
 					</div>
 				</motion.div>
 			</motion.div>

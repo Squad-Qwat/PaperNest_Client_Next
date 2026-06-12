@@ -144,15 +144,15 @@ export default function LoginPage() {
 									</div>
 								</div>
 								<DialogTitle className='text-center text-lg font-semibold'>
-									Hubungkan Akun Anda
+									Link Your Account
 								</DialogTitle>
 								<DialogDescription className='text-center text-sm'>
-									Email <strong>{linkingSession?.email}</strong> sudah terdaftar melalui
+									The email <strong>{linkingSession?.email}</strong> is already registered via
 									<span className='capitalize font-medium'>
 										{' '}
 										{linkingSession?.targetMethod.split('.')[0]}
 									</span>
-									. Hubungkan dengan {linkingSession?.providerName} untuk akses ke akun yang sama.
+									. Link it with {linkingSession?.providerName} to access the same account.
 								</DialogDescription>
 							</DialogHeader>
 							<div className='grid gap-2 mt-4'>
@@ -161,7 +161,7 @@ export default function LoginPage() {
 									onClick={() => linkMutation.mutate(turnstileToken)}
 									disabled={isLinking || !turnstileToken}
 								>
-									{isLinking ? 'Sedang Menghubungkan...' : `Hubungkan Sekarang`}
+									{isLinking ? 'Linking Account...' : 'Link Now'}
 								</Button>
 								<Button
 									variant='outline'
@@ -169,7 +169,7 @@ export default function LoginPage() {
 									onClick={resetLinking}
 									disabled={isLinking}
 								>
-									Batal
+									Cancel
 								</Button>
 							</div>
 						</DialogContent>

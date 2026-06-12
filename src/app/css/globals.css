@@ -257,3 +257,50 @@
 #liveblocks-badge {
 	display: none;
 }
+
+@keyframes shimmer {
+	0% {
+		background-position: -200% 0;
+	}
+	100% {
+		background-position: 200% 0;
+	}
+}
+
+.shimmer-text {
+	background: linear-gradient(
+		90deg,
+		var(--muted-foreground) 20%,
+		var(--foreground) 50%,
+		var(--muted-foreground) 80%
+	);
+	background-size: 200% auto;
+	color: transparent;
+	background-clip: text;
+	-webkit-background-clip: text;
+	animation: shimmer 3s linear infinite;
+	display: inline-block;
+}
+
+.thin-scrollbar {
+	scrollbar-width: thin;
+	scrollbar-color: var(--border) transparent;
+}
+
+.thin-scrollbar::-webkit-scrollbar {
+	width: 5px;
+	height: 5px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb {
+	background: var(--input);
+	border-radius: 9999px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb:hover {
+	background: var(--muted-foreground);
+}

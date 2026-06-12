@@ -1,7 +1,9 @@
 'use client'
 
 import { FileText, Sparkles } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useRef } from 'react'
+import { PaperNestLoader } from '@/components/layout/PaperNestLoader'
 import { Attachment, AttachmentPreview, Attachments } from '@/components/ui/ai-elements/attachments'
 import {
 	Conversation,
@@ -129,10 +131,7 @@ export function DashboardAIChat({
 
 										{msg.from === 'assistant' && msg.reasoningText && (
 											<div className='mb-2 w-full'>
-												<Reasoning
-													duration={1}
-													className='w-full border border-border shadow-xs rounded-lg'
-												>
+												<Reasoning duration={1} className='w-full'>
 													<ReasoningTrigger />
 													<ReasoningContent>{msg.reasoningText}</ReasoningContent>
 												</Reasoning>
@@ -147,9 +146,29 @@ export function DashboardAIChat({
 											}
 										>
 											{msg.from === 'assistant' ? (
-												<MessageResponse className='text-foreground leading-relaxed text-sm md:text-base'>
-													{preprocessLatex(msg.text)}
-												</MessageResponse>
+												<>
+													{msg.text && (
+														<MessageResponse className='text-foreground leading-relaxed text-sm md:text-base'>
+															{preprocessLatex(msg.text)}
+														</MessageResponse>
+													)}
+													<AnimatePresence>
+														{isThinking && msg.id === messages.at(-1)?.id && (
+															<motion.div
+																initial={{ opacity: 0, height: 0 }}
+																animate={{ opacity: 1, height: 'auto' }}
+																exit={{ opacity: 0, height: 0 }}
+																transition={{ duration: 0.25, ease: 'easeInOut' }}
+																className='flex items-center gap-2 py-1 mt-1 overflow-hidden'
+															>
+																<PaperNestLoader width={18} height={18} />
+																<span className='text-sm md:text-base font-medium shimmer-text'>
+																	Working
+																</span>
+															</motion.div>
+														)}
+													</AnimatePresence>
+												</>
 											) : (
 												<div className='text-foreground leading-relaxed text-sm md:text-base whitespace-pre-wrap break-words'>
 													{renderMessageTextWithTags(msg.text, documents)}
@@ -163,17 +182,24 @@ export function DashboardAIChat({
 					)}
 
 					{/* Thinking Animation */}
-					{isThinking && (
-						<div className='animate-in fade-in duration-300 max-w-4xl'>
-							<Message from='assistant' className='max-w-4xl w-full'>
-								<div className='w-full'>
-									<span className='text-sm text-muted-foreground italic font-light animate-pulse'>
-										Neptune sedang merenung...
-									</span>
-								</div>
-							</Message>
-						</div>
-					)}
+					<AnimatePresence>
+						{isThinking && messages.at(-1)?.from !== 'assistant' && (
+							<motion.div
+								initial={{ opacity: 0, height: 0 }}
+								animate={{ opacity: 1, height: 'auto' }}
+								exit={{ opacity: 0, height: 0 }}
+								transition={{ duration: 0.25, ease: 'easeInOut' }}
+								className='animate-in fade-in duration-300 max-w-4xl overflow-hidden'
+							>
+								<Message from='assistant' className='max-w-4xl w-full'>
+									<div className='w-full flex items-center gap-2 py-1'>
+										<PaperNestLoader width={18} height={18} />
+										<span className='text-sm md:text-base font-medium shimmer-text'>Working</span>
+									</div>
+								</Message>
+							</motion.div>
+						)}
+					</AnimatePresence>
 				</ConversationContent>
 				<ConversationScrollButton />
 			</Conversation>

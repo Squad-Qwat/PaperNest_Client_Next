@@ -1,7 +1,9 @@
 'use client'
 
 import { GlobeIcon } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
 import { type MouseEvent, useEffect } from 'react'
+import { PaperNestLoader } from '@/components/layout/PaperNestLoader'
 import { Attachment, AttachmentPreview, Attachments } from '@/components/ui/ai-elements/attachments'
 import {
 	Conversation,
@@ -212,6 +214,7 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 											>
 												{(version.parts || []).map((part) => {
 													if (part.type === 'text') {
+														if (!part.content?.trim()) return null
 														return (
 															<div key={part.id} className='my-2'>
 																{message.from === 'assistant' ? (
@@ -251,6 +254,22 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 													}
 													return null
 												})}
+												<AnimatePresence>
+													{isStreaming && message.key === messages.at(-1)?.key && (
+														<motion.div
+															initial={{ opacity: 0, height: 0 }}
+															animate={{ opacity: 1, height: 'auto' }}
+															exit={{ opacity: 0, height: 0 }}
+															transition={{ duration: 0.25, ease: 'easeInOut' }}
+															className='flex items-center gap-2 py-1 mt-1 overflow-hidden'
+														>
+															<PaperNestLoader width={18} height={18} />
+															<span className='text-sm md:text-base font-medium shimmer-text'>
+																Working
+															</span>
+														</motion.div>
+													)}
+												</AnimatePresence>
 											</MessageContent>
 										</div>
 									</Message>
@@ -275,15 +294,6 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 							)}
 						</MessageBranch>
 					))}
-					{isStreaming && !messages.at(-1)?.versions?.[0]?.parts?.length && (
-						<Message from='assistant' className='max-w-full w-full'>
-							<MessageContent className='w-full pt-1'>
-								<span className='text-sm text-slate-400 italic font-light animate-pulse'>
-									Neptune sedang merenung...
-								</span>
-							</MessageContent>
-						</Message>
-					)}
 				</ConversationContent>
 				<ConversationScrollButton />
 			</Conversation>

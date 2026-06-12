@@ -2,6 +2,7 @@
 
 import { cva, type VariantProps } from 'class-variance-authority'
 import { PanelLeftIcon } from 'lucide-react'
+import { usePathname } from 'next/navigation'
 import { Slot } from 'radix-ui'
 import * as React from 'react'
 import { Button } from '@/components/ui/button'
@@ -62,6 +63,12 @@ function SidebarProvider({
 }) {
 	const isMobile = useIsMobile()
 	const [openMobile, setOpenMobile] = React.useState(false)
+	const _pathname = usePathname()
+
+	// Automatically close the mobile sidebar when pathname changes
+	React.useEffect(() => {
+		setOpenMobile(false)
+	}, [])
 
 	// This is the internal state of the sidebar.
 	// We use openProp and setOpenProp for control from outside the component.
@@ -166,7 +173,7 @@ function Sidebar({
 }) {
 	const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
 
-	if (collapsible === 'none') {
+	if (collapsible === 'none' && !isMobile) {
 		return (
 			<div
 				data-slot='sidebar'

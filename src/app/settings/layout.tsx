@@ -1,12 +1,32 @@
 'use client'
 
+import { useEffect } from 'react'
 import { SettingsHeader } from '../../components/settings/SettingsHeader'
 import { SettingsSidebar } from '../../components/settings/SettingsSidebar'
 import { SidebarProvider, SidebarTrigger, useSidebar } from '../../components/ui/sidebar'
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
+	useEffect(() => {
+		const cleanup = () => {
+			document.body.style.pointerEvents = ''
+			document.body.style.overflow = ''
+			document.body.style.paddingRight = ''
+			document.body.style.marginRight = ''
+
+			document.documentElement.style.pointerEvents = ''
+			document.documentElement.style.overflow = ''
+
+			document.body.removeAttribute('data-radix-pointer-events-non-interactive')
+			document.documentElement.removeAttribute('data-radix-pointer-events-non-interactive')
+		}
+
+		cleanup()
+		const timer = setTimeout(cleanup, 50)
+		return () => clearTimeout(timer)
+	}, [])
+
 	return (
-		<SidebarProvider className='h-screen bg-background flex flex-col font-sans'>
+		<SidebarProvider key='settings-layout' className='h-svh bg-background flex flex-col font-sans'>
 			<SettingsHeader />
 
 			<div className='flex-1 flex overflow-hidden'>
