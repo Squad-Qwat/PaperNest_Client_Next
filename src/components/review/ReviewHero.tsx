@@ -1,5 +1,6 @@
 import { Clock, ExternalLink, FileText, User as UserIcon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ReviewStatusBadge } from './ReviewStatusBadge'
@@ -24,6 +25,7 @@ export function ReviewHero({
 	isDeleted = false,
 }: Readonly<ReviewHeroProps>) {
 	const router = useRouter()
+	const t = useTranslations('Review')
 
 	return (
 		<div className='bg-card rounded-xl border shadow-sm p-5 md:p-6 relative overflow-hidden'>
@@ -42,7 +44,7 @@ export function ReviewHero({
 								isDeleted ? 'text-muted-foreground italic' : 'text-foreground'
 							}`}
 						>
-							{isDeleted ? 'Deleted Document' : docTitle || 'Untitled Document'}
+							{isDeleted ? t('deletedDocument') : docTitle || t('untitledDocument')}
 						</h1>
 					</div>
 
@@ -53,7 +55,7 @@ export function ReviewHero({
 						>
 							<UserIcon className='w-3 h-3' />
 							<span>
-								By <span className='font-bold text-foreground'>{studentName}</span>
+								{t('by')} <span className='font-bold text-foreground'>{studentName}</span>
 							</span>
 						</Badge>
 						<Badge
@@ -71,14 +73,14 @@ export function ReviewHero({
 							disabled={isDeleted}
 						>
 							<ExternalLink className='w-3.5 h-3.5 mr-1' />{' '}
-							{isDeleted ? 'Document Deleted' : 'View Document'}
+							{isDeleted ? t('documentDeleted') : t('viewDocument')}
 						</Button>
 					</div>
 				</div>
 
 				<div className='flex flex-col items-center md:items-end gap-1 shrink-0'>
 					<span className='text-[9px] font-bold text-muted-foreground uppercase tracking-widest'>
-						Current Status
+						{t('currentStatus')}
 					</span>
 					<ReviewStatusBadge status={status} className='text-md px-4 py-1' />
 				</div>

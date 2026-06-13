@@ -3,6 +3,7 @@
 import { FileText, Trash2 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { DashboardContentSkeleton } from '@/components/layout/DashboardSkeleton'
@@ -35,6 +36,7 @@ export default function WorkspacePage() {
 	const params = useParams()
 	const router = useRouter()
 	const { user, loading: authLoading } = useAuth()
+	const t = useTranslations('Dashboard')
 	const workspaceId = params.workspaceid as string
 	const {
 		data: workspace,
@@ -163,8 +165,8 @@ export default function WorkspacePage() {
 			<div className='min-h-screen bg-background flex items-center justify-center'>
 				<div className='text-center'>
 					<p className='text-destructive mb-4'>{workspaceError}</p>
-					<p className='text-muted-foreground mb-4'>You don't have access to this workspace</p>
-					<Button onClick={() => router.push('/')}>Go to Home</Button>
+					<p className='text-muted-foreground mb-4'>{t('noAccess')}</p>
+					<Button onClick={() => router.push('/')}>{t('goToHome')}</Button>
 				</div>
 			</div>
 		)
@@ -174,8 +176,8 @@ export default function WorkspacePage() {
 		return (
 			<div className='min-h-screen bg-background flex items-center justify-center'>
 				<div className='text-center'>
-					<p className='text-muted-foreground mb-4'>Workspace not found</p>
-					<Button onClick={() => router.push('/')}>Go to Home</Button>
+					<p className='text-muted-foreground mb-4'>{t('notFound')}</p>
+					<Button onClick={() => router.push('/')}>{t('goToHome')}</Button>
 				</div>
 			</div>
 		)
@@ -212,7 +214,7 @@ export default function WorkspacePage() {
 								}}
 								className='h-9 px-4 text-xs font-semibold rounded-xl text-foreground bg-background border border-border hover:bg-accent hover:text-accent-foreground transition-all shadow-2xs'
 							>
-								Back to Dashboard
+								{t('backToDashboard')}
 							</Button>
 						</motion.div>
 					)}
@@ -237,11 +239,9 @@ export default function WorkspacePage() {
 							className='w-full flex-1 flex flex-col'
 						>
 							<div className='mb-8 flex flex-col items-center text-center'>
-								<h2 className='text-3xl font-bold text-foreground'>
-									What are we researching today?
-								</h2>
+								<h2 className='text-3xl font-bold text-foreground'>{t('welcome')}</h2>
 								<p className='text-muted-foreground mt-2'>
-									Find documents or start a new research in workspace {workspace?.title}
+									{t('subtitle', { title: workspace?.title })}
 								</p>
 							</div>
 
@@ -253,7 +253,7 @@ export default function WorkspacePage() {
 										onSearchSubmit={handleAIPromptSubmit}
 										status={aiStatus}
 										documents={documents}
-										placeholder='Search documents or ask Aurora...'
+										placeholder={t('placeholder')}
 										onStop={handleAIStop}
 									/>
 								</div>
@@ -266,18 +266,18 @@ export default function WorkspacePage() {
 							)}
 
 							<div className='mb-6'>
-								<h3 className='text-lg font-semibold flex items-center gap-2'>Manage Documents</h3>
+								<h3 className='text-lg font-semibold flex items-center gap-2'>
+									{t('manageDocuments')}
+								</h3>
 							</div>
 							{filteredDocuments.length === 0 ? (
 								<div className='flex flex-col items-center justify-center text-center py-12 px-4 bg-background border border-dashed border-muted-foreground/20 rounded-xl max-w-md mx-auto w-full'>
 									<FileText className='h-8 w-8 text-muted-foreground/60 mb-3' />
 									<h3 className='text-sm font-medium text-foreground mb-1'>
-										{searchQuery ? 'No documents found' : 'No documents yet'}
+										{searchQuery ? t('noDocumentsFound') : t('noDocuments')}
 									</h3>
 									<p className='text-xs text-muted-foreground'>
-										{searchQuery
-											? 'Try a different search term'
-											: 'No documents available in this workspace'}
+										{searchQuery ? t('tryDifferentSearch') : t('noDocumentsAvailable')}
 									</p>
 								</div>
 							) : (
@@ -295,7 +295,7 @@ export default function WorkspacePage() {
 												</div>
 
 												<p className='text-muted-foreground text-sm mb-3 line-clamp-2 min-h-[40px]'>
-													{doc.description || 'No description'}
+													{doc.description || t('noDescription')}
 												</p>
 
 												<div className='flex items-center justify-between text-xs text-muted-foreground mb-4'>
@@ -310,7 +310,7 @@ export default function WorkspacePage() {
 														}}
 														className='flex-1 bg-primary hover:bg-primary/90'
 													>
-														Open
+														{t('open')}
 													</Button>
 													{(workspace?.userRole === 'owner' ||
 														workspace?.userRole === 'editor' ||
@@ -323,7 +323,7 @@ export default function WorkspacePage() {
 															}}
 															disabled={isDeleting}
 															className='inline-flex items-center justify-center h-9 w-9 rounded-md border border-border text-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 transition-colors disabled:opacity-50'
-															title='Delete Document'
+															title={t('delete')}
 														>
 															<Trash2 className='h-4 w-4' />
 														</button>
@@ -436,7 +436,7 @@ export default function WorkspacePage() {
 										onSearchSubmit={handleAIPromptSubmit}
 										status={aiStatus}
 										documents={documents}
-										placeholder='Ask Aurora anything else...'
+										placeholder={t('placeholderChat')}
 										onStop={handleAIStop}
 									/>
 								</div>
@@ -450,9 +450,9 @@ export default function WorkspacePage() {
 				isOpen={deleteConfirm !== null}
 				onClose={() => setDeleteConfirm(null)}
 				onConfirm={() => deleteConfirm && handleDeleteDocument(deleteConfirm)}
-				title='Delete Document'
-				message='Are you sure you want to delete this document? This action cannot be undone.'
-				confirmText='Delete'
+				title={t('deleteConfirmTitle')}
+				message={t('deleteConfirmMessage')}
+				confirmText={t('deleteConfirmText')}
 				variant='danger'
 			/>
 		</>

@@ -1,8 +1,8 @@
 'use client'
 
+import { ProfileSettingsForm } from '@/components/settings/ProfileSettingsForm'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/context/AuthContext'
-import { ProfileSettingsForm } from '../../../components/settings/ProfileSettingsForm'
 
 export default function ProfileSettingsPage() {
 	const { user, loading } = useAuth()

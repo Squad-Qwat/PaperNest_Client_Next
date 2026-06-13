@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useMemo, useState } from 'react'
 import { FaGithub } from 'react-icons/fa'
 import { FcGoogle } from 'react-icons/fc'
@@ -43,18 +44,9 @@ type StepData = {
 
 const workspaceIcons = ['📚', '🎓', '📖', '✍️', '🔬', '💼', '📊', '🎯', '🌟', '💡']
 
-const requirements = [
-	{ regex: /.{8,}/, text: 'At least 8 characters' },
-	{ regex: /[a-z]/, text: 'At least 1 lowercase letter' },
-	{ regex: /[A-Z]/, text: 'At least 1 uppercase letter' },
-	{ regex: /[0-9]/, text: 'At least 1 number' },
-	{
-		regex: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/,
-		text: 'At least 1 special character',
-	},
-]
-
 export default function RegisterPage() {
+	const t = useTranslations('Auth')
+	const tWorkspace = useTranslations('Workspace')
 	const _router = useRouter()
 	const { setOnboardingData } = useAuth()
 
@@ -85,12 +77,26 @@ export default function RegisterPage() {
 	const [isConfirmVisible, setIsConfirmVisible] = useState(false)
 	const [turnstileToken, setTurnstileToken] = useState('')
 
+	const requirements = useMemo(
+		() => [
+			{ regex: /.{8,}/, text: t('passwordReqLength') },
+			{ regex: /[a-z]/, text: t('passwordReqLowercase') },
+			{ regex: /[A-Z]/, text: t('passwordReqUppercase') },
+			{ regex: /[0-9]/, text: t('passwordReqNumber') },
+			{
+				regex: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/,
+				text: t('passwordReqSpecial'),
+			},
+		],
+		[t]
+	)
+
 	const strength = useMemo(() => {
 		return requirements.map((req) => ({
 			met: req.regex.test(formData.password),
 			text: req.text,
 		}))
-	}, [formData.password])
+	}, [formData.password, requirements])
 
 	const strengthScore = useMemo(() => {
 		return strength.filter((req) => req.met).length
@@ -106,11 +112,11 @@ export default function RegisterPage() {
 	}
 
 	const getStrengthText = (score: number) => {
-		if (score === 0) return 'Enter a password'
-		if (score <= 2) return 'Weak password'
-		if (score <= 3) return 'Medium password'
-		if (score === 4) return 'Strong password'
-		return 'Very strong password'
+		if (score === 0) return t('strengthEmpty')
+		if (score <= 2) return t('strengthWeak')
+		if (score <= 3) return t('strengthMedium')
+		if (score === 4) return t('strengthStrong')
+		return t('strengthVeryStrong')
 	}
 
 	const totalSteps = 4
@@ -125,9 +131,9 @@ export default function RegisterPage() {
 		const newErrors: Record<string, string> = {}
 
 		if (!formData.email) {
-			newErrors.email = 'Email is required'
+			newErrors.email = t('enterEmail')
 		} else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-			newErrors.email = 'Please enter a valid email address'
+			newErrors.email = t('validEmail')
 		}
 
 		setErrors(newErrors)
@@ -139,15 +145,15 @@ export default function RegisterPage() {
 		const newErrors: Record<string, string> = {}
 
 		if (!formData.password) {
-			newErrors.password = 'Password is required'
+			newErrors.password = t('passwordRequired')
 		} else if (strengthScore < 5) {
-			newErrors.password = 'Please meet all password requirements'
+			newErrors.password = t('passwordRequirementsNotMet')
 		}
 
 		if (!formData.confirmPassword) {
-			newErrors.confirmPassword = 'Please confirm your password'
+			newErrors.confirmPassword = t('confirmPasswordRequired')
 		} else if (formData.password !== formData.confirmPassword) {
-			newErrors.confirmPassword = 'Passwords do not match'
+			newErrors.confirmPassword = t('passwordsDoNotMatch')
 		}
 
 		setErrors(newErrors)
@@ -159,17 +165,17 @@ export default function RegisterPage() {
 		const newErrors: Record<string, string> = {}
 
 		if (!formData.name) {
-			newErrors.name = 'Name is required'
+			newErrors.name = t('fullNameRequired')
 		} else if (formData.name.length < 2) {
-			newErrors.name = 'Name must be at least 2 characters'
+			newErrors.name = t('fullNameMinLength')
 		}
 
 		if (!formData.username) {
-			newErrors.username = 'Username is required'
+			newErrors.username = t('usernameRequired')
 		} else if (formData.username.length < 3) {
-			newErrors.username = 'Username must be at least 3 characters'
+			newErrors.username = t('usernameMinLength')
 		} else if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
-			newErrors.username = 'Username can only contain letters, numbers, and underscores'
+			newErrors.username = t('usernameFormat')
 		}
 
 		setErrors(newErrors)
@@ -181,9 +187,9 @@ export default function RegisterPage() {
 		const newErrors: Record<string, string> = {}
 
 		if (!formData.workspaceTitle) {
-			newErrors.workspaceTitle = 'Workspace title is required'
+			newErrors.workspaceTitle = t('workspaceTitleRequired')
 		} else if (formData.workspaceTitle.length < 3) {
-			newErrors.workspaceTitle = 'Workspace title must be at least 3 characters'
+			newErrors.workspaceTitle = t('workspaceTitleMinLength')
 		}
 
 		setErrors(newErrors)
@@ -199,7 +205,7 @@ export default function RegisterPage() {
 				isValid = validateStep1()
 				if (isValid) {
 					if (!turnstileToken) {
-						setErrors({ email: 'Please complete the captcha verification' })
+						setErrors({ email: t('captchaVerify') })
 						isValid = false
 					} else {
 						// Check email availability early
@@ -207,12 +213,12 @@ export default function RegisterPage() {
 							const result = await verifyEmail(formData.email)
 							if (!result.available) {
 								setErrors({
-									email: 'This email is already registered. Please use another one or log in.',
+									email: t('emailTaken'),
 								})
 								isValid = false
 							}
 						} catch (_err) {
-							setErrors({ email: 'Failed to verify email. Please try again.' })
+							setErrors({ email: t('emailVerifyFailed') })
 							isValid = false
 						}
 					}
@@ -272,7 +278,7 @@ export default function RegisterPage() {
 
 	const handleSocialSignup = async (provider: 'google' | 'github' | 'microsoft') => {
 		if (!turnstileToken) {
-			setErrors({ submit: 'Please complete the captcha verification first' })
+			setErrors({ submit: t('captchaVerifyFirst') })
 			return
 		}
 		setErrors({})
@@ -355,9 +361,11 @@ export default function RegisterPage() {
 								<div className='space-y-6'>
 									{/* Title */}
 									<div className='text-center'>
-										<h1 className='text-2xl font-bold text-foreground mb-2'>Create your account</h1>
+										<h1 className='text-2xl font-bold text-foreground mb-2'>
+											{t('createAccount')}
+										</h1>
 										<p className='text-sm text-muted-foreground'>
-											Step {currentStep} of {totalSteps} - Account
+											{t('step', { current: currentStep, total: totalSteps })} - Account
 										</p>
 									</div>
 
@@ -370,7 +378,7 @@ export default function RegisterPage() {
 											disabled={loading}
 										>
 											<FcGoogle />
-											<span className='hidden sm:inline'>Continue with Google</span>
+											<span className='hidden sm:inline'>{t('continueWithGoogle')}</span>
 										</Button>
 										<Button
 											type='button'
@@ -379,7 +387,7 @@ export default function RegisterPage() {
 											disabled={loading}
 										>
 											<FaGithub />
-											<span className='hidden sm:inline'>Continue with GitHub</span>
+											<span className='hidden sm:inline'>{t('continueWithGithub')}</span>
 										</Button>
 										<Button
 											type='button'
@@ -388,7 +396,7 @@ export default function RegisterPage() {
 											disabled={loading}
 										>
 											<MicrosoftIconIcon />
-											<span className='hidden sm:inline'>Continue with Microsoft</span>
+											<span className='hidden sm:inline'>{t('continueWithMicrosoft')}</span>
 										</Button>
 									</div>
 
@@ -399,7 +407,7 @@ export default function RegisterPage() {
 										</div>
 										<div className='relative flex justify-center text-sm'>
 											<span className='px-4 bg-background text-muted-foreground'>
-												Or Continue With Your Credentials
+												{t('orCredentials')}
 											</span>
 										</div>
 									</div>
@@ -407,14 +415,14 @@ export default function RegisterPage() {
 									{/* Email Input */}
 									<div className='space-y-2'>
 										<Label htmlFor='email' className='text-foreground font-normal'>
-											Email
+											{t('email')}
 										</Label>
 										<Input
 											id='email'
 											type='email'
 											value={formData.email}
 											onChange={(e) => updateFormData('email', e.target.value)}
-											placeholder='Enter your email'
+											placeholder={t('enterEmail')}
 										/>
 										{errors.email && <p className='text-sm text-red-600'>{errors.email}</p>}
 									</div>
@@ -428,22 +436,22 @@ export default function RegisterPage() {
 								<div className='space-y-6'>
 									<div className='text-center'>
 										<h1 className='text-2xl font-bold text-foreground mb-2'>
-											Create a new password
+											{t('passwordNewTitle')}
 										</h1>
 										<p className='text-sm text-muted-foreground'>
-											Step {currentStep} of {totalSteps} - Password
+											{t('step', { current: currentStep, total: totalSteps })} - Password
 										</p>
 									</div>
 
 									<div className='space-y-2'>
-										<Label htmlFor='password'>Password</Label>
+										<Label htmlFor='password'>{t('password')}</Label>
 										<div className='relative'>
 											<Input
 												id='password'
 												type={isVisible ? 'text' : 'password'}
 												value={formData.password}
 												onChange={(e) => updateFormData('password', e.target.value)}
-												placeholder='Password'
+												placeholder={t('enterPassword')}
 												className='pr-9'
 											/>
 											<Button
@@ -474,7 +482,9 @@ export default function RegisterPage() {
 										</div>
 
 										<p className='text-foreground text-sm font-medium pt-1'>
-											{getStrengthText(strengthScore)}. Must contain:
+											{t('passwordRequirementTitle', {
+												strengthText: getStrengthText(strengthScore),
+											})}
 										</p>
 
 										<ul className='space-y-1.5'>
@@ -502,14 +512,14 @@ export default function RegisterPage() {
 									</div>
 
 									<div className='space-y-2'>
-										<Label htmlFor='confirmPassword'>Confirm Password</Label>
+										<Label htmlFor='confirmPassword'>{t('confirmPassword')}</Label>
 										<div className='relative'>
 											<Input
 												id='confirmPassword'
 												type={isConfirmVisible ? 'text' : 'password'}
 												value={formData.confirmPassword}
 												onChange={(e) => updateFormData('confirmPassword', e.target.value)}
-												placeholder='Confirm your password'
+												placeholder={t('confirmPassword')}
 												className='pr-9'
 											/>
 											<Button
@@ -538,15 +548,17 @@ export default function RegisterPage() {
 								<div className='space-y-6'>
 									{/* Title */}
 									<div className='text-center'>
-										<h1 className='text-2xl font-bold text-foreground mb-2'>Your credentials</h1>
+										<h1 className='text-2xl font-bold text-foreground mb-2'>
+											{t('credentialsTitle')}
+										</h1>
 										<p className='text-sm text-muted-foreground'>
-											Step {currentStep} of {totalSteps} - User Details
+											{t('step', { current: currentStep, total: totalSteps })} - User Details
 										</p>
 									</div>
 
 									<div className='space-y-2'>
 										<Label htmlFor='name' className='text-foreground font-normal'>
-											Full Name
+											{t('fullNameLabel')}
 										</Label>
 										<Input
 											id='name'
@@ -560,31 +572,31 @@ export default function RegisterPage() {
 
 									<div className='space-y-2'>
 										<Label htmlFor='username' className='text-foreground font-normal'>
-											Username
+											{t('username')}
 										</Label>
 										<Input
 											id='username'
 											type='text'
 											value={formData.username}
 											onChange={(e) => updateFormData('username', e.target.value)}
-											placeholder='Create your username'
+											placeholder={t('createUsernamePlaceholder')}
 										/>
 										{errors.username && <p className='text-sm text-red-600'>{errors.username}</p>}
 									</div>
 
 									<div className='space-y-2'>
-										<Label className='text-foreground font-normal'>Select role</Label>
+										<Label className='text-foreground font-normal'>{t('yourRole')}</Label>
 										<div className=''>
 											<Select
 												value={formData.role}
 												onValueChange={(value) => updateFormData('role', value as UserRole)}
 											>
 												<SelectTrigger className='w-full'>
-													<SelectValue placeholder='Select a role' />
+													<SelectValue placeholder={t('selectRole')} />
 												</SelectTrigger>
 												<SelectContent>
-													<SelectItem value='Student'>Student</SelectItem>
-													<SelectItem value='Lecturer'>Lecturer</SelectItem>
+													<SelectItem value='Student'>{t('student')}</SelectItem>
+													<SelectItem value='Lecturer'>{t('lecturer')}</SelectItem>
 												</SelectContent>
 											</Select>
 										</div>
@@ -598,17 +610,17 @@ export default function RegisterPage() {
 									{/* Title */}
 									<div className='text-center'>
 										<h1 className='text-2xl font-bold text-foreground mb-2'>
-											Create Your Workspace
+											{t('setupWorkspace')}
 										</h1>
 										<p className='text-sm text-muted-foreground'>
-											Step {currentStep} of {totalSteps} - Workspace Setup
+											{t('step', { current: currentStep, total: totalSteps })} - Workspace Setup
 										</p>
 									</div>
 
 									{/* Create Workspace Form */}
 									<div className='space-y-6'>
 										<div className='space-y-2'>
-											<Label className='text-foreground font-normal'>Workspace Icon</Label>
+											<Label className='text-foreground font-normal'>{t('workspaceIcon')}</Label>
 											<div className='grid grid-cols-5 gap-2'>
 												{workspaceIcons.map((icon) => (
 													<button
@@ -629,14 +641,14 @@ export default function RegisterPage() {
 
 										<div className='space-y-2'>
 											<Label htmlFor='workspaceTitle' className='text-foreground font-normal'>
-												Workspace Title <span className='text-red-500'>*</span>
+												{t('workspaceTitle')}
 											</Label>
 											<Input
 												id='workspaceTitle'
 												type='text'
 												value={formData.workspaceTitle}
 												onChange={(e) => updateFormData('workspaceTitle', e.target.value)}
-												placeholder='My Research Workspace'
+												placeholder={tWorkspace('titlePlaceholder')}
 											/>
 											{errors.workspaceTitle && (
 												<p className='text-sm text-red-600'>{errors.workspaceTitle}</p>
@@ -645,13 +657,13 @@ export default function RegisterPage() {
 
 										<div className='space-y-2'>
 											<Label htmlFor='workspaceDescription' className='text-foreground font-normal'>
-												Workspace Description (Optional)
+												{t('workspaceDescription')}
 											</Label>
 											<Textarea
 												id='workspaceDescription'
 												value={formData.workspaceDescription}
 												onChange={(e) => updateFormData('workspaceDescription', e.target.value)}
-												placeholder='A workspace for my research papers and projects'
+												placeholder={t('workspaceDescPlaceholder')}
 												rows={3}
 												className='resize-none'
 											/>
@@ -672,7 +684,7 @@ export default function RegisterPage() {
 								disabled={loading}
 								className='flex-1'
 							>
-								← Back
+								{t('back')}
 							</Button>
 						)}
 						<Button
@@ -682,24 +694,24 @@ export default function RegisterPage() {
 							className={`${currentStep === 1 ? 'w-full' : 'flex-1'}`}
 						>
 							{loading
-								? 'Creating account...'
+								? t('creatingAccount')
 								: checkingEmail
-									? 'Checking email...'
+									? t('checkingEmail')
 									: currentStep === totalSteps
-										? 'Finish ✓'
-										: 'Continue →'}
+										? t('finish')
+										: t('continue')}
 						</Button>
 					</div>
 
 					{/* Login Link */}
 					{currentStep === 1 && (
 						<div className='mt-6 text-center text-sm text-muted-foreground'>
-							Have an account?{' '}
+							{t('haveAccount')}{' '}
 							<Link
 								href='/login'
 								className='text-foreground hover:text-muted-foreground font-medium underline transition-colors'
 							>
-								Log in
+								{t('login')}
 							</Link>
 						</div>
 					)}
@@ -740,8 +752,7 @@ export default function RegisterPage() {
 						className='text-xl text-white text-center mt-4 max-w-sm italic'
 						style={{ fontFamily: 'Times New Roman, Times, serif' }}
 					>
-						"Your all-in-one research workspace for managing papers, projects, and collaboration.
-						Sign up now to organize your research like never before!"
+						{t('registerLeftSubtitle')}
 					</p>
 				</div>
 			</div>

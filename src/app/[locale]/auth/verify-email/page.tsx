@@ -2,6 +2,7 @@
 
 import { Loader2, Mail } from 'lucide-react'
 import { motion } from 'motion/react'
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from '@/components/ui/input-otp'
@@ -11,6 +12,7 @@ import { useSendOTP, useVerifyOTP } from '@/lib/api/hooks/use-auth'
 import { getErrorMessage } from '@/lib/api/utils/error-handler'
 
 export default function VerifyEmailPage() {
+	const t = useTranslations('Auth')
 	const [otp, setOtp] = useState('')
 	const { loading } = useAuth()
 	const { mutate: verify, isPending: isVerifying, error: verifyError } = useVerifyOTP()
@@ -59,10 +61,11 @@ export default function VerifyEmailPage() {
 					</div>
 
 					<div className='space-y-2'>
-						<h1 className='text-2xl font-bold tracking-tight text-foreground'>Verify your email</h1>
+						<h1 className='text-2xl font-bold tracking-tight text-foreground'>
+							{t('verifyEmail')}
+						</h1>
 						<p className='text-sm text-muted-foreground leading-relaxed max-w-[280px] mx-auto'>
-							We've sent a 6-digit code to your email address. Please enter it below to verify your
-							account.
+							{t('verificationSent')}
 						</p>
 					</div>
 
@@ -105,7 +108,7 @@ export default function VerifyEmailPage() {
 								onClick={() => handleVerify(otp)}
 								disabled={isVerifying || otp.length !== 6}
 							>
-								{isVerifying ? <Loader2 className='w-4 h-4 animate-spin' /> : 'Verify Account'}
+								{isVerifying ? <Loader2 className='w-4 h-4 animate-spin' /> : t('verifyAccount')}
 							</Button>
 
 							<div className='flex flex-col gap-3 items-center w-full text-muted-foreground'>
@@ -119,16 +122,16 @@ export default function VerifyEmailPage() {
 									disabled={isResending || isVerifying}
 								>
 									{isResending ? <Loader2 className='w-4 h-4 animate-spin mr-2' /> : null}
-									Resend code
+									{t('resendCode')}
 								</Button>
 
 								<div className='flex items-center gap-2 text-sm opacity-70 mt-2'>
-									<span>Wrong email?</span>
+									<span>{t('wrongEmail')}</span>
 									<a
 										href='/login'
 										className='text-foreground hover:text-primary underline transition-colors font-medium'
 									>
-										Sign in again
+										{t('signInAgain')}
 									</a>
 								</div>
 							</div>

@@ -4,6 +4,7 @@ import { EyeIcon, EyeOffIcon, Link2 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import type React from 'react'
 import { useState } from 'react'
 import { FaGithub } from 'react-icons/fa'
@@ -26,6 +27,7 @@ import { useLoginEmail, useSignInWithSocial } from '@/lib/api/hooks/use-auth'
 import { getErrorMessage } from '@/lib/api/utils/error-handler'
 
 export default function LoginPage() {
+	const t = useTranslations('Auth')
 	const _router = useRouter()
 	const { setOnboardingData } = useAuth()
 
@@ -53,17 +55,17 @@ export default function LoginPage() {
 
 		// Validation
 		if (!email || !password) {
-			setLocalError('Please fill in all fields')
+			setLocalError(t('fillAllFields'))
 			return
 		}
 
 		if (!email.includes('@')) {
-			setLocalError('Please enter a valid email address')
+			setLocalError(t('validEmail'))
 			return
 		}
 
 		if (!turnstileToken) {
-			setLocalError('Please complete the captcha verification')
+			setLocalError(t('captchaVerify'))
 			return
 		}
 
@@ -76,7 +78,7 @@ export default function LoginPage() {
 
 	const handleSocialLogin = async (provider: 'google' | 'github' | 'microsoft') => {
 		if (!turnstileToken) {
-			setLocalError('Please complete the captcha verification first')
+			setLocalError(t('captchaVerifyFirst'))
 			return
 		}
 		setLocalError('')
@@ -88,9 +90,7 @@ export default function LoginPage() {
 				return // Handled by linkingSession UI
 			}
 			if (err.message === 'PASSWORD_CONFLICT') {
-				setLocalError(
-					'This email is already registered using a password. Please log in using the email & password form.'
-				)
+				setLocalError(t('passwordConflict'))
 				return
 			}
 			setLocalError(getErrorMessage(err))
@@ -123,8 +123,8 @@ export default function LoginPage() {
 				<div className='w-full max-w-sm space-y-6'>
 					{/* Title */}
 					<div className='text-center'>
-						<h1 className='text-2xl font-bold text-foreground mb-2'>Log in to your account</h1>
-						<p className='text-sm text-muted-foreground'>Welcome back to PaperNest</p>
+						<h1 className='text-2xl font-bold text-foreground mb-2'>{t('loginTitle')}</h1>
+						<p className='text-sm text-muted-foreground'>{t('welcomeBack')}</p>
 					</div>
 
 					{/* Error Message */}
@@ -144,15 +144,14 @@ export default function LoginPage() {
 									</div>
 								</div>
 								<DialogTitle className='text-center text-lg font-semibold'>
-									Link Your Account
+									{t('linkAccount')}
 								</DialogTitle>
 								<DialogDescription className='text-center text-sm'>
-									The email <strong>{linkingSession?.email}</strong> is already registered via
-									<span className='capitalize font-medium'>
-										{' '}
-										{linkingSession?.targetMethod.split('.')[0]}
-									</span>
-									. Link it with {linkingSession?.providerName} to access the same account.
+									{t('linkDescription', {
+										email: linkingSession?.email,
+										target: linkingSession?.targetMethod.split('.')[0],
+										providerName: linkingSession?.providerName,
+									})}
 								</DialogDescription>
 							</DialogHeader>
 							<div className='grid gap-2 mt-4'>
@@ -161,7 +160,7 @@ export default function LoginPage() {
 									onClick={() => linkMutation.mutate(turnstileToken)}
 									disabled={isLinking || !turnstileToken}
 								>
-									{isLinking ? 'Linking Account...' : 'Link Now'}
+									{isLinking ? t('linkingAccount') : t('linkNow')}
 								</Button>
 								<Button
 									variant='outline'
@@ -169,7 +168,7 @@ export default function LoginPage() {
 									onClick={resetLinking}
 									disabled={isLinking}
 								>
-									Cancel
+									{t('cancel')}
 								</Button>
 							</div>
 						</DialogContent>
@@ -184,7 +183,7 @@ export default function LoginPage() {
 							disabled={loading}
 						>
 							<FcGoogle />
-							<span className='hidden sm:inline'>Continue with Google</span>
+							<span className='hidden sm:inline'>{t('continueWithGoogle')}</span>
 						</Button>
 						<Button
 							type='button'
@@ -193,7 +192,7 @@ export default function LoginPage() {
 							disabled={loading}
 						>
 							<FaGithub />
-							<span className='hidden sm:inline'>Continue with GitHub</span>
+							<span className='hidden sm:inline'>{t('continueWithGithub')}</span>
 						</Button>
 						<Button
 							type='button'
@@ -202,7 +201,7 @@ export default function LoginPage() {
 							disabled={loading}
 						>
 							<MicrosoftIconIcon />
-							<span className='hidden sm:inline'>Continue with Microsoft</span>
+							<span className='hidden sm:inline'>{t('continueWithMicrosoft')}</span>
 						</Button>
 					</div>
 
@@ -212,9 +211,7 @@ export default function LoginPage() {
 							<div className='w-full border-t border-border'></div>
 						</div>
 						<div className='relative flex justify-center text-sm'>
-							<span className='px-4 bg-background text-muted-foreground'>
-								Or Continue With Your Credentials
-							</span>
+							<span className='px-4 bg-background text-muted-foreground'>{t('orCredentials')}</span>
 						</div>
 					</div>
 
@@ -223,14 +220,14 @@ export default function LoginPage() {
 						{/* Email */}
 						<div className='space-y-2'>
 							<Label htmlFor='email' className='text-foreground font-normal'>
-								Email
+								{t('email')}
 							</Label>
 							<Input
 								id='email'
 								type='email'
 								value={email}
 								onChange={(e) => setEmail(e.target.value)}
-								placeholder='Enter your Email'
+								placeholder={t('enterEmail')}
 								disabled={loading}
 							/>
 						</div>
@@ -238,7 +235,7 @@ export default function LoginPage() {
 						{/* Password */}
 						<div className='space-y-2'>
 							<Label htmlFor='password' className='text-foreground font-normal'>
-								Password
+								{t('password')}
 							</Label>
 							<div className='relative'>
 								<Input
@@ -246,7 +243,7 @@ export default function LoginPage() {
 									type={showPassword ? 'text' : 'password'}
 									value={password}
 									onChange={(e) => setPassword(e.target.value)}
-									placeholder='Password'
+									placeholder={t('enterPassword')}
 									disabled={loading}
 									className='pr-9'
 								/>
@@ -270,7 +267,7 @@ export default function LoginPage() {
 									href='#'
 									className='text-sm text-teal-500 hover:text-teal-600 transition-colors'
 								>
-									Forgot your password?
+									{t('forgotPassword')}
 								</Link>
 							</div>
 						</div>
@@ -279,18 +276,18 @@ export default function LoginPage() {
 
 						{/* Login Button */}
 						<Button type='submit' className='w-full' disabled={loading}>
-							{loading ? 'Logging in...' : 'Log In'}
+							{loading ? t('loggingIn') : t('login')}
 						</Button>
 					</form>
 
 					{/* Sign Up Link */}
 					<div className='mt-6 text-center text-sm text-muted-foreground'>
-						Don't have an account?{' '}
+						{t('dontHaveAccount')}{' '}
 						<Link
 							href='/register'
 							className='text-foreground hover:text-muted-foreground font-medium underline transition-colors'
 						>
-							Join PaperNest
+							{t('join')}
 						</Link>
 					</div>
 				</div>
@@ -330,7 +327,7 @@ export default function LoginPage() {
 						className='text-xl text-white text-center mt-4 max-w-sm italic'
 						style={{ fontFamily: 'Times New Roman, Times, serif' }}
 					>
-						"Organize your research like never before. Login to continue your work."
+						{t('loginLeftSubtitle')}
 					</p>
 				</div>
 			</div>

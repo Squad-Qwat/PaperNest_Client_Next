@@ -1,6 +1,7 @@
 'use client'
 
 import { X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import type React from 'react'
 import { useCallback, useState } from 'react'
 import PanelContent1 from './panels/PanelContent1'
@@ -39,6 +40,7 @@ const DynamicContentPanel: React.FC<DynamicContentPanelProps> = ({
 }) => {
 	const [width, setWidth] = useState(320) // Default width 320px
 	const [isResizing, setIsResizing] = useState(false)
+	const t = useTranslations('Panel')
 
 	const handleMouseDown = useCallback(
 		(e: React.MouseEvent) => {
@@ -74,10 +76,10 @@ const DynamicContentPanel: React.FC<DynamicContentPanelProps> = ({
 	if (!activePanel) return null
 
 	const panelLabels: Record<string, string> = {
-		panel1: 'Files',
-		panel2: 'Table of Contents',
-		panel3: 'References',
-		panel4: 'Reviews',
+		panel1: t('files'),
+		panel2: t('tableOfContents'),
+		panel3: t('references'),
+		panel4: t('reviews'),
 	}
 
 	const renderContent = () => {
@@ -141,7 +143,7 @@ const DynamicContentPanel: React.FC<DynamicContentPanelProps> = ({
 							type='button'
 							onClick={onClose}
 							className='p-2 hover:bg-muted rounded-lg transition-colors'
-							title='Close panel'
+							title={t('closePanel')}
 						>
 							<X className='h-5 w-5 text-muted-foreground hover:text-foreground' />
 						</button>

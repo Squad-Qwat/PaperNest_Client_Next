@@ -3,6 +3,7 @@
 import { ChevronLeft, History } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useMemo } from 'react'
 import { ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -12,7 +13,7 @@ import { useDocumentReviews, useDocumentVersions } from '@/lib/api/hooks/use-doc
 import { useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
 import type { Version } from '@/lib/api/types/document.types'
 import type { Review } from '@/lib/api/types/review.types'
-import { format, id } from '@/lib/date'
+import { format } from '@/lib/date'
 import { getAvatarUrl, getInitials, getMediaUrl } from '@/lib/utils'
 
 export default function VersionsPage() {
@@ -20,6 +21,7 @@ export default function VersionsPage() {
 	const router = useRouter()
 	const workspaceId = params.workspaceid as string
 	const documentId = params.documentid as string
+	const t = useTranslations('Document')
 
 	const { data: versionsResponse, isLoading: versionsLoading } = useDocumentVersions(documentId)
 	const { data: reviewsResponse, isLoading: reviewsLoading } = useDocumentReviews(documentId)
@@ -51,8 +53,8 @@ export default function VersionsPage() {
 			const time = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
 
 			let title = format(version.createdAt, 'd MMMM yyyy')
-			if (time === today) title = 'Today'
-			else if (time === yesterday) title = 'Yesterday'
+			if (time === today) title = t('today')
+			else if (time === yesterday) title = t('yesterday')
 
 			const existingGroup = groups.find((g) => g.title === title)
 			if (existingGroup) {
@@ -63,7 +65,7 @@ export default function VersionsPage() {
 		})
 
 		return groups
-	}, [versions])
+	}, [versions, t])
 
 	const _latestVersion = versions[0]
 
@@ -140,12 +142,12 @@ export default function VersionsPage() {
 														</span>
 														{isLatest && (
 															<span className='px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-semibold uppercase'>
-																Active
+																{t('active')}
 															</span>
 														)}
 														{!versionReview && !isLatest && (
 															<span className='px-2 py-0.5 bg-muted text-muted-foreground rounded text-xs font-semibold uppercase'>
-																Snapshot
+																{t('snapshot')}
 															</span>
 														)}
 														{versionReview && (
@@ -162,10 +164,11 @@ export default function VersionsPage() {
 																(m: any) =>
 																	m.userId === version.userId || m.user?.userId === version.userId
 															)
-															const displayName = version.user?.name || member?.user?.name || 'User'
+															const displayName =
+																version.user?.name || member?.user?.name || t('user')
 
 															const isUid = displayName.length > 20 && !displayName.includes(' ')
-															const finalName = isUid ? 'User' : displayName
+															const finalName = isUid ? t('user') : displayName
 
 															return (
 																<>
@@ -206,7 +209,7 @@ export default function VersionsPage() {
 																	return (
 																		<div className='border-l-2 border-border pl-3 mt-1'>
 																			<span className='text-sm font-semibold text-muted-foreground uppercase tracking-wider block mb-0.5'>
-																				Lecturer Feedback
+																				{t('lecturerFeedback')}
 																			</span>
 																			<p className='text-sm text-muted-foreground leading-relaxed font-normal'>
 																				{feedback}
@@ -230,7 +233,7 @@ export default function VersionsPage() {
 																variant='outline'
 																className='rounded-lg shadow-sm border-border'
 															>
-																Review Details
+																{t('reviewDetails')}
 															</Button>
 														</Link>
 													)}
@@ -239,7 +242,7 @@ export default function VersionsPage() {
 														onClick={(e) => e.stopPropagation()}
 													>
 														<Button variant='default' className='rounded-lg shadow-sm'>
-															Open
+															{t('open')}
 														</Button>
 													</Link>
 												</div>
@@ -259,16 +262,16 @@ export default function VersionsPage() {
 				<div className='bg-muted w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4'>
 					<History className='w-6 h-6 text-muted-foreground' />
 				</div>
-				<h3 className='text-lg font-semibold'>No History</h3>
+				<h3 className='text-lg font-semibold'>{t('noHistory')}</h3>
 				<p className='text-sm text-muted-foreground max-w-sm mx-auto mt-2'>
-					No versions saved yet.
+					{t('noHistorySubtitle')}
 				</p>
 				<Button
 					onClick={() => router.push(`/${workspaceId}/documents/${documentId}`)}
 					variant='outline'
 					className='mt-6'
 				>
-					Back to Editor
+					{t('backToEditor')}
 				</Button>
 			</div>
 		)
@@ -283,20 +286,20 @@ export default function VersionsPage() {
 							variant='ghost'
 							onClick={() => router.push(`/${workspaceId}/documents/${documentId}`)}
 							className='h-10 w-10 hover:bg-muted rounded-lg transition-all group p-0 min-w-0 shrink-0'
-							title='Back to Editor'
+							title={t('backToEditor')}
 						>
 							<ChevronLeft className='h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors' />
 						</Button>
 						<div className='flex flex-col'>
 							<div className='flex items-center gap-3'>
-								<h1 className='text-xl font-semibold tracking-tight'>Version History</h1>
+								<h1 className='text-xl font-semibold tracking-tight'>{t('versionHistory')}</h1>
 								<div className='bg-muted px-2 py-0.5 rounded-md'>
 									<span className='text-xs font-medium text-muted-foreground'>
 										{versions.length}
 									</span>
 								</div>
 							</div>
-							<p className='text-sm text-muted-foreground'>Monitor the track of document changes</p>
+							<p className='text-sm text-muted-foreground'>{t('monitorChanges')}</p>
 						</div>
 					</div>
 
@@ -306,7 +309,7 @@ export default function VersionsPage() {
 								const member = members.find(
 									(m: any) => m.userId === v.userId || m.user?.userId === v.userId
 								)
-								const dName = v.user?.name || member?.user?.name || 'User'
+								const dName = v.user?.name || member?.user?.name || t('user')
 								return (
 									<Avatar key={v.documentBodyId} className='h-8 w-8 border-2 border-background'>
 										<AvatarImage

@@ -12,6 +12,7 @@ import {
 	Upload,
 	Wand2,
 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
@@ -158,6 +159,7 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, onInsertText, onOpe
 	const { data: files = [], isLoading } = useDocumentFiles(documentId)
 	const { isUploading, processUpload, handleDeleteFile, handleInternalMove, handleCreateFile } =
 		useFileOperations(documentId, files)
+	const t = useTranslations('Panel')
 
 	const scrollContainerRef = React.useRef<HTMLDivElement>(null)
 	const [isDragging, setIsDragging] = useState(false)
@@ -404,7 +406,7 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, onInsertText, onOpe
 					<div className='relative w-full h-full border-2 border-dashed border-primary/30 rounded-lg flex flex-col items-center justify-center gap-2 bg-primary/[0.02]'>
 						<Upload className='h-6 w-6 text-primary animate-bounce mb-2' />
 						<p className='text-xs font-semibold text-primary uppercase tracking-widest'>
-							Drop to upload
+							{t('dropToUpload')}
 						</p>
 					</div>
 				</div>
@@ -418,7 +420,7 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, onInsertText, onOpe
 							onClick={onNewFile}
 							disabled={isUploading || !documentId}
 							className='flex items-center justify-center p-1.5 rounded-md text-primary hover:bg-primary/10 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer'
-							title='New File'
+							title={t('newFile')}
 						>
 							<FilePlus className='h-4 w-4' />
 						</button>
@@ -427,7 +429,7 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, onInsertText, onOpe
 							onClick={onNewFolder}
 							disabled={isUploading || !documentId}
 							className='flex items-center justify-center p-1.5 rounded-md text-primary hover:bg-primary/10 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer'
-							title='New Folder'
+							title={t('newFolder')}
 						>
 							<FolderPlus className='h-4 w-4' />
 						</button>
@@ -455,7 +457,9 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, onInsertText, onOpe
 								) : (
 									<Upload className='h-3.5 w-3.5' />
 								)}
-								<span className='hidden sm:inline'>{isUploading ? 'Uploading...' : 'Upload'}</span>
+								<span className='hidden sm:inline'>
+									{isUploading ? t('uploading') : t('upload')}
+								</span>
 							</div>
 						</label>
 					</div>,
@@ -507,14 +511,14 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, onInsertText, onOpe
 				{isLoading ? (
 					<div className='flex flex-col items-center justify-center h-40 gap-2 opacity-50'>
 						<Loader2 className='h-6 w-6 animate-spin text-primary' />
-						<span className='text-xs text-muted-foreground font-medium'>Syncing...</span>
+						<span className='text-xs text-muted-foreground font-medium'>{t('syncing')}</span>
 					</div>
 				) : treeData.length === 0 && !isCreating ? (
 					<div className='flex flex-col items-center justify-center p-8 text-center gap-3 opacity-40'>
 						<div className='p-3 bg-muted rounded-full'>
 							<FileText className='h-8 w-8 text-muted-foreground' />
 						</div>
-						<p className='text-sm font-medium text-muted-foreground'>No files yet</p>
+						<p className='text-sm font-medium text-muted-foreground'>{t('noFiles')}</p>
 					</div>
 				) : (
 					(treeData.length > 0 || isCreating) && (
@@ -558,10 +562,10 @@ const FilesPanel: React.FC<FilesPanelProps> = ({ documentId, onInsertText, onOpe
 				isOpen={deleteConfirmFileId !== null}
 				onClose={() => setDeleteConfirmFileId(null)}
 				onConfirm={handleConfirmDelete}
-				title='Delete File'
-				message='Are you sure you want to delete this file? This action cannot be undone.'
-				confirmText='Delete'
-				cancelText='Cancel'
+				title={t('deleteFile')}
+				message={t('deleteFileMessage')}
+				confirmText={t('delete')}
+				cancelText={t('cancel')}
 				variant='danger'
 			/>
 		</section>

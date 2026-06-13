@@ -1,5 +1,6 @@
 import { ChevronLeft, FileDown, GitCommit, History, MessageSquare, Play, Save } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import LatexToolbar from '@/components/document/latex/LatexToolbar'
@@ -80,12 +81,6 @@ const DocumentHeader = ({
 	isSaving,
 	isAutoSaving,
 	lastSavedAt,
-	activeDropdown,
-	toggleDropdown,
-	paperSize,
-	setPaperSize,
-	paperSizeSubmenuOpen,
-	setPaperSizeSubmenuOpen,
 	workspaceId,
 	documentId,
 
@@ -117,6 +112,7 @@ const DocumentHeader = ({
 }: DocumentHeaderProps) => {
 	const router = useRouter()
 	const { user } = useAuth()
+	const t = useTranslations('Document')
 	const [showCommitModal, setShowCommitModal] = useState(false)
 	const { data: reviewsResponse } = useDocumentReviews(documentId)
 
@@ -129,7 +125,7 @@ const DocumentHeader = ({
 	const pendingReview = reviews.find((r: any) => r.status === 'PENDING' || r.status === 'pending')
 
 	const canCommit = !pendingReview
-	const commitBlockReason = pendingReview ? 'Waiting for pending review' : null
+	const commitBlockReason = pendingReview ? t('waitingReview') : null
 
 	// Find a lecturer to assign the review to
 	const members = membersResponse?.members || []
@@ -159,7 +155,7 @@ const DocumentHeader = ({
 							variant='ghost'
 							onClick={() => router.push(`/${workspaceId}`)}
 							className='h-10 w-10 hover:bg-muted rounded-lg transition-all group p-0 min-w-0'
-							title='Back to Workspace'
+							title={t('backToWorkspace')}
 						>
 							<ChevronLeft
 								style={{ width: '20px', height: '20px' }}
@@ -173,21 +169,21 @@ const DocumentHeader = ({
 								onChange={(e) => setTitle(e.target.value)}
 								readOnly={readOnly}
 								className='font-medium text-lg bg-transparent text-foreground focus:outline-none border-b border-transparent focus:border-blue-500 w-full'
-								placeholder='Untitled Document'
+								placeholder={t('untitled')}
 							/>
 							<div className='flex items-center gap-4 text-sm text-muted-foreground'>
 								<Menubar className='border-none bg-transparent shadow-none p-0 h-auto gap-0.5'>
 									{/* File Menu */}
 									<MenubarMenu>
 										<MenubarTrigger className='hover:bg-muted text-muted-foreground data-[state=open]:text-foreground font-normal px-2.5 py-1 rounded cursor-pointer text-sm h-8 data-[state=open]:bg-muted'>
-											File
+											{t('file')}
 										</MenubarTrigger>
 										<MenubarContent className='z-[1050] min-w-[12rem]'>
 											<MenubarGroup>
 												{!readOnly && (
 													<MenubarItem onClick={handleSave}>
 														<Save className='mr-2 h-4 w-4 text-muted-foreground' />
-														<span>Save</span>
+														<span>{t('save')}</span>
 														<MenubarShortcut>Ctrl+S</MenubarShortcut>
 													</MenubarItem>
 												)}
@@ -199,14 +195,14 @@ const DocumentHeader = ({
 													}}
 												>
 													<Play className='mr-2 h-4 w-4 text-muted-foreground' />
-													<span>Compile Now</span>
+													<span>{t('compileNow')}</span>
 												</MenubarItem>
 
 												<MenubarCheckboxItem
 													checked={autoCompile}
 													onCheckedChange={toggleAutoCompile}
 												>
-													Auto Compile
+													{t('autoCompile')}
 												</MenubarCheckboxItem>
 											</MenubarGroup>
 
@@ -218,7 +214,7 @@ const DocumentHeader = ({
 													className='text-blue-600 focus:text-blue-700 font-medium'
 												>
 													<FileDown className='mr-2 h-4 w-4 text-blue-600 focus:text-blue-700' />
-													<span>Export PDF</span>
+													<span>{t('exportPdf')}</span>
 												</MenubarItem>
 											</MenubarGroup>
 										</MenubarContent>
@@ -227,7 +223,7 @@ const DocumentHeader = ({
 									{/* History Menu */}
 									<MenubarMenu>
 										<MenubarTrigger className='hover:bg-muted text-muted-foreground data-[state=open]:text-foreground font-normal px-2.5 py-1 rounded cursor-pointer text-sm h-8 data-[state=open]:bg-muted'>
-											History
+											{t('history')}
 										</MenubarTrigger>
 										<MenubarContent className='z-[1050] min-w-[12rem]'>
 											<MenubarGroup>
@@ -241,13 +237,16 @@ const DocumentHeader = ({
 																		onClick={() => setShowCommitModal(true)}
 																	>
 																		<GitCommit className='mr-2 h-4 w-4 text-muted-foreground' />
-																		<span>Commit Version...</span>
+																		<span>{t('commitVersion')}</span>
 																	</MenubarItem>
 																</div>
 															</TooltipTrigger>
 															{!canCommit && (
 																<TooltipContent side='right' className='z-[1100]'>
-																	<p>{commitBlockReason || 'Waiting for review'} (Check History)</p>
+																	<p>
+																		{commitBlockReason || 'Waiting for review'} ({t('checkHistory')}
+																		)
+																	</p>
 																</TooltipContent>
 															)}
 														</Tooltip>
@@ -260,7 +259,7 @@ const DocumentHeader = ({
 													}
 												>
 													<History className='mr-2 h-4 w-4 text-muted-foreground' />
-													<span>Version History</span>
+													<span>{t('versionHistory')}</span>
 												</MenubarItem>
 											</MenubarGroup>
 										</MenubarContent>
@@ -269,16 +268,16 @@ const DocumentHeader = ({
 									{/* Settings Menu */}
 									<MenubarMenu>
 										<MenubarTrigger className='hover:bg-muted text-muted-foreground data-[state=open]:text-foreground font-normal px-2.5 py-1 rounded cursor-pointer text-sm h-8 data-[state=open]:bg-muted'>
-											Settings
+											{t('settings')}
 										</MenubarTrigger>
 										<MenubarContent className='z-[1050] min-w-[14rem]'>
 											<MenubarGroup>
 												<MenubarLabel className='px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
-													Compiler Mode
+													{t('compilerMode')}
 												</MenubarLabel>
 												<MenubarRadioGroup
 													value={compilerMode}
-													onValueChange={(val) => onCompilerModeChange(val as any)}
+													onValueChange={(val: string) => onCompilerModeChange(val as any)}
 												>
 													<MenubarRadioItem value='server'>
 														Server Tectonic (Cloud)
@@ -302,12 +301,16 @@ const DocumentHeader = ({
 									{isAutoSaving ? (
 										<>
 											<div className='w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse'></div>
-											<span>Saving...</span>
+											<span>{t('saving')}</span>
 										</>
 									) : (
 										<>
 											<div className='w-1.5 h-1.5 bg-green-500 rounded-full'></div>
-											<span>Saved {lastSavedAt && new Date(lastSavedAt).toLocaleTimeString()}</span>
+											<span>
+												{t('saved', {
+													time: lastSavedAt ? new Date(lastSavedAt).toLocaleTimeString() : '',
+												})}
+											</span>
 										</>
 									)}
 								</div>
@@ -348,7 +351,7 @@ const DocumentHeader = ({
 									onClick={handleSave}
 									disabled={isSaving || isAutoSaving}
 								>
-									{isSaving ? 'Saving...' : 'Save'}
+									{isSaving ? t('saving') : t('save')}
 								</Button>
 							)}
 						</div>
@@ -396,7 +399,7 @@ const DocumentHeader = ({
 											: 'text-gray-700 dark:text-gray-300 group-hover:text-foreground'
 									)}
 								>
-									Agentic AI
+									{t('agenticAI')}
 								</span>
 							</span>
 						</Button>

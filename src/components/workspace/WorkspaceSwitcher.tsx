@@ -1,6 +1,7 @@
 'use client'
 import { Check, ChevronsUpDown, GalleryVerticalEnd, Plus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import * as React from 'react'
 import {
 	DropdownMenu,
@@ -23,6 +24,7 @@ export function WorkspaceSwitcher({ currentWorkspaceId }: WorkspaceSwitcherProps
 	const { data: workspacesResponse } = useWorkspaces()
 	const workspaces = workspacesResponse?.workspaces || []
 	const [showCreateModal, setShowCreateModal] = React.useState(false)
+	const t = useTranslations('Workspace')
 
 	const currentWorkspace = workspaces.find((w) => w.workspaceId === currentWorkspaceId)
 
@@ -47,7 +49,7 @@ export function WorkspaceSwitcher({ currentWorkspaceId }: WorkspaceSwitcherProps
 									<span className='font-semibold truncate'>
 										{currentWorkspace?.title || 'PaperNest'}
 									</span>
-									<span className='text-xs text-muted-foreground truncate'>Workspace</span>
+									<span className='text-xs text-muted-foreground truncate'>{t('label')}</span>
 								</div>
 								<ChevronsUpDown className='ml-auto size-4 opacity-50' />
 							</SidebarMenuButton>
@@ -59,7 +61,7 @@ export function WorkspaceSwitcher({ currentWorkspaceId }: WorkspaceSwitcherProps
 							sideOffset={4}
 						>
 							<DropdownMenuLabel className='text-xs text-muted-foreground'>
-								Workspaces
+								{t('workspaces')}
 							</DropdownMenuLabel>
 							{workspaces.map((workspace) => (
 								<DropdownMenuItem
@@ -84,7 +86,7 @@ export function WorkspaceSwitcher({ currentWorkspaceId }: WorkspaceSwitcherProps
 								<div className='flex size-6 items-center justify-center rounded-md border bg-background'>
 									<Plus className='size-4' />
 								</div>
-								<div className='font-medium'>Add Workspace</div>
+								<div className='font-medium'>{t('addWorkspace')}</div>
 							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>

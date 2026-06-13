@@ -3,6 +3,7 @@
 import { ChevronLeft, FileText, Loader2, MessageSquare, RotateCcw } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
@@ -33,7 +34,7 @@ import {
 import { useWorkspace, useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
 import type { Version } from '@/lib/api/types/document.types'
 import type { Review } from '@/lib/api/types/review.types'
-import { format, id } from '@/lib/date'
+import { format } from '@/lib/date'
 import { getAvatarUrl, getInitials, getMediaUrl } from '@/lib/utils'
 
 export default function VersionDetailPage() {
@@ -42,6 +43,7 @@ export default function VersionDetailPage() {
 	const workspaceId = params.workspaceid as string
 	const documentId = params.documentid as string
 	const versionId = params.versionid as string
+	const t = useTranslations('Document')
 
 	const [showConfirm, setShowConfirm] = useState(false)
 
@@ -154,9 +156,9 @@ export default function VersionDetailPage() {
 	if (!version) {
 		return (
 			<div className='h-screen flex flex-col items-center justify-center bg-background'>
-				<p className='text-muted-foreground mb-4 text-sm'>Version not found</p>
+				<p className='text-muted-foreground mb-4 text-sm'>{t('versionNotFound')}</p>
 				<Button variant='outline' onClick={() => router.back()}>
-					Go Back
+					{t('goBack')}
 				</Button>
 			</div>
 		)
@@ -171,13 +173,13 @@ export default function VersionDetailPage() {
 							variant='ghost'
 							onClick={() => router.push(`/${workspaceId}/documents/${documentId}/versions`)}
 							className='h-10 w-10 hover:bg-muted rounded-lg transition-all group p-0 min-w-0 shrink-0'
-							title='Back to History'
+							title={t('versionHistory')}
 						>
 							<ChevronLeft className='h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors' />
 						</Button>
 						<div className='flex flex-col'>
 							<h1 className='text-sm font-semibold tracking-tight'>
-								Version Details #{String(version.versionNumber).padStart(3, '0')}
+								{t('versionDetails', { number: String(version.versionNumber).padStart(3, '0') })}
 							</h1>
 							<p className='text-xs text-muted-foreground'>
 								{format(version.createdAt, 'd MMMM yyyy, HH:mm')}
@@ -190,7 +192,7 @@ export default function VersionDetailPage() {
 							<Link href={`/${workspaceId}/reviews/${versionReview.reviewId}`}>
 								<Button variant='outline' size='sm' className='gap-2'>
 									<MessageSquare className='w-4 h-4' />
-									<span className='hidden sm:inline'>View Review</span>
+									<span className='hidden sm:inline'>{t('viewReview')}</span>
 								</Button>
 							</Link>
 						) : (
@@ -202,7 +204,7 @@ export default function VersionDetailPage() {
 									onClick={() => setIsReviewModalOpen(true)}
 								>
 									<MessageSquare className='w-4 h-4' />
-									<span>Submit Review</span>
+									<span>{t('submitReview')}</span>
 								</Button>
 							)
 						)}
@@ -217,7 +219,7 @@ export default function VersionDetailPage() {
 						>
 							<RotateCcw className='w-4 h-4' />
 							<span className='hidden sm:inline'>
-								{isReverting ? 'Restoring...' : 'Restore This Version'}
+								{isReverting ? t('restoring') : t('restoreVersion')}
 							</span>
 						</Button>
 					</div>
@@ -229,21 +231,21 @@ export default function VersionDetailPage() {
 					{isCompiling ? (
 						<div className='flex flex-col items-center gap-4'>
 							<Loader2 className='w-8 h-8 animate-spin text-muted-foreground' />
-							<span className='text-sm text-muted-foreground'>Compiling PDF...</span>
+							<span className='text-sm text-muted-foreground'>{t('compilingPdf')}</span>
 						</div>
 					) : pdfUrl ? (
 						<iframe
 							key={pdfUrl}
 							src={`${pdfUrl}#toolbar=1`}
 							className='w-full h-full border-none'
-							title='PDF Preview'
+							title={t('pdfPreview')}
 						/>
 					) : compileError ? (
 						<div className='p-8 text-center'>
 							<div className='w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4'>
 								<FileText className='w-6 h-6 text-destructive' />
 							</div>
-							<p className='text-sm font-semibold text-destructive'>Compilation Failed</p>
+							<p className='text-sm font-semibold text-destructive'>{t('compilationFailed')}</p>
 							<pre className='text-xs text-muted-foreground mt-4 max-w-md mx-auto overflow-auto max-h-40 bg-muted p-4 rounded-md text-left'>
 								{compileError}
 							</pre>
@@ -255,7 +257,7 @@ export default function VersionDetailPage() {
 					<Card className='p-6 space-y-6 rounded-2xl border-border/60 shadow-sm bg-card'>
 						<div className='flex items-center justify-between border-b border-border pb-4'>
 							<h3 className='text-sm font-bold text-foreground uppercase tracking-wider'>
-								Version Metadata
+								{t('versionMetadata')}
 							</h3>
 							<div className='px-2 py-1 bg-muted rounded text-[10px] font-bold text-muted-foreground'>
 								V{version.versionNumber}
@@ -267,7 +269,7 @@ export default function VersionDetailPage() {
 							<div className='flex items-center gap-3'>
 								{(() => {
 									const displayName =
-										version.user?.name || version.user?.username || version.userId || 'User'
+										version.user?.name || version.user?.username || version.userId || t('user')
 									return (
 										<>
 											<Avatar className='h-10 w-10 border-2 border-background shadow-sm'>
@@ -287,7 +289,7 @@ export default function VersionDetailPage() {
 												</span>
 												<div className='flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium'>
 													<span className='px-1.5 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-sm uppercase tracking-tight'>
-														Author
+														{t('author')}
 													</span>
 													<span className='opacity-30'>•</span>
 													<span>{format(version.createdAt, 'HH:mm, d MMM')}</span>
@@ -302,11 +304,11 @@ export default function VersionDetailPage() {
 							<div className='space-y-2'>
 								<div className='flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest'>
 									<MessageSquare className='w-3 h-3' />
-									Commit Message
+									{t('commitMessage')}
 								</div>
 								<div className='bg-muted/50 rounded-xl p-4 border border-border'>
 									<p className='text-sm text-foreground leading-relaxed italic'>
-										"{version.message || 'No commit message.'}"
+										"{version.message || t('noCommitMessage')}"
 									</p>
 								</div>
 							</div>
@@ -316,7 +318,7 @@ export default function VersionDetailPage() {
 								<div className='pt-6 border-t border-border space-y-4'>
 									<div className='flex items-center justify-between'>
 										<div className='text-[10px] font-bold text-muted-foreground uppercase tracking-widest'>
-											Review Status
+											{t('reviewStatus')}
 										</div>
 										<ReviewStatusBadge status={versionReview.status} />
 									</div>
@@ -326,19 +328,21 @@ export default function VersionDetailPage() {
 											<div className='flex items-center gap-2'>
 												<div className='h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse' />
 												<span className='text-[10px] font-bold text-muted-foreground uppercase tracking-tight'>
-													Lecturer Feedback
+													{t('lecturerFeedback')}
 												</span>
 											</div>
 											<div className='bg-green-500/10 rounded-xl p-4 border border-green-500/20'>
 												<p className='text-sm text-foreground leading-relaxed'>
 													{versionReview.lecturerMessage ||
 														versionReview.message ||
-														'Version approved with no additional notes.'}
+														t('approvedNoNotes')}
 												</p>
 											</div>
 											{versionReview.reviewedAt && (
 												<p className='text-[10px] text-muted-foreground text-right'>
-													Reviewed on {format(versionReview.reviewedAt, 'd MMMM yyyy')}
+													{t('reviewedOn', {
+														date: format(versionReview.reviewedAt, 'd MMMM yyyy'),
+													})}
 												</p>
 											)}
 										</div>
@@ -354,30 +358,28 @@ export default function VersionDetailPage() {
 				isOpen={showConfirm}
 				onClose={() => setShowConfirm(false)}
 				onConfirm={activeUsers > 0 ? () => {} : handleRestore}
-				title={activeUsers > 0 ? 'Editor Currently in Use' : 'Confirm Restore'}
+				title={activeUsers > 0 ? t('editorInUse') : t('confirmRestore')}
 				message={
 					activeUsers > 0
-						? `There are ${activeUsers} users currently active in the editor. To maintain data integrity, all users must leave the editor before restoring.`
-						: 'Are you sure you want to restore this document to the selected version? This action will overwrite any newer changes.'
+						? t('editorInUseMessage', { count: activeUsers })
+						: t('confirmRestoreMessage')
 				}
-				confirmText={activeUsers > 0 ? 'Understand' : 'Yes, Restore'}
-				cancelText={activeUsers > 0 ? undefined : 'Cancel'}
+				confirmText={activeUsers > 0 ? t('understand') : t('yesRestore')}
+				cancelText={activeUsers > 0 ? undefined : t('cancel')}
 				variant={activeUsers > 0 ? 'info' : 'warning'}
 			/>
 
 			<Modal
 				isOpen={isReviewModalOpen}
 				onClose={() => setIsReviewModalOpen(false)}
-				title='Submit Document Review'
+				title={t('submitReview')}
 			>
 				<form onSubmit={handleRequestReviewSubmit} className='space-y-4 pt-2'>
-					<p className='text-sm text-muted-foreground'>
-						Choose a reviewer and add an optional message to explain your changes or focus areas.
-					</p>
+					<p className='text-sm text-muted-foreground'>{t('submitReviewDesc')}</p>
 
 					<div className='space-y-2'>
 						<Label htmlFor='lecturer-select'>
-							Reviewer <span className='text-red-500'>*</span>
+							{t('reviewer')} <span className='text-red-500'>*</span>
 						</Label>
 						<Select
 							value={selectedLecturerId}
@@ -385,26 +387,26 @@ export default function VersionDetailPage() {
 							required
 						>
 							<SelectTrigger id='lecturer-select' className='w-full bg-background border-border'>
-								<SelectValue placeholder='-- Choose Reviewer --' />
+								<SelectValue placeholder={t('chooseReviewer')} />
 							</SelectTrigger>
 							<SelectContent className='z-[1025]'>
 								{lecturers.map((m: any) => (
 									<SelectItem key={m.user?.userId} value={m.user?.userId}>
-										{m.user?.name || m.user?.username || 'Reviewer'}
+										{m.user?.name || m.user?.username || t('reviewer')}
 									</SelectItem>
 								))}
 								{lecturers.length === 0 && workspace?.ownerId && (
-									<SelectItem value={workspace.ownerId}>Workspace Owner (Default)</SelectItem>
+									<SelectItem value={workspace.ownerId}>{t('workspaceOwner')}</SelectItem>
 								)}
 							</SelectContent>
 						</Select>
 					</div>
 
 					<div className='space-y-2'>
-						<Label htmlFor='review-message'>Additional Message (Optional)</Label>
+						<Label htmlFor='review-message'>{t('additionalMessage')}</Label>
 						<Textarea
 							id='review-message'
-							placeholder='Write notes or specific instructions for the reviewer...'
+							placeholder={t('writeNotes')}
 							value={reviewMessage}
 							onChange={(e) => setReviewMessage(e.target.value)}
 							disabled={isCreatingReview}
@@ -420,7 +422,7 @@ export default function VersionDetailPage() {
 							onClick={() => setIsReviewModalOpen(false)}
 							disabled={isCreatingReview}
 						>
-							Cancel
+							{t('cancel')}
 						</Button>
 						<Button
 							type='submit'
@@ -428,7 +430,7 @@ export default function VersionDetailPage() {
 							className='bg-primary text-white hover:bg-primary/90 flex items-center gap-1.5'
 						>
 							{isCreatingReview && <Loader2 className='w-4 h-4 animate-spin' />}
-							{isCreatingReview ? 'Sending...' : 'Submit Request'}
+							{isCreatingReview ? t('sending') : t('submitRequest')}
 						</Button>
 					</ModalFooter>
 				</form>

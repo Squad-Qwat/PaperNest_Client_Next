@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from 'motion/react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -27,6 +28,7 @@ const workspaceIcons = ['📚', '🎓', '📖', '✍️', '🔬', '💼', '📊'
 export default function OnboardingPage() {
 	const router = useRouter()
 	const { onboardingData, setOnboardingData } = useAuth()
+	const t = useTranslations('Auth')
 
 	const { mutateAsync: completeSocial, isPending: isCompletePending } =
 		useCompleteSocialRegistration({
@@ -60,11 +62,11 @@ export default function OnboardingPage() {
 	const validateStep1 = () => {
 		const newErrors: Record<string, string> = {}
 		if (!formData.username) {
-			newErrors.username = 'Username is required'
+			newErrors.username = t('usernameRequired')
 		} else if (formData.username.length < 3) {
-			newErrors.username = 'Username must be at least 3 characters'
+			newErrors.username = t('usernameMinLength')
 		} else if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
-			newErrors.username = 'Username can only contain letters, numbers, and underscores'
+			newErrors.username = t('usernameFormat')
 		}
 		setErrors(newErrors)
 		return Object.keys(newErrors).length === 0
@@ -73,9 +75,9 @@ export default function OnboardingPage() {
 	const validateStep2 = () => {
 		const newErrors: Record<string, string> = {}
 		if (!formData.workspaceTitle) {
-			newErrors.workspaceTitle = 'Workspace title is required'
+			newErrors.workspaceTitle = t('workspaceTitleRequired')
 		} else if (formData.workspaceTitle.length < 3) {
-			newErrors.workspaceTitle = 'Workspace title must be at least 3 characters'
+			newErrors.workspaceTitle = t('workspaceTitleMinLength')
 		}
 		setErrors(newErrors)
 		return Object.keys(newErrors).length === 0
@@ -168,9 +170,11 @@ export default function OnboardingPage() {
 				<div className='w-full max-w-sm space-y-6'>
 					<div className='text-center'>
 						<h1 className='text-2xl font-bold text-foreground mb-1'>
-							{currentStep === 1 ? 'Complete Your Profile' : 'Setup Your Workspace'}
+							{currentStep === 1 ? t('completeProfile') : t('setupWorkspace')}
 						</h1>
-						<p className='text-sm text-muted-foreground'>Step {currentStep} of 2</p>
+						<p className='text-sm text-muted-foreground'>
+							{t('step', { current: currentStep, total: 2 })}
+						</p>
 					</div>
 
 					<AnimatePresence mode='wait' custom={direction}>
@@ -214,7 +218,7 @@ export default function OnboardingPage() {
 									</div>
 
 									<div className='space-y-2'>
-										<Label htmlFor='username'>Username</Label>
+										<Label htmlFor='username'>{t('username')}</Label>
 										<Input
 											id='username'
 											value={formData.username}
@@ -225,17 +229,17 @@ export default function OnboardingPage() {
 									</div>
 
 									<div className='space-y-2'>
-										<Label>Your Role</Label>
+										<Label>{t('yourRole')}</Label>
 										<Select
 											value={formData.role}
 											onValueChange={(val) => updateField('role', val as UserRole)}
 										>
 											<SelectTrigger className='w-full'>
-												<SelectValue placeholder='Select a role' />
+												<SelectValue placeholder={t('selectRole')} />
 											</SelectTrigger>
 											<SelectContent>
-												<SelectItem value='Student'>Student</SelectItem>
-												<SelectItem value='Lecturer'>Lecturer</SelectItem>
+												<SelectItem value='Student'>{t('student')}</SelectItem>
+												<SelectItem value='Lecturer'>{t('lecturer')}</SelectItem>
 											</SelectContent>
 										</Select>
 									</div>
@@ -246,7 +250,7 @@ export default function OnboardingPage() {
 							{currentStep === 2 && (
 								<div className='space-y-6 animate-in fade-in duration-300'>
 									<div className='space-y-2'>
-										<Label className='text-sm font-medium'>Workspace Icon</Label>
+										<Label className='text-sm font-medium'>{t('workspaceIcon')}</Label>
 										<div className='grid grid-cols-5 gap-2'>
 											{workspaceIcons.map((icon) => (
 												<button
@@ -261,7 +265,7 @@ export default function OnboardingPage() {
 										</div>
 									</div>
 									<div className='space-y-2'>
-										<Label htmlFor='workspaceTitle'>Workspace Title *</Label>
+										<Label htmlFor='workspaceTitle'>{t('workspaceTitle')}</Label>
 										<Input
 											id='workspaceTitle'
 											value={formData.workspaceTitle}
@@ -273,12 +277,12 @@ export default function OnboardingPage() {
 										)}
 									</div>
 									<div className='space-y-2'>
-										<Label htmlFor='workspaceDescription'>Description (Optional)</Label>
+										<Label htmlFor='workspaceDescription'>{t('workspaceDescription')}</Label>
 										<Textarea
 											id='workspaceDescription'
 											value={formData.workspaceDescription}
 											onChange={(e) => updateField('workspaceDescription', e.target.value)}
-											placeholder='Briefly describe your workspace...'
+											placeholder={t('workspaceDescPlaceholder')}
 											rows={2}
 										/>
 									</div>
@@ -297,11 +301,11 @@ export default function OnboardingPage() {
 					<div className='flex items-center gap-3 pt-4'>
 						{currentStep === 2 && (
 							<Button variant='outline' onClick={handleBack} disabled={loading} className='flex-1'>
-								← Back
+								{t('back')}
 							</Button>
 						)}
 						<Button onClick={handleNext} disabled={loading} className='flex-1'>
-							{loading ? 'Processing...' : currentStep === 1 ? 'Continue →' : 'Finish ✓'}
+							{loading ? t('processing') : currentStep === 1 ? t('continue') : t('finish')}
 						</Button>
 					</div>
 				</div>
@@ -324,8 +328,7 @@ export default function OnboardingPage() {
 						className='text-xl text-white text-center mt-4 max-w-sm italic'
 						style={{ fontFamily: 'Times New Roman, Times, serif' }}
 					>
-						"Your all-in-one research workspace for managing papers, projects, and collaboration.
-						Start your journey today."
+						{t('onboardingSubtitle')}
 					</p>
 				</div>
 			</div>

@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect } from 'react'
-import { SettingsHeader } from '../../components/settings/SettingsHeader'
-import { SettingsSidebar } from '../../components/settings/SettingsSidebar'
-import { SidebarProvider, SidebarTrigger, useSidebar } from '../../components/ui/sidebar'
+import { SettingsHeader } from '@/components/settings/SettingsHeader'
+import { SettingsSidebar } from '@/components/settings/SettingsSidebar'
+import { SidebarProvider, SidebarTrigger, useSidebar } from '@/components/ui/sidebar'
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
 	useEffect(() => {
