@@ -2,7 +2,9 @@
 
 import { Loader2, Plus, Search, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -63,7 +65,7 @@ export function CitationSheet({
 	onSave,
 	initialData,
 	documentId: _documentId,
-}: Readonly<CitationSheetProps>) {
+}: Readonly<CitationSheetProps>) {/*  */
 	const [type, setType] = useState('article')
 	const [title, setTitle] = useState('')
 	const [authors, setAuthors] = useState<Author[]>([{ id: '1', name: '' }])
@@ -82,7 +84,10 @@ export function CitationSheet({
 	const [hasSearched, setHasSearched] = useState(false)
 
 	const handleScholarSearch = async () => {
-		if (!scholarQuery.trim()) return
+		if (!scholarQuery.trim()) {
+			toast.error('You must fill in a search query before searching.')
+			return
+		}
 
 		setIsSearchingScholar(true)
 		setHasSearched(true)
@@ -90,13 +95,20 @@ export function CitationSheet({
 			const { citationsService } = await import('@/lib/api/services/citations.service')
 			const results = await citationsService.unifiedSearch(scholarQuery.trim(), 5)
 			setScholarResults(results)
+			if (results.length > 0) {
+				toast.success(`Found ${results.length} paper${results.length > 1 ? 's' : ''}. Select one to autofill.`)
+			} else {
+				toast.error('Paper not found. Try another search query.')
+			}
 		} catch (error) {
 			console.error(error)
 			setScholarResults([])
+			toast.error('Something went wrong while searching. Please try again.')
 		} finally {
 			setIsSearchingScholar(false)
 		}
 	}
+
 
 	const handleSelectPaper = (paper: any) => {
 		setTitle(paper.title || '')
@@ -130,7 +142,10 @@ export function CitationSheet({
 		setScholarResults([])
 		setScholarQuery('')
 		setHasSearched(false)
+
+		toast.success(`Selected "${paper.title || 'paper'}". Citation fields have been filled.`)
 	}
+
 
 	useEffect(() => {
 		if (initialData && open) {
@@ -303,6 +318,9 @@ export function CitationSheet({
 							</Label>
 							<div className='flex gap-2'>
 								<Input
+									id='citation-scholar-search-input'
+									data-testid='citation-scholar-search-input'
+									name='scholarQuery'
 									placeholder='Search by title, author, DOI, or arXiv...'
 									className='flex-1 bg-background border-border focus-visible:ring-primary/20 text-foreground'
 									value={scholarQuery}
@@ -315,11 +333,15 @@ export function CitationSheet({
 									}}
 								/>
 								<Button
+									id='citation-scholar-search-button'
+									data-testid='citation-scholar-search-button'
+									type='button'
+									aria-label='Search papers'
 									size='icon'
 									variant='outline'
 									className='shrink-0 bg-background border-border hover:bg-muted text-foreground'
 									onClick={handleScholarSearch}
-									disabled={isSearchingScholar || !scholarQuery.trim()}
+									disabled={isSearchingScholar}
 								>
 									{isSearchingScholar ? (
 										<Loader2 className='h-4 w-4 animate-spin' />
@@ -330,23 +352,33 @@ export function CitationSheet({
 							</div>
 
 							{isSearchingScholar && (
-								<p className='text-xs text-muted-foreground animate-pulse'>
+								<p
+									data-testid='citation-scholar-searching-message'
+									className='text-xs text-muted-foreground animate-pulse'
+								>
 									Searching Semantic Scholar database...
 								</p>
 							)}
 
 							{hasSearched && !isSearchingScholar && scholarResults.length === 0 && (
-								<p className='text-xs text-destructive'>
+								<p
+									data-testid='citation-scholar-not-found-message'
+									className='text-xs text-destructive'
+								>
 									Paper not found. Try another search query.
 								</p>
 							)}
 
 							{scholarResults.length > 0 && (
-								<div className='mt-2 border border-border rounded-lg bg-popover divide-y divide-border max-h-60 overflow-y-auto shadow-sm text-foreground'>
+								<div
+									data-testid='citation-scholar-results'
+									className='mt-2 border border-border rounded-lg bg-popover divide-y divide-border max-h-60 overflow-y-auto shadow-sm text-foreground'
+								>
 									{scholarResults.map((paper) => (
 										<button
 											key={paper.paperId}
 											type='button'
+											data-testid='citation-scholar-result-item'
 											className='w-full p-3 text-left hover:bg-accent/80 transition-colors flex flex-col gap-1 focus:outline-none focus:bg-accent'
 											onClick={() => handleSelectPaper(paper)}
 										>
@@ -354,6 +386,7 @@ export function CitationSheet({
 												{paper.title}
 											</span>
 											{paper.authors && paper.authors.length > 0 && (
+
 												<span className='text-xs text-muted-foreground'>
 													{paper.authors.map((a: any) => a.name).join(', ')}
 												</span>
@@ -527,6 +560,9 @@ export function CitationSheet({
 
 				<SheetFooter className='p-6 border-t border-border bg-muted/30 shrink-0 flex-row gap-3 sm:justify-end'>
 					<Button
+						id='citation-cancel-button'
+						data-testid='citation-cancel-button'
+						type='button'
 						variant='ghost'
 						className='flex-1 sm:flex-none text-muted-foreground hover:bg-muted hover:text-foreground'
 						onClick={() => onOpenChange(false)}
@@ -534,6 +570,9 @@ export function CitationSheet({
 						Cancel
 					</Button>
 					<Button
+						id='citation-submit-button'
+						data-testid='citation-submit-button'
+						type='button'
 						className='flex-1 sm:flex-none bg-primary shadow-sm hover:bg-primary/90'
 						onClick={handleSave}
 						disabled={!isFormValid}
@@ -541,6 +580,7 @@ export function CitationSheet({
 						{initialData ? 'Update entry' : 'Add entry'}
 					</Button>
 				</SheetFooter>
+
 			</SheetContent>
 		</Sheet>
 	)

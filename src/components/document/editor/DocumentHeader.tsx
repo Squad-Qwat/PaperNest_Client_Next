@@ -351,7 +351,46 @@ const DocumentHeader = ({
 									{isSaving ? 'Saving...' : 'Save'}
 								</Button>
 							)}
+
+							{!readOnly && (
+								<TooltipProvider>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<span className='inline-flex'>
+												<Button
+													variant='outline'
+													size='sm'
+													className='gap-1.5'
+													onClick={() => setShowCommitModal(true)}
+													disabled={!canCommit}
+												>
+													<GitCommit className='h-4 w-4' />
+													Commit Version
+												</Button>
+											</span>
+										</TooltipTrigger>
+										{!canCommit && (
+											<TooltipContent side='bottom' className='z-[1100]'>
+												<p>{commitBlockReason || 'Waiting for review'} (Check History)</p>
+											</TooltipContent>
+										)}
+									</Tooltip>
+								</TooltipProvider>
+							)}
+
+							<Button
+								variant='outline'
+								size='sm'
+								className='gap-1.5'
+								onClick={() =>
+									router.push(`/${workspaceId}/documents/${documentId}/versions`)
+								}
+							>
+								<History className='h-4 w-4' />
+								Version History
+							</Button>
 						</div>
+
 
 						<Button
 							variant='outline'

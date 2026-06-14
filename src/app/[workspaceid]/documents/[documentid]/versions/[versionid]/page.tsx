@@ -67,23 +67,31 @@ export default function VersionDetailPage() {
 	const activeUsers = documentWithRoomData?.room?.activeUsers || 0
 
 	const members = membersResponse?.members || []
-	const lecturers = members.filter((m: any) => m.user?.role?.toLowerCase() === 'lecturer')
+	// Only workspace members with the "reviewer" role can be selected as reviewers.
+	const reviewers = members.filter((m: any) => m.role?.toLowerCase() === 'reviewer')
 
-	useEffect(() => {
-		if (lecturers.length > 0) {
-			if (!selectedLecturerId) {
-				setSelectedLecturerId(lecturers[0]?.user?.userId || '')
-			}
-		} else if (workspace?.ownerId) {
-			if (!selectedLecturerId) {
-				setSelectedLecturerId(workspace.ownerId)
-			}
-		}
-	}, [lecturers, workspace, selectedLecturerId])
+	const MESSAGE_MAX_LENGTH = 50
+	const trimmedMessage = reviewMessage.trim()
+	const isMessageValid = trimmedMessage.length > 0 && reviewMessage.length <= MESSAGE_MAX_LENGTH
+
 
 	const handleRequestReviewSubmit = async (e: React.FormEvent) => {
 		e.preventDefault()
-		if (!selectedLecturerId) return
+
+		if (!selectedLecturerId) {
+			toast.error('Please choose a reviewer.')
+			return
+		}
+
+		if (trimmedMessage.length === 0) {
+			toast.error('Message is required and cannot be empty.')
+			return
+		}
+
+		if (reviewMessage.length > MESSAGE_MAX_LENGTH) {
+			toast.error(`Message cannot exceed ${MESSAGE_MAX_LENGTH} characters.`)
+			return
+		}
 
 		try {
 			await createReview({
@@ -91,7 +99,7 @@ export default function VersionDetailPage() {
 				documentBodyId: versionId,
 				data: {
 					lecturerUserId: selectedLecturerId,
-					message: reviewMessage || 'Requesting review for version',
+					message: trimmedMessage,
 				},
 			})
 			toast.success('Review request sent successfully!')
@@ -101,6 +109,7 @@ export default function VersionDetailPage() {
 			toast.error('Failed to send review request')
 		}
 	}
+
 
 	const versions = Array.isArray(versionsResponse)
 		? (versionsResponse as Version[])
@@ -370,53 +379,99 @@ export default function VersionDetailPage() {
 				onClose={() => setIsReviewModalOpen(false)}
 				title='Submit Document Review'
 			>
-				<form onSubmit={handleRequestReviewSubmit} className='space-y-4 pt-2'>
+				<form
+					onSubmit={handleRequestReviewSubmit}
+					className='space-y-4 pt-2'
+					data-testid='submit-review-form'
+				>
 					<p className='text-sm text-muted-foreground'>
-						Choose a reviewer and add an optional message to explain your changes or focus areas.
+						Choose a reviewer and add a short message to explain your changes or focus areas.
 					</p>
 
 					<div className='space-y-2'>
-						<Label htmlFor='lecturer-select'>
+						<Label htmlFor='reviewer-select'>
 							Reviewer <span className='text-red-500'>*</span>
 						</Label>
 						<Select
 							value={selectedLecturerId}
 							onValueChange={(value) => setSelectedLecturerId(value)}
-							required
 						>
-							<SelectTrigger id='lecturer-select' className='w-full bg-background border-border'>
+
+							<SelectTrigger
+								id='reviewer-select'
+								data-testid='reviewer-select'
+								className='w-full bg-background border-border'
+							>
 								<SelectValue placeholder='-- Choose Reviewer --' />
 							</SelectTrigger>
 							<SelectContent className='z-[1025]'>
-								{lecturers.map((m: any) => (
-									<SelectItem key={m.user?.userId} value={m.user?.userId}>
+								{reviewers.map((m: any) => (
+									<SelectItem
+										key={m.user?.userId}
+										value={m.user?.userId}
+										data-testid='reviewer-option'
+									>
 										{m.user?.name || m.user?.username || 'Reviewer'}
 									</SelectItem>
 								))}
-								{lecturers.length === 0 && workspace?.ownerId && (
-									<SelectItem value={workspace.ownerId}>Workspace Owner (Default)</SelectItem>
-								)}
 							</SelectContent>
 						</Select>
+						{reviewers.length === 0 && (
+							<p
+								data-testid='reviewer-empty-message'
+								className='text-xs text-muted-foreground'
+							>
+								No reviewers available in this workspace.
+							</p>
+						)}
 					</div>
 
 					<div className='space-y-2'>
-						<Label htmlFor='review-message'>Additional Message (Optional)</Label>
+						<Label htmlFor='review-message'>
+							Message <span className='text-red-500'>*</span>
+						</Label>
 						<Textarea
 							id='review-message'
+							name='reviewMessage'
+							data-testid='review-message-input'
 							placeholder='Write notes or specific instructions for the reviewer...'
 							value={reviewMessage}
 							onChange={(e) => setReviewMessage(e.target.value)}
 							disabled={isCreatingReview}
+							aria-invalid={reviewMessage.length > 0 && !isMessageValid}
 							className='resize-none text-sm'
 							rows={4}
 						/>
+
+						<div className='flex items-center justify-between'>
+							{reviewMessage.length > 0 && !isMessageValid ? (
+								<span
+									data-testid='review-message-error'
+									className='text-xs text-destructive'
+								>
+									Message is required and cannot exceed {MESSAGE_MAX_LENGTH} characters.
+								</span>
+							) : (
+								<span className='text-xs text-muted-foreground'>Required, max {MESSAGE_MAX_LENGTH} characters.</span>
+							)}
+							<span
+								data-testid='review-message-counter'
+								className={
+									reviewMessage.length > MESSAGE_MAX_LENGTH
+										? 'text-xs text-destructive'
+										: 'text-xs text-muted-foreground'
+								}
+							>
+								{reviewMessage.length}/{MESSAGE_MAX_LENGTH}
+							</span>
+						</div>
 					</div>
 
 					<ModalFooter className='px-0 pb-0 gap-2'>
 						<Button
 							type='button'
 							variant='outline'
+							data-testid='review-cancel-button'
 							onClick={() => setIsReviewModalOpen(false)}
 							disabled={isCreatingReview}
 						>
@@ -424,14 +479,17 @@ export default function VersionDetailPage() {
 						</Button>
 						<Button
 							type='submit'
-							disabled={isCreatingReview || !selectedLecturerId}
+							data-testid='review-submit-button'
+							disabled={isCreatingReview}
 							className='bg-primary text-white hover:bg-primary/90 flex items-center gap-1.5'
 						>
+
 							{isCreatingReview && <Loader2 className='w-4 h-4 animate-spin' />}
 							{isCreatingReview ? 'Sending...' : 'Submit Request'}
 						</Button>
 					</ModalFooter>
 				</form>
+
 			</Modal>
 		</div>
 	)
