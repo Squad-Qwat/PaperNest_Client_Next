@@ -30,11 +30,21 @@ const Toaster = ({ ...props }: ToasterProps) => {
 					'--normal-text': 'var(--popover-foreground)',
 					'--normal-border': 'var(--border)',
 					'--border-radius': 'var(--radius)',
+					// Keep toasts above modal/dialog overlays (dialog overlay is z-[1010],
+					// content z-[1011], full-screen modal z-[1015]). This ensures the toast
+					// is visible and clickable (e.g. by Katalon automation) while a modal is open.
+					zIndex: 2000,
 				} as React.CSSProperties
 			}
+			toastOptions={{
+				// Ensure each toast remains clickable even when a modal sets
+				// pointer-events: none on the body.
+				className: 'pointer-events-auto',
+			}}
 			{...props}
 		/>
 	)
 }
+
 
 export { Toaster }
