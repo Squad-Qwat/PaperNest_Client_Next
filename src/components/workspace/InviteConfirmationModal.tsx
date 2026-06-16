@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { ButtonSpinner } from '@/components/ui/button-spinner'
 import { Modal, ModalFooter } from '@/components/ui/modal'
 import { useAuth } from '@/context/AuthContext'
 import { useAcceptInvitation } from '@/lib/api/hooks/use-workspaces'
@@ -128,7 +129,14 @@ export function InviteConfirmationModal() {
 							{t('decline')}
 						</Button>
 						<Button className='flex-1' onClick={handleAccept} disabled={isAccepting || !!error}>
-							{isAccepting ? t('accepting') : t('accept')}
+							{isAccepting ? (
+								<>
+									<ButtonSpinner />
+									{t('accept')}
+								</>
+							) : (
+								t('accept')
+							)}
 						</Button>
 					</ModalFooter>
 				)}

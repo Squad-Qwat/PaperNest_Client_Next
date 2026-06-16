@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { ButtonSpinner } from '@/components/ui/button-spinner'
 import {
 	Dialog,
 	DialogContent,
@@ -120,7 +121,14 @@ export function ReviewRequestModal({
 							Cancel
 						</Button>
 						<Button type='submit' disabled={loading || lecturers.length === 0}>
-							{loading ? 'Sending...' : 'Send Request'}
+							{loading ? (
+								<>
+									<ButtonSpinner />
+									{'Send Request'}
+								</>
+							) : (
+								'Send Request'
+							)}
 						</Button>
 					</DialogFooter>
 				</form>

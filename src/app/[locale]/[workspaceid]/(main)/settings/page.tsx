@@ -17,6 +17,7 @@ import {
 	BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
+import { ButtonSpinner } from '@/components/ui/button-spinner'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
@@ -218,8 +219,8 @@ export default function WorkspaceSettingsPage() {
 									>
 										{updating ? (
 											<>
-												<Loader2 className='mr-2 h-4 w-4 animate-spin' />
-												{t('saving')}
+												<ButtonSpinner />
+												{t('saveChanges')}
 											</>
 										) : (
 											t('saveChanges')

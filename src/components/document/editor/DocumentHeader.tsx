@@ -1,4 +1,13 @@
-import { ChevronLeft, FileDown, GitCommit, History, MessageSquare, Play, Save } from 'lucide-react'
+import {
+	ChevronLeft,
+	FileDown,
+	FolderArchive,
+	GitCommit,
+	History,
+	MessageSquare,
+	Play,
+	Save,
+} from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
@@ -8,6 +17,7 @@ import { CommitModal } from '@/components/document/mergeview/CommitModal'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { ButtonSpinner } from '@/components/ui/button-spinner'
 import {
 	Menubar,
 	MenubarCheckboxItem,
@@ -24,6 +34,8 @@ import {
 } from '@/components/ui/menubar'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAuth } from '@/context/AuthContext'
+import { apiClient } from '@/lib/api/clients/api-client'
+import { API_ENDPOINTS } from '@/lib/api/config'
 import { useDocumentReviews } from '@/lib/api/hooks/use-documents'
 import { useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
 import { documentsService } from '@/lib/api/services/documents.service'
@@ -132,6 +144,8 @@ const DocumentHeader = ({
 	const lecturerMember = members.find((m: any) => m.user?.role === 'Lecturer')
 	const _actualLecturerId = lecturerMember?.user?.userId || workspace?.ownerId
 
+	const [isExportingZip, setIsExportingZip] = useState(false)
+
 	const handleExportPdf = () => {
 		if (!pdfUrl) {
 			toast.error('Please compile the document first to generate a PDF.')
@@ -144,6 +158,37 @@ const DocumentHeader = ({
 		link.click()
 		document.body.removeChild(link)
 		toast.success('PDF exported successfully!')
+	}
+
+	const handleExportZip = async () => {
+		if (isExportingZip) return
+		setIsExportingZip(true)
+		const toastId = toast.loading(t('exportingZip'))
+		try {
+			const endpoint = API_ENDPOINTS.documents.exportZip(documentId)
+			// Stream the ZIP directly — fetch with auth token then trigger download
+			const { accessToken } = await import('@/lib/store/auth-store').then((m) =>
+				m.useAuthStore.getState()
+			)
+			const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, {
+				headers: { Authorization: `Bearer ${accessToken}` },
+			})
+			if (!response.ok) throw new Error('Export failed')
+			const blob = await response.blob()
+			const url = URL.createObjectURL(blob)
+			const link = document.createElement('a')
+			link.href = url
+			link.download = `${title || 'document'}.zip`
+			document.body.appendChild(link)
+			link.click()
+			document.body.removeChild(link)
+			URL.revokeObjectURL(url)
+			toast.success('ZIP exported successfully!', { id: toastId })
+		} catch {
+			toast.error('Failed to export ZIP. Please try again.', { id: toastId })
+		} finally {
+			setIsExportingZip(false)
+		}
 	}
 
 	return (
@@ -209,12 +254,13 @@ const DocumentHeader = ({
 											<MenubarSeparator />
 
 											<MenubarGroup>
-												<MenubarItem
-													onClick={handleExportPdf}
-													className='text-blue-600 focus:text-blue-700 font-medium'
-												>
-													<FileDown className='mr-2 h-4 w-4 text-blue-600 focus:text-blue-700' />
+												<MenubarItem onClick={handleExportPdf}>
+													<FileDown className='mr-2 h-4 w-4 text-muted-foreground' />
 													<span>{t('exportPdf')}</span>
+												</MenubarItem>
+												<MenubarItem onClick={handleExportZip} disabled={isExportingZip}>
+													<FolderArchive className='mr-2 h-4 w-4 text-muted-foreground' />
+													<span>{isExportingZip ? t('exportingZip') : t('exportZip')}</span>
 												</MenubarItem>
 											</MenubarGroup>
 										</MenubarContent>
@@ -351,7 +397,14 @@ const DocumentHeader = ({
 									onClick={handleSave}
 									disabled={isSaving || isAutoSaving}
 								>
-									{isSaving ? t('saving') : t('save')}
+									{isSaving ? (
+										<>
+											<ButtonSpinner />
+											{t('save')}
+										</>
+									) : (
+										t('save')
+									)}
 								</Button>
 							)}
 						</div>

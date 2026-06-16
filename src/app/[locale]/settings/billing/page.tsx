@@ -1,12 +1,13 @@
 'use client'
 
-import { ArrowRight, Check, CreditCard, Loader2, Sparkles } from 'lucide-react'
+import { ArrowRight, Check, CreditCard, Sparkles } from 'lucide-react'
 import Script from 'next/script'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { ButtonSpinner } from '@/components/ui/button-spinner'
 import {
 	Card,
 	CardContent,
@@ -180,11 +181,7 @@ export default function BillingSettingsPage() {
 									onClick={handleManageBilling}
 									className='flex items-center gap-1.5'
 								>
-									{isPortalLoading ? (
-										<Loader2 className='size-4 animate-spin' />
-									) : (
-										<CreditCard className='size-4' />
-									)}
+									{isPortalLoading ? <ButtonSpinner /> : <CreditCard className='size-4' />}
 									{t('manageSubscription')}
 								</Button>
 							) : (
@@ -194,11 +191,7 @@ export default function BillingSettingsPage() {
 									onClick={() => handleUpgrade(proVariantId)}
 									className='bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-lg flex items-center gap-1.5'
 								>
-									{isCheckoutLoading ? (
-										<Loader2 className='size-4 animate-spin' />
-									) : (
-										<Sparkles className='size-4' />
-									)}
+									{isCheckoutLoading ? <ButtonSpinner /> : <Sparkles className='size-4' />}
 									{t('upgradeToPro')}
 								</Button>
 							)}
@@ -385,7 +378,7 @@ export default function BillingSettingsPage() {
 										className='w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white flex items-center justify-center gap-2'
 									>
 										{isCheckoutLoading ? (
-											<Loader2 className='size-4 animate-spin' />
+											<ButtonSpinner />
 										) : (
 											<>
 												{t('upgradeToPro')} <ArrowRight className='size-4' />
@@ -448,7 +441,7 @@ export default function BillingSettingsPage() {
 									className='w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white flex items-center justify-center gap-2'
 								>
 									{isCheckoutLoading ? (
-										<Loader2 className='size-4 animate-spin' />
+										<ButtonSpinner />
 									) : (
 										<>
 											{t('upgradeToEnterprise')} <ArrowRight className='size-4' />

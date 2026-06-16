@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { ButtonSpinner } from '@/components/ui/button-spinner'
 import { Card } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Label } from '@/components/ui/label'
@@ -428,8 +429,14 @@ export default function VersionDetailPage() {
 							disabled={isCreatingReview || !selectedLecturerId}
 							className='bg-primary text-white hover:bg-primary/90 flex items-center gap-1.5'
 						>
-							{isCreatingReview && <Loader2 className='w-4 h-4 animate-spin' />}
-							{isCreatingReview ? t('sending') : t('submitRequest')}
+							{isCreatingReview ? (
+								<>
+									<ButtonSpinner />
+									{t('submitRequest')}
+								</>
+							) : (
+								t('submitRequest')
+							)}
 						</Button>
 					</ModalFooter>
 				</form>

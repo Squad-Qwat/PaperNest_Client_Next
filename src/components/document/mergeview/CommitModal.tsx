@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { ButtonSpinner } from '@/components/ui/button-spinner'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Modal, ModalFooter } from '@/components/ui/modal'
@@ -79,7 +80,14 @@ export function CommitModal({ isOpen, onClose, onCommit }: CommitModalProps) {
 						{t('cancel')}
 					</Button>
 					<Button type='submit' disabled={loading}>
-						{loading ? t('committing') : t('commitVersionButton')}
+						{loading ? (
+							<>
+								<ButtonSpinner />
+								{t('commitVersionButton')}
+							</>
+						) : (
+							t('commitVersionButton')
+						)}
 					</Button>
 				</ModalFooter>
 			</form>
