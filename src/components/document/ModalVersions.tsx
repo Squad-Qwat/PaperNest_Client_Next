@@ -78,6 +78,16 @@ export default function ModalVersions({
 	const { data: membersResponse } = useWorkspaceMembers(workspaceId)
 	const members = membersResponse?.members || []
 
+	// Filter hanya member dengan role lecturer
+	const lecturers = members
+		.filter(
+			(m: any) => m.role?.toLowerCase() === 'lecturer' || m.user?.role?.toLowerCase() === 'lecturer'
+		)
+		.map((m: any) => ({
+			userId: m.user?.userId || m.userId,
+			name: m.user?.name || m.user?.username || 'Lecturer',
+		}))
+
 	const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null)
 	const [showReviewModal, setShowReviewModal] = useState(false)
 
@@ -368,6 +378,7 @@ export default function ModalVersions({
 			<ReviewRequestModal
 				isOpen={showReviewModal}
 				onClose={() => setShowReviewModal(false)}
+				lecturers={lecturers}
 				onSubmit={async (data) => {
 					if (!selectedVersion) return
 					try {

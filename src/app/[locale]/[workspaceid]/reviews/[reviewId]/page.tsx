@@ -2,6 +2,7 @@
 
 import { ChevronLeft, Loader2 } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
@@ -31,6 +32,7 @@ import { getAvatarUrl, getInitials, getMediaUrl } from '@/lib/utils'
 export default function ReviewDetailPage() {
 	const params = useParams()
 	const router = useRouter()
+	const t = useTranslations('Review')
 	const { workspaceid, reviewId } = params
 	const workspaceId = workspaceid as string
 
@@ -76,10 +78,10 @@ export default function ReviewDetailPage() {
 			)
 		: null
 
-	const studentName = reviewData?.student?.name || studentMember?.user?.name || 'Student'
-	const lecturerName = reviewData?.lecturer?.name || lecturerMember?.user?.name || 'Reviewer'
+	const studentName = reviewData?.student?.name || studentMember?.user?.name || t('student')
+	const lecturerName = reviewData?.lecturer?.name || lecturerMember?.user?.name || t('reviewer')
 	const isDocumentDeleted = !documentRes && !reviewLoading && !!reviewData
-	const docTitle = document?.title || 'Document'
+	const docTitle = document?.title || t('untitledDocument')
 	const formattedDate = format(
 		reviewData?.requestedAt ? new Date(reviewData.requestedAt) : new Date(),
 		'd MMMM yyyy, HH:mm',
@@ -98,6 +100,12 @@ export default function ReviewDetailPage() {
 		}
 	}, [version?.content, handleCompile, pdfUrl, isCompiling, compileError])
 
+	const decisionLabel = (d: typeof decision) => {
+		if (d === 'approved') return t('decisionApprove')
+		if (d === 'revision_required') return t('decisionRevision')
+		return t('decisionReject')
+	}
+
 	const handleAction = async () => {
 		if (!reviewId) return
 
@@ -106,7 +114,7 @@ export default function ReviewDetailPage() {
 				reviewId: reviewId as string,
 				data: { status: decision, message: feedback },
 			})
-			toast.success(`Review decision (${decision.replace('_', ' ')}) successfully sent`)
+			toast.success(t('successDecision', { decision: decision.replace('_', ' ') }))
 			setIsModalOpen(false)
 			setFeedback('')
 		} catch (error: any) {
@@ -157,8 +165,8 @@ export default function ReviewDetailPage() {
 					{/* Right side: Review Sidebar Details */}
 					<div className='w-full lg:w-96 flex flex-col shrink-0 gap-6 overflow-y-auto'>
 						{/* Card 1: Student Requester Info & Message */}
-						<Card className='p-5 space-y-4 rounded-2xl border-gray-200/60 shadow-sm bg-white'>
-							<div className='flex items-center gap-3 border-b border-gray-100 pb-3'>
+						<Card className='p-5 space-y-4 rounded-2xl border-border/60 shadow-sm bg-card'>
+							<div className='flex items-center gap-3 border-b border-border pb-3'>
 								<Skeleton className='h-9 w-9 rounded-full' />
 								<div className='flex-1 min-w-0 space-y-2'>
 									<Skeleton className='h-4.5 w-32' />
@@ -172,8 +180,8 @@ export default function ReviewDetailPage() {
 						</Card>
 
 						{/* Card 2: Decision Box / Status */}
-						<Card className='p-5 space-y-4 rounded-2xl border-gray-200/60 shadow-sm bg-white'>
-							<div className='border-b border-gray-100 pb-3'>
+						<Card className='p-5 space-y-4 rounded-2xl border-border/60 shadow-sm bg-card'>
+							<div className='border-b border-border pb-3'>
 								<Skeleton className='h-4 w-36' />
 							</div>
 							<div className='grid grid-cols-1 gap-2.5'>
@@ -184,8 +192,8 @@ export default function ReviewDetailPage() {
 						</Card>
 
 						{/* Card 3: Document Information Card */}
-						<Card className='p-5 rounded-2xl border-gray-200/60 shadow-sm bg-white space-y-4'>
-							<div className='border-b border-gray-100 pb-3'>
+						<Card className='p-5 rounded-2xl border-border/60 shadow-sm bg-card space-y-4'>
+							<div className='border-b border-border pb-3'>
 								<Skeleton className='h-4 w-40' />
 							</div>
 							<div className='space-y-3'>
@@ -210,9 +218,9 @@ export default function ReviewDetailPage() {
 	if (!reviewData) {
 		return (
 			<div className='h-screen flex flex-col items-center justify-center bg-background gap-4'>
-				<h2 className='text-lg font-semibold text-foreground'>Review not found</h2>
+				<h2 className='text-lg font-semibold text-foreground'>{t('reviewNotFound')}</h2>
 				<Button variant='outline' onClick={handleBack}>
-					Back to Review List
+					{t('backToReviewList')}
 				</Button>
 			</div>
 		)
@@ -230,16 +238,16 @@ export default function ReviewDetailPage() {
 							variant='ghost'
 							onClick={handleBack}
 							className='h-10 w-10 hover:bg-muted rounded-lg transition-all group p-0 min-w-0 shrink-0'
-							title='Back to Review List'
+							title={t('backTitle')}
 						>
 							<ChevronLeft className='h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors' />
 						</Button>
 						<div className='flex flex-col'>
 							<h1 className='text-sm font-semibold tracking-tight line-clamp-1'>
-								Review: {docTitle}
+								{t('headerTitle', { docTitle })}
 							</h1>
 							<p className='text-xs text-muted-foreground'>
-								Submitted by {studentName} • {formattedDate}
+								{t('submittedBy', { studentName, date: formattedDate })}
 							</p>
 						</div>
 					</div>
@@ -256,27 +264,25 @@ export default function ReviewDetailPage() {
 					{isCompiling ? (
 						<div className='flex flex-col items-center gap-4'>
 							<Loader2 className='w-8 h-8 animate-spin text-muted-foreground' />
-							<span className='text-sm text-muted-foreground'>Compiling Document PDF...</span>
+							<span className='text-sm text-muted-foreground'>{t('compilingDocument')}</span>
 						</div>
 					) : pdfUrl ? (
 						<iframe
 							key={pdfUrl}
 							src={`${pdfUrl}#toolbar=1`}
 							className='w-full h-full border-none'
-							title='PDF Preview'
+							title={t('title')}
 						/>
 					) : compileError ? (
 						<div className='p-8 text-center'>
-							<p className='text-sm font-semibold text-destructive'>Failed to Compile PDF</p>
+							<p className='text-sm font-semibold text-destructive'>{t('failedCompile')}</p>
 							<pre className='text-xs text-muted-foreground mt-4 max-w-md mx-auto overflow-auto max-h-40 bg-muted p-4 rounded-md text-left'>
 								{compileError}
 							</pre>
 						</div>
 					) : (
 						<div className='flex flex-col items-center gap-2 text-center p-6'>
-							<p className='text-sm text-muted-foreground'>
-								The content of this document version is not available.
-							</p>
+							<p className='text-sm text-muted-foreground'>{t('contentNotAvailable')}</p>
 						</div>
 					)}
 				</div>
@@ -300,17 +306,17 @@ export default function ReviewDetailPage() {
 							<div className='flex-1 min-w-0'>
 								<p className='text-sm font-bold text-foreground truncate'>{studentName}</p>
 								<p className='text-xs text-muted-foreground font-semibold uppercase tracking-wider'>
-									Review Requester
+									{t('reviewRequester')}
 								</p>
 							</div>
 						</div>
 
 						<div className='space-y-2'>
 							<Label className='text-xs font-semibold text-muted-foreground uppercase tracking-wider block'>
-								Message
+								{t('message')}
 							</Label>
 							<div className='p-3 bg-muted/50 border border-border rounded-lg text-sm text-foreground leading-relaxed font-normal whitespace-pre-line'>
-								{reviewData.message || 'No message provided.'}
+								{reviewData.message || t('noMessageProvided')}
 							</div>
 						</div>
 					</Card>
@@ -319,7 +325,7 @@ export default function ReviewDetailPage() {
 					{isPending && isLecturer ? (
 						<Card className='p-5 space-y-4 rounded-2xl border-border/60 shadow-sm bg-card'>
 							<h3 className='text-sm font-bold text-foreground uppercase tracking-wider border-b border-border pb-3'>
-								Determine Decision
+								{t('determineDecision')}
 							</h3>
 
 							<div className='grid grid-cols-1 gap-2.5'>
@@ -328,27 +334,27 @@ export default function ReviewDetailPage() {
 									onClick={() => openDecisionModal('approved')}
 									className='w-full font-semibold'
 								>
-									Approve
+									{t('approve')}
 								</Button>
 								<Button
 									variant='secondary'
 									onClick={() => openDecisionModal('revision_required')}
 									className='w-full font-semibold'
 								>
-									Request Revision
+									{t('requestRevision')}
 								</Button>
 								<Button
 									variant='destructive'
 									onClick={() => openDecisionModal('rejected')}
 									className='w-full font-semibold'
 								>
-									Reject
+									{t('reject')}
 								</Button>
 							</div>
 
 							<div className='p-3 bg-muted/50 rounded-lg border border-border'>
 								<p className='text-xs text-muted-foreground leading-normal'>
-									Please review the document in the left panel before making a decision.
+									{t('reviewPanelHint')}
 								</p>
 							</div>
 						</Card>
@@ -370,22 +376,22 @@ export default function ReviewDetailPage() {
 								<div className='flex-1 min-w-0'>
 									<p className='text-sm font-bold text-foreground truncate'>{lecturerName}</p>
 									<p className='text-xs text-muted-foreground font-semibold uppercase tracking-wider'>
-										Reviewer
+										{t('reviewer')}
 									</p>
 								</div>
 							</div>
 
 							<div className='space-y-2'>
 								<Label className='text-xs font-semibold text-muted-foreground uppercase tracking-wider block'>
-									Feedback / Reviewer Notes
+									{t('feedbackLabel')}
 								</Label>
 								{isPending ? (
 									<div className='p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-sm text-yellow-600 dark:text-yellow-400'>
-										<span>Awaiting response and assessment from the Reviewer.</span>
+										<span>{t('awaitingResponse')}</span>
 									</div>
 								) : (
 									<div className='p-3 bg-muted/50 border border-border rounded-lg text-sm text-foreground leading-relaxed font-normal whitespace-pre-line'>
-										{reviewData.lecturerMessage || 'No additional notes.'}
+										{reviewData.lecturerMessage || t('noAdditionalNotes')}
 									</div>
 								)}
 							</div>
@@ -395,16 +401,16 @@ export default function ReviewDetailPage() {
 					{/* Document Navigation Card */}
 					<Card className='p-5 rounded-2xl border-border/60 shadow-sm bg-card space-y-4'>
 						<h3 className='text-xs font-bold text-muted-foreground uppercase tracking-wider border-b border-border pb-3'>
-							Document Information
+							{t('documentInformation')}
 						</h3>
 						<div className='space-y-3'>
 							<div className='flex items-center justify-between text-sm'>
-								<span className='text-muted-foreground'>Document Name</span>
+								<span className='text-muted-foreground'>{t('documentName')}</span>
 								<span className='font-bold text-foreground truncate max-w-[150px]'>{docTitle}</span>
 							</div>
 							<Separator className='opacity-50' />
 							<div className='flex items-center justify-between text-sm'>
-								<span className='text-muted-foreground'>Version</span>
+								<span className='text-muted-foreground'>{t('versionLabel')}</span>
 								<span className='font-bold text-foreground'>
 									V{reviewData.versionNumber || '?'}
 								</span>
@@ -419,7 +425,7 @@ export default function ReviewDetailPage() {
 							}
 							disabled={isDocumentDeleted}
 						>
-							{isDocumentDeleted ? 'Document Deleted' : 'Open in Editor'}
+							{isDocumentDeleted ? t('documentDeleted') : t('openInEditor')}
 						</Button>
 					</Card>
 				</div>
@@ -429,24 +435,16 @@ export default function ReviewDetailPage() {
 			<Modal
 				isOpen={isModalOpen}
 				onClose={() => setIsModalOpen(false)}
-				title={`Confirm Decision: ${
-					decision === 'approved'
-						? 'Approve'
-						: decision === 'revision_required'
-							? 'Request Revision'
-							: 'Reject'
-				}`}
+				title={t('confirmDecision', { label: decisionLabel(decision) })}
 			>
 				<div className='space-y-4 pt-2'>
-					<p className='text-sm text-muted-foreground'>
-						Provide comments or additional feedback for the student regarding this decision.
-					</p>
+					<p className='text-sm text-muted-foreground'>{t('feedbackHint')}</p>
 
 					<div className='space-y-2'>
-						<Label htmlFor='decision-feedback'>Reviewer Notes</Label>
+						<Label htmlFor='decision-feedback'>{t('reviewerNotes')}</Label>
 						<Textarea
 							id='decision-feedback'
-							placeholder='Write your feedback here (optional)...'
+							placeholder={t('feedbackPlaceholder')}
 							value={feedback}
 							onChange={(e) => setFeedback(e.target.value)}
 							className='min-h-[120px] resize-none text-sm'
@@ -455,7 +453,7 @@ export default function ReviewDetailPage() {
 
 					<ModalFooter className='px-0 pb-0 gap-2'>
 						<Button variant='outline' onClick={() => setIsModalOpen(false)}>
-							Cancel
+							{t('cancel')}
 						</Button>
 						<Button
 							variant={decision === 'rejected' ? 'destructive' : 'default'}
@@ -463,7 +461,7 @@ export default function ReviewDetailPage() {
 							disabled={isUpdating}
 							className='font-semibold'
 						>
-							{isUpdating ? 'Processing...' : 'Submit Decision'}
+							{isUpdating ? t('processing') : t('submitDecision')}
 						</Button>
 					</ModalFooter>
 				</div>

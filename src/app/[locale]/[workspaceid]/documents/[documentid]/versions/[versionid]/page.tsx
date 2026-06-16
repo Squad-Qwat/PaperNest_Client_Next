@@ -31,7 +31,7 @@ import {
 	useDocumentWithRoomState,
 	useRevertVersion,
 } from '@/lib/api/hooks/use-documents'
-import { useWorkspace, useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
+import { useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
 import type { Version } from '@/lib/api/types/document.types'
 import type { Review } from '@/lib/api/types/review.types'
 import { format } from '@/lib/date'
@@ -53,7 +53,6 @@ export default function VersionDetailPage() {
 
 	const { user } = useAuth()
 	const { data: membersResponse } = useWorkspaceMembers(workspaceId)
-	const { data: workspace } = useWorkspace(workspaceId)
 	const { mutateAsync: createReview, isPending: isCreatingReview } = useCreateReview()
 
 	const { data: versionsResponse, isLoading: versionsLoading } = useDocumentVersions(documentId)
@@ -69,26 +68,16 @@ export default function VersionDetailPage() {
 	const activeUsers = documentWithRoomData?.room?.activeUsers || 0
 
 	const members = membersResponse?.members || []
-	// Filter hanya member dengan role lecturer atau reviewer
+	// Filter hanya member dengan role lecturer
 	const reviewers = members.filter(
-		(m: any) =>
-			m.role?.toLowerCase() === 'lecturer' ||
-			m.role?.toLowerCase() === 'reviewer' ||
-			m.user?.role?.toLowerCase() === 'lecturer' ||
-			m.user?.role?.toLowerCase() === 'reviewer'
+		(m: any) => m.role?.toLowerCase() === 'lecturer' || m.user?.role?.toLowerCase() === 'lecturer'
 	)
 
 	useEffect(() => {
-		if (reviewers.length > 0) {
-			if (!selectedLecturerId) {
-				setSelectedLecturerId(reviewers[0]?.user?.userId || '')
-			}
-		} else if (workspace?.ownerId) {
-			if (!selectedLecturerId) {
-				setSelectedLecturerId(workspace.ownerId)
-			}
+		if (reviewers.length > 0 && !selectedLecturerId) {
+			setSelectedLecturerId(reviewers[0]?.user?.userId || '')
 		}
-	}, [reviewers, workspace, selectedLecturerId])
+	}, [reviewers, selectedLecturerId])
 
 	const handleRequestReviewSubmit = async (e: React.FormEvent) => {
 		e.preventDefault()
@@ -397,13 +386,16 @@ export default function VersionDetailPage() {
 								<SelectValue placeholder={t('chooseReviewer')} />
 							</SelectTrigger>
 							<SelectContent className='z-[1025]'>
-								{reviewers.map((m: any) => (
-									<SelectItem key={m.user?.userId} value={m.user?.userId}>
-										{m.user?.name || m.user?.username || t('reviewer')}
-									</SelectItem>
-								))}
-								{reviewers.length === 0 && workspace?.ownerId && (
-									<SelectItem value={workspace.ownerId}>{t('workspaceOwner')}</SelectItem>
+								{reviewers.length > 0 ? (
+									reviewers.map((m: any) => (
+										<SelectItem key={m.user?.userId} value={m.user?.userId}>
+											{m.user?.name || m.user?.username || t('reviewer')}
+										</SelectItem>
+									))
+								) : (
+									<div className='px-3 py-2 text-sm text-muted-foreground'>
+										{t('noLecturersFound')}
+									</div>
 								)}
 							</SelectContent>
 						</Select>
