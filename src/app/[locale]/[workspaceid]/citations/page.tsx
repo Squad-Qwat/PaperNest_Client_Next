@@ -2,6 +2,7 @@
 
 import { Calendar, Plus, Settings2, Tag, User } from 'lucide-react'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { AppSidebar } from '@/components/app-sidebar'
@@ -42,6 +43,7 @@ import { useWorkspace } from '@/lib/api/hooks/use-workspaces'
 export default function Page() {
 	const params = useParams()
 	const workspaceId = params.workspaceid as string
+	const t = useTranslations('Citations')
 	const { data: workspace } = useWorkspace(workspaceId)
 	const isEditorOrOwner = workspace?.userRole === 'owner' || workspace?.userRole === 'editor'
 	const [searchQuery, setSearchQuery] = useState('')
@@ -55,7 +57,6 @@ export default function Page() {
 	const [viewingCitation, setViewingCitation] = useState<CitationDisplay | undefined>()
 	const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
 
-	// Get citations for the entire workspace
 	const { data: citationsData, isLoading: isCitationsLoading } = useWorkspaceCitations(workspaceId)
 
 	const citations = useMemo(() => {
@@ -68,9 +69,7 @@ export default function Page() {
 	const uniqueAuthors = useMemo(() => {
 		const authors = new Set<string>()
 		citations.forEach((c) => {
-			if (c.author) {
-				authors.add(c.author.trim())
-			}
+			if (c.author) authors.add(c.author.trim())
 		})
 		return Array.from(authors).sort((a, b) => a.localeCompare(b))
 	}, [citations])
@@ -116,10 +115,6 @@ export default function Page() {
 		})
 	}, [citations, searchQuery, selectedAuthor, selectedYear, selectedType])
 
-	// Still need documents to assign new citations to a document
-	// const { data: documentsData } = useWorkspaceDocuments(workspaceId)
-	// const documentId = documentsData?.documents?.[0]?.documentId
-
 	const { mutate: createCitation } = useCreateCitation()
 	const { mutate: updateCitation } = useUpdateCitation()
 	const { mutate: deleteCitation } = useDeleteCitation()
@@ -153,7 +148,6 @@ export default function Page() {
 			createCitation(
 				{
 					workspaceId,
-					// documentId, <- This might be undefined, which is now allowed
 					...(data as any),
 				},
 				{
@@ -214,12 +208,12 @@ export default function Page() {
 					</BreadcrumbItem>
 					<BreadcrumbSeparator className='hidden md:block' />
 					<BreadcrumbItem>
-						<BreadcrumbPage>Citations</BreadcrumbPage>
+						<BreadcrumbPage>{t('breadcrumb')}</BreadcrumbPage>
 					</BreadcrumbItem>
 				</BreadcrumbList>
 			</Breadcrumb>
 		),
-		[workspaceId, workspace?.title]
+		[workspaceId, workspace?.title, t]
 	)
 
 	return (
@@ -240,15 +234,15 @@ export default function Page() {
 				<main className='flex-1 p-6 w-full overflow-y-auto'>
 					<div className='mb-8 flex items-center justify-between'>
 						<div>
-							<h2 className='text-2xl font-bold text-foreground'>Citations</h2>
+							<h2 className='text-2xl font-bold text-foreground'>{t('title')}</h2>
 							<p className='text-sm text-muted-foreground mt-1'>
-								Manage your citations in the workspace {workspace?.title}
+								{t('subtitle', { name: workspace?.title ?? '' })}
 							</p>
 						</div>
 
 						{isEditorOrOwner && (
 							<Button onClick={handleAdd}>
-								Add reference
+								{t('addReference')}
 								<Plus />
 							</Button>
 						)}
@@ -259,7 +253,6 @@ export default function Page() {
 						onOpenChange={setIsSheetOpen}
 						onSave={handleSave}
 						initialData={editingCitation}
-						// documentId={documentId}
 					/>
 
 					<CitationDetailsSheet
@@ -273,7 +266,7 @@ export default function Page() {
 							<SearchInput
 								value={searchQuery}
 								onChange={setSearchQuery}
-								placeholder='Search citations...'
+								placeholder={t('searchPlaceholder')}
 							/>
 						</div>
 
@@ -282,10 +275,10 @@ export default function Page() {
 								<Select value={selectedAuthor} onValueChange={setSelectedAuthor}>
 									<SelectTrigger className='bg-background h-10 min-w-[140px]'>
 										<User className='h-4 w-4 mr-2' />
-										<SelectValue placeholder='All Authors' />
+										<SelectValue placeholder={t('allAuthors')} />
 									</SelectTrigger>
 									<SelectContent>
-										<SelectItem value='all'>All Authors</SelectItem>
+										<SelectItem value='all'>{t('allAuthors')}</SelectItem>
 										{uniqueAuthors.map((author) => (
 											<SelectItem key={author} value={author}>
 												{author}
@@ -297,10 +290,10 @@ export default function Page() {
 								<Select value={selectedYear} onValueChange={setSelectedYear}>
 									<SelectTrigger className='bg-background h-10 min-w-[130px]'>
 										<Calendar className='h-4 w-4 mr-2' />
-										<SelectValue placeholder='All Years' />
+										<SelectValue placeholder={t('allYears')} />
 									</SelectTrigger>
 									<SelectContent>
-										<SelectItem value='all'>All Years</SelectItem>
+										<SelectItem value='all'>{t('allYears')}</SelectItem>
 										{uniqueYears.map((year) => (
 											<SelectItem key={year} value={year}>
 												{year}
@@ -312,13 +305,13 @@ export default function Page() {
 								<Select value={selectedType} onValueChange={setSelectedType}>
 									<SelectTrigger className='bg-background h-10 min-w-[120px]'>
 										<Tag className='h-4 w-4 mr-2' />
-										<SelectValue placeholder='All Types' />
+										<SelectValue placeholder={t('allTypes')} />
 									</SelectTrigger>
 									<SelectContent>
-										<SelectItem value='all'>All Types</SelectItem>
-										<SelectItem value='journal'>Journal</SelectItem>
-										<SelectItem value='book'>Book</SelectItem>
-										<SelectItem value='conference'>Conference</SelectItem>
+										<SelectItem value='all'>{t('allTypes')}</SelectItem>
+										<SelectItem value='journal'>{t('typeJournal')}</SelectItem>
+										<SelectItem value='book'>{t('typeBook')}</SelectItem>
+										<SelectItem value='conference'>{t('typeConference')}</SelectItem>
 									</SelectContent>
 								</Select>
 							</div>
@@ -331,11 +324,11 @@ export default function Page() {
 								<SelectContent>
 									<SelectGroup>
 										<SelectLabel className='text-[11px] font-bold uppercase px-2 py-1.5'>
-											TABLE ROW SETTINGS
+											{t('tableSettings')}
 										</SelectLabel>
-										<SelectItem value='compact'>Compact view</SelectItem>
-										<SelectItem value='expanded'>Expanded view</SelectItem>
-										<SelectItem value='full'>Full view</SelectItem>
+										<SelectItem value='compact'>{t('compactView')}</SelectItem>
+										<SelectItem value='expanded'>{t('expandedView')}</SelectItem>
+										<SelectItem value='full'>{t('fullView')}</SelectItem>
 									</SelectGroup>
 								</SelectContent>
 							</Select>
@@ -355,10 +348,10 @@ export default function Page() {
 						isOpen={deleteConfirm !== null}
 						onClose={() => setDeleteConfirm(null)}
 						onConfirm={handleConfirmDelete}
-						title='Delete Reference'
-						message='Are you sure you want to delete this reference? This action cannot be undone.'
-						confirmText='Delete'
-						cancelText='Cancel'
+						title={t('deleteTitle')}
+						message={t('deleteMessage')}
+						confirmText={t('deleteConfirm')}
+						cancelText={t('deleteCancel')}
 						variant='danger'
 					/>
 				</main>

@@ -2,6 +2,7 @@
 
 import { ArrowUpDown, ClipboardCheck, FileText } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useMemo, useState } from 'react'
 import { ReviewContentSkeleton } from '@/components/layout/DashboardSkeleton'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
@@ -39,6 +40,7 @@ export default function ReviewsPage() {
 	const _router = useRouter()
 	const { user, loading: authLoading } = useAuth()
 	const workspaceId = params.workspaceid as string
+	const t = useTranslations('ReviewsPage')
 
 	const { data: workspace } = useWorkspace(workspaceId)
 	const isStudent = user?.role?.toLowerCase() === 'student'
@@ -121,7 +123,7 @@ export default function ReviewsPage() {
 							</BreadcrumbItem>
 							<BreadcrumbSeparator className='hidden md:block' />
 							<BreadcrumbItem>
-								<BreadcrumbPage>Reviews</BreadcrumbPage>
+								<BreadcrumbPage>{t('breadcrumb')}</BreadcrumbPage>
 							</BreadcrumbItem>
 						</BreadcrumbList>
 					</Breadcrumb>
@@ -134,9 +136,9 @@ export default function ReviewsPage() {
 			<main className='flex-1 p-6 w-full overflow-y-auto'>
 				<div className='mb-8 flex items-center justify-between'>
 					<div>
-						<h2 className='text-2xl font-bold text-foreground'>Reviews</h2>
+						<h2 className='text-2xl font-bold text-foreground'>{t('title')}</h2>
 						<p className='text-sm text-muted-foreground mt-1'>
-							Manage review requests for your documents in the workspace {workspace?.title}
+							{t('subtitle', { name: workspace?.title ?? '' })}
 						</p>
 					</div>
 				</div>
@@ -146,7 +148,7 @@ export default function ReviewsPage() {
 						<SearchInput
 							value={searchQuery}
 							onChange={setSearchQuery}
-							placeholder='Search reviews...'
+							placeholder={t('searchPlaceholder')}
 						/>
 					</div>
 
@@ -155,10 +157,10 @@ export default function ReviewsPage() {
 							<Select value={docFilter} onValueChange={setDocFilter}>
 								<SelectTrigger className='bg-background h-10 min-w-[200px]'>
 									<FileText className='h-4 w-4 mr-2 text-muted-foreground' />
-									<SelectValue placeholder='All Documents' />
+									<SelectValue placeholder={t('allDocuments')} />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value='all'>All Documents</SelectItem>
+									<SelectItem value='all'>{t('allDocuments')}</SelectItem>
 									{documents.map((doc: Document) => (
 										<SelectItem key={doc.documentId} value={doc.documentId}>
 											{doc.title}
@@ -170,14 +172,14 @@ export default function ReviewsPage() {
 							<Select value={statusFilter} onValueChange={setStatusFilter}>
 								<SelectTrigger className='bg-background h-10 min-w-[160px]'>
 									<ClipboardCheck className='h-4 w-4 mr-2 text-muted-foreground' />
-									<SelectValue placeholder='All Statuses' />
+									<SelectValue placeholder={t('allStatuses')} />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value='all'>All Statuses</SelectItem>
-									<SelectItem value='pending'>Pending</SelectItem>
-									<SelectItem value='approved'>Approved</SelectItem>
-									<SelectItem value='revision_required'>Revision Required</SelectItem>
-									<SelectItem value='rejected'>Rejected</SelectItem>
+									<SelectItem value='all'>{t('allStatuses')}</SelectItem>
+									<SelectItem value='pending'>{t('statusPending')}</SelectItem>
+									<SelectItem value='approved'>{t('statusApproved')}</SelectItem>
+									<SelectItem value='revision_required'>{t('statusRevision')}</SelectItem>
+									<SelectItem value='rejected'>{t('statusRejected')}</SelectItem>
 								</SelectContent>
 							</Select>
 
@@ -187,8 +189,8 @@ export default function ReviewsPage() {
 									<SelectValue placeholder='Sort By' />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value='newest'>Newest</SelectItem>
-									<SelectItem value='oldest'>Oldest</SelectItem>
+									<SelectItem value='newest'>{t('sortNewest')}</SelectItem>
+									<SelectItem value='oldest'>{t('sortOldest')}</SelectItem>
 								</SelectContent>
 							</Select>
 						</div>
@@ -196,7 +198,7 @@ export default function ReviewsPage() {
 				</div>
 
 				<h2 className='text-lg font-bold text-foreground mb-4'>
-					All Reviews ({filteredReviews.length})
+					{t('allReviews', { count: filteredReviews.length })}
 				</h2>
 
 				{filteredReviews.length === 0 ? (
@@ -216,10 +218,8 @@ export default function ReviewsPage() {
 								/>
 							</svg>
 						</div>
-						<p className='text-foreground font-medium mb-1'>No reviews found</p>
-						<p className='text-muted-foreground text-sm'>
-							Try adjusting your search or filter criteria
-						</p>
+						<p className='text-foreground font-medium mb-1'>{t('noReviewsFound')}</p>
+						<p className='text-muted-foreground text-sm'>{t('noReviewsDesc')}</p>
 					</div>
 				) : (
 					<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>

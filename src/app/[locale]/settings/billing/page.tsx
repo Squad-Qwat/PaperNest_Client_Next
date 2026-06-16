@@ -2,6 +2,7 @@
 
 import { ArrowRight, Check, CreditCard, Loader2, Sparkles } from 'lucide-react'
 import Script from 'next/script'
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
@@ -33,6 +34,7 @@ declare global {
 
 export default function BillingSettingsPage() {
 	const { user, loading } = useAuth()
+	const t = useTranslations('Settings')
 	const createCheckoutSession = useCreateCheckoutSession()
 	const getCustomerPortal = useGetCustomerPortal()
 
@@ -55,7 +57,6 @@ export default function BillingSettingsPage() {
 				if (window.LemonSqueezy?.Url?.Open) {
 					window.LemonSqueezy.Url.Open(response.url)
 				} else {
-					// Fallback to standard redirect if SDK is not ready yet
 					window.location.href = response.url
 				}
 			} else {
@@ -115,6 +116,8 @@ export default function BillingSettingsPage() {
 			})
 		: null
 
+	const currentPlanLabel = isEnterprise ? t('enterprisePlan') : isPro ? t('proPlan') : t('freePlan')
+
 	return (
 		<div className='space-y-8 text-left'>
 			{/* Lemon.js Script Loader */}
@@ -127,7 +130,6 @@ export default function BillingSettingsPage() {
 						eventHandler: (event) => {
 							if (event.event === 'Checkout.Success') {
 								toast.success('Your payment was successful! Upgrading account...')
-								// Optionally refresh page or auth state
 								setTimeout(() => window.location.reload(), 2500)
 							}
 						},
@@ -136,10 +138,8 @@ export default function BillingSettingsPage() {
 			/>
 
 			<div>
-				<h2 className='text-2xl font-bold text-foreground'>Billing Settings</h2>
-				<p className='text-sm text-muted-foreground mt-1'>
-					Manage your plan, check resource usage, and update payment methods.
-				</p>
+				<h2 className='text-2xl font-bold text-foreground'>{t('billingTitle')}</h2>
+				<p className='text-sm text-muted-foreground mt-1'>{t('billingSubtitle')}</p>
 			</div>
 
 			{/* Current Subscription Status */}
@@ -153,10 +153,10 @@ export default function BillingSettingsPage() {
 					<div className='flex items-center justify-between flex-wrap gap-4'>
 						<div>
 							<CardDescription className='text-xs uppercase tracking-wider font-semibold text-muted-foreground'>
-								Current Plan
+								{t('currentPlan')}
 							</CardDescription>
 							<CardTitle className='text-2xl font-bold flex items-center gap-2 mt-1'>
-								{isEnterprise ? 'Enterprise Member' : isPro ? 'Pro Member' : 'Free Account'}
+								{currentPlanLabel}
 								<Badge
 									variant={hasActiveSubscription ? 'default' : 'secondary'}
 									className={
@@ -185,7 +185,7 @@ export default function BillingSettingsPage() {
 									) : (
 										<CreditCard className='size-4' />
 									)}
-									Manage Subscription
+									{t('manageSubscription')}
 								</Button>
 							) : (
 								<Button
@@ -199,7 +199,7 @@ export default function BillingSettingsPage() {
 									) : (
 										<Sparkles className='size-4' />
 									)}
-									Upgrade to Pro
+									{t('upgradeToPro')}
 								</Button>
 							)}
 						</div>
@@ -207,10 +207,9 @@ export default function BillingSettingsPage() {
 				</CardHeader>
 
 				<CardContent className='border-t border-muted/30 pt-6 space-y-6'>
-					{/* Plan details info */}
 					<div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
 						<div className='space-y-2'>
-							<h4 className='text-sm font-semibold text-foreground'>Plan Perks</h4>
+							<h4 className='text-sm font-semibold text-foreground'>{t('planPerks')}</h4>
 							<ul className='space-y-1.5 text-sm text-muted-foreground'>
 								<li className='flex items-center gap-2'>
 									<Check className='size-4 text-emerald-500 shrink-0' />
@@ -234,32 +233,28 @@ export default function BillingSettingsPage() {
 						</div>
 
 						<div className='space-y-2'>
-							<h4 className='text-sm font-semibold text-foreground'>Billing Details</h4>
+							<h4 className='text-sm font-semibold text-foreground'>{t('billingDetails')}</h4>
 							{hasActiveSubscription ? (
 								<p className='text-sm text-muted-foreground'>
-									Your subscription is active.{' '}
-									{formattedEndDate && `Next renewal date: ${formattedEndDate}.`}
+									{t('activeSubscription')}{' '}
+									{formattedEndDate && t('nextRenewal', { date: formattedEndDate })}
 								</p>
 							) : (
-								<p className='text-sm text-muted-foreground'>
-									You are on the free plan. Upgrade to remove resource restrictions and collaborate
-									with larger teams.
-								</p>
+								<p className='text-sm text-muted-foreground'>{t('freePlanDesc')}</p>
 							)}
 						</div>
 					</div>
 
-					{/* Quotas and Limits usage visualizer (Mock visual for Free / Real stats indicator) */}
 					{!hasActiveSubscription && (
 						<div className='border-t border-muted/30 pt-6 space-y-4'>
 							<h4 className='text-sm font-semibold text-gray-700 dark:text-gray-300'>
-								Resource Usage (Free Tier)
+								{t('resourceUsage')}
 							</h4>
 
 							<div className='grid grid-cols-1 sm:grid-cols-3 gap-6'>
 								<div className='space-y-1.5'>
 									<div className='flex justify-between text-xs font-medium'>
-										<span>Documents</span>
+										<span>{t('documents')}</span>
 										<span className='text-muted-foreground'>1 / 3</span>
 									</div>
 									<Progress value={33} className='h-1.5' />
@@ -267,7 +262,7 @@ export default function BillingSettingsPage() {
 
 								<div className='space-y-1.5'>
 									<div className='flex justify-between text-xs font-medium'>
-										<span>Daily LaTeX Compiles</span>
+										<span>{t('dailyCompiles')}</span>
 										<span className='text-muted-foreground'>2 / 5</span>
 									</div>
 									<Progress value={40} className='h-1.5' />
@@ -275,7 +270,7 @@ export default function BillingSettingsPage() {
 
 								<div className='space-y-1.5'>
 									<div className='flex justify-between text-xs font-medium'>
-										<span>Daily AI Tokens</span>
+										<span>{t('dailyTokens')}</span>
 										<span className='text-muted-foreground'>350 / 1,000</span>
 									</div>
 									<Progress value={35} className='h-1.5' />
@@ -290,14 +285,12 @@ export default function BillingSettingsPage() {
 			{!isEnterprise && (
 				<div className='space-y-6 pt-4'>
 					<div>
-						<h3 className='text-lg font-bold text-foreground'>Available Plans</h3>
-						<p className='text-sm text-muted-foreground'>
-							Choose the plan that fits your writing and research workflow.
-						</p>
+						<h3 className='text-lg font-bold text-foreground'>{t('availablePlans')}</h3>
+						<p className='text-sm text-muted-foreground'>{t('availablePlansSubtitle')}</p>
 					</div>
 
 					<div className='grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl'>
-						{/* Free Plan Card */}
+						{/* Free Plan */}
 						<Card className='border border-muted/50 flex flex-col justify-between h-full bg-card shadow-sm'>
 							<CardHeader>
 								<CardTitle className='text-xl font-bold'>Free Plan</CardTitle>
@@ -327,18 +320,18 @@ export default function BillingSettingsPage() {
 							</CardContent>
 							<CardFooter className='pt-4'>
 								<Button className='w-full' variant='outline' disabled={!hasActiveSubscription}>
-									{!hasActiveSubscription ? 'Current Plan' : 'Free Tier'}
+									{!hasActiveSubscription ? t('currentPlanLabel') : t('freeTier')}
 								</Button>
 							</CardFooter>
 						</Card>
 
-						{/* Pro Plan Card */}
+						{/* Pro Plan */}
 						<Card
 							className={`border-2 flex flex-col justify-between h-full bg-card shadow-md relative ${isPro ? 'border-violet-500 dark:border-violet-600' : 'border-muted/50'}`}
 						>
 							{isPro && (
 								<div className='absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-violet-600 text-white text-[10px] uppercase font-bold tracking-wider rounded-full'>
-									Current Plan
+									{t('currentPlanLabel')}
 								</div>
 							)}
 							<CardHeader>
@@ -383,7 +376,7 @@ export default function BillingSettingsPage() {
 							<CardFooter className='pt-4'>
 								{isPro ? (
 									<Button className='w-full' variant='outline' disabled>
-										Current Plan
+										{t('currentPlanLabel')}
 									</Button>
 								) : (
 									<Button
@@ -395,7 +388,7 @@ export default function BillingSettingsPage() {
 											<Loader2 className='size-4 animate-spin' />
 										) : (
 											<>
-												Upgrade to Pro <ArrowRight className='size-4' />
+												{t('upgradeToPro')} <ArrowRight className='size-4' />
 											</>
 										)}
 									</Button>
@@ -403,7 +396,7 @@ export default function BillingSettingsPage() {
 							</CardFooter>
 						</Card>
 
-						{/* Enterprise Plan Card */}
+						{/* Enterprise Plan */}
 						<Card className='border-2 border-amber-500 dark:border-amber-600 flex flex-col justify-between h-full bg-card shadow-lg relative overflow-hidden'>
 							<div className='absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-amber-400/20 to-orange-500/0 rounded-full blur-xl pointer-events-none' />
 							<div className='absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] uppercase font-bold tracking-wider rounded-full shadow-sm'>
@@ -458,7 +451,7 @@ export default function BillingSettingsPage() {
 										<Loader2 className='size-4 animate-spin' />
 									) : (
 										<>
-											Upgrade to Enterprise <ArrowRight className='size-4' />
+											{t('upgradeToEnterprise')} <ArrowRight className='size-4' />
 										</>
 									)}
 								</Button>

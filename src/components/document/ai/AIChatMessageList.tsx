@@ -1,4 +1,5 @@
 import { CheckCircle2, ChevronDown, ChevronUp, Loader2, Terminal, XCircle } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -24,6 +25,7 @@ interface AIChatMessageListProps {
 
 export function AIChatMessageList({ messages, isLoading }: AIChatMessageListProps) {
 	const messagesEndRef = useRef<HTMLDivElement>(null)
+	const t = useTranslations('AIChat')
 
 	const scrollToBottom = useCallback(() => {
 		messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -51,11 +53,8 @@ export function AIChatMessageList({ messages, isLoading }: AIChatMessageListProp
 						/>
 					</svg>
 				</div>
-				<h3 className='text-lg font-medium text-gray-900 mb-2'>Start a conversation</h3>
-				<p className='text-sm text-gray-500 max-w-xs'>
-					Ask questions about your document, get suggestions, or request help with writing and
-					editing.
-				</p>
+				<h3 className='text-lg font-medium text-gray-900 mb-2'>{t('startConversation')}</h3>
+				<p className='text-sm text-gray-500 max-w-xs'>{t('startConversationDesc')}</p>
 			</div>
 		)
 	}
@@ -119,7 +118,6 @@ export function AIChatMessageList({ messages, isLoading }: AIChatMessageListProp
 								</ReactMarkdown>
 							)}
 
-							{/* Tool Calls Display */}
 							{message.toolCalls && message.toolCalls.length > 0 && (
 								<div className='mt-4 space-y-2 w-full'>
 									{message.toolCalls.map((tool) => (

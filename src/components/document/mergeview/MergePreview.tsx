@@ -6,6 +6,7 @@ import { EditorState, type Extension } from '@codemirror/state'
 import { EditorView, highlightActiveLineGutter, lineNumbers } from '@codemirror/view'
 import { latex } from 'codemirror-lang-latex'
 import { Check, Columns, Rows, X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import React, { useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { paperNestThemeExtension } from '@/lib/editor/latex-theme'
@@ -37,6 +38,7 @@ export function MergePreview({
 	const mergeViewRef = useRef<MergeView | null>(null)
 	const editorViewRef = useRef<EditorView | null>(null)
 	const [viewMode, setViewMode] = React.useState<'side-by-side' | 'unified'>('unified')
+	const t = useTranslations('MergePreview')
 
 	const getCurrentMergedContent = React.useCallback((): string => {
 		if (viewMode === 'side-by-side') {
@@ -182,11 +184,11 @@ export function MergePreview({
 				<div className='flex items-center gap-4'>
 					<div className='flex items-center gap-2'>
 						<span className='text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded font-bold uppercase tracking-wider'>
-							AI Merge Preview
+							{t('label')}
 						</span>
 						{queueTotal > 0 && (
 							<span className='text-[10px] bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded font-semibold'>
-								{queuePosition} of {queueTotal}
+								{queuePosition} {t('of')} {queueTotal}
 							</span>
 						)}
 						{batchSummary && (
@@ -196,12 +198,12 @@ export function MergePreview({
 						)}
 						{rebaseStatus && !rebaseStatus.isRebased && (
 							<span className='text-[10px] bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 px-1.5 py-0.5 rounded font-semibold'>
-								Stale queue item
+								{t('staleItem')}
 							</span>
 						)}
 						{rebaseStatus?.isRebased && (
 							<span className='text-[10px] bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.5 rounded font-semibold'>
-								Rebased
+								{t('rebased')}
 							</span>
 						)}
 					</div>
@@ -214,7 +216,7 @@ export function MergePreview({
 							className={`h-7 px-2 text-[10px] gap-1.5 ${viewMode === 'side-by-side' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
 						>
 							<Columns className='w-3 h-3' />
-							Side-by-side
+							{t('sideBySide')}
 						</Button>
 						<Button
 							variant='ghost'
@@ -223,7 +225,7 @@ export function MergePreview({
 							className={`h-7 px-2 text-[10px] gap-1.5 ${viewMode === 'unified' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
 						>
 							<Rows className='w-3 h-3' />
-							Unified
+							{t('unified')}
 						</Button>
 					</div>
 				</div>
@@ -235,7 +237,7 @@ export function MergePreview({
 						onClick={onDiscard}
 					>
 						<X className='w-3.5 h-3.5' />
-						Discard
+						{t('discard')}
 					</Button>
 					<Button
 						size='sm'
@@ -244,7 +246,7 @@ export function MergePreview({
 						onClick={() => onAccept(getCurrentMergedContent())}
 					>
 						<Check className='w-3.5 h-3.5' />
-						Accept This
+						{t('acceptThis')}
 					</Button>
 					{queueTotal > 1 && onAcceptAll && (
 						<Button
@@ -253,7 +255,7 @@ export function MergePreview({
 							onClick={onAcceptAll}
 						>
 							<Check className='w-3.5 h-3.5' />
-							Accept All {queueTotal}
+							{t('acceptAll', { count: queueTotal })}
 						</Button>
 					)}
 				</div>
@@ -261,8 +263,7 @@ export function MergePreview({
 
 			{rebaseStatus && !rebaseStatus.isRebased && (
 				<div className='px-4 py-2 text-xs bg-destructive/10 text-destructive border-b border-destructive/20'>
-					This queue item is stale relative to the current document. &quot;Accept This&quot; is
-					disabled to prevent overwriting recent changes.
+					{t('staleWarning')}
 				</div>
 			)}
 

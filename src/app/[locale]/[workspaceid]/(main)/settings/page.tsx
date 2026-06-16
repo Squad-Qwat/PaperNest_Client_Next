@@ -2,6 +2,7 @@
 
 import { Loader2, UserMinus } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
@@ -38,6 +39,7 @@ export default function WorkspaceSettingsPage() {
 	const router = useRouter()
 	const workspaceId = params.workspaceid as string
 	const { user } = useAuth()
+	const t = useTranslations('WorkspaceSettings')
 
 	const { data: workspace, isLoading: workspaceLoading } = useWorkspace(workspaceId)
 	const { data: membersData, isLoading: membersLoading } = useWorkspaceMembers(workspaceId)
@@ -63,7 +65,6 @@ export default function WorkspaceSettingsPage() {
 
 	const handleUpdate = async () => {
 		if (!title.trim()) return
-
 		try {
 			await updateWorkspace({
 				id: workspaceId,
@@ -90,7 +91,6 @@ export default function WorkspaceSettingsPage() {
 
 	const handleKickMember = async () => {
 		if (!kickTarget) return
-
 		try {
 			await removeMember({
 				workspaceId,
@@ -147,7 +147,7 @@ export default function WorkspaceSettingsPage() {
 							</BreadcrumbItem>
 							<BreadcrumbSeparator className='hidden md:block' />
 							<BreadcrumbItem>
-								<BreadcrumbPage>Settings</BreadcrumbPage>
+								<BreadcrumbPage>{t('breadcrumbSettings')}</BreadcrumbPage>
 							</BreadcrumbItem>
 						</BreadcrumbList>
 					</Breadcrumb>
@@ -158,61 +158,53 @@ export default function WorkspaceSettingsPage() {
 			</header>
 
 			<main className='flex-1 p-6 w-full overflow-y-auto'>
-				{/* Content Header Section */}
 				<div className='mb-8 text-left'>
-					<h2 className='text-2xl font-bold text-foreground'>Workspace Settings</h2>
+					<h2 className='text-2xl font-bold text-foreground'>{t('title')}</h2>
 					<p className='text-sm text-muted-foreground mt-1'>
-						Manage configuration and member access for workspace {workspace?.title}
+						{t('subtitle', { name: workspace?.title })}
 					</p>
 				</div>
 
 				<div className='space-y-12'>
-					{/* General Configuration Section */}
+					{/* General Configuration */}
 					<section className='space-y-4'>
-						<h3 className='text-lg font-semibold text-foreground'>General Configuration</h3>
+						<h3 className='text-lg font-semibold text-foreground'>{t('generalConfig')}</h3>
 
 						<div className='bg-card border border-border rounded-lg overflow-hidden shadow-sm'>
 							<div className='p-6 space-y-10'>
-								{/* Workspace Name Field - 50/50 Split */}
 								<div className='flex flex-col sm:flex-row items-start gap-8 sm:gap-12'>
 									<div className='w-full sm:w-1/2 space-y-1 text-left'>
-										<h4 className='text-sm font-semibold text-foreground'>Workspace Name</h4>
-										<p className='text-xs text-muted-foreground'>
-											This name will be visible to all team members.
-										</p>
+										<h4 className='text-sm font-semibold text-foreground'>{t('workspaceName')}</h4>
+										<p className='text-xs text-muted-foreground'>{t('workspaceNameDesc')}</p>
 									</div>
 									<div className='w-full sm:w-1/2'>
 										<Input
 											value={title}
 											onChange={(e) => setTitle(e.target.value)}
 											className='h-9 text-sm w-full'
-											placeholder='Workspace name'
+											placeholder={t('workspaceNamePlaceholder')}
 											disabled={!isEditorOrOwner}
 										/>
 									</div>
 								</div>
 
-								{/* Description Field - 50/50 Split */}
 								<div className='flex flex-col sm:flex-row items-start gap-8 sm:gap-12'>
 									<div className='w-full sm:w-1/2 space-y-1 text-left'>
-										<h4 className='text-sm font-semibold text-foreground'>Description</h4>
-										<p className='text-xs text-muted-foreground'>
-											Provide a brief explanation of the purpose of this workspace.
-										</p>
+										<h4 className='text-sm font-semibold text-foreground'>{t('description')}</h4>
+										<p className='text-xs text-muted-foreground'>{t('descriptionDesc')}</p>
 									</div>
 									<div className='w-full sm:w-1/2'>
 										<Textarea
 											value={description}
 											onChange={(e) => setDescription(e.target.value)}
 											className='min-h-[120px] text-sm resize-none w-full'
-											placeholder='Add description...'
+											placeholder={t('descriptionPlaceholder')}
 											disabled={!isEditorOrOwner}
 										/>
 									</div>
 								</div>
 							</div>
 
-							{/* Single Footer Save Button */}
 							{isEditorOrOwner && (
 								<div className='bg-muted/30 border-t border-border p-4 flex justify-end'>
 									<Button
@@ -227,10 +219,10 @@ export default function WorkspaceSettingsPage() {
 										{updating ? (
 											<>
 												<Loader2 className='mr-2 h-4 w-4 animate-spin' />
-												Saving...
+												{t('saving')}
 											</>
 										) : (
-											'Save Changes'
+											t('saveChanges')
 										)}
 									</Button>
 								</div>
@@ -238,9 +230,9 @@ export default function WorkspaceSettingsPage() {
 						</div>
 					</section>
 
-					{/* Members Management Section */}
+					{/* Members Management */}
 					<section className='space-y-4'>
-						<h3 className='text-lg font-semibold text-foreground'>Manage Members</h3>
+						<h3 className='text-lg font-semibold text-foreground'>{t('manageMembers')}</h3>
 
 						<div className='bg-card border border-border rounded-lg overflow-hidden shadow-sm'>
 							<div className='divide-y divide-border'>
@@ -273,7 +265,7 @@ export default function WorkspaceSettingsPage() {
 															</span>
 															{member.userId === user?.userId && (
 																<span className='text-[9px] px-1.5 py-0 bg-muted text-muted-foreground font-bold uppercase rounded border border-border'>
-																	You
+																	{t('youLabel')}
 																</span>
 															)}
 														</div>
@@ -297,7 +289,7 @@ export default function WorkspaceSettingsPage() {
 															{member.role}
 														</Badge>
 														<p className='text-[10px] text-muted-foreground mt-1 text-left sm:text-right'>
-															Joined {format(member.createdAt, 'd MMMM yyyy')}
+															{t('joinedOn', { date: format(member.createdAt, 'd MMMM yyyy') })}
 														</p>
 													</div>
 
@@ -311,7 +303,7 @@ export default function WorkspaceSettingsPage() {
 																})
 															}
 															className='inline-flex items-center justify-center h-9 w-9 rounded-md border border-border text-muted-foreground hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/30 transition-colors'
-															title='Remove Member'
+															title={t('removeMember')}
 														>
 															<UserMinus className='h-4 w-4' />
 														</button>
@@ -323,18 +315,19 @@ export default function WorkspaceSettingsPage() {
 						</div>
 					</section>
 
-					{/* Danger Zone Section */}
+					{/* Danger Zone */}
 					{isOwner && (
 						<section className='space-y-4'>
-							<h3 className='text-lg font-semibold text-red-600'>Danger Zone</h3>
+							<h3 className='text-lg font-semibold text-red-600'>{t('dangerZone')}</h3>
 
 							<div className='bg-card border border-red-500/20 rounded-lg overflow-hidden shadow-sm'>
 								<div className='flex flex-col sm:flex-row items-center justify-between p-6 gap-6 hover:bg-red-500/5 transition-colors'>
 									<div className='space-y-1 flex-1 text-left'>
-										<h4 className='text-sm font-semibold text-foreground'>Delete this workspace</h4>
+										<h4 className='text-sm font-semibold text-foreground'>
+											{t('deleteWorkspace')}
+										</h4>
 										<p className='text-xs text-muted-foreground max-w-xl'>
-											This action is permanent. All documents, members, and data associated with
-											this workspace will be deleted forever.
+											{t('deleteWorkspaceDesc')}
 										</p>
 									</div>
 									<div className='flex-shrink-0 w-full sm:w-auto'>
@@ -343,7 +336,7 @@ export default function WorkspaceSettingsPage() {
 											onClick={() => setShowDeleteDialog(true)}
 											className='h-9 px-6 text-sm font-medium w-full sm:w-auto'
 										>
-											Delete Workspace
+											{t('deleteWorkspaceBtn')}
 										</Button>
 									</div>
 								</div>
@@ -353,14 +346,13 @@ export default function WorkspaceSettingsPage() {
 				</div>
 			</main>
 
-			{/* Dialogs */}
 			<ConfirmDialog
 				isOpen={showDeleteDialog}
 				onClose={() => setShowDeleteDialog(false)}
 				onConfirm={handleDelete}
-				title='Delete Workspace'
-				message={`Are you sure you want to delete "${workspace.title}"? All data within it will be permanently lost.`}
-				confirmText='Permanently Delete'
+				title={t('deleteWorkspaceTitle')}
+				message={t('deleteWorkspaceMessage', { title: workspace.title })}
+				confirmText={t('deleteWorkspaceConfirm')}
 				variant='danger'
 			/>
 
@@ -368,9 +360,9 @@ export default function WorkspaceSettingsPage() {
 				isOpen={kickTarget !== null}
 				onClose={() => setKickTarget(null)}
 				onConfirm={handleKickMember}
-				title='Remove Member'
-				message={`Are you sure you want to remove ${kickTarget?.name}? They will lose all access immediately.`}
-				confirmText={kicking ? 'Removing...' : 'Remove Member'}
+				title={t('removeMemberTitle')}
+				message={t('removeMemberMessage', { name: kickTarget?.name ?? '' })}
+				confirmText={kicking ? t('removeMemberRemoving') : t('removeMemberConfirm')}
 				variant='danger'
 			/>
 		</>

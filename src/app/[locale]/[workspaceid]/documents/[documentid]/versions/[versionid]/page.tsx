@@ -69,19 +69,26 @@ export default function VersionDetailPage() {
 	const activeUsers = documentWithRoomData?.room?.activeUsers || 0
 
 	const members = membersResponse?.members || []
-	const lecturers = members.filter((m: any) => m.user?.role?.toLowerCase() === 'lecturer')
+	// Filter hanya member dengan role lecturer atau reviewer
+	const reviewers = members.filter(
+		(m: any) =>
+			m.role?.toLowerCase() === 'lecturer' ||
+			m.role?.toLowerCase() === 'reviewer' ||
+			m.user?.role?.toLowerCase() === 'lecturer' ||
+			m.user?.role?.toLowerCase() === 'reviewer'
+	)
 
 	useEffect(() => {
-		if (lecturers.length > 0) {
+		if (reviewers.length > 0) {
 			if (!selectedLecturerId) {
-				setSelectedLecturerId(lecturers[0]?.user?.userId || '')
+				setSelectedLecturerId(reviewers[0]?.user?.userId || '')
 			}
 		} else if (workspace?.ownerId) {
 			if (!selectedLecturerId) {
 				setSelectedLecturerId(workspace.ownerId)
 			}
 		}
-	}, [lecturers, workspace, selectedLecturerId])
+	}, [reviewers, workspace, selectedLecturerId])
 
 	const handleRequestReviewSubmit = async (e: React.FormEvent) => {
 		e.preventDefault()
@@ -390,12 +397,12 @@ export default function VersionDetailPage() {
 								<SelectValue placeholder={t('chooseReviewer')} />
 							</SelectTrigger>
 							<SelectContent className='z-[1025]'>
-								{lecturers.map((m: any) => (
+								{reviewers.map((m: any) => (
 									<SelectItem key={m.user?.userId} value={m.user?.userId}>
 										{m.user?.name || m.user?.username || t('reviewer')}
 									</SelectItem>
 								))}
-								{lecturers.length === 0 && workspace?.ownerId && (
+								{reviewers.length === 0 && workspace?.ownerId && (
 									<SelectItem value={workspace.ownerId}>{t('workspaceOwner')}</SelectItem>
 								)}
 							</SelectContent>

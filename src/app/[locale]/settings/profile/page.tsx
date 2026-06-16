@@ -1,11 +1,13 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { ProfileSettingsForm } from '@/components/settings/ProfileSettingsForm'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/context/AuthContext'
 
 export default function ProfileSettingsPage() {
 	const { user, loading } = useAuth()
+	const t = useTranslations('Settings')
 
 	if (loading) {
 		return (
@@ -28,10 +30,8 @@ export default function ProfileSettingsPage() {
 	return (
 		<div className='space-y-8 text-left'>
 			<div>
-				<h2 className='text-2xl font-bold text-foreground'>Profile Settings</h2>
-				<p className='text-sm text-muted-foreground mt-1'>
-					Manage your public profile and personal information.
-				</p>
+				<h2 className='text-2xl font-bold text-foreground'>{t('profileTitle')}</h2>
+				<p className='text-sm text-muted-foreground mt-1'>{t('profileSubtitle')}</p>
 			</div>
 
 			<ProfileSettingsForm user={user} />

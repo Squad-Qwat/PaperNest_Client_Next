@@ -12,6 +12,7 @@ import {
 } from '@tabler/icons-react'
 import { formatDistanceToNow } from 'date-fns'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -36,6 +37,7 @@ export default function InboxPage() {
 	const params = useParams()
 	const router = useRouter()
 	const workspaceId = params.workspaceid as string
+	const t = useTranslations('Inbox')
 	const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead, deleteNotification } =
 		useNotifications()
 	const { data: workspace } = useWorkspace(workspaceId)
@@ -101,7 +103,7 @@ export default function InboxPage() {
 							</BreadcrumbItem>
 							<BreadcrumbSeparator className='hidden md:block' />
 							<BreadcrumbItem>
-								<BreadcrumbPage>Inbox</BreadcrumbPage>
+								<BreadcrumbPage>{t('breadcrumb')}</BreadcrumbPage>
 							</BreadcrumbItem>
 						</BreadcrumbList>
 					</Breadcrumb>
@@ -114,16 +116,16 @@ export default function InboxPage() {
 			<div className='flex-1 p-6 flex flex-col min-h-0 overflow-hidden'>
 				<div className='mb-8 flex items-center justify-between'>
 					<div>
-						<h2 className='text-2xl font-bold text-foreground'>Inbox</h2>
+						<h2 className='text-2xl font-bold text-foreground'>{t('title')}</h2>
 						<p className='text-sm text-muted-foreground mt-1'>
-							Manage your notifications and alerts in the workspace {workspace?.title}
+							{t('subtitle', { name: workspace?.title ?? '' })}
 						</p>
 					</div>
 					<div className='flex gap-2'>
 						{unreadCount > 0 && (
 							<Button variant='outline' size='sm' onClick={markAllAsRead}>
 								<IconChecks className='mr-2 h-4 w-4' />
-								Mark all as read
+								{t('markAllRead')}
 							</Button>
 						)}
 					</div>
@@ -132,7 +134,7 @@ export default function InboxPage() {
 				<Tabs defaultValue='all' className='flex-1 flex flex-col min-h-0'>
 					<TabsList className='mb-4'>
 						<TabsTrigger value='all' className='gap-2'>
-							All
+							{t('tabAll')}
 							{notifications.length > 0 && (
 								<Badge variant='secondary' className='h-5 px-1.5'>
 									{notifications.length}
@@ -140,23 +142,26 @@ export default function InboxPage() {
 							)}
 						</TabsTrigger>
 						<TabsTrigger value='unread' className='gap-2'>
-							Unread
+							{t('tabUnread')}
 							{unreadCount > 0 && (
 								<Badge className='h-5 px-1.5 bg-primary text-primary-foreground'>
 									{unreadCount}
 								</Badge>
 							)}
 						</TabsTrigger>
-						<TabsTrigger value='comments'>Comments</TabsTrigger>
-						<TabsTrigger value='reviews'>Reviews</TabsTrigger>
-						<TabsTrigger value='invitations'>Invitations</TabsTrigger>
+						<TabsTrigger value='comments'>{t('tabComments')}</TabsTrigger>
+						<TabsTrigger value='reviews'>{t('tabReviews')}</TabsTrigger>
+						<TabsTrigger value='invitations'>{t('tabInvitations')}</TabsTrigger>
 					</TabsList>
 
 					<ScrollArea className='flex-1'>
 						<div className='space-y-4 pr-4'>
 							<TabsContent value='all' className='m-0 space-y-4'>
 								{notifications.length === 0 ? (
-									<EmptyState />
+									<EmptyState
+										message={t('allCaughtUp')}
+										notificationsDesc={t('notificationsDesc')}
+									/>
 								) : (
 									notifications.map((n) => (
 										<NotificationCard
@@ -173,7 +178,7 @@ export default function InboxPage() {
 
 							<TabsContent value='unread' className='m-0 space-y-4'>
 								{notifications.filter((n) => !n.isRead).length === 0 ? (
-									<EmptyState message='No unread notifications' />
+									<EmptyState message={t('noUnread')} notificationsDesc={t('notificationsDesc')} />
 								) : (
 									notifications
 										.filter((n) => !n.isRead)
@@ -192,7 +197,10 @@ export default function InboxPage() {
 
 							<TabsContent value='comments' className='m-0 space-y-4'>
 								{notifications.filter((n) => n.type.includes('comment')).length === 0 ? (
-									<EmptyState message='No comment notifications' />
+									<EmptyState
+										message={t('noComments')}
+										notificationsDesc={t('notificationsDesc')}
+									/>
 								) : (
 									notifications
 										.filter((n) => n.type.includes('comment'))
@@ -211,7 +219,7 @@ export default function InboxPage() {
 
 							<TabsContent value='reviews' className='m-0 space-y-4'>
 								{notifications.filter((n) => n.type.includes('review')).length === 0 ? (
-									<EmptyState message='No review notifications' />
+									<EmptyState message={t('noReviews')} notificationsDesc={t('notificationsDesc')} />
 								) : (
 									notifications
 										.filter((n) => n.type.includes('review'))
@@ -230,7 +238,10 @@ export default function InboxPage() {
 
 							<TabsContent value='invitations' className='m-0 space-y-4'>
 								{notifications.filter((n) => n.type === 'invitation').length === 0 ? (
-									<EmptyState message='No invitations' />
+									<EmptyState
+										message={t('noInvitations')}
+										notificationsDesc={t('notificationsDesc')}
+									/>
 								) : (
 									notifications
 										.filter((n) => n.type === 'invitation')
@@ -326,16 +337,20 @@ function NotificationCard({
 	)
 }
 
-function EmptyState({ message = "You're all caught up!" }: { message?: string }) {
+function EmptyState({
+	message,
+	notificationsDesc,
+}: {
+	message: string
+	notificationsDesc: string
+}) {
 	return (
 		<div className='flex flex-col items-center justify-center py-20 text-center'>
 			<div className='rounded-full bg-muted p-6 mb-4'>
 				<IconBell className='h-10 w-10 text-muted-foreground/50' />
 			</div>
 			<h3 className='text-lg font-medium'>{message}</h3>
-			<p className='text-muted-foreground text-sm max-w-xs mt-1'>
-				Notifications about comments, reviews, and invitations will appear here.
-			</p>
+			<p className='text-muted-foreground text-sm max-w-xs mt-1'>{notificationsDesc}</p>
 		</div>
 	)
 }

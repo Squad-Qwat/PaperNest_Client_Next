@@ -2,6 +2,7 @@
 
 import imageCompression from 'browser-image-compression'
 import { Camera, Loader2 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -24,6 +25,7 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 	const updateUser = useUpdateUser()
 	const deleteUser = useDeleteUser()
 	const { logout } = useAuth()
+	const t = useTranslations('Settings')
 	const _setIsProfileUpdating = useUserStore((state) => state.setIsProfileUpdating)
 	const setLastUpdated = useUserStore((state) => state.setLastUpdated)
 
@@ -35,7 +37,6 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 	const [isUploading, setIsUploading] = useState(false)
 	const fileInputRef = useRef<HTMLInputElement>(null)
 
-	// Sync local states if user object changes (e.g. from react-query refetch)
 	useEffect(() => {
 		setName(user.name || '')
 		setUsername(user.username || '')
@@ -63,8 +64,6 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 				useWebWorker: true,
 			}
 			const compressedFile = await imageCompression(file, options)
-
-			// Generate local object URL for instant, zero-latency rendering
 			const objectUrl = URL.createObjectURL(compressedFile)
 			setPreviewURL(objectUrl)
 
@@ -131,7 +130,7 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 				loading: 'Saving your profile changes...',
 				success: () => {
 					setLastUpdated(new Date())
-					setPreviewURL(null) // Reset preview url setelah sukses disimpan
+					setPreviewURL(null)
 					return 'Profile updated successfully!'
 				},
 				error: (err: any) => {
@@ -162,17 +161,15 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 	return (
 		<div className='space-y-12 pb-10'>
 			<section className='space-y-4'>
-				<h3 className='text-lg font-semibold text-foreground'>Profile Information</h3>
+				<h3 className='text-lg font-semibold text-foreground'>{t('profileInfo')}</h3>
 
 				<div className='bg-card border border-border rounded-lg overflow-hidden shadow-sm'>
 					<div className='p-6 space-y-10'>
+						{/* Avatar */}
 						<div className='flex flex-col sm:flex-row items-start gap-8 sm:gap-12'>
 							<div className='w-full sm:w-1/2 space-y-1 text-left'>
-								<h4 className='text-sm font-semibold text-foreground'>Avatar</h4>
-								<p className='text-xs text-muted-foreground'>
-									This is your avatar. Click on the profile photo to upload and update your profile
-									picture.
-								</p>
+								<h4 className='text-sm font-semibold text-foreground'>{t('avatar')}</h4>
+								<p className='text-xs text-muted-foreground'>{t('avatarDesc')}</p>
 							</div>
 							<div className='w-full sm:w-1/2 flex items-center gap-6 text-left'>
 								<button
@@ -215,32 +212,30 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 							</div>
 						</div>
 
+						{/* Display Name */}
 						<div className='flex flex-col sm:flex-row items-start gap-8 sm:gap-12'>
 							<div className='w-full sm:w-1/2 space-y-1 text-left'>
-								<h4 className='text-sm font-semibold text-foreground'>Display Name</h4>
-								<p className='text-xs text-muted-foreground'>
-									Please enter your full name, or a display name you are comfortable with.
-								</p>
+								<h4 className='text-sm font-semibold text-foreground'>{t('displayName')}</h4>
+								<p className='text-xs text-muted-foreground'>{t('displayNameDesc')}</p>
 							</div>
 							<div className='w-full sm:w-1/2 space-y-1 text-left'>
 								<Input
 									id='display-name-input'
 									value={name}
 									onChange={(e) => setName(e.target.value)}
-									placeholder='Enter your full name'
+									placeholder={t('displayNamePlaceholder')}
 									className='h-9 text-sm w-full'
 									maxLength={32}
 								/>
-								<p className='text-[10px] text-muted-foreground'>Max 32 characters.</p>
+								<p className='text-[10px] text-muted-foreground'>{t('displayNameMax')}</p>
 							</div>
 						</div>
 
+						{/* Username */}
 						<div className='flex flex-col sm:flex-row items-start gap-8 sm:gap-12'>
 							<div className='w-full sm:w-1/2 space-y-1 text-left'>
-								<h4 className='text-sm font-semibold text-foreground'>Username</h4>
-								<p className='text-xs text-muted-foreground'>
-									This is your unique URL namespace within PaperNest.
-								</p>
+								<h4 className='text-sm font-semibold text-foreground'>{t('usernameLabel')}</h4>
+								<p className='text-xs text-muted-foreground'>{t('usernameDesc')}</p>
 							</div>
 							<div className='w-full sm:w-1/2 space-y-1 text-left'>
 								<div className='flex items-center gap-0 w-full'>
@@ -251,12 +246,12 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 										id='username-input'
 										value={username}
 										onChange={(e) => setUsername(e.target.value)}
-										placeholder='your_username'
+										placeholder={t('usernamePlaceholder')}
 										className='h-9 text-sm rounded-l-none w-full'
 										maxLength={48}
 									/>
 								</div>
-								<p className='text-[10px] text-muted-foreground'>Max 48 characters.</p>
+								<p className='text-[10px] text-muted-foreground'>{t('usernameMax')}</p>
 							</div>
 						</div>
 					</div>
@@ -269,7 +264,7 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 							disabled={!isDirty || updateUser.isPending}
 							className='h-9 px-6 text-sm font-medium border-border'
 						>
-							Reset
+							{t('reset')}
 						</Button>
 						<Button
 							size='sm'
@@ -280,10 +275,10 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 							{updateUser.isPending ? (
 								<>
 									<Loader2 className='mr-2 h-4 w-4 animate-spin' />
-									Saving...
+									{t('saving')}
 								</>
 							) : (
-								'Save Changes'
+								t('saveChanges')
 							)}
 						</Button>
 					</div>
@@ -291,16 +286,13 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 			</section>
 
 			<section className='space-y-4'>
-				<h3 className='text-lg font-semibold text-red-600 text-left'>Danger Zone</h3>
+				<h3 className='text-lg font-semibold text-red-600 text-left'>{t('dangerZone')}</h3>
 
 				<div className='bg-card border border-destructive/20 rounded-lg overflow-hidden shadow-sm'>
 					<div className='flex flex-col sm:flex-row items-center justify-between p-6 gap-6 hover:bg-destructive/5 transition-colors'>
 						<div className='space-y-1 flex-1 text-left'>
-							<h4 className='text-sm font-semibold text-foreground'>Delete Account</h4>
-							<p className='text-xs text-muted-foreground max-w-xl'>
-								Permanently delete your account and all associated workspaces, documents, and data.
-								This action cannot be undone.
-							</p>
+							<h4 className='text-sm font-semibold text-foreground'>{t('deleteAccount')}</h4>
+							<p className='text-xs text-muted-foreground max-w-xl'>{t('deleteAccountDesc')}</p>
 						</div>
 						<div className='flex-shrink-0 w-full sm:w-auto'>
 							<Button
@@ -308,7 +300,7 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 								onClick={() => setShowDeleteDialog(true)}
 								className='h-9 px-6 text-sm font-medium w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white border-none'
 							>
-								Delete Account
+								{t('deleteAccountBtn')}
 							</Button>
 						</div>
 					</div>
@@ -319,11 +311,11 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 				isOpen={showDeleteDialog}
 				onClose={() => setShowDeleteDialog(false)}
 				onConfirm={handleDeleteAccount}
-				title='Delete Account'
-				message='Are you sure you want to delete your account? This action is permanent. All workspaces you own will also be deleted, and you will lose access to all documents.'
-				confirmText='Permanently Delete Account'
+				title={t('deleteAccountTitle')}
+				message={t('deleteAccountMessage')}
+				confirmText={t('deleteAccountConfirm')}
 				variant='danger'
-				verificationText='DELETE MY ACCOUNT'
+				verificationText={t('deleteAccountVerify')}
 			/>
 		</div>
 	)
