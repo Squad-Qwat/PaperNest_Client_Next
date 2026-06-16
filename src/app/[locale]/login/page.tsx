@@ -264,7 +264,7 @@ export default function LoginPage() {
 							</div>
 							<div className='text-right'>
 								<Link
-									href='#'
+									href='/forgot-password'
 									className='text-sm text-teal-500 hover:text-teal-600 transition-colors'
 								>
 									{t('forgotPassword')}

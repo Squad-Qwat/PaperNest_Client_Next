@@ -2,6 +2,8 @@
 
 import { Loader2, Mail } from 'lucide-react'
 import { motion } from 'motion/react'
+import Image from 'next/image'
+import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -37,7 +39,18 @@ export default function VerifyEmailPage() {
 	return (
 		<div className='min-h-screen flex min-w-screen bg-background relative overflow-hidden'>
 			<div className='fixed top-6 left-0 right-0 flex justify-center lg:top-8 lg:left-10 lg:right-auto lg:justify-start z-50'>
-				<h1 className='text-2xl lg:text-3xl font-bold text-primary'>PaperNest</h1>
+				<Link href='/' className='flex items-center gap-2 lg:gap-3'>
+					<Image
+						src='/PaperNest-logo.svg'
+						alt='PaperNest Logo'
+						width={40}
+						height={40}
+						className='w-8 h-8 lg:w-10 lg:h-10'
+					/>
+					<h1 className='text-2xl lg:text-3xl font-bold text-primary leading-none -mt-1'>
+						PaperNest
+					</h1>
+				</Link>
 			</div>
 
 			<div className='w-full lg:w-1/2 min-h-screen flex flex-col items-center justify-center py-4 px-4 sm:px-6 md:px-8 lg:px-10 relative'>
