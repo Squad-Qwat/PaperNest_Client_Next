@@ -13,7 +13,9 @@ import { ButtonSpinner } from '@/components/ui/button-spinner'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Modal, ModalFooter } from '@/components/ui/modal'
+import { ModalErrorAlert } from '@/components/ui/modal-error-alert'
 import { Textarea } from '@/components/ui/textarea'
+import { useModalForm } from '@/hooks/use-modal-form'
 import { apiClient } from '@/lib/api/clients/api-client'
 import { useCreateWorkspace } from '@/lib/api/hooks/use-workspaces'
 import { workspacesService } from '@/lib/api/services/workspaces.service'
@@ -37,8 +39,19 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
 	const [description, setDescription] = useState('')
 	const [icon, setIcon] = useState('📚')
 	const [workspaceId, setWorkspaceId] = useState('')
-	const [loading, setLoading] = useState(false)
-	const [error, setError] = useState<string | null>(null)
+
+	const resetForm = () => {
+		setMode('create')
+		setTitle('')
+		setDescription('')
+		setIcon('📚')
+		setWorkspaceId('')
+	}
+
+	const { loading, setLoading, error, setError, handleClose } = useModalForm(() => {
+		resetForm()
+		onClose()
+	})
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault()
@@ -116,26 +129,10 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
 		}
 	}
 
-	const handleClose = () => {
-		if (!loading) {
-			setMode('create')
-			setTitle('')
-			setDescription('')
-			setIcon('📚')
-			setWorkspaceId('')
-			setError(null)
-			onClose()
-		}
-	}
-
 	return (
 		<Modal isOpen={isOpen} onClose={handleClose} title={t('createTitle')}>
 			<form onSubmit={handleSubmit} className='space-y-4'>
-				{error && (
-					<div className='p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm'>
-						{error}
-					</div>
-				)}
+				<ModalErrorAlert message={error} />
 
 				<div className='space-y-2'>
 					<Label className='text-foreground font-normal'>{t('icon')}</Label>
