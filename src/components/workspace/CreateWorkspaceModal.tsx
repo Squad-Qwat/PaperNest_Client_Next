@@ -6,6 +6,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -29,6 +30,7 @@ const workspaceIcons = ['📚', '🎓', '📖', '✍️', '🔬', '💼', '📊'
 export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorkspaceModalProps) {
 	const router = useRouter()
 	const createWorkspaceMutation = useCreateWorkspace()
+	const t = useTranslations('Workspace')
 	const [mode, setMode] = useState<'create' | 'join'>('create')
 	const [title, setTitle] = useState('')
 	const [description, setDescription] = useState('')
@@ -41,7 +43,7 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
 		e.preventDefault()
 
 		if (mode === 'create' && !title.trim()) {
-			setError('Workspace title is required')
+			setError(t('titleRequired'))
 			return
 		}
 
@@ -126,7 +128,7 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
 	}
 
 	return (
-		<Modal isOpen={isOpen} onClose={handleClose} title='Create New Workspace'>
+		<Modal isOpen={isOpen} onClose={handleClose} title={t('createTitle')}>
 			<form onSubmit={handleSubmit} className='space-y-4'>
 				{error && (
 					<div className='p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm'>
@@ -135,7 +137,7 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
 				)}
 
 				<div className='space-y-2'>
-					<Label className='text-foreground font-normal'>Workspace Icon</Label>
+					<Label className='text-foreground font-normal'>{t('icon')}</Label>
 					<div className='grid grid-cols-5 gap-2'>
 						{workspaceIcons.map((iconOption) => (
 							<button
@@ -157,25 +159,25 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
 
 				<div className='space-y-2'>
 					<Label htmlFor='workspace-title'>
-						Workspace Title <span className='text-red-500'>*</span>
+						{t('titleLabel')} <span className='text-red-500'>*</span>
 					</Label>
 					<Input
 						id='workspace-title'
 						value={title}
 						onChange={(e) => setTitle(e.target.value)}
-						placeholder='My Research Workspace'
+						placeholder={t('titlePlaceholder')}
 						disabled={loading}
 						required
 					/>
 				</div>
 
 				<div className='space-y-2'>
-					<Label htmlFor='workspace-description'>Description (Optional)</Label>
+					<Label htmlFor='workspace-description'>{t('descriptionLabel')}</Label>
 					<Textarea
 						id='workspace-description'
 						value={description}
 						onChange={(e) => setDescription(e.target.value)}
-						placeholder='A workspace for my research papers...'
+						placeholder={t('descriptionPlaceholder')}
 						rows={3}
 						disabled={loading}
 					/>
@@ -183,10 +185,10 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
 
 				<ModalFooter>
 					<Button type='button' variant='outline' onClick={handleClose} disabled={loading}>
-						Cancel
+						{t('cancel')}
 					</Button>
 					<Button type='submit' disabled={loading}>
-						{loading ? 'Creating...' : 'Create Workspace'}
+						{loading ? t('creating') : t('createButton')}
 					</Button>
 				</ModalFooter>
 			</form>

@@ -14,7 +14,13 @@ import { getAuthProvider, type SocialProviderName } from '../../firebase/auth-pr
 import { auth } from '../../firebase/config'
 import { apiClient } from '../clients/api-client'
 import { authService } from '../services/auth.service'
-import type { LoginDto, LoginEmailDto, PasswordResetDto, RegisterDto } from '../types/auth.types'
+import type {
+	LoginDto,
+	LoginEmailDto,
+	PasswordResetDto,
+	RegisterDto,
+	ResetPasswordDto,
+} from '../types/auth.types'
 
 export const AUTH_KEYS = {
 	user: ['currentUser'] as const,
@@ -301,5 +307,26 @@ export function useLogout() {
 export function useForgotPassword() {
 	return useMutation({
 		mutationFn: (data: PasswordResetDto) => authService.forgotPassword(data),
+	})
+}
+
+export function useValidateResetToken(token: string) {
+	return useQuery({
+		queryKey: ['resetToken', token],
+		queryFn: (): Promise<boolean> => authService.validateResetToken(token),
+		enabled: !!token,
+		retry: false,
+		staleTime: 60 * 1000,
+	})
+}
+
+export function useResetPassword() {
+	const router = useRouter()
+	return useMutation({
+		mutationFn: (data: ResetPasswordDto) => authService.resetPassword(data),
+		onSuccess: () => {
+			toast.success('Password berhasil diubah. Silakan login kembali.')
+			router.push('/login')
+		},
 	})
 }

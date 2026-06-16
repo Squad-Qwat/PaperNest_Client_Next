@@ -9,6 +9,7 @@ import {
 	IconUserPlus,
 } from '@tabler/icons-react'
 import { useParams, usePathname } from 'next/navigation'
+import { useLocale, useTranslations } from 'next-intl'
 import * as React from 'react'
 import { CreateDocumentModal } from '@/components/document/CreateDocumentModal'
 import { SidebarSkeleton } from '@/components/layout/DashboardSkeleton'
@@ -29,10 +30,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const params = useParams()
 	const pathname = usePathname()
 	const workspaceId = params.workspaceid as string
+	const t = useTranslations('Sidebar')
+	const locale = useLocale()
 	const { data: workspace, isLoading: workspaceLoading } = useWorkspace(workspaceId)
 	const { isLoading: workspacesLoading } = useWorkspaces()
 	const [showCreateModal, setShowCreateModal] = React.useState(false)
 	const [showInviteModal, setShowInviteModal] = React.useState(false)
+
+	// Strip locale prefix so comparisons work without /en or /id
+	const normalizedPathname = pathname.startsWith(`/${locale}`)
+		? pathname.slice(`/${locale}`.length) || '/'
+		: pathname
 
 	if (authLoading || (workspaceId && workspaceLoading) || workspacesLoading) {
 		return <SidebarSkeleton />
@@ -48,35 +56,35 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 		},
 		navMain: [
 			{
-				title: 'Documents',
+				title: t('documents'),
 				url: `/${workspaceId}`,
 				icon: IconFileDescription,
-				isActive: pathname === `/${workspaceId}`,
+				isActive: normalizedPathname === `/${workspaceId}`,
 			},
 			{
-				title: 'Inbox',
+				title: t('inbox'),
 				url: `/${workspaceId}/inbox`,
 				icon: IconInbox,
 				badge: unreadCount > 0 ? unreadCount : undefined,
 			},
 			{
-				title: 'Reviews',
+				title: t('reviews'),
 				url: `/${workspaceId}/reviews`,
 				icon: IconMessage2,
-				isActive: pathname === `/${workspaceId}/reviews`,
+				isActive: normalizedPathname === `/${workspaceId}/reviews`,
 			},
 			{
-				title: 'Citations',
+				title: t('citations'),
 				url: `/${workspaceId}/citations`,
 				icon: IconQuote,
-				isActive: pathname === `/${workspaceId}/citations`,
+				isActive: normalizedPathname === `/${workspaceId}/citations`,
 			},
 		],
 		navSecondary: [
 			...(isOwner
 				? [
 						{
-							title: 'Invite Members',
+							title: t('inviteMembers'),
 							url: '#',
 							icon: IconUserPlus,
 							onClick: () => setShowInviteModal(true),
@@ -84,7 +92,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 					]
 				: []),
 			{
-				title: 'Workspace Settings',
+				title: t('workspaceSettings'),
 				url: `/${workspaceId}/settings`,
 				icon: IconSettings,
 			},

@@ -2,6 +2,7 @@
 
 import { FileText, Sparkles } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
+import { useTranslations } from 'next-intl'
 import { useEffect, useRef } from 'react'
 import { PaperNestLoader } from '@/components/layout/PaperNestLoader'
 import { Attachment, AttachmentPreview, Attachments } from '@/components/ui/ai-elements/attachments'
@@ -74,6 +75,7 @@ export function DashboardAIChat({
 	isThinking = false,
 	documents = [],
 }: DashboardAIChatProps) {
+	const t = useTranslations('Dashboard')
 	const contentRef = useRef<HTMLDivElement | null>(null)
 
 	// Auto-scroll to the bottom of the conversation area when messages or thinking state changes
@@ -99,13 +101,8 @@ export function DashboardAIChat({
 							<div className='w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 border border-primary/20'>
 								<Sparkles className='h-6 w-6 text-primary animate-pulse' />
 							</div>
-							<h3 className='text-lg font-semibold text-foreground'>
-								Start a conversation with Aurora AI
-							</h3>
-							<p className='text-sm text-muted-foreground max-w-md mt-1'>
-								Ask about your documents, draft academic writing, or request research analysis
-								assistance.
-							</p>
+							<h3 className='text-lg font-semibold text-foreground'>{t('startChat')}</h3>
+							<p className='text-sm text-muted-foreground max-w-md mt-1'>{t('chatHelperText')}</p>
 						</div>
 					) : (
 						messages.map((msg) => (
@@ -163,7 +160,7 @@ export function DashboardAIChat({
 															>
 																<PaperNestLoader width={18} height={18} />
 																<span className='text-sm md:text-base font-medium shimmer-text'>
-																	Working
+																	{t('working')}
 																</span>
 															</motion.div>
 														)}
@@ -194,7 +191,9 @@ export function DashboardAIChat({
 								<Message from='assistant' className='max-w-4xl w-full'>
 									<div className='w-full flex items-center gap-2 py-1'>
 										<PaperNestLoader width={18} height={18} />
-										<span className='text-sm md:text-base font-medium shimmer-text'>Working</span>
+										<span className='text-sm md:text-base font-medium shimmer-text'>
+											{t('working')}
+										</span>
 									</div>
 								</Message>
 							</motion.div>

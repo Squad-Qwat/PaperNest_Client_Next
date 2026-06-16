@@ -1,6 +1,7 @@
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
-import { format, id } from '@/lib/date'
+import { format } from '@/lib/date'
 import { ReviewStatusBadge } from './ReviewStatusBadge'
 
 interface ReviewCardProps {
@@ -37,6 +38,7 @@ export function ReviewCard({
 	isDocumentDeleted = false,
 }: Readonly<ReviewCardProps>) {
 	const router = useRouter()
+	const t = useTranslations('Review')
 
 	const displayDate = format(requestedAt, 'd MMMM yyyy HH:mm')
 
@@ -69,7 +71,7 @@ export function ReviewCard({
 							: 'text-foreground group-hover:text-primary'
 					}`}
 				>
-					{isDocumentDeleted ? 'Document Deleted' : title || 'Untitled Document'}
+					{isDocumentDeleted ? t('documentDeleted') : title || t('untitledDocument')}
 				</h3>
 				<div className='shrink-0 scale-95 origin-right'>
 					<ReviewStatusBadge status={status as any} />
@@ -80,7 +82,7 @@ export function ReviewCard({
 			<div className='flex items-center gap-2 text-xs text-muted-foreground mb-3'>
 				{versionNumber && (
 					<span className='font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded'>
-						Version V{versionNumber}
+						{t('version', { number: versionNumber })}
 					</span>
 				)}
 				<span>{displayDate}</span>
@@ -88,7 +90,7 @@ export function ReviewCard({
 
 			{/* Middle: Request Message (Plain text description style, non-italic) */}
 			<p className='text-muted-foreground text-sm mb-4 line-clamp-2 min-h-[40px] leading-relaxed font-normal'>
-				{message || 'No introduction message.'}
+				{message || t('noMessage')}
 			</p>
 
 			{/* Footer: Button "Lihat Detail" (Matches the dashboard "Open Editor" button layout and classes) */}
@@ -100,7 +102,7 @@ export function ReviewCard({
 					}}
 					className='flex-1 h-9 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs rounded-lg transition-all shadow-sm'
 				>
-					View Details
+					{t('viewDetails')}
 				</Button>
 			</div>
 		</div>

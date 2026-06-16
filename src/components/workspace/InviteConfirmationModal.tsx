@@ -1,6 +1,7 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -15,6 +16,7 @@ export function InviteConfirmationModal() {
 	const inviteToken = searchParams.get('inviteToken')
 	const { user, isAuthenticated } = useAuth()
 	const { mutateAsync: acceptInvite, isPending: isAccepting } = useAcceptInvitation()
+	const t = useTranslations('Workspace')
 
 	const [isOpen, setIsOpen] = useState(false)
 	const [invitation, setInvitation] = useState<any>(null)
@@ -77,14 +79,14 @@ export function InviteConfirmationModal() {
 					handleDecline()
 				}
 			}}
-			title='Workspace Invitation'
+			title={t('invitationTitle')}
 			showCloseButton={!isAccepting}
 		>
 			<div className='space-y-4'>
 				{loading ? (
 					<div className='py-8 flex flex-col items-center justify-center'>
 						<div className='animate-spin rounded-full h-8 w-8 border-b-2 border-primary'></div>
-						<p className='text-sm text-muted-foreground mt-2'>Loading invitation details...</p>
+						<p className='text-sm text-muted-foreground mt-2'>{t('loadingInvitation')}</p>
 					</div>
 				) : error ? (
 					<div className='py-4 text-center'>
@@ -96,19 +98,20 @@ export function InviteConfirmationModal() {
 							<div className='text-4xl mb-3'>{invitation.workspaceIcon || '📚'}</div>
 							<h3 className='text-lg font-semibold text-foreground'>{invitation.workspaceTitle}</h3>
 							<p className='text-xs text-muted-foreground uppercase tracking-wider font-semibold mt-1'>
-								Role: {invitation.role}
+								{t('roleLabel', { role: invitation.role })}
 							</p>
 						</div>
 
 						<p className='text-sm text-muted-foreground text-center'>
-							<span className='font-semibold text-foreground'>{invitation.inviterName}</span> has
-							invited you to join this workspace.
+							{t('inviterMessage', { inviterName: invitation.inviterName })}
 						</p>
 
 						{user?.email !== invitation.email && (
 							<div className='p-3 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 rounded-lg text-xs leading-relaxed'>
-								Warning: You are logged in as <strong>{user?.email}</strong>, but this invitation
-								was sent to <strong>{invitation.email}</strong>.
+								{t('emailMismatch', {
+									currentEmail: user?.email ?? '',
+									inviteEmail: invitation.email,
+								})}
 							</div>
 						)}
 					</div>
@@ -122,10 +125,10 @@ export function InviteConfirmationModal() {
 							onClick={handleDecline}
 							disabled={isAccepting}
 						>
-							Decline
+							{t('decline')}
 						</Button>
 						<Button className='flex-1' onClick={handleAccept} disabled={isAccepting || !!error}>
-							{isAccepting ? 'Accepting...' : 'Accept & Join'}
+							{isAccepting ? t('accepting') : t('accept')}
 						</Button>
 					</ModalFooter>
 				)}

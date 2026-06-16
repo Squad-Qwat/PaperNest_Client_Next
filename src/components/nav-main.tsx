@@ -3,6 +3,7 @@
 import { type Icon, IconCirclePlusFilled } from '@tabler/icons-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useLocale } from 'next-intl'
 import { Badge } from '@/components/ui/badge'
 import {
 	SidebarGroup,
@@ -25,12 +26,18 @@ export function NavMain({
 	}[]
 }>) {
 	const pathname = usePathname()
+	const locale = useLocale()
+
+	// Strip locale prefix: /en/... → /...
+	const normalizedPathname = pathname.startsWith(`/${locale}`)
+		? pathname.slice(`/${locale}`.length) || '/'
+		: pathname
 
 	const isItemActive = (url: string) => {
 		if (!url || url === '#') return false
-		if (pathname === url) return true
+		if (normalizedPathname === url) return true
 
-		const pathParts = pathname.split('/').filter(Boolean)
+		const pathParts = normalizedPathname.split('/').filter(Boolean)
 		const urlParts = url.split('/').filter(Boolean)
 
 		if (urlParts.length === 1) {
@@ -39,7 +46,7 @@ export function NavMain({
 			)
 		}
 
-		return pathname.startsWith(url)
+		return normalizedPathname.startsWith(url)
 	}
 
 	return (

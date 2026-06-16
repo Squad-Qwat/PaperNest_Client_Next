@@ -3,6 +3,7 @@
 import MixInput, { type MixInputRef, type MixInputValues } from '@arif-un/react-mix-tag-input'
 import '@arif-un/react-mix-tag-input/dist/index.css'
 import { FileText, GlobeIcon } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { create } from 'zustand'
 import {
@@ -105,6 +106,7 @@ const AISearchPromptInner = ({
 	const [modelSelectorOpen, setModelSelectorOpen] = useState(false)
 	const { textInput } = usePromptInputController()
 	const { referencedSources, clearSources, setSources } = useAISearchPromptStore()
+	const t = useTranslations('Panel')
 
 	const [mixValue, setMixValue] = useState<MixInputValues>([[]])
 	const mixInputRef = useRef<MixInputRef>(null)
@@ -310,7 +312,7 @@ const AISearchPromptInner = ({
 										webSearchEnabled ? 'text-primary' : 'text-muted-foreground'
 									)}
 								/>
-								<span className='text-xs font-medium'>Search</span>
+								<span className='text-xs font-medium'>{t('webSearch')}</span>
 							</PromptInputButton>
 							<ModelSelector onOpenChange={setModelSelectorOpen} open={modelSelectorOpen}>
 								<ModelSelectorTrigger asChild>
@@ -347,7 +349,7 @@ const AISearchPromptInner = ({
 				sideOffset={12}
 			>
 				<DropdownMenuLabel className='px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest bg-muted/50 rounded-t-lg select-none'>
-					Select Reference Document
+					{t('selectReference')}
 				</DropdownMenuLabel>
 				<DropdownMenuSeparator className='my-1' />
 				{filteredDocs.map((doc) => (
