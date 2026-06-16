@@ -1,16 +1,14 @@
 'use client'
 
 import { EyeIcon, EyeOffIcon, Link2 } from 'lucide-react'
-import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import type React from 'react'
 import { useState } from 'react'
-import { FaGithub } from 'react-icons/fa'
-import { FcGoogle } from 'react-icons/fc'
+import { AuthErrorMessage } from '@/components/auth/AuthErrorMessage'
+import { AuthPageLayout } from '@/components/auth/AuthPageLayout'
+import { SocialLoginButtons } from '@/components/auth/SocialLoginButtons'
 import { TurnstileWidget } from '@/components/auth/TurnstileWidget'
-import { MicrosoftIconIcon } from '@/components/icons/logos-microsoft-icon'
 import { Button } from '@/components/ui/button'
 import {
 	Dialog,
@@ -21,14 +19,12 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import Grainient from '@/components/visuals/Grainient/Grainient'
 import { useAuth } from '@/context/AuthContext'
 import { useLoginEmail, useSignInWithSocial } from '@/lib/api/hooks/use-auth'
 import { getErrorMessage } from '@/lib/api/utils/error-handler'
 
 export default function LoginPage() {
 	const t = useTranslations('Auth')
-	const _router = useRouter()
 	const { setOnboardingData } = useAuth()
 
 	const { mutateAsync: loginEmailMutate, isPending: isEmailPending } = useLoginEmail()
@@ -53,7 +49,6 @@ export default function LoginPage() {
 		e.preventDefault()
 		setLocalError('')
 
-		// Validation
 		if (!email || !password) {
 			setLocalError(t('fillAllFields'))
 			return
@@ -97,240 +92,137 @@ export default function LoginPage() {
 		}
 	}
 
-	const displayError = localError
-
 	return (
-		<div className='min-h-screen flex min-w-screen bg-background relative'>
-			{/* Logo - Global Fixed Responsive */}
-			<div className='fixed top-6 left-0 right-0 flex justify-center lg:top-8 lg:left-10 lg:right-auto lg:justify-start z-50'>
-				<Link href='/' className='flex items-center gap-2 lg:gap-3'>
-					<Image
-						src='/PaperNest-logo.svg'
-						alt='PaperNest Logo'
-						width={40}
-						height={40}
-						className='w-8 h-8 lg:w-10 lg:h-10'
-					/>
-					<h1 className='text-2xl lg:text-3xl font-bold text-primary leading-none -mt-1'>
-						PaperNest
-					</h1>
-				</Link>
+		<AuthPageLayout quote={t('loginLeftSubtitle')}>
+			{/* Title */}
+			<div className='text-center'>
+				<h1 className='text-2xl font-bold text-foreground mb-2'>{t('loginTitle')}</h1>
+				<p className='text-sm text-muted-foreground'>{t('welcomeBack')}</p>
 			</div>
 
-			{/* Left Side - Form Container */}
-			<div className='w-full lg:w-1/2 min-h-screen flex flex-col items-center justify-center py-8 px-4 sm:px-6 md:px-8 lg:px-10 relative'>
-				{/* Login Card */}
-				<div className='w-full max-w-sm space-y-6'>
-					{/* Title */}
-					<div className='text-center'>
-						<h1 className='text-2xl font-bold text-foreground mb-2'>{t('loginTitle')}</h1>
-						<p className='text-sm text-muted-foreground'>{t('welcomeBack')}</p>
-					</div>
+			{/* Error Message */}
+			<AuthErrorMessage message={localError} />
 
-					{/* Error Message */}
-					{displayError && (
-						<div className='mb-6 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm text-center font-medium'>
-							{displayError}
-						</div>
-					)}
-
-					{/* Linking Modal */}
-					<Dialog open={!!linkingSession} onOpenChange={(open) => !open && resetLinking()}>
-						<DialogContent className='sm:max-w-md'>
-							<DialogHeader>
-								<div className='flex justify-center mb-4'>
-									<div className='p-3 rounded-full bg-primary/10 text-primary'>
-										<Link2 className='w-6 h-6' />
-									</div>
-								</div>
-								<DialogTitle className='text-center text-lg font-semibold'>
-									{t('linkAccount')}
-								</DialogTitle>
-								<DialogDescription className='text-center text-sm'>
-									{t('linkDescription', {
-										email: linkingSession?.email,
-										target: linkingSession?.targetMethod.split('.')[0],
-										providerName: linkingSession?.providerName,
-									})}
-								</DialogDescription>
-							</DialogHeader>
-							<div className='grid gap-2 mt-4'>
-								<Button
-									className='w-full'
-									onClick={() => linkMutation.mutate(turnstileToken)}
-									disabled={isLinking || !turnstileToken}
-								>
-									{isLinking ? t('linkingAccount') : t('linkNow')}
-								</Button>
-								<Button
-									variant='outline'
-									className='w-full'
-									onClick={resetLinking}
-									disabled={isLinking}
-								>
-									{t('cancel')}
-								</Button>
+			{/* Linking Modal */}
+			<Dialog open={!!linkingSession} onOpenChange={(open) => !open && resetLinking()}>
+				<DialogContent className='sm:max-w-md'>
+					<DialogHeader>
+						<div className='flex justify-center mb-4'>
+							<div className='p-3 rounded-full bg-primary/10 text-primary'>
+								<Link2 className='w-6 h-6' />
 							</div>
-						</DialogContent>
-					</Dialog>
-
-					{/* Social Sign Up */}
-					<div className='grid grid-cols-3 gap-3 sm:grid-cols-1'>
+						</div>
+						<DialogTitle className='text-center text-lg font-semibold'>
+							{t('linkAccount')}
+						</DialogTitle>
+						<DialogDescription className='text-center text-sm'>
+							{t('linkDescription', {
+								email: linkingSession?.email,
+								target: linkingSession?.targetMethod.split('.')[0],
+								providerName: linkingSession?.providerName,
+							})}
+						</DialogDescription>
+					</DialogHeader>
+					<div className='grid gap-2 mt-4'>
 						<Button
-							type='button'
-							variant='outline'
-							onClick={() => handleSocialLogin('google')}
-							disabled={loading}
+							className='w-full'
+							onClick={() => linkMutation.mutate(turnstileToken)}
+							disabled={isLinking || !turnstileToken}
 						>
-							<FcGoogle />
-							<span className='hidden sm:inline'>{t('continueWithGoogle')}</span>
+							{isLinking ? t('linkingAccount') : t('linkNow')}
 						</Button>
 						<Button
-							type='button'
 							variant='outline'
-							onClick={() => handleSocialLogin('github')}
-							disabled={loading}
+							className='w-full'
+							onClick={resetLinking}
+							disabled={isLinking}
 						>
-							<FaGithub />
-							<span className='hidden sm:inline'>{t('continueWithGithub')}</span>
-						</Button>
-						<Button
-							type='button'
-							variant='outline'
-							onClick={() => handleSocialLogin('microsoft')}
-							disabled={loading}
-						>
-							<MicrosoftIconIcon />
-							<span className='hidden sm:inline'>{t('continueWithMicrosoft')}</span>
+							{t('cancel')}
 						</Button>
 					</div>
+				</DialogContent>
+			</Dialog>
 
-					{/* Divider */}
+			{/* Social Login */}
+			<SocialLoginButtons
+				onLogin={handleSocialLogin}
+				disabled={loading}
+				labels={{
+					google: t('continueWithGoogle'),
+					github: t('continueWithGithub'),
+					microsoft: t('continueWithMicrosoft'),
+					or: t('orCredentials'),
+				}}
+			/>
+
+			{/* Login Form */}
+			<form onSubmit={handleSubmit} className='space-y-6'>
+				<div className='space-y-2'>
+					<Label htmlFor='email' className='text-foreground font-normal'>
+						{t('email')}
+					</Label>
+					<Input
+						id='email'
+						type='email'
+						value={email}
+						onChange={(e) => setEmail(e.target.value)}
+						placeholder={t('enterEmail')}
+						disabled={loading}
+					/>
+				</div>
+
+				<div className='space-y-2'>
+					<Label htmlFor='password' className='text-foreground font-normal'>
+						{t('password')}
+					</Label>
 					<div className='relative'>
-						<div className='absolute inset-0 flex items-center'>
-							<div className='w-full border-t border-border'></div>
-						</div>
-						<div className='relative flex justify-center text-sm'>
-							<span className='px-4 bg-background text-muted-foreground'>{t('orCredentials')}</span>
-						</div>
-					</div>
-
-					{/* Login Form */}
-					<form onSubmit={handleSubmit} className='space-y-6'>
-						{/* Email */}
-						<div className='space-y-2'>
-							<Label htmlFor='email' className='text-foreground font-normal'>
-								{t('email')}
-							</Label>
-							<Input
-								id='email'
-								type='email'
-								value={email}
-								onChange={(e) => setEmail(e.target.value)}
-								placeholder={t('enterEmail')}
-								disabled={loading}
-							/>
-						</div>
-
-						{/* Password */}
-						<div className='space-y-2'>
-							<Label htmlFor='password' className='text-foreground font-normal'>
-								{t('password')}
-							</Label>
-							<div className='relative'>
-								<Input
-									id='password'
-									type={showPassword ? 'text' : 'password'}
-									value={password}
-									onChange={(e) => setPassword(e.target.value)}
-									placeholder={t('enterPassword')}
-									disabled={loading}
-									className='pr-9'
-								/>
-								<Button
-									variant='ghost'
-									size='icon'
-									type='button'
-									onClick={() => setShowPassword(!showPassword)}
-									className='text-muted-foreground focus-visible:ring-ring/50 absolute inset-y-0 right-0 rounded-l-none hover:bg-transparent'
-									disabled={loading}
-								>
-									{showPassword ? (
-										<EyeOffIcon className='size-4' />
-									) : (
-										<EyeIcon className='size-4' />
-									)}
-								</Button>
-							</div>
-							<div className='text-right'>
-								<Link
-									href='/forgot-password'
-									className='text-sm text-teal-500 hover:text-teal-600 transition-colors'
-								>
-									{t('forgotPassword')}
-								</Link>
-							</div>
-						</div>
-
-						<TurnstileWidget onVerify={setTurnstileToken} />
-
-						{/* Login Button */}
-						<Button type='submit' className='w-full' disabled={loading}>
-							{loading ? t('loggingIn') : t('login')}
-						</Button>
-					</form>
-
-					{/* Sign Up Link */}
-					<div className='mt-6 text-center text-sm text-muted-foreground'>
-						{t('dontHaveAccount')}{' '}
-						<Link
-							href='/register'
-							className='text-foreground hover:text-muted-foreground font-medium underline transition-colors'
+						<Input
+							id='password'
+							type={showPassword ? 'text' : 'password'}
+							value={password}
+							onChange={(e) => setPassword(e.target.value)}
+							placeholder={t('enterPassword')}
+							disabled={loading}
+							className='pr-9'
+						/>
+						<Button
+							variant='ghost'
+							size='icon'
+							type='button'
+							onClick={() => setShowPassword(!showPassword)}
+							className='text-muted-foreground focus-visible:ring-ring/50 absolute inset-y-0 right-0 rounded-l-none hover:bg-transparent'
+							disabled={loading}
 						>
-							{t('join')}
+							{showPassword ? <EyeOffIcon className='size-4' /> : <EyeIcon className='size-4' />}
+						</Button>
+					</div>
+					<div className='text-right'>
+						<Link
+							href='/forgot-password'
+							className='text-sm text-teal-500 hover:text-teal-600 transition-colors'
+						>
+							{t('forgotPassword')}
 						</Link>
 					</div>
 				</div>
+
+				<TurnstileWidget onVerify={setTurnstileToken} />
+
+				<Button type='submit' className='w-full' disabled={loading}>
+					{loading ? t('loggingIn') : t('login')}
+				</Button>
+			</form>
+
+			{/* Sign Up Link */}
+			<div className='mt-6 text-center text-sm text-muted-foreground'>
+				{t('dontHaveAccount')}{' '}
+				<Link
+					href='/register'
+					className='text-foreground hover:text-muted-foreground font-medium underline transition-colors'
+				>
+					{t('join')}
+				</Link>
 			</div>
-			{/* Right Side - Gradient Background with Text */}
-			<div className='hidden lg:flex lg:w-1/2 min-h-screen relative'>
-				{/* Gradient Background */}
-				<div className='absolute inset-0 w-full h-full p-6'>
-					<Grainient
-						color1='#009689'
-						color2='#F5A623'
-						color3='#009689'
-						timeSpeed={0.25}
-						colorBalance={0}
-						warpStrength={1}
-						warpFrequency={5}
-						warpSpeed={2}
-						warpAmplitude={50}
-						blendAngle={0}
-						blendSoftness={0.05}
-						rotationAmount={500}
-						noiseScale={2}
-						grainAmount={0.1}
-						grainScale={2}
-						grainAnimated={false}
-						contrast={1.5}
-						gamma={1}
-						saturation={1}
-						centerX={0}
-						centerY={0}
-						zoom={0.8}
-					/>
-				</div>
-				{/* Text Overlay */}
-				<div className='absolute inset-0 flex flex-col items-center justify-center z-10 px-8'>
-					<p
-						className='text-xl text-white text-center mt-4 max-w-sm italic'
-						style={{ fontFamily: 'Times New Roman, Times, serif' }}
-					>
-						{t('loginLeftSubtitle')}
-					</p>
-				</div>
-			</div>
-		</div>
+		</AuthPageLayout>
 	)
 }

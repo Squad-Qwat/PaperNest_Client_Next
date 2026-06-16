@@ -114,10 +114,22 @@ function ResetPasswordContent() {
 		e.preventDefault()
 		setFormError('')
 
-		if (!password) { setFormError(t('passwordRequired')); return }
-		if (score < 5) { setFormError(t('passwordRequirementsNotMet')); return }
-		if (!confirmPassword) { setFormError(t('confirmPasswordRequired')); return }
-		if (password !== confirmPassword) { setFormError(t('passwordsDoNotMatch')); return }
+		if (!password) {
+			setFormError(t('passwordRequired'))
+			return
+		}
+		if (score < 5) {
+			setFormError(t('passwordRequirementsNotMet'))
+			return
+		}
+		if (!confirmPassword) {
+			setFormError(t('confirmPasswordRequired'))
+			return
+		}
+		if (password !== confirmPassword) {
+			setFormError(t('passwordsDoNotMatch'))
+			return
+		}
 
 		try {
 			await resetPassword({ token, password })
@@ -130,7 +142,6 @@ function ResetPasswordContent() {
 	return (
 		<AuthPageLayout quote={t('resetPasswordLeftSubtitle')}>
 			<AnimatePresence mode='wait'>
-
 				{/* ── Loading ── */}
 				{tokenState === 'loading' && (
 					<motion.div
@@ -201,9 +212,7 @@ function ResetPasswordContent() {
 						className='space-y-6'
 					>
 						<div className='text-center'>
-							<h1 className='text-2xl font-bold text-foreground mb-2'>
-								{t('resetPasswordTitle')}
-							</h1>
+							<h1 className='text-2xl font-bold text-foreground mb-2'>{t('resetPasswordTitle')}</h1>
 							<p className='text-sm text-muted-foreground leading-relaxed'>
 								{t('resetPasswordSubtitle')}
 							</p>
@@ -224,7 +233,10 @@ function ResetPasswordContent() {
 										id='password'
 										type={showPassword ? 'text' : 'password'}
 										value={password}
-										onChange={(e) => { setPassword(e.target.value); setFormError('') }}
+										onChange={(e) => {
+											setPassword(e.target.value)
+											setFormError('')
+										}}
 										placeholder={t('enterPassword')}
 										disabled={isPending}
 										className='pr-9'
@@ -238,7 +250,11 @@ function ResetPasswordContent() {
 										className='text-muted-foreground focus-visible:ring-ring/50 absolute inset-y-0 right-0 rounded-l-none hover:bg-transparent'
 										disabled={isPending}
 									>
-										{showPassword ? <EyeOffIcon className='size-4' /> : <EyeIcon className='size-4' />}
+										{showPassword ? (
+											<EyeOffIcon className='size-4' />
+										) : (
+											<EyeIcon className='size-4' />
+										)}
 									</Button>
 								</div>
 
@@ -262,10 +278,17 @@ function ResetPasswordContent() {
 								<ul className='space-y-1.5'>
 									{strength.map((req) => (
 										<li key={req.text} className='flex items-center gap-2'>
-											{req.met
-												? <CheckIcon className='size-4 text-green-600 dark:text-green-400' />
-												: <XIcon className='text-muted-foreground size-4' />}
-											<span className={cn('text-xs', req.met ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground')}>
+											{req.met ? (
+												<CheckIcon className='size-4 text-green-600 dark:text-green-400' />
+											) : (
+												<XIcon className='text-muted-foreground size-4' />
+											)}
+											<span
+												className={cn(
+													'text-xs',
+													req.met ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'
+												)}
+											>
 												{req.text}
 											</span>
 										</li>
@@ -281,7 +304,10 @@ function ResetPasswordContent() {
 										id='confirmPassword'
 										type={showConfirm ? 'text' : 'password'}
 										value={confirmPassword}
-										onChange={(e) => { setConfirmPassword(e.target.value); setFormError('') }}
+										onChange={(e) => {
+											setConfirmPassword(e.target.value)
+											setFormError('')
+										}}
 										placeholder={t('confirmPassword')}
 										disabled={isPending}
 										className='pr-9'
@@ -294,15 +320,24 @@ function ResetPasswordContent() {
 										className='text-muted-foreground focus-visible:ring-ring/50 absolute inset-y-0 right-0 rounded-l-none hover:bg-transparent'
 										disabled={isPending}
 									>
-										{showConfirm ? <EyeOffIcon className='size-4' /> : <EyeIcon className='size-4' />}
+										{showConfirm ? (
+											<EyeOffIcon className='size-4' />
+										) : (
+											<EyeIcon className='size-4' />
+										)}
 									</Button>
 								</div>
 							</div>
 
 							<Button type='submit' className='w-full' disabled={isPending}>
 								{isPending ? (
-									<><Loader2 className='size-4 animate-spin' />{t('resettingPassword')}</>
-								) : t('resetPasswordBtn')}
+									<>
+										<Loader2 className='size-4 animate-spin' />
+										{t('resettingPassword')}
+									</>
+								) : (
+									t('resetPasswordBtn')
+								)}
 							</Button>
 						</form>
 
@@ -352,7 +387,6 @@ function ResetPasswordContent() {
 						</Link>
 					</motion.div>
 				)}
-
 			</AnimatePresence>
 		</AuthPageLayout>
 	)

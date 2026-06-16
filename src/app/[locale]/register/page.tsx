@@ -2,15 +2,13 @@
 
 import { CheckIcon, EyeIcon, EyeOffIcon, XIcon } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useMemo, useState } from 'react'
-import { FaGithub } from 'react-icons/fa'
-import { FcGoogle } from 'react-icons/fc'
+import { AuthErrorMessage } from '@/components/auth/AuthErrorMessage'
+import { AuthPageLayout } from '@/components/auth/AuthPageLayout'
+import { SocialLoginButtons } from '@/components/auth/SocialLoginButtons'
 import { TurnstileWidget } from '@/components/auth/TurnstileWidget'
-import { MicrosoftIconIcon } from '@/components/icons/logos-microsoft-icon'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -22,13 +20,12 @@ import {
 	SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import Grainient from '@/components/visuals/Grainient/Grainient'
 import { useAuth } from '@/context/AuthContext'
 import { useCheckEmail, useRegister, useSignInWithSocial } from '@/lib/api/hooks/use-auth'
-import { useCreateWorkspace } from '@/lib/api/hooks/use-workspaces'
 import type { UserRole } from '@/lib/api/types/user.types'
 import { getErrorMessage } from '@/lib/api/utils/error-handler'
 import { cn } from '@/lib/utils'
+import { isValidEmail } from '@/lib/utils/validation'
 
 type StepData = {
 	email: string
@@ -44,20 +41,38 @@ type StepData = {
 
 const workspaceIcons = ['📚', '🎓', '📖', '✍️', '🔬', '💼', '📊', '🎯', '🌟', '💡']
 
+const variants = {
+	initial: (direction: number) => ({
+		x: direction > 0 ? 20 : -20,
+		opacity: 0,
+		filter: 'blur(4px)',
+	}),
+	animate: {
+		x: 0,
+		opacity: 1,
+		filter: 'blur(0px)',
+		transition: { duration: 0.4, ease: [0.23, 1, 0.32, 1] as const },
+	},
+	exit: (direction: number) => ({
+		x: direction > 0 ? -20 : 20,
+		opacity: 0,
+		filter: 'blur(4px)',
+		transition: { duration: 0.3, ease: 'easeInOut' as const },
+	}),
+}
+
 export default function RegisterPage() {
 	const t = useTranslations('Auth')
 	const tWorkspace = useTranslations('Workspace')
-	const _router = useRouter()
 	const { setOnboardingData } = useAuth()
 
 	const { mutateAsync: registerUser, isPending: isRegisterPending } = useRegister()
 	const { mutateAsync: verifyEmail, isPending: checkingEmail } = useCheckEmail()
-	const { mutateAsync: _createWorkspace, isPending: isCreatePending } = useCreateWorkspace()
 	const { mutateAsync: socialMutate, isPending: isSocialPending } = useSignInWithSocial({
 		setOnboardingData,
 	})
 
-	const loading = isRegisterPending || isCreatePending || isSocialPending || checkingEmail
+	const loading = isRegisterPending || isSocialPending || checkingEmail
 
 	const [currentStep, setCurrentStep] = useState(1)
 	const [direction, setDirection] = useState(0)
@@ -83,24 +98,16 @@ export default function RegisterPage() {
 			{ regex: /[a-z]/, text: t('passwordReqLowercase') },
 			{ regex: /[A-Z]/, text: t('passwordReqUppercase') },
 			{ regex: /[0-9]/, text: t('passwordReqNumber') },
-			{
-				regex: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/,
-				text: t('passwordReqSpecial'),
-			},
+			{ regex: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/, text: t('passwordReqSpecial') },
 		],
 		[t]
 	)
 
-	const strength = useMemo(() => {
-		return requirements.map((req) => ({
-			met: req.regex.test(formData.password),
-			text: req.text,
-		}))
-	}, [formData.password, requirements])
-
-	const strengthScore = useMemo(() => {
-		return strength.filter((req) => req.met).length
-	}, [strength])
+	const strength = useMemo(
+		() => requirements.map((req) => ({ met: req.regex.test(formData.password), text: req.text })),
+		[formData.password, requirements]
+	)
+	const strengthScore = useMemo(() => strength.filter((req) => req.met).length, [strength])
 
 	const getStrengthColor = (score: number) => {
 		if (score === 0) return 'bg-border'
@@ -126,80 +133,47 @@ export default function RegisterPage() {
 		setErrors((prev) => ({ ...prev, [field]: '' }))
 	}
 
-	// Step 1: Email validation
 	const validateStep1 = (): boolean => {
 		const newErrors: Record<string, string> = {}
-
-		if (!formData.email) {
-			newErrors.email = t('enterEmail')
-		} else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-			newErrors.email = t('validEmail')
-		}
-
+		if (!formData.email) newErrors.email = t('enterEmail')
+		else if (!isValidEmail(formData.email)) newErrors.email = t('validEmail')
 		setErrors(newErrors)
 		return Object.keys(newErrors).length === 0
 	}
 
-	// Step 2: Password validation
 	const validateStep2 = (): boolean => {
 		const newErrors: Record<string, string> = {}
-
-		if (!formData.password) {
-			newErrors.password = t('passwordRequired')
-		} else if (strengthScore < 5) {
-			newErrors.password = t('passwordRequirementsNotMet')
-		}
-
-		if (!formData.confirmPassword) {
-			newErrors.confirmPassword = t('confirmPasswordRequired')
-		} else if (formData.password !== formData.confirmPassword) {
+		if (!formData.password) newErrors.password = t('passwordRequired')
+		else if (strengthScore < 5) newErrors.password = t('passwordRequirementsNotMet')
+		if (!formData.confirmPassword) newErrors.confirmPassword = t('confirmPasswordRequired')
+		else if (formData.password !== formData.confirmPassword)
 			newErrors.confirmPassword = t('passwordsDoNotMatch')
-		}
-
 		setErrors(newErrors)
 		return Object.keys(newErrors).length === 0
 	}
 
-	// Step 3: User details validation
 	const validateStep3 = (): boolean => {
 		const newErrors: Record<string, string> = {}
-
-		if (!formData.name) {
-			newErrors.name = t('fullNameRequired')
-		} else if (formData.name.length < 2) {
-			newErrors.name = t('fullNameMinLength')
-		}
-
-		if (!formData.username) {
-			newErrors.username = t('usernameRequired')
-		} else if (formData.username.length < 3) {
-			newErrors.username = t('usernameMinLength')
-		} else if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
-			newErrors.username = t('usernameFormat')
-		}
-
+		if (!formData.name) newErrors.name = t('fullNameRequired')
+		else if (formData.name.length < 2) newErrors.name = t('fullNameMinLength')
+		if (!formData.username) newErrors.username = t('usernameRequired')
+		else if (formData.username.length < 3) newErrors.username = t('usernameMinLength')
+		else if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) newErrors.username = t('usernameFormat')
 		setErrors(newErrors)
 		return Object.keys(newErrors).length === 0
 	}
 
-	// Step 4: Workspace validation
 	const validateStep4 = (): boolean => {
 		const newErrors: Record<string, string> = {}
-
-		if (!formData.workspaceTitle) {
-			newErrors.workspaceTitle = t('workspaceTitleRequired')
-		} else if (formData.workspaceTitle.length < 3) {
+		if (!formData.workspaceTitle) newErrors.workspaceTitle = t('workspaceTitleRequired')
+		else if (formData.workspaceTitle.length < 3)
 			newErrors.workspaceTitle = t('workspaceTitleMinLength')
-		}
-
 		setErrors(newErrors)
 		return Object.keys(newErrors).length === 0
 	}
 
-	// Handle next step
 	const handleNext = async () => {
 		let isValid = false
-
 		switch (currentStep) {
 			case 1:
 				isValid = validateStep1()
@@ -208,16 +182,13 @@ export default function RegisterPage() {
 						setErrors({ email: t('captchaVerify') })
 						isValid = false
 					} else {
-						// Check email availability early
 						try {
 							const result = await verifyEmail(formData.email)
 							if (!result.available) {
-								setErrors({
-									email: t('emailTaken'),
-								})
+								setErrors({ email: t('emailTaken') })
 								isValid = false
 							}
-						} catch (_err) {
+						} catch {
 							setErrors({ email: t('emailVerifyFailed') })
 							isValid = false
 						}
@@ -234,17 +205,13 @@ export default function RegisterPage() {
 				isValid = validateStep4()
 				break
 		}
-
 		if (isValid && currentStep < totalSteps) {
 			setDirection(1)
 			setCurrentStep(currentStep + 1)
 			setErrors({})
-		} else if (isValid && currentStep === totalSteps) {
-			handleSubmit()
-		}
+		} else if (isValid && currentStep === totalSteps) handleSubmit()
 	}
 
-	// Handle back step
 	const handleBack = () => {
 		if (currentStep > 1) {
 			setDirection(-1)
@@ -271,7 +238,6 @@ export default function RegisterPage() {
 				},
 			})
 		} catch (error) {
-			console.error('Registration failed:', error)
 			setErrors({ submit: getErrorMessage(error) })
 		}
 	}
@@ -289,473 +255,317 @@ export default function RegisterPage() {
 		}
 	}
 
-	const displayError = errors.submit
-
-	const variants: any = {
-		initial: (direction: number) => ({
-			x: direction > 0 ? 20 : -20,
-			opacity: 0,
-			filter: 'blur(4px)',
-		}),
-		animate: {
-			x: 0,
-			opacity: 1,
-			filter: 'blur(0px)',
-			transition: {
-				duration: 0.4,
-				ease: [0.23, 1, 0.32, 1],
-			},
-		},
-		exit: (direction: number) => ({
-			x: direction > 0 ? -20 : 20,
-			opacity: 0,
-			filter: 'blur(4px)',
-			transition: {
-				duration: 0.3,
-				ease: 'easeInOut',
-			},
-		}),
-	}
-
 	return (
-		<div className='min-h-screen flex min-w-screen bg-background relative'>
-			{/* Logo - Global Fixed Responsive */}
-			<div className='fixed top-6 left-0 right-0 flex justify-center lg:top-8 lg:left-10 lg:right-auto lg:justify-start z-50'>
-				<Link href='/' className='flex items-center gap-2 lg:gap-3'>
-					<Image
-						src='/PaperNest-logo.svg'
-						alt='PaperNest Logo'
-						width={40}
-						height={40}
-						className='w-8 h-8 lg:w-10 lg:h-10'
-					/>
-					<h1 className='text-2xl lg:text-3xl font-bold text-primary leading-none -mt-1'>
-						PaperNest
-					</h1>
-				</Link>
-			</div>
+		<AuthPageLayout quote={t('registerLeftSubtitle')}>
+			<AuthErrorMessage message={errors.submit} />
 
-			{/* Left Side - Form Container */}
-			<div className='w-full lg:w-1/2 min-h-screen flex flex-col items-center justify-center py-8 px-4 sm:px-6 md:px-8 lg:px-10 relative'>
-				{/* Registration Card */}
-				<div className='w-full max-w-sm space-y-6 overflow-hidden'>
-					{/* Error Message */}
-					{displayError && (
-						<div className='mb-6 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm text-center'>
-							{displayError}
-						</div>
-					)}
+			<div className='space-y-6 overflow-hidden'>
+				<AnimatePresence mode='wait' custom={direction}>
+					<motion.div
+						key={currentStep}
+						custom={direction}
+						variants={variants}
+						initial='initial'
+						animate='animate'
+						exit='exit'
+						className='w-full'
+					>
+						{/* Step 1: Email */}
+						{currentStep === 1 && (
+							<div className='space-y-6'>
+								<div className='text-center'>
+									<h1 className='text-2xl font-bold text-foreground mb-2'>{t('createAccount')}</h1>
+									<p className='text-sm text-muted-foreground'>
+										{t('step', { current: currentStep, total: totalSteps })} - Account
+									</p>
+								</div>
+								<SocialLoginButtons
+									onLogin={handleSocialSignup}
+									disabled={loading}
+									labels={{
+										google: t('continueWithGoogle'),
+										github: t('continueWithGithub'),
+										microsoft: t('continueWithMicrosoft'),
+										or: t('orCredentials'),
+									}}
+								/>
+								<div className='space-y-2'>
+									<Label htmlFor='email' className='text-foreground font-normal'>
+										{t('email')}
+									</Label>
+									<Input
+										id='email'
+										type='email'
+										value={formData.email}
+										onChange={(e) => updateFormData('email', e.target.value)}
+										placeholder={t('enterEmail')}
+									/>
+									{errors.email && <p className='text-sm text-red-600'>{errors.email}</p>}
+								</div>
+								<TurnstileWidget onVerify={setTurnstileToken} />
+							</div>
+						)}
 
-					<AnimatePresence mode='wait' custom={direction}>
-						<motion.div
-							key={currentStep}
-							custom={direction}
-							variants={variants}
-							initial='initial'
-							animate='animate'
-							exit='exit'
-							className='w-full'
-						>
-							{/* Step 1: Email */}
-							{currentStep === 1 && (
-								<div className='space-y-6'>
-									{/* Title */}
-									<div className='text-center'>
-										<h1 className='text-2xl font-bold text-foreground mb-2'>
-											{t('createAccount')}
-										</h1>
-										<p className='text-sm text-muted-foreground'>
-											{t('step', { current: currentStep, total: totalSteps })} - Account
-										</p>
-									</div>
-
-									{/* Social Sign Up */}
-									<div className='grid grid-cols-3 gap-3 sm:grid-cols-1'>
-										<Button
-											type='button'
-											variant='outline'
-											onClick={() => handleSocialSignup('google')}
-											disabled={loading}
-										>
-											<FcGoogle />
-											<span className='hidden sm:inline'>{t('continueWithGoogle')}</span>
-										</Button>
-										<Button
-											type='button'
-											variant='outline'
-											onClick={() => handleSocialSignup('github')}
-											disabled={loading}
-										>
-											<FaGithub />
-											<span className='hidden sm:inline'>{t('continueWithGithub')}</span>
-										</Button>
-										<Button
-											type='button'
-											variant='outline'
-											onClick={() => handleSocialSignup('microsoft')}
-											disabled={loading}
-										>
-											<MicrosoftIconIcon />
-											<span className='hidden sm:inline'>{t('continueWithMicrosoft')}</span>
-										</Button>
-									</div>
-
-									{/* Divider */}
+						{/* Step 2: Password */}
+						{currentStep === 2 && (
+							<div className='space-y-6'>
+								<div className='text-center'>
+									<h1 className='text-2xl font-bold text-foreground mb-2'>
+										{t('passwordNewTitle')}
+									</h1>
+									<p className='text-sm text-muted-foreground'>
+										{t('step', { current: currentStep, total: totalSteps })} - Password
+									</p>
+								</div>
+								<div className='space-y-2'>
+									<Label htmlFor='password'>{t('password')}</Label>
 									<div className='relative'>
-										<div className='absolute inset-0 flex items-center'>
-											<div className='w-full border-t border-border'></div>
-										</div>
-										<div className='relative flex justify-center text-sm'>
-											<span className='px-4 bg-background text-muted-foreground'>
-												{t('orCredentials')}
-											</span>
+										<Input
+											id='password'
+											type={isVisible ? 'text' : 'password'}
+											value={formData.password}
+											onChange={(e) => updateFormData('password', e.target.value)}
+											placeholder={t('enterPassword')}
+											className='pr-9'
+										/>
+										<Button
+											variant='ghost'
+											size='icon'
+											type='button'
+											onClick={() => setIsVisible(!isVisible)}
+											className='text-muted-foreground focus-visible:ring-ring/50 absolute inset-y-0 right-0 rounded-l-none hover:bg-transparent'
+										>
+											{isVisible ? (
+												<EyeOffIcon className='size-4' />
+											) : (
+												<EyeIcon className='size-4' />
+											)}
+										</Button>
+									</div>
+									<div className='flex h-1 w-full gap-1 mt-3'>
+										{[0, 1, 2, 3, 4].map((idx) => (
+											<span
+												key={idx}
+												className={cn(
+													'h-full flex-1 rounded-full transition-all duration-500 ease-out',
+													idx < strengthScore ? getStrengthColor(strengthScore) : 'bg-border'
+												)}
+											/>
+										))}
+									</div>
+									<p className='text-foreground text-sm font-medium pt-1'>
+										{t('passwordRequirementTitle', {
+											strengthText: getStrengthText(strengthScore),
+										})}
+									</p>
+									<ul className='space-y-1.5'>
+										{strength.map((req) => (
+											<li key={req.text} className='flex items-center gap-2'>
+												{req.met ? (
+													<CheckIcon className='size-4 text-green-600 dark:text-green-400' />
+												) : (
+													<XIcon className='text-muted-foreground size-4' />
+												)}
+												<span
+													className={cn(
+														'text-xs',
+														req.met ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'
+													)}
+												>
+													{req.text}
+												</span>
+											</li>
+										))}
+									</ul>
+									{errors.password && <p className='text-sm text-red-600'>{errors.password}</p>}
+								</div>
+								<div className='space-y-2'>
+									<Label htmlFor='confirmPassword'>{t('confirmPassword')}</Label>
+									<div className='relative'>
+										<Input
+											id='confirmPassword'
+											type={isConfirmVisible ? 'text' : 'password'}
+											value={formData.confirmPassword}
+											onChange={(e) => updateFormData('confirmPassword', e.target.value)}
+											placeholder={t('confirmPassword')}
+											className='pr-9'
+										/>
+										<Button
+											variant='ghost'
+											size='icon'
+											type='button'
+											onClick={() => setIsConfirmVisible(!isConfirmVisible)}
+											className='text-muted-foreground focus-visible:ring-ring/50 absolute inset-y-0 right-0 rounded-l-none hover:bg-transparent'
+										>
+											{isConfirmVisible ? (
+												<EyeOffIcon className='size-4' />
+											) : (
+												<EyeIcon className='size-4' />
+											)}
+										</Button>
+									</div>
+									{errors.confirmPassword && (
+										<p className='text-sm text-red-600'>{errors.confirmPassword}</p>
+									)}
+								</div>
+							</div>
+						)}
+
+						{/* Step 3: User Details */}
+						{currentStep === 3 && (
+							<div className='space-y-6'>
+								<div className='text-center'>
+									<h1 className='text-2xl font-bold text-foreground mb-2'>
+										{t('credentialsTitle')}
+									</h1>
+									<p className='text-sm text-muted-foreground'>
+										{t('step', { current: currentStep, total: totalSteps })} - User Details
+									</p>
+								</div>
+								<div className='space-y-2'>
+									<Label htmlFor='name' className='text-foreground font-normal'>
+										{t('fullNameLabel')}
+									</Label>
+									<Input
+										id='name'
+										type='text'
+										value={formData.name}
+										onChange={(e) => updateFormData('name', e.target.value)}
+										placeholder='John Doe'
+									/>
+									{errors.name && <p className='text-sm text-red-600'>{errors.name}</p>}
+								</div>
+								<div className='space-y-2'>
+									<Label htmlFor='username' className='text-foreground font-normal'>
+										{t('username')}
+									</Label>
+									<Input
+										id='username'
+										type='text'
+										value={formData.username}
+										onChange={(e) => updateFormData('username', e.target.value)}
+										placeholder={t('createUsernamePlaceholder')}
+									/>
+									{errors.username && <p className='text-sm text-red-600'>{errors.username}</p>}
+								</div>
+								<div className='space-y-2'>
+									<Label className='text-foreground font-normal'>{t('yourRole')}</Label>
+									<Select
+										value={formData.role}
+										onValueChange={(value) => updateFormData('role', value as UserRole)}
+									>
+										<SelectTrigger className='w-full'>
+											<SelectValue placeholder={t('selectRole')} />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value='Student'>{t('student')}</SelectItem>
+											<SelectItem value='Lecturer'>{t('lecturer')}</SelectItem>
+										</SelectContent>
+									</Select>
+								</div>
+							</div>
+						)}
+
+						{/* Step 4: Workspace */}
+						{currentStep === 4 && (
+							<div className='space-y-6'>
+								<div className='text-center'>
+									<h1 className='text-2xl font-bold text-foreground mb-2'>{t('setupWorkspace')}</h1>
+									<p className='text-sm text-muted-foreground'>
+										{t('step', { current: currentStep, total: totalSteps })} - Workspace Setup
+									</p>
+								</div>
+								<div className='space-y-6'>
+									<div className='space-y-2'>
+										<Label className='text-foreground font-normal'>{t('workspaceIcon')}</Label>
+										<div className='grid grid-cols-5 gap-2'>
+											{workspaceIcons.map((icon) => (
+												<button
+													key={icon}
+													type='button'
+													onClick={() => updateFormData('workspaceIcon', icon)}
+													className={`p-3 text-2xl border rounded-lg transition-all hover:scale-105 ${formData.workspaceIcon === icon ? 'bg-teal-500 border-teal-400 text-white' : 'bg-muted/50 border-border hover:bg-muted text-foreground'}`}
+												>
+													{icon}
+												</button>
+											))}
 										</div>
 									</div>
-
-									{/* Email Input */}
 									<div className='space-y-2'>
-										<Label htmlFor='email' className='text-foreground font-normal'>
-											{t('email')}
+										<Label htmlFor='workspaceTitle' className='text-foreground font-normal'>
+											{t('workspaceTitle')}
 										</Label>
 										<Input
-											id='email'
-											type='email'
-											value={formData.email}
-											onChange={(e) => updateFormData('email', e.target.value)}
-											placeholder={t('enterEmail')}
+											id='workspaceTitle'
+											type='text'
+											value={formData.workspaceTitle}
+											onChange={(e) => updateFormData('workspaceTitle', e.target.value)}
+											placeholder={tWorkspace('titlePlaceholder')}
 										/>
-										{errors.email && <p className='text-sm text-red-600'>{errors.email}</p>}
-									</div>
-
-									<TurnstileWidget onVerify={setTurnstileToken} />
-								</div>
-							)}
-
-							{/* Step 2: Password */}
-							{currentStep === 2 && (
-								<div className='space-y-6'>
-									<div className='text-center'>
-										<h1 className='text-2xl font-bold text-foreground mb-2'>
-											{t('passwordNewTitle')}
-										</h1>
-										<p className='text-sm text-muted-foreground'>
-											{t('step', { current: currentStep, total: totalSteps })} - Password
-										</p>
-									</div>
-
-									<div className='space-y-2'>
-										<Label htmlFor='password'>{t('password')}</Label>
-										<div className='relative'>
-											<Input
-												id='password'
-												type={isVisible ? 'text' : 'password'}
-												value={formData.password}
-												onChange={(e) => updateFormData('password', e.target.value)}
-												placeholder={t('enterPassword')}
-												className='pr-9'
-											/>
-											<Button
-												variant='ghost'
-												size='icon'
-												type='button'
-												onClick={() => setIsVisible(!isVisible)}
-												className='text-muted-foreground focus-visible:ring-ring/50 absolute inset-y-0 right-0 rounded-l-none hover:bg-transparent'
-											>
-												{isVisible ? (
-													<EyeOffIcon className='size-4' />
-												) : (
-													<EyeIcon className='size-4' />
-												)}
-											</Button>
-										</div>
-
-										<div className='flex h-1 w-full gap-1 mt-3'>
-											{[0, 1, 2, 3, 4].map((idx) => (
-												<span
-													key={idx}
-													className={cn(
-														'h-full flex-1 rounded-full transition-all duration-500 ease-out',
-														idx < strengthScore ? getStrengthColor(strengthScore) : 'bg-border'
-													)}
-												/>
-											))}
-										</div>
-
-										<p className='text-foreground text-sm font-medium pt-1'>
-											{t('passwordRequirementTitle', {
-												strengthText: getStrengthText(strengthScore),
-											})}
-										</p>
-
-										<ul className='space-y-1.5'>
-											{strength.map((req) => (
-												<li key={req.text} className='flex items-center gap-2'>
-													{req.met ? (
-														<CheckIcon className='size-4 text-green-600 dark:text-green-400' />
-													) : (
-														<XIcon className='text-muted-foreground size-4' />
-													)}
-													<span
-														className={cn(
-															'text-xs',
-															req.met
-																? 'text-green-600 dark:text-green-400'
-																: 'text-muted-foreground'
-														)}
-													>
-														{req.text}
-													</span>
-												</li>
-											))}
-										</ul>
-										{errors.password && <p className='text-sm text-red-600'>{errors.password}</p>}
-									</div>
-
-									<div className='space-y-2'>
-										<Label htmlFor='confirmPassword'>{t('confirmPassword')}</Label>
-										<div className='relative'>
-											<Input
-												id='confirmPassword'
-												type={isConfirmVisible ? 'text' : 'password'}
-												value={formData.confirmPassword}
-												onChange={(e) => updateFormData('confirmPassword', e.target.value)}
-												placeholder={t('confirmPassword')}
-												className='pr-9'
-											/>
-											<Button
-												variant='ghost'
-												size='icon'
-												type='button'
-												onClick={() => setIsConfirmVisible(!isConfirmVisible)}
-												className='text-muted-foreground focus-visible:ring-ring/50 absolute inset-y-0 right-0 rounded-l-none hover:bg-transparent'
-											>
-												{isConfirmVisible ? (
-													<EyeOffIcon className='size-4' />
-												) : (
-													<EyeIcon className='size-4' />
-												)}
-											</Button>
-										</div>
-										{errors.confirmPassword && (
-											<p className='text-sm text-red-600'>{errors.confirmPassword}</p>
+										{errors.workspaceTitle && (
+											<p className='text-sm text-red-600'>{errors.workspaceTitle}</p>
 										)}
 									</div>
-								</div>
-							)}
-
-							{/* Step 3: User Details */}
-							{currentStep === 3 && (
-								<div className='space-y-6'>
-									{/* Title */}
-									<div className='text-center'>
-										<h1 className='text-2xl font-bold text-foreground mb-2'>
-											{t('credentialsTitle')}
-										</h1>
-										<p className='text-sm text-muted-foreground'>
-											{t('step', { current: currentStep, total: totalSteps })} - User Details
-										</p>
-									</div>
-
 									<div className='space-y-2'>
-										<Label htmlFor='name' className='text-foreground font-normal'>
-											{t('fullNameLabel')}
+										<Label htmlFor='workspaceDescription' className='text-foreground font-normal'>
+											{t('workspaceDescription')}
 										</Label>
-										<Input
-											id='name'
-											type='text'
-											value={formData.name}
-											onChange={(e) => updateFormData('name', e.target.value)}
-											placeholder='John Doe'
+										<Textarea
+											id='workspaceDescription'
+											value={formData.workspaceDescription}
+											onChange={(e) => updateFormData('workspaceDescription', e.target.value)}
+											placeholder={t('workspaceDescPlaceholder')}
+											rows={3}
+											className='resize-none'
 										/>
-										{errors.name && <p className='text-sm text-red-600'>{errors.name}</p>}
-									</div>
-
-									<div className='space-y-2'>
-										<Label htmlFor='username' className='text-foreground font-normal'>
-											{t('username')}
-										</Label>
-										<Input
-											id='username'
-											type='text'
-											value={formData.username}
-											onChange={(e) => updateFormData('username', e.target.value)}
-											placeholder={t('createUsernamePlaceholder')}
-										/>
-										{errors.username && <p className='text-sm text-red-600'>{errors.username}</p>}
-									</div>
-
-									<div className='space-y-2'>
-										<Label className='text-foreground font-normal'>{t('yourRole')}</Label>
-										<div className=''>
-											<Select
-												value={formData.role}
-												onValueChange={(value) => updateFormData('role', value as UserRole)}
-											>
-												<SelectTrigger className='w-full'>
-													<SelectValue placeholder={t('selectRole')} />
-												</SelectTrigger>
-												<SelectContent>
-													<SelectItem value='Student'>{t('student')}</SelectItem>
-													<SelectItem value='Lecturer'>{t('lecturer')}</SelectItem>
-												</SelectContent>
-											</Select>
-										</div>
 									</div>
 								</div>
-							)}
-
-							{/* Step 4: Workspace */}
-							{currentStep === 4 && (
-								<div className='space-y-6'>
-									{/* Title */}
-									<div className='text-center'>
-										<h1 className='text-2xl font-bold text-foreground mb-2'>
-											{t('setupWorkspace')}
-										</h1>
-										<p className='text-sm text-muted-foreground'>
-											{t('step', { current: currentStep, total: totalSteps })} - Workspace Setup
-										</p>
-									</div>
-
-									{/* Create Workspace Form */}
-									<div className='space-y-6'>
-										<div className='space-y-2'>
-											<Label className='text-foreground font-normal'>{t('workspaceIcon')}</Label>
-											<div className='grid grid-cols-5 gap-2'>
-												{workspaceIcons.map((icon) => (
-													<button
-														key={icon}
-														type='button'
-														onClick={() => updateFormData('workspaceIcon', icon)}
-														className={`p-3 text-2xl border rounded-lg transition-all hover:scale-105 ${
-															formData.workspaceIcon === icon
-																? 'bg-teal-500 border-teal-400 text-white'
-																: 'bg-muted/50 border-border hover:bg-muted text-foreground'
-														}`}
-													>
-														{icon}
-													</button>
-												))}
-											</div>
-										</div>
-
-										<div className='space-y-2'>
-											<Label htmlFor='workspaceTitle' className='text-foreground font-normal'>
-												{t('workspaceTitle')}
-											</Label>
-											<Input
-												id='workspaceTitle'
-												type='text'
-												value={formData.workspaceTitle}
-												onChange={(e) => updateFormData('workspaceTitle', e.target.value)}
-												placeholder={tWorkspace('titlePlaceholder')}
-											/>
-											{errors.workspaceTitle && (
-												<p className='text-sm text-red-600'>{errors.workspaceTitle}</p>
-											)}
-										</div>
-
-										<div className='space-y-2'>
-											<Label htmlFor='workspaceDescription' className='text-foreground font-normal'>
-												{t('workspaceDescription')}
-											</Label>
-											<Textarea
-												id='workspaceDescription'
-												value={formData.workspaceDescription}
-												onChange={(e) => updateFormData('workspaceDescription', e.target.value)}
-												placeholder={t('workspaceDescPlaceholder')}
-												rows={3}
-												className='resize-none'
-											/>
-										</div>
-									</div>
-								</div>
-							)}
-						</motion.div>
-					</AnimatePresence>
-
-					{/* Navigation Buttons */}
-					<div className='flex items-center gap-3 mt-8'>
-						{currentStep > 1 && (
-							<Button
-								type='button'
-								variant='outline'
-								onClick={handleBack}
-								disabled={loading}
-								className='flex-1'
-							>
-								{t('back')}
-							</Button>
+							</div>
 						)}
+					</motion.div>
+				</AnimatePresence>
+
+				{/* Navigation */}
+				<div className='flex items-center gap-3 mt-8'>
+					{currentStep > 1 && (
 						<Button
 							type='button'
-							onClick={handleNext}
-							disabled={loading || checkingEmail}
-							className={`${currentStep === 1 ? 'w-full' : 'flex-1'}`}
+							variant='outline'
+							onClick={handleBack}
+							disabled={loading}
+							className='flex-1'
 						>
-							{loading
-								? t('creatingAccount')
-								: checkingEmail
-									? t('checkingEmail')
-									: currentStep === totalSteps
-										? t('finish')
-										: t('continue')}
+							{t('back')}
 						</Button>
-					</div>
-
-					{/* Login Link */}
-					{currentStep === 1 && (
-						<div className='mt-6 text-center text-sm text-muted-foreground'>
-							{t('haveAccount')}{' '}
-							<Link
-								href='/login'
-								className='text-foreground hover:text-muted-foreground font-medium underline transition-colors'
-							>
-								{t('login')}
-							</Link>
-						</div>
 					)}
-				</div>
-			</div>
-			{/* Right Side - Gradient Background with Text */}
-			<div className='hidden lg:flex lg:w-1/2 min-h-screen relative'>
-				{/* Gradient Background */}
-				<div className='absolute inset-0 w-full h-full p-6'>
-					<Grainient
-						color1='#009689'
-						color2='#F5A623'
-						color3='#009689'
-						timeSpeed={0.25}
-						colorBalance={0}
-						warpStrength={1}
-						warpFrequency={5}
-						warpSpeed={2}
-						warpAmplitude={50}
-						blendAngle={0}
-						blendSoftness={0.05}
-						rotationAmount={500}
-						noiseScale={2}
-						grainAmount={0.1}
-						grainScale={2}
-						grainAnimated={false}
-						contrast={1.5}
-						gamma={1}
-						saturation={1}
-						centerX={0}
-						centerY={0}
-						zoom={0.8}
-					/>
-				</div>
-				{/* Text Overlay */}
-				<div className='absolute inset-0 flex flex-col items-center justify-center z-10 px-8'>
-					<p
-						className='text-xl text-white text-center mt-4 max-w-sm italic'
-						style={{ fontFamily: 'Times New Roman, Times, serif' }}
+					<Button
+						type='button'
+						onClick={handleNext}
+						disabled={loading || checkingEmail}
+						className={currentStep === 1 ? 'w-full' : 'flex-1'}
 					>
-						{t('registerLeftSubtitle')}
-					</p>
+						{loading
+							? t('creatingAccount')
+							: checkingEmail
+								? t('checkingEmail')
+								: currentStep === totalSteps
+									? t('finish')
+									: t('continue')}
+					</Button>
 				</div>
+
+				{currentStep === 1 && (
+					<div className='mt-6 text-center text-sm text-muted-foreground'>
+						{t('haveAccount')}{' '}
+						<Link
+							href='/login'
+							className='text-foreground hover:text-muted-foreground font-medium underline transition-colors'
+						>
+							{t('login')}
+						</Link>
+					</div>
+				)}
 			</div>
-		</div>
+		</AuthPageLayout>
 	)
 }

@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import type React from 'react'
+import { LocaleSwitcher } from '@/components/layout/LocaleSwitcher'
 import Grainient from '@/components/visuals/Grainient/Grainient'
 
 interface AuthPageLayoutProps {
@@ -20,8 +21,8 @@ interface AuthPageLayoutProps {
 export function AuthPageLayout({ quote, children }: AuthPageLayoutProps) {
 	return (
 		<div className='min-h-screen flex min-w-screen bg-background relative'>
-			{/* Logo — fixed, responsive */}
-			<div className='fixed top-6 left-0 right-0 flex justify-center lg:top-8 lg:left-10 lg:right-auto lg:justify-start z-50'>
+			{/* Top bar — logo + locale switcher */}
+			<div className='fixed top-6 left-0 right-0 flex items-center justify-between px-4 lg:top-8 lg:px-10 z-50'>
 				<Link href='/' className='flex items-center gap-2 lg:gap-3'>
 					<Image
 						src='/PaperNest-logo.svg'
@@ -34,11 +35,12 @@ export function AuthPageLayout({ quote, children }: AuthPageLayoutProps) {
 						PaperNest
 					</h1>
 				</Link>
+				<LocaleSwitcher />
 			</div>
 
 			{/* Left — form */}
 			<div className='w-full lg:w-1/2 min-h-screen flex flex-col items-center justify-center py-8 px-4 sm:px-6 md:px-8 lg:px-10 relative'>
-				<div className='w-full max-w-sm'>{children}</div>
+				<div className='w-full max-w-sm space-y-6'>{children}</div>
 			</div>
 
 			{/* Right — Grainient panel (desktop only) */}
