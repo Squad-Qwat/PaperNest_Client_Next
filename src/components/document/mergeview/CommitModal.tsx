@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,6 +14,7 @@ interface CommitModalProps {
 }
 
 export function CommitModal({ isOpen, onClose, onCommit }: CommitModalProps) {
+	const t = useTranslations('Document')
 	const [message, setMessage] = useState('')
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
@@ -21,7 +23,7 @@ export function CommitModal({ isOpen, onClose, onCommit }: CommitModalProps) {
 		e.preventDefault()
 
 		if (!message.trim()) {
-			setError('Message is required')
+			setError(t('messageRequired'))
 			return
 		}
 
@@ -49,7 +51,7 @@ export function CommitModal({ isOpen, onClose, onCommit }: CommitModalProps) {
 	}
 
 	return (
-		<Modal isOpen={isOpen} onClose={handleClose} title='Create New Version' size='lg'>
+		<Modal isOpen={isOpen} onClose={handleClose} title={t('createNewVersion')} size='lg'>
 			<form onSubmit={handleSubmit} className='space-y-4'>
 				{error && (
 					<div className='p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm'>
@@ -58,7 +60,7 @@ export function CommitModal({ isOpen, onClose, onCommit }: CommitModalProps) {
 				)}
 
 				<div className='space-y-2'>
-					<Label htmlFor='commit-message'>Message</Label>
+					<Label htmlFor='commit-message'>{t('message')}</Label>
 					<Input
 						id='commit-message'
 						type='text'
@@ -67,17 +69,17 @@ export function CommitModal({ isOpen, onClose, onCommit }: CommitModalProps) {
 							setMessage(e.target.value)
 							if (error) setError(null)
 						}}
-						placeholder='e.g., Initial Draft, v1.0, Review Changes'
+						placeholder={t('commitPlaceholder')}
 						disabled={loading}
 					/>
 				</div>
 
 				<ModalFooter>
 					<Button type='button' variant='outline' onClick={handleClose} disabled={loading}>
-						Cancel
+						{t('cancel')}
 					</Button>
 					<Button type='submit' disabled={loading}>
-						{loading ? 'Committing...' : 'Commit Version'}
+						{loading ? t('committing') : t('commitVersionButton')}
 					</Button>
 				</ModalFooter>
 			</form>

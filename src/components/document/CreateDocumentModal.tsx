@@ -3,6 +3,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import * as React from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -30,6 +31,7 @@ export function CreateDocumentModal({
 }: CreateDocumentModalProps) {
 	const _queryClient = useQueryClient()
 	const router = useRouter()
+	const t = useTranslations('Template')
 	const { mutateAsync: createDocument, isPending: isCreating } = useCreateDocument()
 
 	const [newDoc, setNewDoc] = React.useState({
@@ -41,18 +43,18 @@ export function CreateDocumentModal({
 		if (isOpen) {
 			const isBlank = !templateId || templateName === 'Blank Document'
 			setNewDoc({
-				title: isBlank ? '' : `Untitled ${templateName}`,
-				description: isBlank ? '' : `Document created from ${templateName} template`,
+				title: isBlank ? '' : t('untitledTemplate', { templateName: templateName ?? '' }),
+				description: isBlank ? '' : t('defaultDescription', { templateName: templateName ?? '' }),
 			})
 		}
-	}, [isOpen, templateName, templateId])
+	}, [isOpen, templateName, templateId, t])
 	const [formErrors, setFormErrors] = React.useState<Record<string, string>>({})
 
 	const handleCreateDocument = async (e?: React.FormEvent) => {
 		if (e) e.preventDefault()
 
 		if (!newDoc.title.trim()) {
-			setFormErrors({ title: 'Title is required' })
+			setFormErrors({ title: t('titleRequired') })
 			return
 		}
 
@@ -83,13 +85,13 @@ export function CreateDocumentModal({
 	const isTemplate = templateId && templateName !== 'Blank Document'
 
 	return (
-		<Modal isOpen={isOpen} onClose={handleClose} title='Create New Document'>
+		<Modal isOpen={isOpen} onClose={handleClose} title={t('createTitle')}>
 			<form onSubmit={handleCreateDocument} className='space-y-4'>
 				{isTemplate && (
 					<div className='flex items-center justify-between p-3 bg-transparent border border-primary/20 rounded-lg mb-4'>
 						<div className='flex-1'>
 							<p className='text-xs font-medium text-primary uppercase tracking-wider'>
-								Using Template
+								{t('usingTemplate')}
 							</p>
 							<p className='text-sm font-semibold text-foreground'>{templateName}</p>
 						</div>
@@ -115,7 +117,7 @@ export function CreateDocumentModal({
 
 				<div className='space-y-2'>
 					<Label htmlFor='doc-title'>
-						Title <span className='text-red-500'>*</span>
+						{t('titleLabel')} <span className='text-red-500'>*</span>
 					</Label>
 					<Input
 						id='doc-title'
@@ -124,7 +126,7 @@ export function CreateDocumentModal({
 							setNewDoc({ ...newDoc, title: e.target.value })
 							if (formErrors.title) setFormErrors({})
 						}}
-						placeholder='Document title...'
+						placeholder={t('titlePlaceholder')}
 						disabled={isCreating}
 						autoFocus
 					/>
@@ -132,12 +134,12 @@ export function CreateDocumentModal({
 				</div>
 
 				<div className='space-y-2'>
-					<Label htmlFor='doc-description'>Description (Optional)</Label>
+					<Label htmlFor='doc-description'>{t('descriptionLabel')}</Label>
 					<Textarea
 						id='doc-description'
 						value={newDoc.description}
 						onChange={(e) => setNewDoc({ ...newDoc, description: e.target.value })}
-						placeholder='Brief description...'
+						placeholder={t('descriptionPlaceholder')}
 						rows={3}
 						disabled={isCreating}
 					/>
@@ -145,10 +147,10 @@ export function CreateDocumentModal({
 
 				<ModalFooter>
 					<Button type='button' variant='outline' onClick={handleClose} disabled={isCreating}>
-						Cancel
+						{t('cancel')}
 					</Button>
 					<Button type='submit' disabled={isCreating} className='bg-primary hover:bg-primary/90'>
-						{isCreating ? 'Creating...' : 'Create Document'}
+						{isCreating ? t('creating') : t('createButton')}
 					</Button>
 				</ModalFooter>
 			</form>

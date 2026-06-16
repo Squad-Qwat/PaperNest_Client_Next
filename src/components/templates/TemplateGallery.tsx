@@ -2,6 +2,7 @@
 
 import { Loader2 } from 'lucide-react'
 import Image from 'next/image'
+import { useTranslations } from 'next-intl'
 import * as React from 'react'
 import { Button } from '@/components/ui/button'
 import { useTemplates } from '@/lib/api/hooks/use-templates'
@@ -14,6 +15,7 @@ interface TemplateGalleryProps {
 
 export function TemplateGallery({ workspaceId }: TemplateGalleryProps) {
 	const { data, isLoading, error } = useTemplates()
+	const t = useTranslations('Template')
 	const [isModalOpen, setIsModalOpen] = React.useState(false)
 	const [selectedTemplate, setSelectedTemplate] = React.useState<{
 		id: string
@@ -35,7 +37,7 @@ export function TemplateGallery({ workspaceId }: TemplateGalleryProps) {
 		return (
 			<div className='flex items-center justify-center py-20'>
 				<Loader2 className='h-8 w-8 animate-spin text-primary' />
-				<span className='ml-3 text-muted-foreground'>Loading templates...</span>
+				<span className='ml-3 text-muted-foreground'>{t('loading')}</span>
 			</div>
 		)
 	}
@@ -63,7 +65,7 @@ export function TemplateGallery({ workspaceId }: TemplateGalleryProps) {
 	if (error) {
 		return (
 			<div className='text-center py-10 bg-destructive/10 rounded-xl border border-destructive/20'>
-				<p className='text-destructive'>Failed to load templates. Please try again later.</p>
+				<p className='text-destructive'>{t('loadError')}</p>
 			</div>
 		)
 	}
@@ -71,22 +73,22 @@ export function TemplateGallery({ workspaceId }: TemplateGalleryProps) {
 	return (
 		<div className='space-y-6'>
 			<div className='flex items-center gap-2 mb-4'>
-				<h3 className='text-lg font-semibold'>Choose Template</h3>
+				<h3 className='text-lg font-semibold'>{t('chooseTemplate')}</h3>
 			</div>
 
 			<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
 				<div className='bg-card border border-border rounded-lg p-6 hover:border-primary transition-all group relative text-left w-full flex flex-col'>
 					<div className='mb-3'>
 						<h3 className='text-lg font-semibold text-foreground group-hover:text-primary transition-colors'>
-							Blank Document
+							{t('blankDocument')}
 						</h3>
 					</div>
 					<p className='text-muted-foreground text-sm mb-3 line-clamp-2 min-h-[40px]'>
-						Start from scratch with a blank LaTeX document.
+						{t('blankDocumentDesc')}
 					</p>
 					<div className='mt-auto'>
 						<Button className='w-full' onClick={() => handleSelectTemplate('', 'Blank Document')}>
-							Select
+							{t('select')}
 						</Button>
 					</div>
 				</div>
@@ -130,7 +132,7 @@ export function TemplateGallery({ workspaceId }: TemplateGalleryProps) {
 										handleSelectTemplate(template.id, template.name, logoUrl || undefined)
 									}
 								>
-									Use Template
+									{t('useTemplate')}
 								</Button>
 							</div>
 						</div>

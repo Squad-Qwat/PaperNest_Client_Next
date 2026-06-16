@@ -1,6 +1,7 @@
 'use client'
 
 import { List } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import type React from 'react'
 import { useMemo } from 'react'
 import { parseLatexSections, type TableOfContentsEntry } from '@/lib/utils/latex-toc'
@@ -16,6 +17,7 @@ const PanelContent2: React.FC<PanelContent2Props> = ({
 	onNavigateToSection,
 	getCurrentContent,
 }) => {
+	const t = useTranslations('Panel')
 	const content = useMemo(() => {
 		if (getCurrentContent) {
 			return getCurrentContent()
@@ -58,8 +60,8 @@ const PanelContent2: React.FC<PanelContent2Props> = ({
 				<div className='flex-1 flex flex-col items-center justify-center gap-4 p-4 text-muted-foreground'>
 					<List className='h-12 w-12 text-muted' />
 					<div className='text-center'>
-						<p className='font-medium text-sm'>Table of Contents</p>
-						<p className='text-xs mt-1'>No sections found in document</p>
+						<p className='font-medium text-sm'>{t('tableOfContentsTitle')}</p>
+						<p className='text-xs mt-1'>{t('noSections')}</p>
 					</div>
 				</div>
 			</div>

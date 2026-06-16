@@ -10,20 +10,33 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+
+export interface LecturerOption {
+	userId: string
+	name: string
+}
 
 interface ReviewRequestModalProps {
 	isOpen: boolean
 	onClose: () => void
 	onSubmit: (data: { lecturerId: string; message: string }) => Promise<void>
+	lecturers?: LecturerOption[]
 }
 
 export function ReviewRequestModal({
 	isOpen,
 	onClose,
 	onSubmit,
+	lecturers = [],
 }: Readonly<ReviewRequestModalProps>) {
 	const [lecturerId, setLecturerId] = useState('')
 	const [message, setMessage] = useState('')
@@ -33,7 +46,7 @@ export function ReviewRequestModal({
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault()
 		if (!lecturerId.trim()) {
-			setError('Lecturer ID is required')
+			setError('Please select a lecturer')
 			return
 		}
 
@@ -74,17 +87,23 @@ export function ReviewRequestModal({
 						</div>
 					)}
 					<div className='grid gap-2'>
-						<Label htmlFor='lecturerId'>Lecturer ID</Label>
-						<Input
-							id='lecturerId'
-							value={lecturerId}
-							onChange={(e) => setLecturerId(e.target.value)}
-							placeholder='e.g., user_lecturer_123'
-							disabled={loading}
-						/>
-						<p className='text-xs text-muted-foreground'>
-							Enter the ID of the lecturer you want to notify.
-						</p>
+						<Label htmlFor='lecturer-select'>Lecturer</Label>
+						{lecturers.length > 0 ? (
+							<Select value={lecturerId} onValueChange={setLecturerId} disabled={loading} required>
+								<SelectTrigger id='lecturer-select' className='w-full bg-background border-border'>
+									<SelectValue placeholder='Choose a lecturer' />
+								</SelectTrigger>
+								<SelectContent className='z-[1100]'>
+									{lecturers.map((l) => (
+										<SelectItem key={l.userId} value={l.userId}>
+											{l.name}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						) : (
+							<p className='text-sm text-muted-foreground'>No lecturers found in this workspace.</p>
+						)}
 					</div>
 					<div className='grid gap-2'>
 						<Label htmlFor='message'>Message (Optional)</Label>
@@ -100,8 +119,8 @@ export function ReviewRequestModal({
 						<Button type='button' variant='outline' onClick={handleClose} disabled={loading}>
 							Cancel
 						</Button>
-						<Button type='submit' disabled={loading}>
-							{loading ? 'Sending...' : 'Send API Request'}
+						<Button type='submit' disabled={loading || lecturers.length === 0}>
+							{loading ? 'Sending...' : 'Send Request'}
 						</Button>
 					</DialogFooter>
 				</form>

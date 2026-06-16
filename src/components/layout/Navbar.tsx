@@ -3,6 +3,7 @@
 import { LogOut, Menu, Settings, Slash, User, X } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, usePathname, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
@@ -29,28 +30,27 @@ export function Navbar({ mode = 'workspace', documentId }: Readonly<NavbarProps>
 	const params = useParams()
 	const { user } = useAuth()
 	const { mutate: logout } = useLogout()
+	const t = useTranslations('Navbar')
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 	const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 
 	const workspaceId = params.workspaceid as string
 
-	// Main workspace menu items
 	const workspaceMenuItems = [
-		{ name: 'Overview', href: `/${workspaceId}` },
-		{ name: 'Chatbot', href: `/${workspaceId}/chatbot` },
-		{ name: 'Review', href: `/${workspaceId}/reviews` },
-		{ name: 'Workspace Settings', href: `/${workspaceId}/settings` },
+		{ name: t('overview'), href: `/${workspaceId}` },
+		{ name: t('chatbot'), href: `/${workspaceId}/chatbot` },
+		{ name: t('review'), href: `/${workspaceId}/reviews` },
+		{ name: t('workspaceSettings'), href: `/${workspaceId}/settings` },
 	]
 
-	// Document-specific menu items
 	const documentMenuItems = documentId
 		? [
 				{
-					name: 'Citations',
+					name: t('citations'),
 					href: `/${workspaceId}/documents/${documentId}/citations`,
 				},
 				{
-					name: 'Reviews',
+					name: t('reviewsNav'),
 					href: `/${workspaceId}/documents/${documentId}/reviews`,
 				},
 			]
@@ -76,7 +76,6 @@ export function Navbar({ mode = 'workspace', documentId }: Readonly<NavbarProps>
 			<nav className='sticky top-0 z-40 bg-background border-b border-border'>
 				<div className='mx-auto pt-3 px-4 sm:px-6 lg:px-8'>
 					<div className='flex items-center justify-between'>
-						{/* Logo/Brand & Workspace Switcher */}
 						<div>
 							<div className='flex items-center gap-4'>
 								<div className='flex items-center gap-3'>
@@ -94,7 +93,6 @@ export function Navbar({ mode = 'workspace', documentId }: Readonly<NavbarProps>
 								<WorkspaceSwitcher currentWorkspaceId={workspaceId} />
 							</div>
 
-							{/* Desktop Menu */}
 							<div className='hidden md:flex items-center gap-8'>
 								{menuItems.map((item) => (
 									<Link
@@ -113,11 +111,9 @@ export function Navbar({ mode = 'workspace', documentId }: Readonly<NavbarProps>
 							</div>
 						</div>
 
-						{/* User Actions */}
 						<div className='hidden md:flex items-center gap-3'>
 							<ThemeToggle />
 
-							{/* User Menu Dropdown */}
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
 									<button
@@ -141,14 +137,14 @@ export function Navbar({ mode = 'workspace', documentId }: Readonly<NavbarProps>
 										className='gap-2 cursor-pointer'
 									>
 										<User className='w-4 h-4' />
-										<span>Profile Settings</span>
+										<span>{t('profileSettings')}</span>
 									</DropdownMenuItem>
 									<DropdownMenuItem
 										onClick={() => router.push('/settings')}
 										className='gap-2 cursor-pointer'
 									>
 										<Settings className='w-4 h-4' />
-										<span>Workspace Settings</span>
+										<span>{t('workspaceSettings')}</span>
 									</DropdownMenuItem>
 									<DropdownMenuSeparator />
 									<DropdownMenuItem
@@ -156,13 +152,12 @@ export function Navbar({ mode = 'workspace', documentId }: Readonly<NavbarProps>
 										className='gap-2 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10'
 									>
 										<LogOut className='w-4 h-4' />
-										<span>Logout</span>
+										<span>{t('logout')}</span>
 									</DropdownMenuItem>
 								</DropdownMenuContent>
 							</DropdownMenu>
 						</div>
 
-						{/* Mobile Menu Button */}
 						<button
 							type='button'
 							onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -173,7 +168,6 @@ export function Navbar({ mode = 'workspace', documentId }: Readonly<NavbarProps>
 						</button>
 					</div>
 
-					{/* Mobile Menu */}
 					{isMobileMenuOpen && (
 						<div className='md:hidden py-4 border-t border-border'>
 							<div className='flex flex-col gap-2 mb-4'>
@@ -223,7 +217,7 @@ export function Navbar({ mode = 'workspace', documentId }: Readonly<NavbarProps>
 									}}
 									className='flex-1 px-4 py-2 bg-muted hover:bg-accent text-foreground text-sm font-medium rounded-lg transition-colors'
 								>
-									Notifications
+									{t('notifications')}
 								</button>
 								<button
 									type='button'
@@ -233,7 +227,7 @@ export function Navbar({ mode = 'workspace', documentId }: Readonly<NavbarProps>
 									}}
 									className='flex-1 px-4 py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground text-sm font-medium rounded-lg transition-colors'
 								>
-									Logout
+									{t('logout')}
 								</button>
 							</div>
 						</div>
@@ -241,14 +235,13 @@ export function Navbar({ mode = 'workspace', documentId }: Readonly<NavbarProps>
 				</div>
 			</nav>
 
-			{/* Logout Confirmation Dialog */}
 			<ConfirmDialog
 				isOpen={showLogoutConfirm}
 				onClose={() => setShowLogoutConfirm(false)}
 				onConfirm={handleLogout}
-				title='Confirm Logout'
-				message='Are you sure you want to logout?'
-				confirmText='Logout'
+				title={t('confirmLogout')}
+				message={t('confirmLogoutMessage')}
+				confirmText={t('logout')}
 				variant='danger'
 			/>
 		</>

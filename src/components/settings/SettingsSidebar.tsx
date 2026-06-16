@@ -3,6 +3,7 @@
 import { IconCreditCard, IconUser } from '@tabler/icons-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useLocale, useTranslations } from 'next-intl'
 import {
 	Sidebar,
 	SidebarContent,
@@ -16,15 +17,22 @@ import {
 } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
 
-const accountItems = [{ title: 'Profile Settings', icon: IconUser, href: '/settings/profile' }]
-
-const billingItems = [
-	{ title: 'Billing Information', icon: IconCreditCard, href: '/settings/billing' },
-]
-
 export function SettingsSidebar() {
 	const pathname = usePathname()
+	const locale = useLocale()
 	const { setOpenMobile, isMobile } = useSidebar()
+	const t = useTranslations('Settings')
+
+	// Strip locale prefix: /en/settings/profile → /settings/profile
+	const normalizedPathname = pathname.startsWith(`/${locale}`)
+		? pathname.slice(`/${locale}`.length) || '/'
+		: pathname
+
+	const accountItems = [{ title: t('profileSettings'), icon: IconUser, href: '/settings/profile' }]
+
+	const billingItems = [
+		{ title: t('billingInformation'), icon: IconCreditCard, href: '/settings/billing' },
+	]
 
 	const renderMenuItems = (
 		items: { title: string; icon: any; href: string; disabled?: boolean }[]
@@ -32,7 +40,7 @@ export function SettingsSidebar() {
 		<SidebarMenu>
 			{items.map((item) => {
 				const Icon = item.icon
-				const isActive = pathname === item.href
+				const isActive = normalizedPathname === item.href
 				const isDisabled = !!item.disabled
 
 				return (
@@ -74,14 +82,14 @@ export function SettingsSidebar() {
 			<SidebarContent className='p-2'>
 				<SidebarGroup>
 					<SidebarGroupLabel className='px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
-						Account Settings
+						{t('accountSettings')}
 					</SidebarGroupLabel>
 					<SidebarGroupContent>{renderMenuItems(accountItems)}</SidebarGroupContent>
 				</SidebarGroup>
 
 				<SidebarGroup>
 					<SidebarGroupLabel className='px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
-						Billing & Payments
+						{t('billingPayments')}
 					</SidebarGroupLabel>
 					<SidebarGroupContent>{renderMenuItems(billingItems)}</SidebarGroupContent>
 				</SidebarGroup>

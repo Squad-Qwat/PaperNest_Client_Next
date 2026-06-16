@@ -2,6 +2,7 @@
 
 import { GlobeIcon } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
+import { useTranslations } from 'next-intl'
 import { type MouseEvent, useEffect } from 'react'
 import { PaperNestLoader } from '@/components/layout/PaperNestLoader'
 import { Attachment, AttachmentPreview, Attachments } from '@/components/ui/ai-elements/attachments'
@@ -78,22 +79,6 @@ import { AIChatHeader } from './AIChatHeader'
 
 const models = AI_MODELS
 
-const editorSuggestions = [
-	'Help me write a paper abstract',
-	'Check LaTeX errors in this document',
-	'Create a simple bibliography',
-	'Format title and section',
-	'Add methodology table',
-]
-
-const viewerSuggestions = [
-	'Explain the abstract of this document',
-	'Check LaTeX errors in this document',
-	'Review this document structure',
-	'Summarize this document',
-	'Search for relevant references',
-]
-
 interface EditorFunctions {
 	editor?: any
 	setPendingMerge?: (data: any) => void
@@ -107,6 +92,24 @@ interface AIChatPanelProps {
 }
 
 export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
+	const t = useTranslations('AIChat')
+
+	const editorSuggestions = [
+		t('suggestionAbstract'),
+		t('suggestionLatexErrors'),
+		t('suggestionBibliography'),
+		t('suggestionFormat'),
+		t('suggestionTable'),
+	]
+
+	const viewerSuggestions = [
+		t('suggestionExplain'),
+		t('suggestionLatexErrors'),
+		t('suggestionReview'),
+		t('suggestionSummarize'),
+		t('suggestionReferences'),
+	]
+
 	const activeSuggestions = editor?.readOnly ? viewerSuggestions : editorSuggestions
 
 	// 1. Hooks & Store
@@ -265,7 +268,7 @@ export function AIChatPanel({ editor, onClose, documentId }: AIChatPanelProps) {
 														>
 															<PaperNestLoader width={18} height={18} />
 															<span className='text-sm md:text-base font-medium shimmer-text'>
-																Working
+																{t('working')}
 															</span>
 														</motion.div>
 													)}
@@ -435,6 +438,7 @@ function AIChatInput({
 	const input = controller?.textInput.value || ''
 	const attachments = usePromptInputAttachments()
 	const { webSearchEnabled, setWebSearchEnabled } = useAIChatStore()
+	const t = useTranslations('AIChat')
 
 	return (
 		<PromptInput
@@ -454,7 +458,7 @@ function AIChatInput({
 			<PromptInputBody>
 				<PromptInputTextarea
 					className='py-3 px-4'
-					placeholder={readOnly ? 'Ask Aurora anything (Read Only)...' : 'Ask Aurora anything...'}
+					placeholder={readOnly ? t('placeholderReadOnly') : t('placeholder')}
 				/>
 			</PromptInputBody>
 			<PromptInputFooter>
@@ -482,7 +486,7 @@ function AIChatInput({
 						<GlobeIcon
 							className={cn('size-4', webSearchEnabled ? 'text-primary' : 'text-muted-foreground')}
 						/>
-						<span className='text-xs font-medium'>Search</span>
+						<span className='text-xs font-medium'>{t('search')}</span>
 					</PromptInputButton>
 
 					<ModelSelector>

@@ -23,6 +23,8 @@ export const API_ENDPOINTS = {
 		deleteAccount: '/auth/account',
 		updateEmail: '/auth/email',
 		passwordReset: '/auth/password/reset',
+		passwordResetValidate: '/auth/password/reset/validate',
+		passwordResetConfirm: '/auth/password/reset/confirm',
 		checkEmail: '/auth/check-email',
 		otpSend: '/auth/otp/send',
 		otpVerify: '/auth/otp/verify',

@@ -59,6 +59,11 @@ export interface PasswordResetDto {
 	email: string
 }
 
+export interface ResetPasswordDto {
+	token: string
+	password: string
+}
+
 export interface UpdateEmailDto {
 	email: string
 }

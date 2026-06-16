@@ -2,6 +2,7 @@
 
 import { Calendar, ChevronRight, MessageSquare } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import type React from 'react'
 import { ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -9,7 +10,7 @@ import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useDocumentReviews } from '@/lib/api/hooks/use-documents'
 import type { Review } from '@/lib/api/types/review.types'
-import { format, id } from '@/lib/date'
+import { format } from '@/lib/date'
 import { getAvatarUrl, getInitials } from '@/lib/utils'
 
 interface PanelContent4Props {
@@ -20,6 +21,7 @@ const PanelContent4: React.FC<PanelContent4Props> = ({ documentId }) => {
 	const params = useParams()
 	const router = useRouter()
 	const workspaceId = params.workspaceid as string
+	const t = useTranslations('Document')
 
 	const { data: reviewsResponse, isLoading } = useDocumentReviews(documentId || '')
 
@@ -52,9 +54,9 @@ const PanelContent4: React.FC<PanelContent4Props> = ({ documentId }) => {
 			<div className='flex flex-col items-center justify-center gap-4 p-8 text-muted-foreground min-h-[300px] bg-background'>
 				<MessageSquare className='h-12 w-12 text-muted' />
 				<div className='text-center space-y-1.5'>
-					<p className='font-semibold text-sm text-foreground'>No Reviews Yet</p>
+					<p className='font-semibold text-sm text-foreground'>{t('noReviews')}</p>
 					<p className='text-xs text-muted-foreground max-w-[200px] mx-auto leading-normal'>
-						This document has not been submitted for review yet.
+						{t('noReviewsSubtitle')}
 					</p>
 				</div>
 			</div>
@@ -64,8 +66,8 @@ const PanelContent4: React.FC<PanelContent4Props> = ({ documentId }) => {
 	return (
 		<div className='p-4 space-y-3.5 text-foreground bg-background'>
 			<div className='flex items-center justify-between text-xs text-muted-foreground font-semibold uppercase tracking-wider px-1 pb-1'>
-				<span>Submission History</span>
-				<span>{reviews.length} Submissions</span>
+				<span>{t('submissionHistory')}</span>
+				<span>{t('submissions', { count: reviews.length })}</span>
 			</div>
 
 			<div className='space-y-3'>
@@ -121,7 +123,7 @@ const PanelContent4: React.FC<PanelContent4Props> = ({ documentId }) => {
 									<span>{formattedDate}</span>
 								</div>
 								<div className='flex items-center gap-0.5 text-[10px] font-bold text-teal-600 dark:text-teal-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200'>
-									<span>Details</span>
+									<span>{t('details')}</span>
 									<ChevronRight className='w-3 h-3' />
 								</div>
 							</div>

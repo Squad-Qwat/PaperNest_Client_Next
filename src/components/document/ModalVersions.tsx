@@ -1,5 +1,6 @@
 import { ChevronLeft, FileText, Loader2, MoreVertical } from 'lucide-react'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import React, { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { ReviewRequestModal } from '@/components/review/ReviewRequestModal'
@@ -47,6 +48,7 @@ export default function ModalVersions({
 	const { user } = useAuth()
 	const { data: workspace } = useWorkspace(workspaceId)
 	const isEditorOrOwner = workspace?.userRole === 'owner' || workspace?.userRole === 'editor'
+	const t = useTranslations('VersionModal')
 
 	const { data: versionsResponse, isLoading: versionsLoading } = useDocumentVersions(documentId)
 	const versions: Version[] = useMemo(() => {
@@ -76,6 +78,16 @@ export default function ModalVersions({
 	const { data: membersResponse } = useWorkspaceMembers(workspaceId)
 	const members = membersResponse?.members || []
 
+	// Filter hanya member dengan role lecturer
+	const lecturers = members
+		.filter(
+			(m: any) => m.role?.toLowerCase() === 'lecturer' || m.user?.role?.toLowerCase() === 'lecturer'
+		)
+		.map((m: any) => ({
+			userId: m.user?.userId || m.userId,
+			name: m.user?.name || m.user?.username || 'Lecturer',
+		}))
+
 	const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null)
 	const [showReviewModal, setShowReviewModal] = useState(false)
 
@@ -103,12 +115,12 @@ export default function ModalVersions({
 			let authorName = version.user?.name || member?.user?.name || version.createdBy
 
 			if (user && (authorName === user.userId || !authorName)) {
-				authorName = user.name || 'User'
+				authorName = user.name || t('unknown')
 			}
 
-			// If it's still a UID, show 'User'
+			// If it's still a UID, show t('unknown')
 			const isUid = authorName && authorName.length > 20 && !authorName.includes(' ')
-			const finalName = isUid ? 'User' : authorName || 'User'
+			const finalName = isUid ? t('unknown') : authorName || t('unknown')
 
 			// Map to UI format
 			return {
@@ -136,7 +148,7 @@ export default function ModalVersions({
 					: undefined,
 			}
 		})
-	}, [versions, reviews, user, members.find])
+	}, [versions, reviews, user, members, t])
 
 	// Compile when version selection changes
 	useEffect(() => {
@@ -185,18 +197,18 @@ export default function ModalVersions({
 							variant='ghost'
 							onClick={onClose}
 							className='p-2 hover:bg-accent rounded-lg transition-colors group'
-							title='Back'
+							title={t('back')}
 						>
 							<ChevronLeft className='h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors' />
 						</Button>
 						<div className='flex flex-col'>
-							<span className='text-xl font-medium text-foreground'>Version history</span>
+							<span className='text-xl font-medium text-foreground'>{t('versionHistory')}</span>
 							<span className='text-md text-muted-foreground'>
 								{selectedVersion
 									? selectedVersion.timestamp
 									: versionsLoading
-										? 'Loading...'
-										: 'No version selected'}
+										? t('loading')
+										: t('noVersionSelected')}
 							</span>
 						</div>
 					</div>
@@ -208,7 +220,6 @@ export default function ModalVersions({
 					<div className='flex-1 bg-muted/30 relative h-full flex flex-col min-w-0'>
 						<ScrollArea className='h-full w-full'>
 							<div className='flex flex-col items-center p-8 min-h-full gap-6'>
-								{/* Review Card */}
 								{selectedVersion?.review && (
 									<div className='w-[816px] bg-card rounded-xl border border-border shadow-sm overflow-hidden shrink-0'>
 										<div className='p-4 border-b border-border flex items-center justify-between bg-muted/50'>
@@ -224,7 +235,7 @@ export default function ModalVersions({
 														{selectedVersion.review.reviewer.name}
 													</span>
 													<span className='text-xs text-muted-foreground'>
-														Reviewed on {selectedVersion.review.date}
+														{t('reviewedOn', { date: selectedVersion.review.date })}
 													</span>
 												</div>
 											</div>
@@ -238,12 +249,11 @@ export default function ModalVersions({
 									</div>
 								)}
 
-								{/* PDF Viewer Mockup */}
 								<div className='bg-muted/50 shadow-sm w-[816px] aspect-[1/1.414] border border-border shrink-0 flex items-center justify-center relative overflow-hidden'>
 									{isCompiling ? (
 										<div className='flex flex-col items-center gap-3 text-muted-foreground'>
 											<Loader2 className='w-10 h-10 animate-spin opacity-50' />
-											<span className='text-sm font-medium'>Preparing PDF Preview...</span>
+											<span className='text-sm font-medium'>{t('preparingPdf')}</span>
 										</div>
 									) : pdfUrl ? (
 										<iframe
@@ -256,7 +266,7 @@ export default function ModalVersions({
 										<div className='flex flex-col items-center gap-3 p-8 text-center'>
 											<FileText className='w-12 h-12 text-red-200' />
 											<div className='space-y-1'>
-												<p className='text-sm font-medium text-red-600'>Failed to Load Preview</p>
+												<p className='text-sm font-medium text-red-600'>{t('failedPreview')}</p>
 												<p className='text-xs text-muted-foreground max-w-xs line-clamp-3'>
 													{compileError}
 												</p>
@@ -268,13 +278,13 @@ export default function ModalVersions({
 													selectedVersion?.content && handleCompile(selectedVersion.content)
 												}
 											>
-												Try Again
+												{t('tryAgain')}
 											</Button>
 										</div>
 									) : (
 										<div className='flex flex-col items-center gap-2 text-muted-foreground'>
 											<FileText className='w-10 h-10 opacity-20' />
-											<p className='text-sm italic'>Select a version to view preview</p>
+											<p className='text-sm italic'>{t('selectVersionToView')}</p>
 										</div>
 									)}
 								</div>
@@ -284,13 +294,13 @@ export default function ModalVersions({
 
 					<div className='w-80 bg-card border-l border-border shadow-sm flex flex-col shrink-0 z-10'>
 						<div className='p-4 border-b border-border flex items-center justify-between'>
-							<h3 className='font-medium text-foreground'>Version history</h3>
+							<h3 className='font-medium text-foreground'>{t('versionHistory')}</h3>
 						</div>
 
 						<ScrollArea className='flex-1'>
 							<div className='py-2'>
 								<div className='px-4 py-2 text-xs font-medium text-muted-foreground'>
-									{versionsLoading ? 'Loading...' : 'Document Versions'}
+									{versionsLoading ? t('loading') : t('documentVersions')}
 								</div>
 
 								{versionsList.map((version) => (
@@ -337,12 +347,12 @@ export default function ModalVersions({
 						<div className='p-4 border-t border-border space-y-3'>
 							{selectedVersion?.isCurrent ? (
 								<div className='text-center text-sm text-muted-foreground py-2'>
-									Current version
+									{t('currentVersion')}
 								</div>
 							) : (
 								isEditorOrOwner && (
 									<Button className='w-full' onClick={handleRollback} disabled={isRollingBack}>
-										{isRollingBack ? 'Restoring...' : 'Restore this version'}
+										{isRollingBack ? t('restoring') : t('restoreVersion')}
 									</Button>
 								)
 							)}
@@ -357,7 +367,7 @@ export default function ModalVersions({
 										variant='outline'
 										onClick={() => setShowReviewModal(true)}
 									>
-										Request Review
+										{t('requestReview')}
 									</Button>
 								)}
 						</div>
@@ -368,6 +378,7 @@ export default function ModalVersions({
 			<ReviewRequestModal
 				isOpen={showReviewModal}
 				onClose={() => setShowReviewModal(false)}
+				lecturers={lecturers}
 				onSubmit={async (data) => {
 					if (!selectedVersion) return
 					try {

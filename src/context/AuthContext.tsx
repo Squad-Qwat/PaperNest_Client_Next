@@ -26,9 +26,17 @@ const PUBLIC_ROUTES = [
 	'/login',
 	'/register',
 	'/forgot-password',
+	'/reset-password',
 	'/auth/onboarding',
 	'/auth/verify-email',
 ]
+
+// Strip locale prefix dari pathname sebelum cek route
+function stripLocale(path: string): string {
+	// Match /en/... atau /id/...
+	const match = path.match(/^\/[a-z]{2}(\/.*|$)/)
+	return match ? match[1] || '/' : path
+}
 
 function AuthProviderInner({ children }: { children: React.ReactNode }) {
 	const queryClient = useQueryClient()
@@ -81,11 +89,14 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 	useEffect(() => {
 		if (!_hasHydrated || isLoading || isInitializing) return
 
+		const strippedPathname = stripLocale(pathname)
+
 		const isPublicRoute =
-			PUBLIC_ROUTES.includes(pathname) || pathname.startsWith('/invitations/accept/')
+			PUBLIC_ROUTES.includes(strippedPathname) ||
+			strippedPathname.startsWith('/invitations/accept/')
 		const firebaseUser = auth.currentUser
 
-		if (pathname === '/auth/verify-email') {
+		if (strippedPathname === '/auth/verify-email') {
 			if (isAuthenticated || firebaseUser?.emailVerified) {
 				router.push('/')
 				return
@@ -100,7 +111,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 			router.push('/login')
 		}
 
-		if (isAuthenticated && (pathname === '/login' || pathname === '/register')) {
+		if (isAuthenticated && (strippedPathname === '/login' || strippedPathname === '/register')) {
 			router.push(callbackUrl || '/')
 		}
 	}, [_hasHydrated, isAuthenticated, isLoading, isInitializing, pathname, router, callbackUrl])

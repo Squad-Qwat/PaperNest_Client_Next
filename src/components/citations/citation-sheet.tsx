@@ -1,6 +1,7 @@
 'use client'
 
 import { Loader2, Plus, Search, Trash2 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Field, FieldLabel } from '@/components/ui/field'
@@ -64,6 +65,7 @@ export function CitationSheet({
 	initialData,
 	documentId: _documentId,
 }: Readonly<CitationSheetProps>) {
+	const t = useTranslations('CitationSheet')
 	const [type, setType] = useState('article')
 	const [title, setTitle] = useState('')
 	const [authors, setAuthors] = useState<Author[]>([{ id: '1', name: '' }])
@@ -287,11 +289,9 @@ export function CitationSheet({
 			<SheetContent className='sm:max-w-md md:max-w-lg overflow-hidden flex flex-col p-0 gap-0'>
 				<SheetHeader className='p-6 shrink-0 border-b border-border'>
 					<SheetTitle className='text-xl font-bold'>
-						{initialData ? 'Update Citation' : 'Add Citation'}
+						{initialData ? t('updateTitle') : t('addTitle')}
 					</SheetTitle>
-					<SheetDescription>
-						Enter citation details manually or search by identifier.
-					</SheetDescription>
+					<SheetDescription>{t('description')}</SheetDescription>
 				</SheetHeader>
 
 				<ScrollArea className='flex-1 min-h-0'>
@@ -531,14 +531,14 @@ export function CitationSheet({
 						className='flex-1 sm:flex-none text-muted-foreground hover:bg-muted hover:text-foreground'
 						onClick={() => onOpenChange(false)}
 					>
-						Cancel
+						{t('cancel')}
 					</Button>
 					<Button
 						className='flex-1 sm:flex-none bg-primary shadow-sm hover:bg-primary/90'
 						onClick={handleSave}
 						disabled={!isFormValid}
 					>
-						{initialData ? 'Update entry' : 'Add entry'}
+						{initialData ? t('updateEntry') : t('addEntry')}
 					</Button>
 				</SheetFooter>
 			</SheetContent>

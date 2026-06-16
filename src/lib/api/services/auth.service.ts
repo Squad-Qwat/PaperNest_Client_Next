@@ -9,6 +9,7 @@ import type {
 	RefreshTokenDto,
 	RefreshTokenResponse,
 	RegisterDto,
+	ResetPasswordDto,
 	UpdateEmailDto,
 	VerifyTokenDto,
 } from '../types/auth.types'
@@ -93,6 +94,17 @@ class AuthService {
 
 	async forgotPassword(data: PasswordResetDto): Promise<void> {
 		await apiClient.post<void>(API_ENDPOINTS.auth.passwordReset, data)
+	}
+
+	async validateResetToken(token: string): Promise<boolean> {
+		await apiClient.get<void>(
+			`${API_ENDPOINTS.auth.passwordResetValidate}?token=${encodeURIComponent(token)}`
+		)
+		return true
+	}
+
+	async resetPassword(data: ResetPasswordDto): Promise<void> {
+		await apiClient.post<void>(API_ENDPOINTS.auth.passwordResetConfirm, data)
 	}
 
 	async sendOTP(token?: string): Promise<void> {

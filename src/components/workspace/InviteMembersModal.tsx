@@ -1,6 +1,7 @@
 'use client'
 
 import { Mail, X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { type ClipboardEvent, type KeyboardEvent, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -32,6 +33,7 @@ export function InviteMembersModal({
 	workspaceId,
 	workspaceName,
 }: InviteMembersModalProps) {
+	const t = useTranslations('Workspace')
 	const [emailInput, setEmailInput] = useState('')
 	const [emailList, setEmailList] = useState<string[]>([])
 	const [role, setRole] = useState<'editor' | 'viewer' | 'reviewer' | 'owner'>('viewer')
@@ -121,12 +123,12 @@ export function InviteMembersModal({
 		<Modal
 			isOpen={isOpen}
 			onClose={handleClose}
-			title={`Invite Members to ${workspaceName || 'Workspace'}`}
+			title={t('inviteTitle', { workspaceName: workspaceName || 'Workspace' })}
 		>
 			<form onSubmit={handleSubmit} className='space-y-6'>
 				<div className='space-y-2'>
 					<Label htmlFor='emails' className='text-sm font-medium'>
-						Invite by email
+						{t('inviteByEmail')}
 					</Label>
 
 					{/* biome-ignore lint/a11y/useSemanticElements: button cannot contain input */}
@@ -183,51 +185,46 @@ export function InviteMembersModal({
 							onKeyDown={handleKeyDown}
 							onPaste={handlePaste}
 							onBlur={() => addEmails(emailInput)}
-							placeholder={
-								emailList.length === 0 ? 'Type emails separated by comma or space...' : ''
-							}
+							placeholder={emailList.length === 0 ? t('inviteInputPlaceholder') : ''}
 							className='flex-1 min-w-[120px] bg-transparent border-none outline-none text-[14px] p-1'
 							disabled={loading}
 						/>
 					</div>
-					<p className='text-[12px] text-muted-foreground'>
-						Press Enter, Comma, or Space to add multiple emails.
-					</p>
+					<p className='text-[12px] text-muted-foreground'>{t('inviteHelpText')}</p>
 				</div>
 
 				<div className='space-y-2'>
 					<Label htmlFor='role' className='text-sm font-medium'>
-						Assign Role
+						{t('assignRole')}
 					</Label>
 					<Select value={role} onValueChange={(value) => setRole(value as any)} disabled={loading}>
 						<SelectTrigger className='w-full'>
 							<SelectValue placeholder='Select a role' />
 						</SelectTrigger>
 						<SelectContent>
-							<SelectItem value='viewer'>Viewer</SelectItem>
-							<SelectItem value='editor'>Editor</SelectItem>
-							<SelectItem value='reviewer'>Reviewer</SelectItem>
-							<SelectItem value='owner'>Owner</SelectItem>
+							<SelectItem value='viewer'>{t('roleViewer')}</SelectItem>
+							<SelectItem value='editor'>{t('roleEditor')}</SelectItem>
+							<SelectItem value='reviewer'>{t('roleReviewer')}</SelectItem>
+							<SelectItem value='owner'>{t('roleOwner')}</SelectItem>
 						</SelectContent>
 					</Select>
 					<p className='text-[12px] text-muted-foreground'>
-						{role === 'viewer' && 'Can only read documents.'}
-						{role === 'editor' && 'Can edit and manage documents.'}
-						{role === 'reviewer' && 'Can provide feedback and comments.'}
-						{role === 'owner' &&
-							'Full administrative access. Can invite/manage members and delete the workspace.'}
+						{role === 'viewer' && t('viewerDesc')}
+						{role === 'editor' && t('editorDesc')}
+						{role === 'reviewer' && t('reviewerDesc')}
+						{role === 'owner' && t('ownerDesc')}
 					</p>
 				</div>
 
 				<ModalFooter className='pt-2'>
 					<Button type='button' variant='outline' onClick={handleClose} disabled={loading}>
-						Cancel
+						{t('cancel')}
 					</Button>
 					<Button
 						type='submit'
 						disabled={loading || (emailList.length === 0 && !emailInput.trim())}
 					>
-						{loading ? 'Sending...' : 'Send Invitations'}
+						{loading ? t('sending') : t('sendInvitations')}
 					</Button>
 				</ModalFooter>
 			</form>
