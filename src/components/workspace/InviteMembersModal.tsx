@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { type ClipboardEvent, type KeyboardEvent, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { ButtonSpinner } from '@/components/ui/button-spinner'
 import { Label } from '@/components/ui/label'
 import { Modal, ModalFooter } from '@/components/ui/modal'
 import {
@@ -224,7 +225,14 @@ export function InviteMembersModal({
 						type='submit'
 						disabled={loading || (emailList.length === 0 && !emailInput.trim())}
 					>
-						{loading ? t('sending') : t('sendInvitations')}
+						{loading ? (
+							<>
+								<ButtonSpinner />
+								{t('sendInvitations')}
+							</>
+						) : (
+							t('sendInvitations')
+						)}
 					</Button>
 				</ModalFooter>
 			</form>

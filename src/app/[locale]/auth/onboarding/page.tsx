@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { ButtonSpinner } from '@/components/ui/button-spinner'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -305,7 +306,16 @@ export default function OnboardingPage() {
 							</Button>
 						)}
 						<Button onClick={handleNext} disabled={loading} className='flex-1'>
-							{loading ? t('processing') : currentStep === 1 ? t('continue') : t('finish')}
+							{loading ? (
+								<>
+									<ButtonSpinner />
+									{currentStep === 1 ? t('continue') : t('finish')}
+								</>
+							) : currentStep === 1 ? (
+								t('continue')
+							) : (
+								t('finish')
+							)}
 						</Button>
 					</div>
 				</div>

@@ -289,10 +289,10 @@ export function useUpdateReviewStatus() {
 			reviewId: string
 			data: UpdateReviewStatusDto & { status: 'approved' | 'rejected' | 'revision_required' }
 		}) => {
-			const { status, ...rest } = data
-			if (status === 'approved') return documentsService.approveReview(reviewId, rest)
-			if (status === 'rejected') return documentsService.rejectReview(reviewId, rest)
-			return documentsService.requestRevision(reviewId, rest)
+			const { status } = data
+			if (status === 'approved') return documentsService.approveReview(reviewId, data)
+			if (status === 'rejected') return documentsService.rejectReview(reviewId, data)
+			return documentsService.requestRevision(reviewId, data)
 		},
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.pendingReviews() })

@@ -9,6 +9,7 @@ import type React from 'react'
 import { Suspense, useMemo, useState } from 'react'
 import { AuthPageLayout } from '@/components/auth/AuthPageLayout'
 import { Button } from '@/components/ui/button'
+import { ButtonSpinner } from '@/components/ui/button-spinner'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useResetPassword, useValidateResetToken } from '@/lib/api/hooks/use-auth'
@@ -332,7 +333,7 @@ function ResetPasswordContent() {
 							<Button type='submit' className='w-full' disabled={isPending}>
 								{isPending ? (
 									<>
-										<Loader2 className='size-4 animate-spin' />
+										<ButtonSpinner />
 										{t('resettingPassword')}
 									</>
 								) : (

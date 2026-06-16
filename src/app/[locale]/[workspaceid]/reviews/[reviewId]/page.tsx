@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { ButtonSpinner } from '@/components/ui/button-spinner'
 import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Modal, ModalFooter } from '@/components/ui/modal'
@@ -461,7 +462,14 @@ export default function ReviewDetailPage() {
 							disabled={isUpdating}
 							className='font-semibold'
 						>
-							{isUpdating ? t('processing') : t('submitDecision')}
+							{isUpdating ? (
+								<>
+									<ButtonSpinner />
+									{t('submitDecision')}
+								</>
+							) : (
+								t('submitDecision')
+							)}
 						</Button>
 					</ModalFooter>
 				</div>

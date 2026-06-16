@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import * as React from 'react'
 import { Button } from '@/components/ui/button'
+import { ButtonSpinner } from '@/components/ui/button-spinner'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Modal, ModalFooter } from '@/components/ui/modal'
@@ -150,7 +151,14 @@ export function CreateDocumentModal({
 						{t('cancel')}
 					</Button>
 					<Button type='submit' disabled={isCreating} className='bg-primary hover:bg-primary/90'>
-						{isCreating ? t('creating') : t('createButton')}
+						{isCreating ? (
+							<>
+								<ButtonSpinner />
+								{t('createButton')}
+							</>
+						) : (
+							t('createButton')
+						)}
 					</Button>
 				</ModalFooter>
 			</form>

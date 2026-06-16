@@ -1,12 +1,13 @@
 'use client'
 
 import imageCompression from 'browser-image-compression'
-import { Camera, Loader2 } from 'lucide-react'
+import { Camera } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { ButtonSpinner } from '@/components/ui/button-spinner'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Input } from '@/components/ui/input'
 import { useAuth } from '@/context/AuthContext'
@@ -196,7 +197,7 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 
 									{isUploading && (
 										<div className='absolute inset-0 bg-background/80 flex items-center justify-center'>
-											<Loader2 className='h-5 w-5 text-primary animate-spin' />
+											<ButtonSpinner className='h-5 w-5 text-primary' />
 										</div>
 									)}
 								</button>
@@ -274,8 +275,8 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 						>
 							{updateUser.isPending ? (
 								<>
-									<Loader2 className='mr-2 h-4 w-4 animate-spin' />
-									{t('saving')}
+									<ButtonSpinner />
+									{t('saveChanges')}
 								</>
 							) : (
 								t('saveChanges')

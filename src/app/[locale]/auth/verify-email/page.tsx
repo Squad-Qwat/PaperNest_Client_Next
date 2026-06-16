@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { AuthPageLayout } from '@/components/auth/AuthPageLayout'
 import { Button } from '@/components/ui/button'
+import { ButtonSpinner } from '@/components/ui/button-spinner'
 import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from '@/components/ui/input-otp'
 import { useAuth } from '@/context/AuthContext'
 import { useSendOTP, useVerifyOTP } from '@/lib/api/hooks/use-auth'
@@ -101,7 +102,14 @@ export default function VerifyEmailPage() {
 							onClick={() => handleVerify(otp)}
 							disabled={isVerifying || otp.length !== 6}
 						>
-							{isVerifying ? <Loader2 className='w-4 h-4 animate-spin' /> : t('verifyAccount')}
+							{isVerifying ? (
+								<>
+									<ButtonSpinner />
+									{t('verifyAccount')}
+								</>
+							) : (
+								t('verifyAccount')
+							)}
 						</Button>
 
 						<div className='flex flex-col gap-3 items-center w-full text-muted-foreground'>
@@ -114,8 +122,14 @@ export default function VerifyEmailPage() {
 								}}
 								disabled={isResending || isVerifying}
 							>
-								{isResending ? <Loader2 className='w-4 h-4 animate-spin mr-2' /> : null}
-								{t('resendCode')}
+								{isResending ? (
+									<>
+										<ButtonSpinner />
+										{t('resendCode')}
+									</>
+								) : (
+									t('resendCode')
+								)}
 							</Button>
 
 							<div className='flex items-center gap-2 text-sm opacity-70 mt-2'>

@@ -72,7 +72,7 @@ export default function RegisterPage() {
 		setOnboardingData,
 	})
 
-	const loading = isRegisterPending || isSocialPending || checkingEmail
+	const loading = isRegisterPending || isSocialPending
 
 	const [currentStep, setCurrentStep] = useState(1)
 	const [direction, setDirection] = useState(0)
@@ -532,7 +532,7 @@ export default function RegisterPage() {
 							type='button'
 							variant='outline'
 							onClick={handleBack}
-							disabled={loading}
+							disabled={loading || checkingEmail}
 							className='flex-1'
 						>
 							{t('back')}
@@ -544,10 +544,10 @@ export default function RegisterPage() {
 						disabled={loading || checkingEmail}
 						className={currentStep === 1 ? 'w-full' : 'flex-1'}
 					>
-						{loading
-							? t('creatingAccount')
-							: checkingEmail
-								? t('checkingEmail')
+						{checkingEmail
+							? t('checkingEmail')
+							: loading
+								? t('creatingAccount')
 								: currentStep === totalSteps
 									? t('finish')
 									: t('continue')}
