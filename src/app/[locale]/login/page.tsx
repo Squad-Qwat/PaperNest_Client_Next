@@ -10,6 +10,7 @@ import { AuthPageLayout } from '@/components/auth/AuthPageLayout'
 import { SocialLoginButtons } from '@/components/auth/SocialLoginButtons'
 import { TurnstileWidget } from '@/components/auth/TurnstileWidget'
 import { Button } from '@/components/ui/button'
+import { ButtonSpinner } from '@/components/ui/button-spinner'
 import {
 	Dialog,
 	DialogContent,
@@ -129,7 +130,14 @@ export default function LoginPage() {
 							onClick={() => linkMutation.mutate(turnstileToken)}
 							disabled={isLinking || !turnstileToken}
 						>
-							{isLinking ? t('linkingAccount') : t('linkNow')}
+							{isLinking ? (
+								<>
+									<ButtonSpinner />
+									{t('linkingAccount')}
+								</>
+							) : (
+								t('linkNow')
+							)}
 						</Button>
 						<Button
 							variant='outline'
@@ -209,7 +217,14 @@ export default function LoginPage() {
 				<TurnstileWidget onVerify={setTurnstileToken} />
 
 				<Button type='submit' className='w-full' disabled={loading}>
-					{loading ? t('loggingIn') : t('login')}
+					{loading ? (
+						<>
+							<ButtonSpinner />
+							{t('loggingIn')}
+						</>
+					) : (
+						t('login')
+					)}
 				</Button>
 			</form>
 

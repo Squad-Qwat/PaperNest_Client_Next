@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { ButtonSpinner } from '@/components/ui/button-spinner'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Modal, ModalFooter } from '@/components/ui/modal'
@@ -188,7 +189,14 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
 						{t('cancel')}
 					</Button>
 					<Button type='submit' disabled={loading}>
-						{loading ? t('creating') : t('createButton')}
+						{loading ? (
+							<>
+								<ButtonSpinner />
+								{t('createButton')}
+							</>
+						) : (
+							t('createButton')
+						)}
 					</Button>
 				</ModalFooter>
 			</form>

@@ -63,6 +63,7 @@ export const API_ENDPOINTS = {
 		batch: (documentId: string) => `/documents/${documentId}/batch`,
 		revert: (documentId: string, versionNumber: number) =>
 			`/documents/${documentId}/versions/${versionNumber}/revert`,
+		exportZip: (documentId: string) => `/documents/${documentId}/export-zip`,
 	},
 	reviews: {
 		student: '/reviews',

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { ButtonSpinner } from '@/components/ui/button-spinner'
 import { Label } from '@/components/ui/label'
 import { Modal, ModalFooter } from '@/components/ui/modal'
 import {
@@ -114,7 +115,14 @@ export default function CreateReviewModal({
 					Cancel
 				</Button>
 				<Button onClick={handleSubmit} disabled={isSubmitting}>
-					{isSubmitting ? 'Submitting...' : 'Submit Decision'}
+					{isSubmitting ? (
+						<>
+							<ButtonSpinner />
+							{'Submitting'}
+						</>
+					) : (
+						'Submit Decision'
+					)}
 				</Button>
 			</ModalFooter>
 		</Modal>

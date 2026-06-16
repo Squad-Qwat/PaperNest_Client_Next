@@ -7,6 +7,7 @@ import { ReviewRequestModal } from '@/components/review/ReviewRequestModal'
 import { ReviewStatusBadge } from '@/components/review/ReviewStatusBadge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { ButtonSpinner } from '@/components/ui/button-spinner'
 import { Modal } from '@/components/ui/modal'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useAuth } from '@/context/AuthContext'
@@ -352,7 +353,14 @@ export default function ModalVersions({
 							) : (
 								isEditorOrOwner && (
 									<Button className='w-full' onClick={handleRollback} disabled={isRollingBack}>
-										{isRollingBack ? t('restoring') : t('restoreVersion')}
+										{isRollingBack ? (
+											<>
+												<ButtonSpinner />
+												{t('restoreVersion')}
+											</>
+										) : (
+											t('restoreVersion')
+										)}
 									</Button>
 								)
 							)}

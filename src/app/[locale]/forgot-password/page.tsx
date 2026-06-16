@@ -9,6 +9,7 @@ import { useState } from 'react'
 import { AuthPageLayout } from '@/components/auth/AuthPageLayout'
 import { TurnstileWidget } from '@/components/auth/TurnstileWidget'
 import { Button } from '@/components/ui/button'
+import { ButtonSpinner } from '@/components/ui/button-spinner'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useForgotPassword } from '@/lib/api/hooks/use-auth'
@@ -137,7 +138,14 @@ export default function ForgotPasswordPage() {
 							<TurnstileWidget onVerify={setTurnstileToken} />
 
 							<Button type='submit' className='w-full' disabled={isPending}>
-								{isPending ? t('sendingResetLink') : t('sendResetLink')}
+								{isPending ? (
+									<>
+										<ButtonSpinner />
+										{t('sendingResetLink')}
+									</>
+								) : (
+									t('sendResetLink')
+								)}
 							</Button>
 						</form>
 
