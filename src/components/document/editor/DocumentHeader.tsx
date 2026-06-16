@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import {
 	ChevronLeft,
 	FileDown,
@@ -36,7 +37,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useAuth } from '@/context/AuthContext'
 import { apiClient } from '@/lib/api/clients/api-client'
 import { API_ENDPOINTS } from '@/lib/api/config'
-import { useDocumentReviews } from '@/lib/api/hooks/use-documents'
+import { DOCUMENT_KEYS, useDocumentReviews } from '@/lib/api/hooks/use-documents'
 import { useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'
 import { documentsService } from '@/lib/api/services/documents.service'
 import { cn, getInitials, getMediaUrl } from '@/lib/utils'
@@ -125,6 +126,7 @@ const DocumentHeader = ({
 	const router = useRouter()
 	const { user } = useAuth()
 	const t = useTranslations('Document')
+	const queryClient = useQueryClient()
 	const [showCommitModal, setShowCommitModal] = useState(false)
 	const { data: reviewsResponse } = useDocumentReviews(documentId)
 
@@ -481,11 +483,13 @@ const DocumentHeader = ({
 							content: content,
 						})
 
+						queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.versions(documentId) })
+						queryClient.invalidateQueries({ queryKey: DOCUMENT_KEYS.reviews(documentId) })
 						toast.success('Version committed successfully')
 						setShowCommitModal(false)
 					} catch (error) {
 						console.error('Failed to commit version:', error)
-						throw error // Re-throw so Modal can handle it/show error
+						throw error
 					}
 				}}
 			/>
