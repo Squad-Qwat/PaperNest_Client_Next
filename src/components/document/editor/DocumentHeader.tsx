@@ -35,7 +35,6 @@ import {
 } from '@/components/ui/menubar'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAuth } from '@/context/AuthContext'
-import { apiClient } from '@/lib/api/clients/api-client'
 import { API_ENDPOINTS } from '@/lib/api/config'
 import { DOCUMENT_KEYS, useDocumentReviews } from '@/lib/api/hooks/use-documents'
 import { useWorkspaceMembers } from '@/lib/api/hooks/use-workspaces'

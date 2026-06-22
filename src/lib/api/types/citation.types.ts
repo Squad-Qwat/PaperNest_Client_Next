@@ -78,6 +78,8 @@ export interface SemanticScholarPaper {
 		name: string
 	}>
 	fieldsOfStudy?: string[]
+	crossRefType?: string
+	type?: string
 }
 
 export interface SemanticScholarSearchResponse {
