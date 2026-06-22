@@ -142,10 +142,11 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
 								key={iconOption}
 								type='button'
 								onClick={() => setIcon(iconOption)}
-								className={`p-3 text-2xl border rounded-lg transition-all hover:scale-105 ${icon === iconOption
+								className={`p-3 text-2xl border rounded-lg transition-all hover:scale-105 ${
+									icon === iconOption
 										? 'bg-primary/10 border-primary text-primary'
 										: 'bg-card border-border hover:border-muted-foreground text-foreground'
-									}`}
+								}`}
 								disabled={loading}
 							>
 								{iconOption}
