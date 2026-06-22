@@ -295,9 +295,10 @@ export function useLogout() {
 			await signOut(auth)
 			return authService.logout()
 		},
+		onSuccess: () => {
+			toast.success('You have been logged out.')
+		},
 		onSettled: () => {
-			apiClient.removeAuthToken()
-			queryClient.setQueryData(AUTH_KEYS.user, null)
 			queryClient.clear()
 			router.push('/login')
 		},

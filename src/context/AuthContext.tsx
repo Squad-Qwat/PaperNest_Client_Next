@@ -1,11 +1,10 @@
 'use client'
 
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { createContext, Suspense, useContext, useEffect, useState } from 'react'
-import { toast } from 'sonner'
 import { InviteConfirmationModal } from '@/components/workspace/InviteConfirmationModal'
-import { AUTH_KEYS } from '@/lib/api/hooks/use-auth'
+import { AUTH_KEYS, useLogout } from '@/lib/api/hooks/use-auth'
 import { authService } from '@/lib/api/services/auth.service'
 import type { User } from '@/lib/api/types/user.types'
 import { auth } from '@/lib/firebase/config'
@@ -17,7 +16,7 @@ interface AuthContextType {
 	isAuthenticated: boolean
 	onboardingData: any | null
 	setOnboardingData: (data: any) => void
-	logout: () => Promise<void>
+	logout: () => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -39,10 +38,10 @@ function stripLocale(path: string): string {
 }
 
 function AuthProviderInner({ children }: { children: React.ReactNode }) {
-	const queryClient = useQueryClient()
 	const [onboardingData, setOnboardingData] = useState<any | null>(null)
 	const { isAuthenticated, clearAuth, _hasHydrated, isInitializing, setInitializing } =
 		useAuthStore()
+	const { mutate: logoutMutate } = useLogout()
 	const router = useRouter()
 	const pathname = usePathname()
 	const searchParams = useSearchParams()
@@ -72,18 +71,8 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 		retry: false,
 	})
 
-	const logout = async () => {
-		try {
-			const { signOut } = await import('firebase/auth')
-			await signOut(auth)
-			await authService.logout()
-			queryClient.clear()
-			toast.success('You have been logged out.')
-			router.push('/login')
-		} catch {
-			clearAuth()
-			router.push('/login')
-		}
+	const logout = () => {
+		logoutMutate()
 	}
 
 	useEffect(() => {
