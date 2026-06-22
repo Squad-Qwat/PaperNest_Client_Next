@@ -25,13 +25,24 @@ export const useAuthStore = create<AuthState>()(
 			setTokens: (accessToken, refreshToken) =>
 				set({ accessToken, refreshToken, isAuthenticated: true }),
 			setAccessToken: (accessToken) => set({ accessToken }),
-			clearAuth: () => set({ accessToken: null, refreshToken: null, isAuthenticated: false }),
+			clearAuth: () => {
+				if (typeof window !== 'undefined') {
+					localStorage.removeItem('texlyre-current-user')
+					localStorage.removeItem('lastVisitedWorkspaceId')
+				}
+				set({ accessToken: null, refreshToken: null, isAuthenticated: false })
+			},
 			setInitializing: (state) => set({ isInitializing: state }),
 			setHasHydrated: (state) => set({ _hasHydrated: state }),
 		}),
 		{
 			name: 'papernest-auth',
 			storage: createJSONStorage(() => localStorage),
+			partialize: (state) => ({
+				accessToken: state.accessToken,
+				refreshToken: state.refreshToken,
+				isAuthenticated: state.isAuthenticated,
+			}),
 			onRehydrateStorage: (state) => {
 				return () => state?.setHasHydrated(true)
 			},
