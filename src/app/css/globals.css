@@ -63,7 +63,7 @@
 	--background: oklch(1 0 0);
 	--foreground: oklch(0.216 0.006 56.043);
 
-	--primary: oklch(0.6 0.118 184.704);
+	--primary: rgb(0, 150, 137);
 	--primary-foreground: oklch(1 0 0);
 
 	--primary-subtle: oklch(0.704 0.14 182.503 / 0.15);
