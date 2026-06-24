@@ -1,4 +1,6 @@
-import { FileText, Users, X } from 'lucide-react'
+import { Notebook } from '@react-symbols/icons'
+import { FileIcon as RFileIcon } from '@react-symbols/icons/utils'
+import { X } from 'lucide-react'
 
 export type AuxiliaryFile = {
 	fileId: string
@@ -38,7 +40,13 @@ export function EditorTabs({
 					}
 				}}
 			>
-				<Users className='w-4 h-4 text-green-600' />
+				<RFileIcon
+					fileName='main.tex'
+					className='w-4 h-4 shrink-0'
+					editFileExtensionData={{
+						bib: Notebook,
+					}}
+				/>
 				<span className='text-sm text-foreground'>main.tex</span>
 			</div>
 
@@ -59,8 +67,12 @@ export function EditorTabs({
 						}
 					}}
 				>
-					<FileText
-						className={`w-4 h-4 ${activeFileId === file.fileId ? 'text-primary' : 'text-muted-foreground'}`}
+					<RFileIcon
+						fileName={file.name}
+						className='w-4 h-4 shrink-0'
+						editFileExtensionData={{
+							bib: Notebook,
+						}}
 					/>
 					<span className='text-sm'>{file.name}</span>
 

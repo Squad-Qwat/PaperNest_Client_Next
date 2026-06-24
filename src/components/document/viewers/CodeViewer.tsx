@@ -22,7 +22,9 @@ import {
 	lineNumbers,
 	rectangularSelection,
 } from '@codemirror/view'
+import { bibtex } from 'codemirror-lang-bib'
 import { latex } from 'codemirror-lang-latex'
+import { typst } from 'codemirror-lang-typst'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { apiClient } from '@/lib/api/clients/api-client'
@@ -128,6 +130,21 @@ export function CodeViewer({ file, readOnly = false, onChange, onViewReady }: Co
 			}, 3000)
 		}
 
+		const ext = file.name.split('.').pop()?.toLowerCase() || ''
+		let langExtension: Extension
+		let autocompleteExtension: Extension
+
+		if (ext === 'bib') {
+			langExtension = bibtex()
+			autocompleteExtension = autocompletion()
+		} else if (ext === 'typ') {
+			langExtension = typst()
+			autocompleteExtension = autocompletion()
+		} else {
+			langExtension = latex({ enableAutocomplete: false })
+			autocompleteExtension = autocompletion({ override: [latexAutocompleteSource] })
+		}
+
 		const baseExtensions: Extension[] = [
 			lineNumbers(),
 			highlightActiveLineGutter(),
@@ -140,7 +157,7 @@ export function CodeViewer({ file, readOnly = false, onChange, onViewReady }: Co
 			...paperNestThemeExtension,
 			bracketMatching(),
 			closeBrackets(),
-			autocompletion({ override: [latexAutocompleteSource] }),
+			autocompleteExtension,
 			rectangularSelection(),
 			crosshairCursor(),
 			highlightActiveLine(),
@@ -157,7 +174,7 @@ export function CodeViewer({ file, readOnly = false, onChange, onViewReady }: Co
 				...completionKeymap,
 				...lintKeymap,
 			]),
-			latex({ enableAutocomplete: false }),
+			langExtension,
 			EditorView.lineWrapping,
 			EditorView.updateListener.of((update) => {
 				if (update.docChanged) {
@@ -185,7 +202,7 @@ export function CodeViewer({ file, readOnly = false, onChange, onViewReady }: Co
 			viewRef.current = null
 			onViewReadyRef.current?.(null)
 		}
-	}, [file.fileId, readOnly])
+	}, [file.fileId, file.name, readOnly])
 
 	// 2. Sync content changes from external sources without recreating the editor
 	useEffect(() => {
