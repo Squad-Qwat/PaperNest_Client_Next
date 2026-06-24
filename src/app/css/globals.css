@@ -143,10 +143,10 @@
 	--radius-4xl: calc(var(--radius-lg) * 3);
 
 	/* Overleaf Light Editor Theme variables */
-	--editor-comment: #0080ff;
-	--editor-macro: #3f7f7f;
-	--editor-value: #5a5cad;
-	--editor-keyword: #3f7f7f;
+	--editor-comment: #6272a4;
+	--editor-macro: #0080a0;
+	--editor-value: #b58900;
+	--editor-keyword: #d2529c;
 }
 
 .dark {

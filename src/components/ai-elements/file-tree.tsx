@@ -107,12 +107,14 @@ const FileTreeFolderContext = createContext<FileTreeFolderContextType>({
 export type FileTreeFolderProps = HTMLAttributes<HTMLDivElement> & {
 	path: string
 	name: string
+	headerClassName?: string
 }
 
 export const FileTreeFolder = ({
 	path,
 	name,
 	className,
+	headerClassName,
 	children,
 	...props
 }: FileTreeFolderProps) => {
@@ -130,20 +132,33 @@ export const FileTreeFolder = ({
 
 	const folderContextValue = useMemo(() => ({ isExpanded, name, path }), [isExpanded, name, path])
 
+	// Extract drag and drop props to forward them to the inner header row div
+	const { onDragStart, onDragOver, onDragLeave, onDrop, draggable, ...restProps } = props as any
+
 	return (
 		<FileTreeFolderContext.Provider value={folderContextValue}>
 			<Collapsible onOpenChange={handleOpenChange} open={isExpanded}>
-				<div className={cn('', className)} role='treeitem' tabIndex={0} {...props}>
+				<div className={cn('', className)} role='treeitem' tabIndex={0} {...restProps}>
+					{/* biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop handles */}
 					<div
 						className={cn(
 							'flex w-full items-center gap-1 rounded px-2 py-1 text-left transition-colors hover:bg-muted/50',
-							isSelected && 'bg-muted'
+							isSelected && 'bg-muted',
+							headerClassName
 						)}
+						draggable={draggable}
+						onDragStart={onDragStart}
+						onDragOver={onDragOver}
+						onDragLeave={onDragLeave}
+						onDrop={onDrop}
 					>
 						<CollapsibleTrigger asChild>
 							<button
 								className='flex shrink-0 cursor-pointer items-center border-none bg-transparent p-0'
 								type='button'
+								onClick={(e) => {
+									e.stopPropagation()
+								}}
 							>
 								<ChevronRightIcon
 									className={cn(
@@ -160,9 +175,9 @@ export const FileTreeFolder = ({
 						>
 							<FileTreeIcon>
 								{isExpanded ? (
-									<FolderOpenIcon className='size-4 text-blue-500' />
+									<FolderOpenIcon className='size-4 text-amber-500 dark:text-amber-400 fill-amber-500/10' />
 								) : (
-									<FolderIcon className='size-4 text-blue-500' />
+									<FolderIcon className='size-4 text-amber-500 dark:text-amber-400 fill-amber-500/10' />
 								)}
 							</FileTreeIcon>
 							<FileTreeName>{name}</FileTreeName>
@@ -248,17 +263,19 @@ export const FileTreeFile = ({
 	)
 }
 
-export type FileTreeActionsProps = HTMLAttributes<HTMLFieldSetElement>
+export type FileTreeActionsProps = HTMLAttributes<HTMLDivElement>
 
 const stopPropagation = (e: React.SyntheticEvent) => e.stopPropagation()
 
 export const FileTreeActions = ({ className, children, ...props }: FileTreeActionsProps) => (
-	<fieldset
+	// biome-ignore lint/a11y/useSemanticElements: File tree action buttons group
+	<div
 		className={cn('ml-auto flex items-center gap-1', className)}
 		onClick={stopPropagation}
 		onKeyDown={stopPropagation}
+		role='group'
 		{...props}
 	>
 		{children}
-	</fieldset>
+	</div>
 )

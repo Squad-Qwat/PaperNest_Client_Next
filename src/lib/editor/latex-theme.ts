@@ -108,11 +108,11 @@ export const paperNestTheme = EditorView.theme(
  * Optimized for LaTeX documents with a clear, readable syntax.
  */
 export const paperNestHighlightStyle = HighlightStyle.define([
-	{ tag: t.keyword, color: 'var(--editor-keyword)', fontWeight: '600' },
+	{ tag: [t.keyword, t.definitionKeyword], color: 'var(--editor-keyword)', fontWeight: '600' },
 	{ tag: t.atom, color: 'var(--editor-value)' },
 	{ tag: t.number, color: 'var(--editor-value)' },
 	{ tag: t.string, color: 'var(--editor-value)' },
-	{ tag: t.comment, color: 'var(--editor-comment)', fontStyle: 'italic' },
+	{ tag: [t.comment, t.lineComment], color: 'var(--editor-comment)', fontStyle: 'italic' },
 	{ tag: t.meta, color: 'var(--editor-macro)', fontWeight: '500' }, // Commands like \begin, \section
 	{ tag: t.heading, color: 'var(--editor-macro)', fontWeight: 'bold', fontSize: '1.1em' },
 	{ tag: t.labelName, color: 'var(--editor-value)' },
