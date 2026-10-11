@@ -42,9 +42,6 @@ interface UseLatexEditorOptions {
 	onDocChange?: (content: string) => void
 }
 
-const collabCompartment = new Compartment()
-const readOnlyCompartment = new Compartment()
-
 export function useLatexEditor({
 	documentId = null,
 	user = null,
@@ -60,6 +57,12 @@ export function useLatexEditor({
 	const [isSaving, setIsSaving] = useState(false)
 	const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
 	const initialContentRef = useRef(initialContent)
+	// Per-instance compartments: MUST NOT be module-level singletons.
+	// A module-level Compartment would persist across editor remounts and
+	// cause the previous ySync observer to fire again on the new session,
+	// doubling content each time the editor is closed and reopened.
+	const collabCompartmentRef = useRef(new Compartment())
+	const readOnlyCompartmentRef = useRef(new Compartment())
 
 	const { mutateAsync: batchUpdate } = useBatchUpdateDocument()
 
@@ -151,8 +154,8 @@ export function useLatexEditor({
 			EditorView.updateListener.of((update) => {
 				onUpdateRef.current?.(update)
 			}),
-			collabCompartment.of([]),
-			readOnlyCompartment.of(EditorState.readOnly.of(readOnly)),
+			collabCompartmentRef.current.of([]),
+			readOnlyCompartmentRef.current.of(EditorState.readOnly.of(readOnly)),
 		]
 
 		const shouldWaitForCollab = !!documentId && enabled && !readOnly
@@ -182,7 +185,7 @@ export function useLatexEditor({
 		if (!view || !collaborationReady || !yDoc || !awareness) {
 			if (view) {
 				view.dispatch({
-					effects: collabCompartment.reconfigure([]),
+					effects: collabCompartmentRef.current.reconfigure([]),
 				})
 			}
 			return
@@ -202,7 +205,7 @@ export function useLatexEditor({
 		const extension = yCollab(yText, awareness, { undoManager: undoManager as any })
 
 		view.dispatch({
-			effects: collabCompartment.reconfigure(extension),
+			effects: collabCompartmentRef.current.reconfigure(extension),
 		})
 	}, [collaborationReady, yDoc, awareness, undoManager])
 
@@ -211,7 +214,7 @@ export function useLatexEditor({
 		if (!view) return
 
 		view.dispatch({
-			effects: readOnlyCompartment.reconfigure(EditorState.readOnly.of(readOnly)),
+			effects: readOnlyCompartmentRef.current.reconfigure(EditorState.readOnly.of(readOnly)),
 		})
 	}, [readOnly])
 

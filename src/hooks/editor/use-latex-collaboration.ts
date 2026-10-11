@@ -87,7 +87,8 @@ export function useLatexCollaboration({
 						setYProvider(provider)
 						setYDoc(yjsDoc)
 						setUndoManager(undoManagerInstance)
-						setIsReady(true)
+						// Do NOT set isReady here — Liveblocks hasn't synced yText yet.
+						// isReady is set inside handleSync once the cloud state arrives.
 					}
 
 					const handleSync = (isSynced: boolean) => {
@@ -98,6 +99,8 @@ export function useLatexCollaboration({
 						if (isSynced && !hasInitialContentLoaded.current) {
 							hasInitialContentLoaded.current = true
 							setHasSyncedOnce(true)
+							// Only now is yText authoritative — safe to attach yCollab.
+							if (mounted) setIsReady(true)
 							console.log('[LaTeX] Sync complete - room content is authoritative')
 						}
 					}
